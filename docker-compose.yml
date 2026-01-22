@@ -1,0 +1,57 @@
+services:
+    # Nginx to serve Laravel
+    kauno_problemos_nginx:
+        image: nginx:latest
+        container_name: kauno-problemos-nginx
+        restart: always
+        volumes:
+            - ./docker/nginx/conf.d/nginx.conf:/etc/nginx/conf.d/nginx.conf
+            - ./:/var/www/html
+        ports:
+            - "80:80"
+        networks:
+            - proxy
+        depends_on:
+            - kauno_problemos_php
+            - kauno_problemos_postgres
+
+    # PHP-FPM for Laravel
+    kauno_problemos_php:
+        build:
+            context: .
+            dockerfile: Dockerfile
+        container_name: kauno-problemos-php
+        restart: always
+        volumes:
+            - ./:/var/www/html
+            - ./docker/php/xdebug.ini:/usr/local/etc/php/conf.d/xdebug.ini
+        networks:
+            - proxy
+        depends_on:
+            - kauno_problemos_postgres
+        ports:
+            - "5174:5174"
+            - "9003:9003"
+
+    # PostgreSQL for Laravel database
+    kauno_problemos_postgres:
+        image: postgres:16
+        container_name: kauno-problemos-postgres
+        restart: always
+        environment:
+            POSTGRES_DB: kauno_problemos_db
+            POSTGRES_USER: kauno_problemos_admin
+            POSTGRES_PASSWORD: kauno_problemos_admin
+        volumes:
+            - dbdata:/var/lib/postgresql/data
+        ports:
+            - "5433:5432"
+        networks:
+            - proxy
+
+networks:
+    proxy:
+        external: true
+
+volumes:
+    dbdata:
