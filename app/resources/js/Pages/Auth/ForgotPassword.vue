@@ -1,10 +1,8 @@
 <script setup>
 import GuestLayout from '@/Layouts/GuestLayout.vue';
-import InputError from '@/Components/InputError.vue';
-import InputLabel from '@/Components/InputLabel.vue';
-import PrimaryButton from '@/Components/PrimaryButton.vue';
-import TextInput from '@/Components/TextInput.vue';
 import { Head, useForm } from '@inertiajs/vue3';
+import AuthInput from '@/Components/Auth/AuthInput.vue';
+import AppButton from '@/Components/App/AppButton.vue';
 
 defineProps({
     status: {
@@ -25,12 +23,6 @@ const submit = () => {
     <GuestLayout>
         <Head title="Forgot Password" />
 
-        <div class="mb-4 text-sm text-gray-600">
-            Forgot your password? No problem. Just let us know your email
-            address and we will email you a password reset link that will allow
-            you to choose a new one.
-        </div>
-
         <div
             v-if="status"
             class="mb-4 text-sm font-medium text-green-600"
@@ -38,31 +30,40 @@ const submit = () => {
             {{ status }}
         </div>
 
-        <form @submit.prevent="submit">
-            <div>
-                <InputLabel for="email" value="Email" />
+        <form @submit.prevent="submit" class="forgot-password-form">
 
-                <TextInput
-                    id="email"
-                    type="email"
-                    class="mt-1 block w-full"
-                    v-model="form.email"
-                    required
-                    autofocus
-                    autocomplete="username"
-                />
+            <h2>Slaptažodžio priminimas</h2>
 
-                <InputError class="mt-2" :message="form.errors.email" />
-            </div>
+            <AuthInput
+                id="email"
+                type="email"
+                placeholder="Įvesti el. paštą"
+                v-model="form.email"
+                :error="form.errors.email"
+            />
 
-            <div class="mt-4 flex items-center justify-end">
-                <PrimaryButton
-                    :class="{ 'opacity-25': form.processing }"
-                    :disabled="form.processing"
-                >
-                    Email Password Reset Link
-                </PrimaryButton>
+            <div class="btn-wrp">
+                <AppButton text="Gauti nuorodą" />
             </div>
         </form>
     </GuestLayout>
 </template>
+
+<style scoped>
+h2 {
+    text-align: center;
+    font-weight: bold;
+    font-size: 24px;
+    margin-bottom: 40px;
+}
+
+.forgot-password-form {
+    width: 400px;
+    margin: 0 auto;
+    font-size: 18px;
+}
+
+.btn-wrp {
+    margin: 0 40px;
+}
+</style>
