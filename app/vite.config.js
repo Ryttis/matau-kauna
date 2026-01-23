@@ -17,4 +17,15 @@ export default defineConfig({
             },
         }),
     ],
+    server: {
+        host: '0.0.0.0',
+        port: 5173,
+        strictPort: true,
+        cors: true,
+        hmr: {
+            host: 'kauno-problemos.local',
+            protocol: 'ws',
+            port: 5173,
+        },
+    },
 });
