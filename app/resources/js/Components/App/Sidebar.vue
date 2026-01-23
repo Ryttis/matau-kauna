@@ -110,8 +110,14 @@ const toggleStates = () => {
                 </div>
             </div>
 
-            <!-- Settings pinned to bottom -->
             <div class="nav-bottom">
+                <Link
+                    href="/admin"
+                    class="nav-link"
+                    :class="{ active: isActive('/admin') }"
+                >
+                    <span>Sistemos Administravimas</span>
+                </Link>
                 <Link
                     href="/settings"
                     class="nav-link"
@@ -138,6 +144,7 @@ const toggleStates = () => {
     text-align: center;
     font-weight: bold;
     padding: 40px 0;
+    border-bottom: 1px solid #1946A0;
 }
 
 .nav {
