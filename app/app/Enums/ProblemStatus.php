@@ -1,0 +1,42 @@
+<?php
+
+namespace App\Enums;
+
+enum ProblemStatus: string
+{
+    case NEW = 'nauja';
+    case IN_REVIEW = 'nagrinejama';
+    case RESOLVED = 'isspresta';
+    case INACTIVE = 'neaktuali';
+
+    public function label(): string
+    {
+        return match($this) {
+            self::NEW => 'Nauja',
+            self::IN_REVIEW => 'Nagrinėjama',
+            self::RESOLVED => 'Išspręsta',
+            self::INACTIVE => 'Neaktuali',
+        };
+    }
+
+    public static function values(): array
+    {
+        return array_column(self::cases(), 'value');
+    }
+
+    public static function options(): array
+    {
+        return array_map(fn($case) => [
+            'value' => $case->value,
+            'label' => $case->label(),
+        ], self::cases());
+    }
+
+    public static function labels(): array
+    {
+        return array_combine(
+            array_column(self::cases(), 'value'),
+            array_map(fn($case) => $case->label(), self::cases())
+        );
+    }
+}

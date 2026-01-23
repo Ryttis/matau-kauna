@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\ProblemController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 use App\Http\Controllers\Admin\RbacController;
@@ -11,9 +12,9 @@ Route::get('/', function () {
 });
 
 Route::middleware(['auth', 'verified'])->group(function () {
-    Route::get('/dashboard', function () {
-        return Inertia::render('Dashboard');
-    })->name('dashboard');
+    Route::get('/dashboard', [ProblemController::class, 'index'])->name('dashboard');
+    Route::patch('/problems/{problem}/status', [ProblemController::class, 'updateStatus'])->name('problems.updateStatus');
+    Route::get('/problems/export', [ProblemController::class, 'export'])->name('problems.export');
 
     Route::prefix('admin')
         ->middleware(['auth', 'verified', 'admin'])

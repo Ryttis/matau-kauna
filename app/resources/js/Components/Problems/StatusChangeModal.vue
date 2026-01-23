@@ -1,0 +1,181 @@
+<script setup>
+import { ref, watch } from 'vue'
+import { PROBLEM_STATUS_OPTIONS } from '@/constants/problemStatus'
+
+const props = defineProps({
+    show: Boolean,
+    problem: Object,
+})
+
+const emit = defineEmits(['close', 'save'])
+
+const statusOptions = PROBLEM_STATUS_OPTIONS
+
+const selectedStatus = ref(props.problem?.status || '')
+
+watch(() => props.problem, (newProblem) => {
+    if (newProblem) {
+        selectedStatus.value = newProblem.status || ''
+    }
+}, { immediate: true })
+
+const handleStatusSelect = (status) => {
+    selectedStatus.value = status
+}
+
+const handleSave = () => {
+    if (selectedStatus.value) {
+        emit('save', selectedStatus.value)
+    }
+}
+
+const handleClose = () => {
+    emit('close')
+}
+</script>
+
+<template>
+    <div v-if="show" class="status-modal-overlay" @click="handleClose">
+        <div class="status-modal-content" @click.stop>
+            <button @click="handleClose" class="status-modal-close">
+                <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M1 1L11 11M11 1L1 11" stroke="#333333" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+            </button>
+
+            <div class="status-modal-body">
+                <div
+                    v-for="option in statusOptions"
+                    :key="option.value"
+                    class="status-modal-option"
+                    :class="{ 'status-modal-option-active': selectedStatus === option.value }"
+                    @click="handleStatusSelect(option.value)"
+                >
+                    {{ option.label }}
+                </div>
+            </div>
+
+            <div class="status-modal-footer">
+                <button class="status-modal-save-btn" @click="handleSave">
+                    Saugoti
+                </button>
+            </div>
+        </div>
+    </div>
+</template>
+
+<style scoped>
+.status-modal-overlay {
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    bottom: 0 !important;
+    background: rgba(0, 0, 0, 0.5) !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    z-index: 1000 !important;
+}
+
+.status-modal-content {
+    background: #ffffff !important;
+    border-radius: 8px !important;
+    padding: 30px !important;
+    min-width: 350px !important;
+    max-width: 400px !important;
+    width: 100% !important;
+    position: relative !important;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15) !important;
+}
+
+.status-modal-close {
+    position: absolute !important;
+    top: 15px !important;
+    right: 15px !important;
+    background: #ffffff !important;
+    border: 1px solid #333333 !important;
+    border-radius: 50% !important;
+    cursor: pointer !important;
+    width: 32px !important;
+    height: 32px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    padding: 0 !important;
+    transition: background-color 0.2s !important;
+}
+
+.status-modal-close:hover {
+    background-color: #f5f5f5 !important;
+}
+
+.status-modal-close svg {
+    display: block !important;
+}
+
+.status-modal-body {
+    margin: 20px 0 30px 0 !important;
+    padding: 0 !important;
+}
+
+.status-modal-option {
+    padding: 12px 0 !important;
+    cursor: pointer !important;
+    font-size: 16px !important;
+    color: #000000 !important;
+    transition: color 0.2s !important;
+    user-select: none !important;
+    text-align: left !important;
+    border: none !important;
+    background: none !important;
+    width: 100% !important;
+    font-family: 'Inter', sans-serif !important;
+    line-height: 1.5 !important;
+    font-weight: 400 !important;
+    display: block !important;
+}
+
+.status-modal-option:not(:last-child) {
+    margin-bottom: 12px !important;
+}
+
+.status-modal-option:hover {
+    color: #1946A0 !important;
+}
+
+.status-modal-option-active {
+    color: #1946A0 !important;
+    font-weight: 600 !important;
+}
+
+.status-modal-footer {
+    display: flex !important;
+    justify-content: center !important;
+    margin-top: 30px !important;
+    padding: 0 !important;
+}
+
+.status-modal-save-btn {
+    width: 100% !important;
+    background-color: #1F47A9 !important;
+    color: #ffffff !important;
+    border: none !important;
+    border-radius: 8px !important;
+    padding: 14px 24px !important;
+    font-size: 18px !important;
+    font-weight: 600 !important;
+    font-family: 'Inter', sans-serif !important;
+    cursor: pointer !important;
+    transition: background-color 0.2s !important;
+    box-sizing: border-box !important;
+}
+
+.status-modal-save-btn:hover {
+    background-color: #1a3d95 !important;
+}
+
+.status-modal-save-btn:active {
+    background-color: #163882 !important;
+}
+</style>
