@@ -66,7 +66,8 @@ class Problem extends Model
             $query->where(function ($q) use ($search) {
                 $q->where('title', 'like', "%{$search}%")
                   ->orWhere('address', 'like', "%{$search}%")
-                  ->orWhere('description', 'like', "%{$search}%");
+                  ->orWhere('description', 'like', "%{$search}%")
+                  ->orWhere('internal_number', 'like', "%{$search}%");
             });
         }
 
@@ -76,6 +77,18 @@ class Problem extends Model
 
         if (isset($filters['category']) && $filters['category']) {
             $query->where('category', $filters['category']);
+        }
+
+        if (isset($filters['report_number']) && $filters['report_number']) {
+            $query->where('internal_number', 'like', "%{$filters['report_number']}%");
+        }
+
+        if (isset($filters['date_from']) && $filters['date_from']) {
+            $query->whereDate('created_at', '>=', $filters['date_from']);
+        }
+
+        if (isset($filters['date_to']) && $filters['date_to']) {
+            $query->whereDate('created_at', '<=', $filters['date_to']);
         }
 
         return $query;

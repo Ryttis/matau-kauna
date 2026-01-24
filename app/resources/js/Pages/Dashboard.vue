@@ -1,7 +1,8 @@
 <script setup>
 import AppButton from '@/Components/App/AppButton.vue';
-import StatusChangeModal from '@/Components/Problems/StatusChangeModal.vue';
-import FilterModal from '@/Components/Problems/FilterModal.vue';
+import StatusChangeModal from '@/Components/App/Modals/StatusChangeModal.vue';
+import FilterModal from '@/Components/App/Modals/FilterModal.vue';
+import ProblemsTable from '@/Components/Problems/ProblemsTable.vue';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue'
 import { Head, router } from '@inertiajs/vue3'
 import { ref, watch, computed, onMounted, onUnmounted } from 'vue'
@@ -20,6 +21,9 @@ const props = defineProps({
 const search = ref(props.filters?.search || '')
 const statusFilter = ref(props.filters?.status || '')
 const categoryFilter = ref(props.filters?.category || '')
+const reportNumberFilter = ref(props.filters?.reportNumber || '')
+const dateFromFilter = ref(props.filters?.dateFrom || '')
+const dateToFilter = ref(props.filters?.dateTo || '')
 const sortBy = ref(props.sortBy || 'created_at')
 const sortDirection = ref(props.sortDirection || 'desc')
 const selectedProblems = ref([])
@@ -39,6 +43,9 @@ const loadProblems = (resetPage = true) => {
         search: search.value || null,
         status: statusFilter.value || null,
         category: categoryFilter.value || null,
+        report_number: reportNumberFilter.value || null,
+        date_from: dateFromFilter.value || null,
+        date_to: dateToFilter.value || null,
         sort_by: sortBy.value,
         sort_direction: sortDirection.value,
     }
@@ -68,6 +75,9 @@ const loadMoreProblems = () => {
         search: search.value || null,
         status: statusFilter.value || null,
         category: categoryFilter.value || null,
+        report_number: reportNumberFilter.value || null,
+        date_from: dateFromFilter.value || null,
+        date_to: dateToFilter.value || null,
         sort_by: sortBy.value,
         sort_direction: sortDirection.value,
     }, {
@@ -130,17 +140,33 @@ const handleSort = (field) => {
 }
 
 const handleStatusChange = (status) => {
-    if (!selectedProblem.value) return
-
-    router.patch(route('problems.updateStatus', selectedProblem.value.id), {
-        status: status
-    }, {
-        preserveScroll: true,
-        onSuccess: () => {
-            showStatusModal.value = false
-            selectedProblem.value = null
-        }
-    })
+    // Jei yra pasirinktos problemos, naudojame masinį atnaujinimą
+    if (selectedProblems.value.length > 0) {
+        router.post(route('problems.bulkUpdateStatus'), {
+            problem_ids: selectedProblems.value,
+            status: status
+        }, {
+            preserveScroll: true,
+            onSuccess: () => {
+                showStatusModal.value = false
+                selectedProblems.value = []
+                selectedProblem.value = null
+                loadProblems(false)
+            }
+        })
+    } else if (selectedProblem.value) {
+        // Jei yra viena problema, naudojame vieno atnaujinimą
+        router.patch(route('problems.updateStatus', selectedProblem.value.id), {
+            status: status
+        }, {
+            preserveScroll: true,
+            onSuccess: () => {
+                showStatusModal.value = false
+                selectedProblem.value = null
+                loadProblems(false)
+            }
+        })
+    }
 }
 
 const handleModalClose = () => {
@@ -148,8 +174,14 @@ const handleModalClose = () => {
     selectedProblem.value = null
 }
 
-const openStatusModal = (problem) => {
-    selectedProblem.value = problem
+const openStatusModal = () => {
+    // Jei pasirinkta tik viena problema, naudojame jos duomenis
+    if (selectedProblems.value.length === 1) {
+        const problem = problemsList.value.find(p => p.id === selectedProblems.value[0])
+        selectedProblem.value = problem || null
+    } else {
+        selectedProblem.value = null
+    }
     showStatusModal.value = true
 }
 
@@ -158,6 +190,9 @@ const handleExport = (scope) => {
         search: search.value || '',
         status: statusFilter.value || '',
         category: categoryFilter.value || '',
+        report_number: reportNumberFilter.value || '',
+        date_from: dateFromFilter.value || '',
+        date_to: dateToFilter.value || '',
         sort_by: sortBy.value,
         sort_direction: sortDirection.value,
         scope: scope,
@@ -168,20 +203,51 @@ const handleExport = (scope) => {
     showExportDropdown.value = false
 }
 
-watch([statusFilter, categoryFilter], () => {
+watch([statusFilter, categoryFilter, reportNumberFilter, dateFromFilter, dateToFilter], () => {
     problemsList.value = []
     loadProblems(true)
 })
 
 const handleFilterApply = (filters) => {
     statusFilter.value = filters.status || ''
+    categoryFilter.value = filters.problemType || ''
+    reportNumberFilter.value = filters.reportNumber || ''
+    dateFromFilter.value = filters.dateFrom || ''
+    dateToFilter.value = filters.dateTo || ''
     showFilterModal.value = false
+    problemsList.value = []
+    loadProblems(true)
+}
+
+const handleFilterClear = () => {
+    statusFilter.value = ''
+    categoryFilter.value = ''
+    reportNumberFilter.value = ''
+    dateFromFilter.value = ''
+    dateToFilter.value = ''
     problemsList.value = []
     loadProblems(true)
 }
 
 const handleFilterClose = () => {
     showFilterModal.value = false
+}
+
+const handleSelectAll = (checked) => {
+    if (checked) {
+        selectedProblems.value = problemsList.value.map(p => p.id)
+    } else {
+        selectedProblems.value = []
+    }
+}
+
+const handleSelectItem = (problemId) => {
+    const index = selectedProblems.value.indexOf(problemId)
+    if (index > -1) {
+        selectedProblems.value.splice(index, 1)
+    } else {
+        selectedProblems.value.push(problemId)
+    }
 }
 
 const handleClickOutside = (event) => {
@@ -227,59 +293,16 @@ onUnmounted(() => {
             />
         </div>
 
-        <table>
-            <thead>
-                <tr>
-                    <th><input type="checkbox" /></th>
-                    <th @click="handleSort('internal_number')" class="sortable">
-                        Nr.
-                        <span v-if="sortBy === 'internal_number'">
-                            {{ sortDirection === 'asc' ? '↑' : '↓' }}
-                        </span>
-                    </th>
-                    <th @click="handleSort('status')" class="sortable">
-                        Būsena
-                        <span v-if="sortBy === 'status'">
-                            {{ sortDirection === 'asc' ? '↑' : '↓' }}
-                        </span>
-                    </th>
-                    <th @click="handleSort('created_at')" class="sortable">
-                        Data
-                        <span v-if="sortBy === 'created_at'">
-                            {{ sortDirection === 'asc' ? '↑' : '↓' }}
-                        </span>
-                    </th>
-                    <th @click="handleSort('title')" class="sortable">
-                        Pavadinimas
-                        <span v-if="sortBy === 'title'">
-                            {{ sortDirection === 'asc' ? '↑' : '↓' }}
-                        </span>
-                    </th>
-                    <th>Kategorija</th>
-                    <th>Adresas</th>
-                    <th>Aprašymas</th>
-                </tr>
-            </thead>
-
-            <tbody>
-                <tr v-for="problem in problemsList" :key="problem.id">
-                    <td>
-                        <input
-                            type="checkbox"
-                            :value="problem.id"
-                            v-model="selectedProblems"
-                        />
-                    </td>
-                    <td>{{ problem.internal_number }}</td>
-                    <td>{{ statusLabels[problem.status] || problem.status }}</td>
-                    <td>{{ new Date(problem.created_at).toLocaleDateString('lt-LT') }}</td>
-                    <td>{{ problem.title }}</td>
-                    <td>{{ problem.category }}</td>
-                    <td>{{ problem.address }}</td>
-                    <td>{{ problem.description }}</td>
-                </tr>
-            </tbody>
-        </table>
+        <ProblemsTable
+            :problems="problemsList"
+            :selected-problems="selectedProblems"
+            :status-labels="statusLabels"
+            :sort-by="sortBy"
+            :sort-direction="sortDirection"
+            @sort="handleSort"
+            @select-all="handleSelectAll"
+            @select-item="handleSelectItem"
+        />
 
         <div class="table-footer-wrp" v-if="problems.next_page_url && problemsList.length >= 6">
             <a
@@ -296,14 +319,14 @@ onUnmounted(() => {
         </div>
 
         <div class="list-navigation">
-            <AppButton text="Priskirti problema" />
+            <AppButton text="Priskirti problemą" />
             <AppButton
-                text="Atvaizduoti/keisti busena"
-                @click="selectedProblems.length === 1 && openStatusModal(problems.data.find(p => p.id === selectedProblems[0]))"
+                text="Atvaizduoti/keisti būseną"
+                @click="openStatusModal()"
             />
             <div class="export-wrapper" ref="exportWrapper">
                 <AppButton
-                    text="Eksportuoti i .xlsx"
+                    text="Eksportuoti į .xlsx"
                     variant="secondary"
                     @click="showExportDropdown = !showExportDropdown"
                 />
@@ -322,16 +345,26 @@ onUnmounted(() => {
         <StatusChangeModal
             :show="showStatusModal"
             :problem="selectedProblem"
+            :selected-problem-ids="selectedProblems"
             @close="handleModalClose"
             @save="handleStatusChange"
         />
 
         <FilterModal
             :show="showFilterModal"
-            :statusFilter="statusFilter"
-            :allStatusOptions="allStatusOptions"
+            :filters="{
+                priority: [],
+                reportNumber: reportNumberFilter,
+                problemType: categoryFilter,
+                dateFrom: dateFromFilter,
+                dateTo: dateToFilter,
+                status: statusFilter
+            }"
+            :categories="categories"
+            :all-status-options="allStatusOptions"
             @close="handleFilterClose"
             @apply="handleFilterApply"
+            @clear="handleFilterClear"
         />
     </AuthenticatedLayout>
 </template>
@@ -359,39 +392,6 @@ onUnmounted(() => {
     cursor: pointer;
 }
 
-table {
-    width: 100%;
-    margin-top: 40px;
-    font-family: 'Inter';
-    border-collapse: collapse;
-}
-
-th {
-    font-size: 12px;
-    font-weight: 500;
-    text-align: left;
-    padding: 10px;
-    border-bottom: 1px solid #e0e0e0;
-}
-
-th.sortable {
-    cursor: pointer;
-    user-select: none;
-}
-
-th.sortable:hover {
-    background-color: #f6f7f9;
-}
-
-td {
-    padding: 12px 10px;
-    font-size: 13px;
-    border-bottom: 1px solid #f0f0f0;
-}
-
-tbody tr:hover {
-    background: #f6f7f9;
-}
 
 .table-footer-wrp {
     margin-top: 20px;
@@ -424,19 +424,24 @@ tbody tr:hover {
 .list-navigation {
     margin: 40px auto;
     width: 400px;
+    max-width: 100%;
     display: flex;
     flex-direction: column;
-    gap: 10px;
+    align-items: center;
     position: relative;
 }
 
 .monitor-link {
-    color: #dc3545;
+    color: #FA1E1E;
     text-decoration: none;
-    font-size: 18px;
-    margin-top: 10px;
+    font-size: 16px;
+    font-weight: 700;
+    line-height: 150%;
+    letter-spacing: -1.1%;
+    margin-top: 20px;
     text-align: center;
-    font-family: 'Inter';
+    font-family: 'Inter', sans-serif;
+    display: block;
 }
 
 .monitor-link:hover {

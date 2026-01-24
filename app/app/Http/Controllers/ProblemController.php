@@ -18,6 +18,9 @@ class ProblemController extends Controller
             'search' => $request->get('search'),
             'status' => $request->get('status'),
             'category' => $request->get('category'),
+            'report_number' => $request->get('report_number'),
+            'date_from' => $request->get('date_from'),
+            'date_to' => $request->get('date_to'),
         ];
 
         $sortBy = $request->get('sort_by', 'created_at');
@@ -55,12 +58,31 @@ class ProblemController extends Controller
         return redirect()->back()->with('success', 'Būsena atnaujinta');
     }
 
+    public function bulkUpdateStatus(Request $request)
+    {
+        $validated = $request->validate([
+            'problem_ids' => 'required|array',
+            'problem_ids.*' => 'required|integer|exists:problems,id',
+            'status' => 'required|string|in:' . implode(',', ProblemStatus::values()),
+        ]);
+
+        Problem::whereIn('id', $validated['problem_ids'])->update([
+            'status' => $validated['status'],
+            'status_updated_at' => now(),
+        ]);
+
+        return redirect()->back()->with('success', 'Būsenos atnaujintos');
+    }
+
     public function export(Request $request)
     {
         $filters = [
             'search' => $request->get('search'),
             'status' => $request->get('status'),
             'category' => $request->get('category'),
+            'report_number' => $request->get('report_number'),
+            'date_from' => $request->get('date_from'),
+            'date_to' => $request->get('date_to'),
         ];
 
         $sortBy = $request->get('sort_by', 'created_at');

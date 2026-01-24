@@ -14,6 +14,7 @@ Route::get('/', function () {
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/dashboard', [ProblemController::class, 'index'])->name('dashboard');
     Route::patch('/problems/{problem}/status', [ProblemController::class, 'updateStatus'])->name('problems.updateStatus');
+    Route::post('/problems/bulk-update-status', [ProblemController::class, 'bulkUpdateStatus'])->name('problems.bulkUpdateStatus');
     Route::get('/problems/export', [ProblemController::class, 'export'])->name('problems.export');
 
     Route::prefix('admin')
