@@ -1,5 +1,6 @@
 <script setup>
 import { ref, computed, watch } from 'vue'
+import { router } from '@inertiajs/vue3'
 
 const props = defineProps({
     problems: {
@@ -25,6 +26,10 @@ const props = defineProps({
 })
 
 const emit = defineEmits(['sort', 'select-all', 'select-item'])
+
+const handleRowDoubleClick = (problemId) => {
+    router.visit(route('problems.show', problemId))
+}
 
 const selectAll = ref(false)
 
@@ -103,7 +108,12 @@ const isSelected = (problemId) => {
         </thead>
 
         <tbody>
-            <tr v-for="problem in problems" :key="problem.id">
+            <tr
+                v-for="problem in problems"
+                :key="problem.id"
+                @dblclick="handleRowDoubleClick(problem.id)"
+                class="problem-row"
+            >
                 <td>{{ problem.internal_number }}</td>
                 <td>{{ statusLabels[problem.status] || problem.status }}</td>
                 <td>{{ new Date(problem.created_at).toLocaleDateString('lt-LT') }}</td>
@@ -116,6 +126,7 @@ const isSelected = (problemId) => {
                         type="checkbox"
                         :checked="isSelected(problem.id)"
                         @change="handleSelectItem(problem.id)"
+                        @click.stop
                     />
                 </td>
             </tr>
@@ -163,6 +174,10 @@ td {
 
 tbody tr:hover {
     background: #f6f7f9;
+}
+
+.problem-row {
+    cursor: pointer;
 }
 
 input[type="checkbox"] {

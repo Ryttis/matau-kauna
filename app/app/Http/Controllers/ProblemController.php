@@ -74,6 +74,14 @@ class ProblemController extends Controller
         return redirect()->back()->with('success', 'Būsenos atnaujintos');
     }
 
+    public function show(Problem $problem): Response
+    {
+        return Inertia::render('Problems/Show', [
+            'problem' => $problem,
+            'statusOptions' => ProblemStatus::options(),
+        ]);
+    }
+
     public function export(Request $request)
     {
         $filters = [
