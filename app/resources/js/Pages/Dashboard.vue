@@ -319,15 +319,17 @@ onUnmounted(() => {
         </div>
 
         <div class="list-navigation">
-            <AppButton text="Priskirti problemą" />
+            <AppButton text="Priskirti problemą" as-button />
             <AppButton
                 text="Atvaizduoti/keisti būseną"
+                as-button
                 @click="openStatusModal()"
             />
             <div class="export-wrapper" ref="exportWrapper">
                 <AppButton
                     text="Eksportuoti į .xlsx"
                     variant="secondary"
+                    as-button
                     @click="showExportDropdown = !showExportDropdown"
                 />
                 <div v-if="showExportDropdown" class="export-dropdown" ref="exportDropdown">

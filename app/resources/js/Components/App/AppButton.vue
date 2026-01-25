@@ -11,19 +11,31 @@ const props = defineProps({
     disabled: {
         type: Boolean,
         default: false
+    },
+    asButton: {
+        type: Boolean,
+        default: false
     }
 })
 
-defineEmits(['click'])
+const emit = defineEmits(['click'])
+
+const handleClick = () => {
+    if (props.asButton) {
+        emit('click')
+    }
+}
+
+const buttonType = props.asButton ? 'button' : 'submit'
 </script>
 
 <template>
     <button
         class="app-button"
-        :class="[`app-button--${variant}`, { 'app-button--disabled': disabled }]"
-        type="button"
+        :class="[`app-button--${variant}`, { 'app-button--disabled': disabled, 'app-button--fixed': asButton }]"
+        :type="buttonType"
         :disabled="disabled"
-        @click="$emit('click')"
+        @click="handleClick"
     >
         {{ text }}
     </button>
@@ -31,24 +43,31 @@ defineEmits(['click'])
 
 <style scoped>
 .app-button {
+    width: 100%;
+    display: block;
+    border: none;
+    padding: 10px;
+    border-radius: 5px;
+    margin-bottom: 10px;
+    font-size: 18px;
+    font-family: 'Inter';
+    cursor: pointer;
+    transition: background-color 0.2s ease, color 0.2s ease;
+    box-sizing: border-box;
+}
+
+.app-button--fixed {
     width: 290px;
     height: 45px;
     display: flex;
     align-items: center;
     justify-content: center;
-    border: none;
     padding: 0 24px;
-    border-radius: 5px;
-    margin-bottom: 10px;
-    font-size: 18px;
     font-weight: 400;
     font-family: 'Open Sans', sans-serif;
     line-height: 150%;
     letter-spacing: -1.1%;
     text-align: center;
-    cursor: pointer;
-    transition: background-color 0.2s ease, color 0.2s ease;
-    box-sizing: border-box;
 }
 
 .app-button:last-child {
