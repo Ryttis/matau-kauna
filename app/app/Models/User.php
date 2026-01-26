@@ -19,8 +19,12 @@ class User extends Authenticatable
      */
     protected $fillable = [
         'name',
+        'surname',
         'email',
         'password',
+        'two_factor_enabled',
+        'email_notifications_enabled',
+        'institution_id',
     ];
 
     /**
@@ -43,7 +47,14 @@ class User extends Authenticatable
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
+            'two_factor_enabled' => 'boolean',
+            'email_notifications_enabled' => 'boolean',
         ];
+    }
+
+    public function institution()
+    {
+        return $this->belongsTo(Institution::class);
     }
 
     public function roles()
