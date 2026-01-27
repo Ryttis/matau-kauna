@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Problem extends Model
 {
@@ -28,6 +29,10 @@ class Problem extends Model
         parent::boot();
 
         static::creating(function ($problem) {
+            if (empty($problem->status)) {
+                $problem->status = 'neuzregistruota';
+            }
+
             if (empty($problem->internal_number)) {
                 $year = date('Y');
                 $createdAt = $problem->created_at ?? now();
@@ -97,5 +102,10 @@ class Problem extends Model
     public function scopeSorted($query, $sortBy = 'created_at', $sortDirection = 'desc')
     {
         return $query->orderBy($sortBy, $sortDirection);
+    }
+
+    public function reviewHistory(): HasMany
+    {
+        return $this->hasMany(ProblemReviewHistory::class, 'problem_id')->orderBy('created_at', 'desc');
     }
 }

@@ -87,7 +87,6 @@ const loadMoreProblems = () => {
         onSuccess: (page) => {
             if (page.props.problems?.data) {
                 const newItems = page.props.problems.data.slice(0, 6)
-                // Patikrinti, ar elementai jau nėra sąraše, kad išvengtume dubliavimosi
                 const existingIds = new Set(problemsList.value.map(p => p.id))
                 const uniqueNewItems = newItems.filter(item => !existingIds.has(item.id))
                 problemsList.value = [...problemsList.value, ...uniqueNewItems]
@@ -114,7 +113,6 @@ watch(() => props.problems, (newProblems, oldProblems) => {
         problemsList.value = newProblems.data.slice(0, 6)
     } else if (currentPage > oldPage) {
         const newItems = newProblems.data.slice(0, 6)
-        // Patikrinti, ar elementai jau nėra sąraše, kad išvengtume dubliavimosi
         const existingIds = new Set(problemsList.value.map(p => p.id))
         const uniqueNewItems = newItems.filter(item => !existingIds.has(item.id))
         problemsList.value = [...problemsList.value, ...uniqueNewItems]
@@ -140,7 +138,6 @@ const handleSort = (field) => {
 }
 
 const handleStatusChange = (status) => {
-    // Jei yra pasirinktos problemos, naudojame masinį atnaujinimą
     if (selectedProblems.value.length > 0) {
         router.post(route('problems.bulkUpdateStatus'), {
             problem_ids: selectedProblems.value,
@@ -155,7 +152,6 @@ const handleStatusChange = (status) => {
             }
         })
     } else if (selectedProblem.value) {
-        // Jei yra viena problema, naudojame vieno atnaujinimą
         router.patch(route('problems.updateStatus', selectedProblem.value.id), {
             status: status
         }, {
@@ -175,7 +171,6 @@ const handleModalClose = () => {
 }
 
 const openStatusModal = () => {
-    // Jei pasirinkta tik viena problema, naudojame jos duomenis
     if (selectedProblems.value.length === 1) {
         const problem = problemsList.value.find(p => p.id === selectedProblems.value[0])
         selectedProblem.value = problem || null
@@ -231,6 +226,23 @@ const handleFilterClear = () => {
 
 const handleFilterClose = () => {
     showFilterModal.value = false
+}
+
+const handleAssignProblems = () => {
+    if (selectedProblems.value.length === 0) {
+        return
+    }
+    
+    if (selectedProblems.value.length === 1) {
+        const problemId = selectedProblems.value[0]
+        router.visit(route('problems.assign.single', problemId))
+    } else {
+        const params = new URLSearchParams()
+        selectedProblems.value.forEach(id => {
+            params.append('problem_ids[]', id)
+        })
+        router.visit(route('problems.assign') + '?' + params.toString())
+    }
 }
 
 const handleSelectAll = (checked) => {
@@ -311,15 +323,16 @@ onUnmounted(() => {
                 class="view-more-link"
             >
                 <span>Žiūrėti daugiau</span>
-                <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <circle cx="10" cy="10" r="9" stroke="currentColor" stroke-width="1.5" fill="none"/>
-                    <path d="M8 6L12 10L8 14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
-                </svg>
+                <img src="/icons/right-next-arrow.png" alt="Rodyklė" class="view-more-arrow" />
             </a>
         </div>
 
         <div class="list-navigation">
-            <AppButton text="Priskirti problemą" as-button />
+            <AppButton 
+                text="Priskirti problemą" 
+                as-button 
+                @click="handleAssignProblems"
+            />
             <AppButton
                 text="Atvaizduoti/keisti būseną"
                 as-button
@@ -341,7 +354,6 @@ onUnmounted(() => {
                     </button>
                 </div>
             </div>
-            <a href="#" class="monitor-link">Stebėti</a>
         </div>
 
         <StatusChangeModal
@@ -355,7 +367,6 @@ onUnmounted(() => {
         <FilterModal
             :show="showFilterModal"
             :filters="{
-                priority: [],
                 reportNumber: reportNumberFilter,
                 problemType: categoryFilter,
                 dateFrom: dateFromFilter,
@@ -418,8 +429,10 @@ onUnmounted(() => {
     opacity: 0.8;
 }
 
-.view-more-link svg {
+.view-more-arrow {
     display: block;
+    width: 20px;
+    height: 20px;
     flex-shrink: 0;
 }
 
@@ -431,23 +444,6 @@ onUnmounted(() => {
     flex-direction: column;
     align-items: center;
     position: relative;
-}
-
-.monitor-link {
-    color: #FA1E1E;
-    text-decoration: none;
-    font-size: 16px;
-    font-weight: 700;
-    line-height: 150%;
-    letter-spacing: -1.1%;
-    margin-top: 20px;
-    text-align: center;
-    font-family: 'Inter', sans-serif;
-    display: block;
-}
-
-.monitor-link:hover {
-    text-decoration: underline;
 }
 
 .export-wrapper {

@@ -13,10 +13,15 @@ Route::get('/', function () {
 
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/dashboard', [ProblemController::class, 'index'])->name('dashboard');
+    Route::get('/problems/assign', [ProblemController::class, 'assign'])->name('problems.assign');
+    Route::get('/problems/{problem}/assign', [ProblemController::class, 'assignSingle'])->name('problems.assign.single');
+    Route::get('/problems/export', [ProblemController::class, 'export'])->name('problems.export');
     Route::get('/problems/{problem}', [ProblemController::class, 'show'])->name('problems.show');
+    Route::put('/problems/{problem}', [ProblemController::class, 'update'])->name('problems.update');
+    Route::get('/problems/{problem}/review-progress', [ProblemController::class, 'reviewProgress'])->name('problems.reviewProgress');
+    Route::get('/problems/{problem}/merge', [ProblemController::class, 'merge'])->name('problems.merge');
     Route::patch('/problems/{problem}/status', [ProblemController::class, 'updateStatus'])->name('problems.updateStatus');
     Route::post('/problems/bulk-update-status', [ProblemController::class, 'bulkUpdateStatus'])->name('problems.bulkUpdateStatus');
-    Route::get('/problems/export', [ProblemController::class, 'export'])->name('problems.export');
 
     Route::prefix('admin')
         ->middleware(['auth', 'verified', 'admin'])

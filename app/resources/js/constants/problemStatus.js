@@ -1,4 +1,5 @@
 export const PROBLEM_STATUS = {
+    UNREGISTERED: 'neuzregistruota',
     NEW: 'nauja',
     IN_REVIEW: 'nagrinejama',
     RESOLVED: 'isspresta',
@@ -6,6 +7,7 @@ export const PROBLEM_STATUS = {
 }
 
 export const PROBLEM_STATUS_LABELS = {
+    [PROBLEM_STATUS.UNREGISTERED]: 'Neužregistruota',
     [PROBLEM_STATUS.NEW]: 'Nauja',
     [PROBLEM_STATUS.IN_REVIEW]: 'Nagrinėjama',
     [PROBLEM_STATUS.RESOLVED]: 'Išspręsta',

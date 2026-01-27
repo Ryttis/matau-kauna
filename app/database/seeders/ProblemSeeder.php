@@ -4,7 +4,9 @@ namespace Database\Seeders;
 
 use App\Enums\ProblemStatus;
 use App\Models\Problem;
+use App\Models\ProblemReviewHistory;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
 
 class ProblemSeeder extends Seeder
@@ -12,8 +14,9 @@ class ProblemSeeder extends Seeder
     public function run(): void
     {
         try {
-            \DB::statement('TRUNCATE TABLE problems RESTART IDENTITY CASCADE');
+            DB::statement('TRUNCATE TABLE problems RESTART IDENTITY CASCADE');
         } catch (\Exception $e) {
+            ProblemReviewHistory::query()->delete();
             Problem::query()->delete();
         }
 
@@ -96,6 +99,36 @@ class ProblemSeeder extends Seeder
             $problem->created_at = $createdAt;
             $problem->updated_at = $createdAt;
             $problem->save();
+
+            $responsibleNames = [
+                'Antanas Antanaitis',
+                'Jonas Jonaitis',
+                'Petras Petraitis',
+                'Marius Mariusaitis',
+                'Tomas Tomaitis',
+            ];
+
+            $comments = [
+                'Problema perduota nagrinėjimui',
+                'Reikia papildomų tyrimų',
+                'Laukiama atsakymo iš atsakingos institucijos',
+                'Problema išspręsta',
+                'Reikia papildomos informacijos',
+            ];
+
+            $historyCount = rand(2, 4);
+            for ($j = 0; $j < $historyCount; $j++) {
+                $historyDate = $createdAt->copy()->addDays(rand(1, max(1, $daysAgo)))->addHours(rand(8, 18))->addMinutes(rand(0, 59));
+                
+                ProblemReviewHistory::create([
+                    'problem_id' => $problem->id,
+                    'status' => $statuses[array_rand($statuses)],
+                    'responsible' => $responsibleNames[array_rand($responsibleNames)],
+                    'comment' => $comments[array_rand($comments)],
+                    'created_at' => $historyDate,
+                    'updated_at' => $historyDate,
+                ]);
+            }
         }
     }
 }

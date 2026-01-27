@@ -1,15 +1,23 @@
 <script setup>
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import { Head, router } from '@inertiajs/vue3'
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue'
 import StatusChangeModal from '@/Components/App/Modals/StatusChangeModal.vue'
+import EditModal from '@/Components/App/Modals/EditModal.vue'
+import { PROBLEM_STATUS_LABELS } from '@/constants/problemStatus'
 
 const props = defineProps({
     problem: Object,
     statusOptions: Array,
+    categories: Array,
 })
 
 const showStatusModal = ref(false)
+const showEditModal = ref(false)
+
+const currentStatusLabel = computed(() => {
+    return PROBLEM_STATUS_LABELS[props.problem?.status] || 'Neužregistruota'
+})
 
 const handleBack = () => {
     router.visit(route('dashboard'))
@@ -29,6 +37,14 @@ const handleStatusChange = (status) => {
 const openStatusModal = () => {
     showStatusModal.value = true
 }
+
+const openEditModal = () => {
+    showEditModal.value = true
+}
+
+const closeEditModal = () => {
+    showEditModal.value = false
+}
 </script>
 
 <template>
@@ -38,9 +54,7 @@ const openStatusModal = () => {
         <div class="problem-detail">
             <div class="problem-header">
                 <button @click="handleBack" class="back-button">
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <path d="M15 18L9 12L15 6" stroke="#333333" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                    </svg>
+                    <img src="/icons/left-back-arrow.png" alt="Atgal" class="back-icon" />
                 </button>
                 <div class="header-info header-info-left">
                     <span class="header-label">Nr</span>
@@ -51,6 +65,12 @@ const openStatusModal = () => {
                     <span class="header-label">Data</span>
                     <span class="header-value">{{ new Date(problem.created_at).toLocaleDateString('lt-LT') }}</span>
                 </div>
+            </div>
+
+            <div class="problem-status-section">
+                <button class="status-btn">
+                    {{ currentStatusLabel }}
+                </button>
             </div>
 
             <div class="problem-content">
@@ -104,9 +124,14 @@ const openStatusModal = () => {
                 </div>
             </div>
 
+            <div class="review-progress-section" @click="() => router.visit(route('problems.reviewProgress', problem.id))">
+                <span class="review-progress-text">Nagrinėjimo eiga</span>
+                <img src="/icons/right-next-arrow.png" alt="Rodyklė" class="review-progress-arrow" />
+            </div>
+
             <div class="problem-actions">
                 <div class="actions-row">
-                    <button class="action-btn action-btn-primary" @click="() => {}">
+                    <button class="action-btn action-btn-primary" @click="() => router.visit(route('problems.assign.single', problem.id))">
                         Priskirti problemą
                     </button>
                     <button class="action-btn action-btn-primary" @click="openStatusModal">
@@ -114,10 +139,10 @@ const openStatusModal = () => {
                     </button>
                 </div>
                 <div class="actions-row">
-                    <button class="action-btn action-btn-secondary">
+                    <button class="action-btn action-btn-secondary" @click="openEditModal">
                         Koreguoti
                     </button>
-                    <button class="action-btn action-btn-danger">
+                    <button class="action-btn action-btn-secondary" @click="() => router.visit(route('problems.merge', problem.id))">
                         Apjungti
                     </button>
                 </div>
@@ -129,6 +154,13 @@ const openStatusModal = () => {
                 :selected-problem-ids="[]"
                 @close="showStatusModal = false"
                 @save="handleStatusChange"
+            />
+
+            <EditModal
+                :show="showEditModal"
+                :problem="problem"
+                :categories="categories"
+                @close="closeEditModal"
             />
         </div>
     </AuthenticatedLayout>
@@ -186,6 +218,22 @@ const openStatusModal = () => {
     font-weight: 600;
     color: #333;
     font-family: 'Inter', sans-serif;
+}
+
+.problem-status-section {
+    margin-bottom: 20px;
+}
+
+.status-btn {
+    padding: 8px 16px;
+    border-radius: 5px;
+    font-size: 16px;
+    font-weight: 400;
+    font-family: 'Inter', sans-serif;
+    border: 1px solid #E0E0E0;
+    cursor: pointer;
+    background-color: transparent;
+    color: #333333;
 }
 
 .problem-content {
@@ -294,6 +342,39 @@ const openStatusModal = () => {
     font-size: 16px;
     font-family: 'Inter', sans-serif;
     flex: 1;
+}
+
+.review-progress-section {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 20px;
+    margin-bottom: 20px;
+    cursor: pointer;
+    transition: opacity 0.2s;
+}
+
+.review-progress-section:hover {
+    opacity: 0.7;
+}
+
+.review-progress-text {
+    font-size: 16px;
+    font-weight: 400;
+    color: #333333;
+    font-family: 'Inter', sans-serif;
+}
+
+.review-progress-arrow {
+    display: block;
+    width: 16px;
+    height: 16px;
+}
+
+.back-icon {
+    display: block;
+    width: 16px;
+    height: 16px;
 }
 
 .problem-actions {

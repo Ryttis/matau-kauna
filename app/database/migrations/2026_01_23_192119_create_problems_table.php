@@ -14,7 +14,7 @@ return new class extends Migration
         Schema::create('problems', function (Blueprint $table) {
             $table->id();
             $table->string('internal_number', 20)->unique();
-            $table->string('status', 50)->index();
+            $table->string('status', 50)->default('neuzregistruota')->index();
             $table->string('title', 255);
             $table->string('category', 100);
             $table->string('address', 255);

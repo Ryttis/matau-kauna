@@ -55,23 +55,23 @@ const handleClose = () => {
         <div class="status-modal-content" @click.stop>
             <div class="status-modal-header">
                 <button @click="handleClose" class="status-modal-close-header">
-                    <svg width="24" height="24" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <circle cx="8" cy="8" r="7.5" stroke="#333333" stroke-width="1.5" fill="none"/>
-                        <path d="M5 5L11 11M11 5L5 11" stroke="#333333" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-                    </svg>
+                    <img src="/icons/close-icon.png" alt="Uždaryti" class="status-modal-close-icon" />
                 </button>
             </div>
 
             <div class="status-modal-body">
-                <div
+                <button
                     v-for="option in statusOptions"
                     :key="option.value"
-                    class="status-modal-option"
-                    :class="{ 'status-modal-option-active': selectedStatus === option.value }"
+                    class="status-modal-option-btn"
+                    :class="{
+                        'status-modal-option-btn-active': selectedStatus === option.value,
+                        [`status-modal-option-btn-${option.value}`]: true
+                    }"
                     @click="handleStatusSelect(option.value)"
                 >
                     {{ option.label }}
-                </div>
+                </button>
             </div>
 
             <div class="status-modal-footer">
@@ -135,7 +135,7 @@ const handleClose = () => {
     opacity: 0.7 !important;
 }
 
-.status-modal-close-header svg {
+.status-modal-close-icon {
     display: block !important;
     width: 24px !important;
     height: 24px !important;
@@ -144,42 +144,95 @@ const handleClose = () => {
 .status-modal-body {
     margin: 0 !important;
     padding: 16px !important;
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 12px !important;
 }
 
-.status-modal-option {
-    padding: 0 !important;
-    margin-bottom: 6px !important;
+.status-modal-option-btn {
+    width: 100% !important;
+    padding: 12px 16px !important;
+    background: #ffffff !important;
+    border: 2px solid !important;
+    border-radius: 5px !important;
     cursor: pointer !important;
     font-size: 18px !important;
     color: #1E1C1C !important;
-    transition: color 0.2s !important;
+    transition: all 0.2s !important;
     user-select: none !important;
-    text-align: left !important;
-    border: none !important;
-    background: none !important;
-    width: 100% !important;
+    text-align: center !important;
     font-family: 'Open Sans', sans-serif !important;
     line-height: 150% !important;
     letter-spacing: -1.1% !important;
     font-weight: 400 !important;
-    display: block !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    box-sizing: border-box !important;
 }
 
-.status-modal-option:last-child {
-    margin-bottom: 0 !important;
+/* Nauja - oranžinė/šviesiai ruda rėmelis */
+.status-modal-option-btn-nauja {
+    border-color: #D4A574 !important;
 }
 
-.status-modal-option:not(:last-child) {
-    margin-bottom: 6px !important;
+.status-modal-option-btn-nauja:hover {
+    border-color: #C8955F !important;
+    background-color: #FFF9F5 !important;
 }
 
-.status-modal-option:hover {
-    color: #1946A0 !important;
+.status-modal-option-btn-nauja.status-modal-option-btn-active {
+    border-color: #C8955F !important;
+    background-color: #FFF9F5 !important;
+    border-width: 3px !important;
 }
 
-.status-modal-option-active {
-    color: #1946A0 !important;
-    font-weight: 400 !important;
+/* Nagrinėjama - geltona rėmelis */
+.status-modal-option-btn-nagrinejama {
+    border-color: #F5C842 !important;
+}
+
+.status-modal-option-btn-nagrinejama:hover {
+    border-color: #E5B832 !important;
+    background-color: #FFFDF5 !important;
+}
+
+.status-modal-option-btn-nagrinejama.status-modal-option-btn-active {
+    border-color: #E5B832 !important;
+    background-color: #FFFDF5 !important;
+    border-width: 3px !important;
+}
+
+/* Išspręsta - žalia rėmelis */
+.status-modal-option-btn-isspresta {
+    border-color: #4CAF50 !important;
+}
+
+.status-modal-option-btn-isspresta:hover {
+    border-color: #45A049 !important;
+    background-color: #F5FFF5 !important;
+}
+
+.status-modal-option-btn-isspresta.status-modal-option-btn-active {
+    border-color: #45A049 !important;
+    background-color: #F5FFF5 !important;
+    border-width: 3px !important;
+}
+
+/* Neaktuali - tamsiai pilka/juoda rėmelis */
+.status-modal-option-btn-neaktuali {
+    border-color: #666666 !important;
+}
+
+.status-modal-option-btn-neaktuali:hover {
+    border-color: #555555 !important;
+    background-color: #F5F5F5 !important;
+}
+
+.status-modal-option-btn-neaktuali.status-modal-option-btn-active {
+    border-color: #555555 !important;
+    background-color: #F5F5F5 !important;
+    border-width: 3px !important;
 }
 
 .status-modal-footer {
