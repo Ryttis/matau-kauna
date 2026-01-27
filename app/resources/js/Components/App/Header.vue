@@ -17,18 +17,18 @@
         <div class="header-icons" v-if="isAuthenticated">
             <div class="icon-text-wrp">
                 <div class="active-img-wrp">
-                    <img class="active" src="icons/user-icon.png" />
+                    <img class="active" src="/icons/user-icon.png" />
                 </div>
                 <span>{{ user?.name }}</span>
             </div>
-            <img src="icons/bell-icon.png" />
+            <img src="/icons/bell-icon.png" />
             <button
                 class="header-icon-button"
                 type="button"
                 @click="logout"
                 title="Atsijungti"
             >
-                <img src="icons/logout-icon.png" />
+                <img src="/icons/logout-icon.png" />
             </button>
         </div>
     </div>

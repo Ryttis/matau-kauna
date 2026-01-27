@@ -7,6 +7,9 @@ const page = usePage()
 const user = computed(() => page.props.auth?.user ?? null)
 
 const isActive = (path) => {
+    if (path === '/dashboard') {
+        return page.url.startsWith('/dashboard') || page.url.startsWith('/problems/')
+    }
     return page.url.startsWith(path)
 }
 
@@ -29,7 +32,7 @@ const toggleStates = () => {
                     class="nav-link"
                     :class="{ active: isActive('/dashboard') }"
                 >
-                    <img src="icons/list-active-icon.png" />
+                    <img src="/icons/list-active-icon.png" />
                     <span>Sąrašas</span>
                 </Link>
 
@@ -38,7 +41,7 @@ const toggleStates = () => {
                     class="nav-link"
                     :class="{ active: isActive('/map') }"
                 >
-                    <img src="icons/map-icon.png" />
+                    <img src="/icons/map-icon.png" />
                     <span>Žemėlapis</span>
                 </Link>
 
@@ -47,7 +50,7 @@ const toggleStates = () => {
                     class="nav-link"
                     :class="{ active: isActive('/statistics') }"
                 >
-                    <img src="icons/statistics-icon.png" />
+                    <img src="/icons/statistics-icon.png" />
                     <span>Statistika</span>
                 </Link>
 
@@ -58,10 +61,10 @@ const toggleStates = () => {
                     :class="{ active: isActive('/states') }"
                     @click="toggleStates"
                 >
-                    <img src="icons/state-icon.png" />
+                    <img src="/icons/state-icon.png" />
                     <span>Būsenos</span>
                     <img
-                        src="icons/arrow-icon.png"
+                        src="/icons/arrow-icon.png"
                         class="dropdown-icon"
                         :class="{ open: isStatesOpen }"
                     />
@@ -123,7 +126,7 @@ const toggleStates = () => {
                     class="nav-link"
                     :class="{ active: isActive('/settings') }"
                 >
-                    <img src="icons/settings-icon.png" />
+                    <img src="/icons/settings-icon.png" />
                     <span>Nustatymai</span>
                 </Link>
             </div>
