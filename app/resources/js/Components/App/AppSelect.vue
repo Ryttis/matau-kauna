@@ -30,7 +30,7 @@ const value = computed({
 
         <div class="app-select-wrapper">
             <select v-model="value" class="app-select">
-                <option v-if="placeholder" value="">{{ placeholder }}</option>
+                <option v-if="placeholder && (modelValue === '' || modelValue === null || modelValue === undefined)" value="">{{ placeholder }}</option>
                 <slot>
                 </slot>
             </select>

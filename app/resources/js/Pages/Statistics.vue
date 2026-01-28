@@ -85,19 +85,15 @@ const downloadReport = () => {
         <div class="statistics-page">
             <div class="page-header">
                 <h1 class="page-title">Statistika</h1>
-                <AppButton
-                    text="Atsisiųsti"
-                    variant="secondary"
-                    as-button
-                    @click="downloadReport"
-                    class="download-header-btn"
-                />
+                <button @click="downloadReport" class="download-header-btn">
+                    <img src="/icons/download-icon.png" alt="Download" class="download-icon" />
+                    <span>Atsisiųsti</span>
+                </button>
             </div>
 
             <div class="filters-section">
                 <AppSelect
                     v-model="periodFilter"
-                    placeholder="Pasirinkti laikotarpį"
                 >
                     <option v-for="option in periodOptions" :key="option.value" :value="option.value">
                         {{ option.label }}
@@ -106,7 +102,6 @@ const downloadReport = () => {
 
                 <AppSelect
                     v-model="institutionFilter"
-                    placeholder="Pasirinkti įstaigą"
                 >
                     <option v-for="option in institutionOptions" :key="option.value" :value="option.value">
                         {{ option.label }}
@@ -115,7 +110,6 @@ const downloadReport = () => {
 
                 <AppSelect
                     v-model="categoryFilter"
-                    placeholder="Pasirinkti kategoriją"
                 >
                     <option v-for="option in categoryOptions" :key="option.value" :value="option.value">
                         {{ option.label }}
@@ -209,7 +203,6 @@ const downloadReport = () => {
                         <h3 class="chart-title">Pranešimų skaičius</h3>
                         <AppSelect
                             model-value="months"
-                            placeholder="Mėnesiai"
                             class="chart-filter"
                         >
                             <option value="months">Mėnesiai</option>
@@ -259,7 +252,6 @@ const downloadReport = () => {
     padding: 40px;
     max-width: 1400px;
     margin: 0 auto;
-    background: #F6F7F9;
     min-height: calc(100vh - 120px);
 }
 
@@ -279,9 +271,29 @@ const downloadReport = () => {
 }
 
 .download-header-btn {
-    width: auto;
-    min-width: auto;
-    margin-bottom: 0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 16px;
+    background: transparent;
+    border: 1px solid #1946A0;
+    border-radius: 5px;
+    color: #333333;
+    font-size: 14px;
+    cursor: pointer;
+    font-family: 'Open Sans', sans-serif;
+    transition: all 0.2s;
+}
+
+.download-header-btn:hover {
+    background-color: #f5f5f5;
+}
+
+.download-icon {
+    width: 16px;
+    height: 16px;
+    display: block;
+    flex-shrink: 0;
 }
 
 .filters-section {
