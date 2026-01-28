@@ -17,6 +17,11 @@ const isStatesOpen = ref(isActive('/states'))
 const toggleStates = () => {
     isStatesOpen.value = !isStatesOpen.value
 }
+
+const isStatisticsOpen = ref(isActive('/statistics'))
+const toggleStatistics = () => {
+    isStatisticsOpen.value = !isStatisticsOpen.value
+}
 </script>
 
 <template>
@@ -45,14 +50,54 @@ const toggleStates = () => {
                     <span>Žemėlapis</span>
                 </Link>
 
-                <Link
-                    href="/statistics"
-                    class="nav-link"
+                <button
+                    type="button"
+                    class="nav-link states-trigger"
                     :class="{ active: isActive('/statistics') }"
+                    @click="toggleStatistics"
                 >
                     <img src="/icons/statistics-icon.png" />
                     <span>Statistika</span>
-                </Link>
+                    <img
+                        src="/icons/arrow-icon.png"
+                        class="dropdown-icon"
+                        :class="{ open: isStatisticsOpen }"
+                    />
+                </button>
+
+                <div v-if="isStatisticsOpen" class="submenu">
+                    <Link
+                        href="/statistics"
+                        class="submenu-link"
+                        :class="{ active: page.url === '/statistics' }"
+                    >
+                        Problemų statistika
+                    </Link>
+
+                    <Link
+                        href="/statistics/resolution-terms"
+                        class="submenu-link"
+                        :class="{ active: page.url === '/statistics/resolution-terms' }"
+                    >
+                        Sprendimo terminai
+                    </Link>
+
+                    <Link
+                        href="/statistics/categories"
+                        class="submenu-link"
+                        :class="{ active: page.url === '/statistics/categories' }"
+                    >
+                        Kategorijos
+                    </Link>
+
+                    <Link
+                        href="/statistics/institutions"
+                        class="submenu-link"
+                        :class="{ active: page.url === '/statistics/institutions' }"
+                    >
+                        Įstaigų statistika
+                    </Link>
+                </div>
 
                 <!-- States with dropdown -->
                 <button
@@ -214,6 +259,7 @@ const toggleStates = () => {
 .dropdown-icon.open {
     transform: rotate(180deg);
 }
+
 
 .submenu {
     display: flex;
