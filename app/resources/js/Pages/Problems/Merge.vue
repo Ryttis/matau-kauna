@@ -2,6 +2,10 @@
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { Head, router } from '@inertiajs/vue3'
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue'
+import AppSelect from '@/Components/App/AppSelect.vue'
+import AppButton from '@/Components/App/AppButton.vue'
+import AppBackButton from '@/Components/App/AppBackButton.vue'
+import AppCheckbox from '@/Components/App/AppCheckbox.vue'
 
 const props = defineProps({
     problem: Object,
@@ -39,7 +43,7 @@ const handleCategoryChange = (category) => {
     selectedCategory.value = category || ''
     showCategoryDropdown.value = false
     selectedProblems.value = []
-    
+
     router.get(route('problems.merge', props.problem.id), {
         category: category || ''
     }, {
@@ -62,7 +66,7 @@ const handleSelectItem = (problemId) => {
     if (problemId === props.problem.id) {
         return
     }
-    
+
     const index = selectedProblems.value.indexOf(problemId)
     if (index > -1) {
         selectedProblems.value.splice(index, 1)
@@ -73,12 +77,12 @@ const handleSelectItem = (problemId) => {
 
 const handleMerge = () => {
     const allSelectedProblems = [mainProblemId.value, ...selectedProblems.value]
-    
+
     if (allSelectedProblems.length < 2) {
         alert('Pasirinkite bent vieną problemą apjungimui')
         return
     }
-    
+
     console.log('Apjungti problemas:', allSelectedProblems)
     alert('Apjungimo funkcionalumas bus suderintas vykdant sutartį')
 }
@@ -104,19 +108,17 @@ onUnmounted(() => {
     <AuthenticatedLayout>
         <div class="merge-page">
             <div class="merge-header">
-                <button @click="handleBack" class="merge-back-button">
-                    <img src="/icons/left-back-arrow.png" alt="Atgal" class="merge-back-icon" />
-                </button>
+                <AppBackButton @click="handleBack" />
                 <div class="merge-header-content">
                     <div class="merge-category-wrapper" ref="categoryDropdownRef">
-                        <button 
+                        <button
                             class="merge-category-btn"
                             @click="showCategoryDropdown = !showCategoryDropdown"
                         >
                             <span>{{ selectedCategory || 'Kategorija' }}</span>
-                            <img 
-                                src="/icons/arrow-icon.png" 
-                                alt="Dropdown" 
+                            <img
+                                src="/icons/arrow-icon.png"
+                                alt="Dropdown"
                                 class="merge-dropdown-icon"
                                 :class="{ 'merge-dropdown-rotated': showCategoryDropdown }"
                             />
@@ -152,8 +154,8 @@ onUnmounted(() => {
                             <div class="merge-map-dummy">
                                 <div class="merge-map-grid"></div>
                                 <div class="merge-map-markers">
-                                    <div 
-                                        v-for="(marker, index) in mapMarkers" 
+                                    <div
+                                        v-for="(marker, index) in mapMarkers"
                                         :key="marker.id"
                                         class="merge-map-marker"
                                         :class="{ 'merge-map-marker-main': marker.isMain }"
@@ -172,20 +174,18 @@ onUnmounted(() => {
 
                 <div class="merge-problems-section">
                     <div class="merge-problems-list">
-                        <div 
-                            v-for="problemItem in filteredProblems" 
+                        <div
+                            v-for="problemItem in filteredProblems"
                             :key="problemItem.id"
                             class="merge-problem-item"
                             :class="{ 'merge-problem-item-main': problemItem.id === problem.id }"
                         >
                             <label class="merge-problem-label">
-                                <input
-                                    type="checkbox"
+                                <AppCheckbox
+                                    :model-value="problemItem.id === problem.id || selectedProblems.includes(problemItem.id)"
                                     :value="problemItem.id"
-                                    :checked="problemItem.id === problem.id || selectedProblems.includes(problemItem.id)"
                                     :disabled="problemItem.id === problem.id"
                                     @change="handleSelectItem(problemItem.id)"
-                                    class="merge-checkbox"
                                 />
                                 <span class="merge-problem-text">
                                     {{ problemItem.title }} (Nr. {{ problemItem.internal_number }})
@@ -193,20 +193,22 @@ onUnmounted(() => {
                             </label>
                         </div>
                     </div>
-                    
+
                     <div class="merge-actions">
                         <label class="merge-select-all-label">
-                            <input
-                                type="checkbox"
-                                :checked="selectedProblems.length > 0 && selectedProblems.length === filteredProblems.filter(p => p.id !== problem.id).length"
-                                @change="handleSelectAll($event.target.checked)"
-                                class="merge-checkbox"
+                            <AppCheckbox
+                                :model-value="selectedProblems.length > 0 && selectedProblems.length === filteredProblems.filter(p => p.id !== problem.id).length"
+                                @change="handleSelectAll"
                             />
                             <span class="merge-select-all-text">Pasirinkti visus</span>
                         </label>
-                        <button class="merge-btn" @click="handleMerge">
-                            Apjungti
-                        </button>
+                        <AppButton
+                            text="Apjungti"
+                            variant="primary"
+                            as-button
+                            @click="handleMerge"
+                            class="merge-btn"
+                        />
                     </div>
                 </div>
             </div>
@@ -229,21 +231,6 @@ onUnmounted(() => {
     border-bottom: 1px solid #e0e0e0;
 }
 
-.merge-back-button {
-    background: transparent;
-    border: none;
-    cursor: pointer;
-    padding: 8px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: opacity 0.2s;
-    flex-shrink: 0;
-}
-
-.merge-back-button:hover {
-    opacity: 0.7;
-}
 
 .merge-header-content {
     flex: 1;
@@ -284,11 +271,6 @@ onUnmounted(() => {
     filter: brightness(0) invert(1);
 }
 
-.merge-back-icon {
-    display: block;
-    width: 16px;
-    height: 16px;
-}
 
 .merge-dropdown-rotated {
     transform: rotate(180deg);
@@ -383,7 +365,7 @@ onUnmounted(() => {
     width: 100%;
     height: 100%;
     min-height: 150px;
-    background-image: 
+    background-image:
         linear-gradient(to right, #e0e0e0 0.5px, transparent 0.5px),
         linear-gradient(to bottom, #e0e0e0 0.5px, transparent 0.5px);
     background-size: 20px 20px;
@@ -467,41 +449,6 @@ onUnmounted(() => {
     width: 100%;
 }
 
-.merge-checkbox {
-    width: 18px;
-    height: 18px;
-    cursor: pointer;
-    border: 1px solid #1946A0;
-    border-radius: 2px;
-    appearance: none;
-    -webkit-appearance: none;
-    -moz-appearance: none;
-    background-color: #ffffff;
-    position: relative;
-    flex-shrink: 0;
-}
-
-.merge-checkbox:checked {
-    background-color: #1946A0;
-    border-color: #1946A0;
-}
-
-.merge-checkbox:checked::after {
-    content: '✓';
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    color: #ffffff;
-    font-size: 12px;
-    font-weight: bold;
-    line-height: 1;
-}
-
-.merge-checkbox:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-}
 
 .merge-problem-text {
     font-size: 16px;
@@ -536,31 +483,5 @@ onUnmounted(() => {
 .merge-btn {
     width: 100%;
     max-width: 400px;
-    height: 45px;
-    background-color: #1946A0;
-    color: #ffffff;
-    border: 1px solid #1946A0;
-    border-radius: 5px;
-    padding: 0 24px;
-    font-size: 18px;
-    font-weight: 400;
-    font-family: 'Open Sans', sans-serif;
-    line-height: 150%;
-    letter-spacing: -1.1%;
-    cursor: pointer;
-    transition: background-color 0.2s;
-    box-sizing: border-box;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    text-align: center;
-}
-
-.merge-btn:hover {
-    background-color: #1a3d95;
-}
-
-.merge-btn:active {
-    background-color: #163882;
 }
 </style>

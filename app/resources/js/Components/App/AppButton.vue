@@ -20,9 +20,11 @@ const props = defineProps({
 
 const emit = defineEmits(['click'])
 
-const handleClick = () => {
+const handleClick = (event) => {
     if (props.asButton) {
-        emit('click')
+        event.preventDefault()
+        event.stopPropagation()
+        emit('click', event)
     }
 }
 
@@ -54,6 +56,8 @@ const buttonType = props.asButton ? 'button' : 'submit'
     cursor: pointer;
     transition: background-color 0.2s ease, color 0.2s ease;
     box-sizing: border-box;
+    position: relative;
+    z-index: 1;
 }
 
 .app-button--fixed {
@@ -63,11 +67,13 @@ const buttonType = props.asButton ? 'button' : 'submit'
     align-items: center;
     justify-content: center;
     padding: 0 24px;
+    margin-bottom: 0;
     font-weight: 400;
     font-family: 'Open Sans', sans-serif;
     line-height: 150%;
     letter-spacing: -1.1%;
     text-align: center;
+    flex-shrink: 0;
 }
 
 .app-button:last-child {

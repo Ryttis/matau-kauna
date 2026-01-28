@@ -1,6 +1,8 @@
 <script setup>
 import { ref, watch } from 'vue'
 import { PROBLEM_STATUS_OPTIONS } from '@/constants/problemStatus'
+import BaseModal from '@/Components/App/BaseModal.vue'
+import AppButton from '@/Components/App/AppButton.vue'
 
 const props = defineProps({
     show: Boolean,
@@ -51,15 +53,17 @@ const handleClose = () => {
 </script>
 
 <template>
-    <div v-if="show" class="status-modal-overlay" @click="handleClose">
-        <div class="status-modal-content" @click.stop>
-            <div class="status-modal-header">
-                <button @click="handleClose" class="status-modal-close-header">
-                    <img src="/icons/close-icon.png" alt="Uždaryti" class="status-modal-close-icon" />
-                </button>
-            </div>
+    <BaseModal
+        :show="show"
+        :max-width="'400px'"
+        :min-width="'350px'"
+        @close="handleClose"
+    >
+        <template #header>
+            <div class="status-modal-header-empty"></div>
+        </template>
 
-            <div class="status-modal-body">
+        <div class="status-modal-body">
                 <button
                     v-for="option in statusOptions"
                     :key="option.value"
@@ -72,204 +76,133 @@ const handleClose = () => {
                 >
                     {{ option.label }}
                 </button>
-            </div>
-
-            <div class="status-modal-footer">
-                <button class="status-modal-save-btn" @click="handleSave">
-                    Saugoti
-                </button>
-            </div>
         </div>
-    </div>
+
+        <template #footer>
+            <div class="status-modal-footer-wrapper">
+                <AppButton
+                    text="Saugoti"
+                    variant="primary"
+                    as-button
+                    @click="handleSave"
+                    class="status-modal-save-btn"
+                />
+            </div>
+        </template>
+    </BaseModal>
 </template>
 
 <style scoped>
-.status-modal-overlay {
-    position: fixed !important;
-    top: 0 !important;
-    left: 0 !important;
-    right: 0 !important;
-    bottom: 0 !important;
-    background: rgba(0, 0, 0, 0.5) !important;
-    display: flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-    z-index: 1000 !important;
-}
-
-.status-modal-content {
-    background: #ffffff !important;
-    border-radius: 5px !important;
-    padding: 0 !important;
-    min-width: 350px !important;
-    max-width: 400px !important;
-    width: 100% !important;
-    position: relative !important;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15) !important;
-    overflow: hidden !important;
-}
-
-.status-modal-header {
-    display: flex !important;
-    justify-content: flex-end !important;
-    align-items: center !important;
-    padding: 8px 16px !important;
-    position: relative !important;
-}
-
-.status-modal-close-header {
-    background: transparent !important;
-    border: none !important;
-    border-radius: 50% !important;
-    cursor: pointer !important;
-    width: 48px !important;
-    height: 48px !important;
-    display: flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-    padding: 0 !important;
-    transition: opacity 0.2s !important;
-}
-
-.status-modal-close-header:hover {
-    opacity: 0.7 !important;
-}
-
-.status-modal-close-icon {
-    display: block !important;
-    width: 24px !important;
-    height: 24px !important;
+.status-modal-header-empty {
+    flex: 1;
 }
 
 .status-modal-body {
-    margin: 0 !important;
-    padding: 16px !important;
-    display: flex !important;
-    flex-direction: column !important;
-    gap: 12px !important;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+:deep(.modal-body) {
+    padding: 16px;
 }
 
 .status-modal-option-btn {
-    width: 100% !important;
-    padding: 12px 16px !important;
-    background: #ffffff !important;
-    border: 2px solid !important;
-    border-radius: 5px !important;
-    cursor: pointer !important;
-    font-size: 18px !important;
-    color: #1E1C1C !important;
-    transition: all 0.2s !important;
-    user-select: none !important;
-    text-align: center !important;
-    font-family: 'Open Sans', sans-serif !important;
-    line-height: 150% !important;
-    letter-spacing: -1.1% !important;
-    font-weight: 400 !important;
-    display: flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-    box-sizing: border-box !important;
+    width: 100%;
+    padding: 12px 16px;
+    background: #ffffff;
+    border: 2px solid;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 18px;
+    color: #1E1C1C;
+    transition: all 0.2s;
+    user-select: none;
+    text-align: center;
+    font-family: 'Open Sans', sans-serif;
+    line-height: 150%;
+    letter-spacing: -1.1%;
+    font-weight: 400;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-sizing: border-box;
 }
 
 /* Nauja - oranžinė/šviesiai ruda rėmelis */
 .status-modal-option-btn-nauja {
-    border-color: #D4A574 !important;
+    border-color: #D4A574;
 }
 
 .status-modal-option-btn-nauja:hover {
-    border-color: #C8955F !important;
-    background-color: #FFF9F5 !important;
+    border-color: #C8955F;
+    background-color: #FFF9F5;
 }
 
 .status-modal-option-btn-nauja.status-modal-option-btn-active {
-    border-color: #C8955F !important;
-    background-color: #FFF9F5 !important;
-    border-width: 3px !important;
+    border-color: #C8955F;
+    background-color: #FFF9F5;
+    border-width: 3px;
 }
 
 /* Nagrinėjama - geltona rėmelis */
 .status-modal-option-btn-nagrinejama {
-    border-color: #F5C842 !important;
+    border-color: #F5C842;
 }
 
 .status-modal-option-btn-nagrinejama:hover {
-    border-color: #E5B832 !important;
-    background-color: #FFFDF5 !important;
+    border-color: #E5B832;
+    background-color: #FFFDF5;
 }
 
 .status-modal-option-btn-nagrinejama.status-modal-option-btn-active {
-    border-color: #E5B832 !important;
-    background-color: #FFFDF5 !important;
-    border-width: 3px !important;
+    border-color: #E5B832;
+    background-color: #FFFDF5;
+    border-width: 3px;
 }
 
 /* Išspręsta - žalia rėmelis */
 .status-modal-option-btn-isspresta {
-    border-color: #4CAF50 !important;
+    border-color: #4CAF50;
 }
 
 .status-modal-option-btn-isspresta:hover {
-    border-color: #45A049 !important;
-    background-color: #F5FFF5 !important;
+    border-color: #45A049;
+    background-color: #F5FFF5;
 }
 
 .status-modal-option-btn-isspresta.status-modal-option-btn-active {
-    border-color: #45A049 !important;
-    background-color: #F5FFF5 !important;
-    border-width: 3px !important;
+    border-color: #45A049;
+    background-color: #F5FFF5;
+    border-width: 3px;
 }
 
 /* Neaktuali - tamsiai pilka/juoda rėmelis */
 .status-modal-option-btn-neaktuali {
-    border-color: #666666 !important;
+    border-color: #666666;
 }
 
 .status-modal-option-btn-neaktuali:hover {
-    border-color: #555555 !important;
-    background-color: #F5F5F5 !important;
+    border-color: #555555;
+    background-color: #F5F5F5;
 }
 
 .status-modal-option-btn-neaktuali.status-modal-option-btn-active {
-    border-color: #555555 !important;
-    background-color: #F5F5F5 !important;
-    border-width: 3px !important;
+    border-color: #555555;
+    background-color: #F5F5F5;
+    border-width: 3px;
 }
 
-.status-modal-footer {
-    display: flex !important;
-    justify-content: center !important;
-    margin-top: 16px !important;
-    padding: 0 16px 16px 16px !important;
+.status-modal-footer-wrapper {
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
 }
 
 .status-modal-save-btn {
-    width: auto !important;
-    min-width: 202px !important;
-    height: 45px !important;
-    background-color: #1946A0 !important;
-    color: #ffffff !important;
-    border: 1px solid #1946A0 !important;
-    border-radius: 5px !important;
-    padding: 0 24px !important;
-    font-size: 18px !important;
-    font-weight: 400 !important;
-    font-family: 'Open Sans', sans-serif !important;
-    line-height: 150% !important;
-    letter-spacing: -1.1% !important;
-    cursor: pointer !important;
-    transition: background-color 0.2s !important;
-    box-sizing: border-box !important;
-    display: flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-    text-align: center !important;
-}
-
-.status-modal-save-btn:hover {
-    background-color: #1a3d95 !important;
-}
-
-.status-modal-save-btn:active {
-    background-color: #163882 !important;
+    width: auto;
+    min-width: 202px;
 }
 </style>

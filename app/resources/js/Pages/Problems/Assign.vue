@@ -2,6 +2,10 @@
 import { ref, computed } from 'vue'
 import { Head, router } from '@inertiajs/vue3'
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue'
+import AppButton from '@/Components/App/AppButton.vue'
+import AppInput from '@/Components/App/AppInput.vue'
+import AppBackButton from '@/Components/App/AppBackButton.vue'
+import AppCheckbox from '@/Components/App/AppCheckbox.vue'
 import { PROBLEM_STATUS } from '@/constants/problemStatus'
 
 const props = defineProps({
@@ -48,7 +52,7 @@ const handleStatusSelect = (status) => {
 }
 
 const handleSend = () => {
-    
+
 }
 
 const handleBack = () => {
@@ -74,15 +78,13 @@ const toggleStatus = () => {
     <AuthenticatedLayout>
         <div class="assign-page">
             <div class="assign-header">
-                <button @click="handleBack" class="assign-back-button">
-                    <img src="/icons/left-back-arrow.png" alt="Atgal" class="assign-back-icon" />
-                </button>
+                <AppBackButton @click="handleBack" />
                 <div class="assign-title-wrapper">
                     <h1 class="assign-title">Problemai priskiriama atsakingai įstaigai</h1>
                     <button class="assign-title-icon-btn" type="button" @click="toggleInstitutions">
-                        <img 
-                            src="/icons/arrow-icon.png" 
-                            alt="Dropdown" 
+                        <img
+                            src="/icons/arrow-icon.png"
+                            alt="Dropdown"
                             class="assign-title-icon"
                             :class="{ 'assign-icon-rotated': !isInstitutionsExpanded }"
                         />
@@ -99,12 +101,10 @@ const toggleStatus = () => {
                         class="assign-institution-item"
                     >
                         <label class="assign-institution-label">
-                            <input
-                                type="checkbox"
+                            <AppCheckbox
+                                :model-value="selectedInstitutions.includes(institution)"
                                 :value="institution"
-                                :checked="selectedInstitutions.includes(institution)"
                                 @change="handleInstitutionToggle(institution)"
-                                class="assign-checkbox"
                             />
                             <span class="assign-institution-text">{{ institution }}</span>
                         </label>
@@ -125,9 +125,9 @@ const toggleStatus = () => {
                     <div class="assign-section-header">
                         <label class="assign-section-label">Būsena</label>
                         <button class="assign-section-icon-btn" type="button" @click="toggleStatus">
-                            <img 
-                                src="/icons/arrow-icon.png" 
-                                alt="Dropdown" 
+                            <img
+                                src="/icons/arrow-icon.png"
+                                alt="Dropdown"
                                 class="assign-section-icon"
                                 :class="{ 'assign-icon-rotated': !isStatusExpanded }"
                             />
@@ -166,23 +166,32 @@ const toggleStatus = () => {
                                 Išspręsta
                             </button>
                         </div>
-                        <button class="assign-send-btn" @click="handleSend">
-                            Siųsti
-                        </button>
+                        <AppButton
+                            text="Siųsti"
+                            variant="primary"
+                            as-button
+                            @click="handleSend"
+                            class="assign-send-btn"
+                        />
                     </div>
                 </div>
 
-                <div class="assign-section">
-                    <label class="assign-section-label">Siųsti informaciją el. paštu</label>
-                    <input
+                <div class="assign-section assign-section-email">
+                    <AppInput
                         v-model="email"
+                        label="Siųsti informaciją el. paštu"
                         type="email"
-                        class="assign-email-input"
                         placeholder="El. paštas"
+                        variant="filter"
+                        class="assign-email-input"
                     />
-                    <button class="assign-send-btn" @click="handleSend">
-                        Siųsti
-                    </button>
+                    <AppButton
+                        text="Siųsti"
+                        variant="primary"
+                        as-button
+                        @click="handleSend"
+                        class="assign-send-btn assign-send-btn-email"
+                    />
                 </div>
             </div>
         </div>
@@ -205,20 +214,6 @@ const toggleStatus = () => {
     border-bottom: 1px solid #e0e0e0;
 }
 
-.assign-back-button {
-    background: transparent;
-    border: none;
-    cursor: pointer;
-    padding: 8px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: opacity 0.2s;
-}
-
-.assign-back-button:hover {
-    opacity: 0.7;
-}
 
 .assign-title-wrapper {
     display: flex;
@@ -263,11 +258,6 @@ const toggleStatus = () => {
     transition: transform 0.3s ease;
 }
 
-.assign-back-icon {
-    display: block;
-    width: 16px;
-    height: 16px;
-}
 
 .assign-icon-rotated {
     transform: rotate(180deg);
@@ -295,6 +285,15 @@ const toggleStatus = () => {
     flex-direction: column;
 }
 
+.assign-section-email {
+    gap: 20px;
+}
+
+.assign-section .app-input-group {
+    width: 100%;
+    max-width: 400px;
+}
+
 .assign-institution-item {
     display: flex;
     align-items: center;
@@ -314,36 +313,6 @@ const toggleStatus = () => {
     gap: 12px;
 }
 
-.assign-checkbox {
-    width: 18px;
-    height: 18px;
-    cursor: pointer;
-    border: 1px solid #1946A0;
-    border-radius: 2px;
-    appearance: none;
-    -webkit-appearance: none;
-    -moz-appearance: none;
-    background-color: #ffffff;
-    position: relative;
-    flex-shrink: 0;
-}
-
-.assign-checkbox:checked {
-    background-color: #1946A0;
-    border-color: #1946A0;
-}
-
-.assign-checkbox:checked::after {
-    content: '✓';
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    color: #ffffff;
-    font-size: 12px;
-    font-weight: bold;
-    line-height: 1;
-}
 
 .assign-institution-text {
     font-size: 16px;
@@ -483,60 +452,16 @@ const toggleStatus = () => {
     border-width: 3px;
 }
 
-.assign-email-input {
-    width: 100%;
-    max-width: 400px;
-    height: 40px;
-    padding: 0 15px;
-    border: 1px solid #e0e0e0;
-    border-radius: 5px;
-    font-size: 16px;
-    font-family: 'Inter', sans-serif;
-    color: #333333;
-    background-color: #f5f5f5;
-    box-sizing: border-box;
-    margin-bottom: 20px;
-}
-
-.assign-email-input:focus {
-    outline: none;
-    border-color: #1946A0;
-    background-color: #ffffff;
-}
-
-.assign-email-input::placeholder {
-    color: #999999;
-    font-style: italic;
-}
-
 .assign-send-btn {
     width: 100%;
     max-width: 400px;
-    height: 45px;
-    background-color: #1946A0;
-    color: #ffffff;
-    border: 1px solid #1946A0;
-    border-radius: 5px;
-    padding: 0 24px;
-    font-size: 18px;
-    font-weight: 400;
-    font-family: 'Open Sans', sans-serif;
-    line-height: 150%;
-    letter-spacing: -1.1%;
-    cursor: pointer;
-    transition: background-color 0.2s;
-    box-sizing: border-box;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    text-align: center;
 }
 
-.assign-send-btn:hover {
-    background-color: #1a3d95;
+.assign-email-input {
+    max-width: 400px;
 }
 
-.assign-send-btn:active {
-    background-color: #163882;
+.assign-send-btn-email {
+    max-width: 400px;
 }
 </style>

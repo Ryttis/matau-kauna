@@ -77,7 +77,7 @@ class ProblemController extends Controller
     public function show(Problem $problem): Response
     {
         $categories = Problem::distinct()->pluck('category')->sort()->values();
-        
+
         return Inertia::render('Problems/Show', [
             'problem' => $problem,
             'statusOptions' => ProblemStatus::selectableOptions(),
@@ -104,10 +104,10 @@ class ProblemController extends Controller
     {
         $institutions = [];
         $problemIds = $request->get('problem_ids', []);
-        
+
         $problem = null;
         $problems = [];
-        
+
         if (!empty($problemIds)) {
             if (is_array($problemIds)) {
                 $problems = Problem::whereIn('id', $problemIds)->get();
@@ -121,7 +121,7 @@ class ProblemController extends Controller
                 }
             }
         }
-        
+
         return Inertia::render('Problems/Assign', [
             'problem' => $problem,
             'problems' => $problems,
@@ -132,7 +132,7 @@ class ProblemController extends Controller
     public function assignSingle(Problem $problem): Response
     {
         $institutions = [];
-        
+
         return Inertia::render('Problems/Assign', [
             'problem' => $problem,
             'problems' => [$problem],
@@ -143,7 +143,7 @@ class ProblemController extends Controller
     public function reviewProgress(Problem $problem): Response
     {
         $problem->load('reviewHistory');
-        
+
         $reviewEntries = $problem->reviewHistory->map(function ($entry) {
             return [
                 'id' => $entry->id,
@@ -153,7 +153,7 @@ class ProblemController extends Controller
                 'comment' => $entry->comment ?? '',
             ];
         })->toArray();
-        
+
         return Inertia::render('Problems/ReviewProgress', [
             'problem' => $problem,
             'reviewEntries' => $reviewEntries,
@@ -163,29 +163,29 @@ class ProblemController extends Controller
     public function merge(Request $request, Problem $problem): Response
     {
         $categoryFilter = $request->get('category');
-        
+
         if ($categoryFilter === null || $categoryFilter === '') {
             $categoryFilter = '';
         }
-        
+
         $categories = Problem::distinct()->pluck('category')->sort()->values();
-        
+
         $query = Problem::where('id', '!=', $problem->id)
             ->where('status', '!=', 'neuzregistruota');
-        
+
         if ($categoryFilter !== '') {
             $query->where('category', $categoryFilter);
         }
-        
+
         $similarProblems = $query->orderBy('created_at', 'desc')->get();
-        
+
         $mapCenter = [
             'lat' => 54.8985,
             'lng' => 23.9036,
         ];
-        
+
         $mapMarkers = [];
-        
+
         if ($problem->status !== 'neuzregistruota') {
             $mapMarkers[] = [
                 'id' => $problem->id,
@@ -196,7 +196,7 @@ class ProblemController extends Controller
                 'isMain' => true,
             ];
         }
-        
+
         foreach ($similarProblems as $index => $p) {
             if ($p->status !== 'neuzregistruota') {
                 $offset = (count($mapMarkers)) * 0.01;
@@ -209,7 +209,7 @@ class ProblemController extends Controller
                 ];
             }
         }
-        
+
         return Inertia::render('Problems/Merge', [
             'problem' => $problem,
             'similarProblems' => $similarProblems,
@@ -259,6 +259,37 @@ class ProblemController extends Controller
         return Inertia::render('Map', [
             'categories' => $categories,
             'statusOptions' => ProblemStatus::selectableOptions(),
+        ]);
+    }
+
+    public function statistics(Request $request): Response
+    {
+        $period = $request->get('period', 'all');
+        $institution = $request->get('institution', 'all');
+        $category = $request->get('category', 'all');
+
+        $categories = Problem::distinct()->pluck('category')->sort()->values();
+
+        // TODO: Get institutions from database when model is available
+        $institutions = [];
+
+        $route = $request->route()->getName();
+
+        if ($route === 'statistics.resolution-terms') {
+            return Inertia::render('Statistics/ResolutionTerms');
+        }
+
+        if ($route === 'statistics.categories') {
+            return Inertia::render('Statistics/Categories');
+        }
+
+        if ($route === 'statistics.institutions') {
+            return Inertia::render('Statistics/Institutions');
+        }
+
+        return Inertia::render('Statistics', [
+            'categories' => $categories,
+            'institutions' => $institutions,
         ]);
     }
 }
