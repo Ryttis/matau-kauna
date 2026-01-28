@@ -1,5 +1,6 @@
 <script setup>
 import BaseModal from '@/Components/App/BaseModal.vue'
+import AppButton from '@/Components/App/AppButton.vue'
 
 const props = defineProps({
     open: Boolean,
@@ -32,40 +33,31 @@ const emit = defineEmits(['close', 'confirm'])
         <p>{{ message }}</p>
 
         <template #footer>
-            <button type="button" class="secondary-btn" @click="emit('close')">
-                {{ cancelText }}
-            </button>
-
-            <button type="button" class="danger-btn" :disabled="loading" @click="emit('confirm')">
-                {{ loading ? '...' : confirmText }}
-            </button>
+            <AppButton
+                :text="cancelText"
+                variant="secondary"
+                as-button
+                @click="emit('close')"
+            />
+            <AppButton
+                :text="loading ? '...' : confirmText"
+                variant="primary"
+                as-button
+                :disabled="loading"
+                @click="emit('confirm')"
+                class="confirm-modal-danger-btn"
+            />
         </template>
     </BaseModal>
 </template>
 
 <style scoped>
-.secondary-btn {
-    border: 1px solid #e6e8ee;
-    background: #ffffff;
-    color: #1946A0;
-    border-radius: 10px;
-    padding: 10px 12px;
-    cursor: pointer;
-    font-weight: 600;
+.confirm-modal-danger-btn {
+    background-color: #b42318 !important;
+    border-color: #b42318 !important;
 }
 
-.danger-btn {
-    border: none;
-    background: #b42318;
-    color: #ffffff;
-    border-radius: 10px;
-    padding: 10px 12px;
-    cursor: pointer;
-    font-weight: 600;
-}
-
-.danger-btn:disabled {
-    opacity: 0.6;
-    cursor: not-allowed;
+.confirm-modal-danger-btn:hover:not(:disabled) {
+    background-color: #a01e14 !important;
 }
 </style>

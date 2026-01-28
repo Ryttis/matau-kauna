@@ -4,6 +4,8 @@ import { Head, router } from '@inertiajs/vue3'
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue'
 import AppButton from '@/Components/App/AppButton.vue'
 import AppInput from '@/Components/App/AppInput.vue'
+import AppBackButton from '@/Components/App/AppBackButton.vue'
+import AppCheckbox from '@/Components/App/AppCheckbox.vue'
 import { PROBLEM_STATUS } from '@/constants/problemStatus'
 
 const props = defineProps({
@@ -76,9 +78,7 @@ const toggleStatus = () => {
     <AuthenticatedLayout>
         <div class="assign-page">
             <div class="assign-header">
-                <button @click="handleBack" class="assign-back-button">
-                    <img src="/icons/left-back-arrow.png" alt="Atgal" class="assign-back-icon" />
-                </button>
+                <AppBackButton @click="handleBack" />
                 <div class="assign-title-wrapper">
                     <h1 class="assign-title">Problemai priskiriama atsakingai įstaigai</h1>
                     <button class="assign-title-icon-btn" type="button" @click="toggleInstitutions">
@@ -101,12 +101,10 @@ const toggleStatus = () => {
                         class="assign-institution-item"
                     >
                         <label class="assign-institution-label">
-                            <input
-                                type="checkbox"
+                            <AppCheckbox
+                                :model-value="selectedInstitutions.includes(institution)"
                                 :value="institution"
-                                :checked="selectedInstitutions.includes(institution)"
                                 @change="handleInstitutionToggle(institution)"
-                                class="assign-checkbox"
                             />
                             <span class="assign-institution-text">{{ institution }}</span>
                         </label>
@@ -178,20 +176,21 @@ const toggleStatus = () => {
                     </div>
                 </div>
 
-                <div class="assign-section">
+                <div class="assign-section assign-section-email">
                     <AppInput
                         v-model="email"
                         label="Siųsti informaciją el. paštu"
                         type="email"
                         placeholder="El. paštas"
                         variant="filter"
+                        class="assign-email-input"
                     />
                     <AppButton
                         text="Siųsti"
                         variant="primary"
                         as-button
                         @click="handleSend"
-                        class="assign-send-btn"
+                        class="assign-send-btn assign-send-btn-email"
                     />
                 </div>
             </div>
@@ -215,20 +214,6 @@ const toggleStatus = () => {
     border-bottom: 1px solid #e0e0e0;
 }
 
-.assign-back-button {
-    background: transparent;
-    border: none;
-    cursor: pointer;
-    padding: 8px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: opacity 0.2s;
-}
-
-.assign-back-button:hover {
-    opacity: 0.7;
-}
 
 .assign-title-wrapper {
     display: flex;
@@ -273,11 +258,6 @@ const toggleStatus = () => {
     transition: transform 0.3s ease;
 }
 
-.assign-back-icon {
-    display: block;
-    width: 16px;
-    height: 16px;
-}
 
 .assign-icon-rotated {
     transform: rotate(180deg);
@@ -305,6 +285,15 @@ const toggleStatus = () => {
     flex-direction: column;
 }
 
+.assign-section-email {
+    gap: 20px;
+}
+
+.assign-section .app-input-group {
+    width: 100%;
+    max-width: 400px;
+}
+
 .assign-institution-item {
     display: flex;
     align-items: center;
@@ -324,36 +313,6 @@ const toggleStatus = () => {
     gap: 12px;
 }
 
-.assign-checkbox {
-    width: 18px;
-    height: 18px;
-    cursor: pointer;
-    border: 1px solid #1946A0;
-    border-radius: 2px;
-    appearance: none;
-    -webkit-appearance: none;
-    -moz-appearance: none;
-    background-color: #ffffff;
-    position: relative;
-    flex-shrink: 0;
-}
-
-.assign-checkbox:checked {
-    background-color: #1946A0;
-    border-color: #1946A0;
-}
-
-.assign-checkbox:checked::after {
-    content: '✓';
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    color: #ffffff;
-    font-size: 12px;
-    font-weight: bold;
-    line-height: 1;
-}
 
 .assign-institution-text {
     font-size: 16px;
@@ -495,6 +454,14 @@ const toggleStatus = () => {
 
 .assign-send-btn {
     width: 100%;
+    max-width: 400px;
+}
+
+.assign-email-input {
+    max-width: 400px;
+}
+
+.assign-send-btn-email {
     max-width: 400px;
 }
 </style>

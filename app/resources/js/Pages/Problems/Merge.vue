@@ -4,6 +4,8 @@ import { Head, router } from '@inertiajs/vue3'
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue'
 import AppSelect from '@/Components/App/AppSelect.vue'
 import AppButton from '@/Components/App/AppButton.vue'
+import AppBackButton from '@/Components/App/AppBackButton.vue'
+import AppCheckbox from '@/Components/App/AppCheckbox.vue'
 
 const props = defineProps({
     problem: Object,
@@ -106,9 +108,7 @@ onUnmounted(() => {
     <AuthenticatedLayout>
         <div class="merge-page">
             <div class="merge-header">
-                <button @click="handleBack" class="merge-back-button">
-                    <img src="/icons/left-back-arrow.png" alt="Atgal" class="merge-back-icon" />
-                </button>
+                <AppBackButton @click="handleBack" />
                 <div class="merge-header-content">
                     <div class="merge-category-wrapper" ref="categoryDropdownRef">
                         <button
@@ -181,13 +181,11 @@ onUnmounted(() => {
                             :class="{ 'merge-problem-item-main': problemItem.id === problem.id }"
                         >
                             <label class="merge-problem-label">
-                                <input
-                                    type="checkbox"
+                                <AppCheckbox
+                                    :model-value="problemItem.id === problem.id || selectedProblems.includes(problemItem.id)"
                                     :value="problemItem.id"
-                                    :checked="problemItem.id === problem.id || selectedProblems.includes(problemItem.id)"
                                     :disabled="problemItem.id === problem.id"
                                     @change="handleSelectItem(problemItem.id)"
-                                    class="merge-checkbox"
                                 />
                                 <span class="merge-problem-text">
                                     {{ problemItem.title }} (Nr. {{ problemItem.internal_number }})
@@ -198,11 +196,9 @@ onUnmounted(() => {
 
                     <div class="merge-actions">
                         <label class="merge-select-all-label">
-                            <input
-                                type="checkbox"
-                                :checked="selectedProblems.length > 0 && selectedProblems.length === filteredProblems.filter(p => p.id !== problem.id).length"
-                                @change="handleSelectAll($event.target.checked)"
-                                class="merge-checkbox"
+                            <AppCheckbox
+                                :model-value="selectedProblems.length > 0 && selectedProblems.length === filteredProblems.filter(p => p.id !== problem.id).length"
+                                @change="handleSelectAll"
                             />
                             <span class="merge-select-all-text">Pasirinkti visus</span>
                         </label>
@@ -235,21 +231,6 @@ onUnmounted(() => {
     border-bottom: 1px solid #e0e0e0;
 }
 
-.merge-back-button {
-    background: transparent;
-    border: none;
-    cursor: pointer;
-    padding: 8px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: opacity 0.2s;
-    flex-shrink: 0;
-}
-
-.merge-back-button:hover {
-    opacity: 0.7;
-}
 
 .merge-header-content {
     flex: 1;
@@ -290,11 +271,6 @@ onUnmounted(() => {
     filter: brightness(0) invert(1);
 }
 
-.merge-back-icon {
-    display: block;
-    width: 16px;
-    height: 16px;
-}
 
 .merge-dropdown-rotated {
     transform: rotate(180deg);
@@ -473,41 +449,6 @@ onUnmounted(() => {
     width: 100%;
 }
 
-.merge-checkbox {
-    width: 18px;
-    height: 18px;
-    cursor: pointer;
-    border: 1px solid #1946A0;
-    border-radius: 2px;
-    appearance: none;
-    -webkit-appearance: none;
-    -moz-appearance: none;
-    background-color: #ffffff;
-    position: relative;
-    flex-shrink: 0;
-}
-
-.merge-checkbox:checked {
-    background-color: #1946A0;
-    border-color: #1946A0;
-}
-
-.merge-checkbox:checked::after {
-    content: '✓';
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    color: #ffffff;
-    font-size: 12px;
-    font-weight: bold;
-    line-height: 1;
-}
-
-.merge-checkbox:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-}
 
 .merge-problem-text {
     font-size: 16px;

@@ -1,6 +1,7 @@
 <script setup>
 import { ref, computed, watch } from 'vue'
 import { router } from '@inertiajs/vue3'
+import AppCheckbox from '@/Components/App/AppCheckbox.vue'
 
 const props = defineProps({
     problems: {
@@ -98,9 +99,8 @@ const isSelected = (problemId) => {
                 <th>Adresas</th>
                 <th>Aprašymas</th>
                 <th>
-                    <input
-                        type="checkbox"
-                        :checked="selectAll"
+                    <AppCheckbox
+                        :model-value="selectAll"
                         @change="handleSelectAll"
                     />
                 </th>
@@ -122,9 +122,8 @@ const isSelected = (problemId) => {
                 <td>{{ problem.address }}</td>
                 <td>{{ problem.description }}</td>
                 <td>
-                    <input
-                        type="checkbox"
-                        :checked="isSelected(problem.id)"
+                    <AppCheckbox
+                        :model-value="isSelected(problem.id)"
                         @change="handleSelectItem(problem.id)"
                         @click.stop
                     />
@@ -180,9 +179,4 @@ tbody tr:hover {
     cursor: pointer;
 }
 
-input[type="checkbox"] {
-    cursor: pointer;
-    width: 18px;
-    height: 18px;
-}
 </style>

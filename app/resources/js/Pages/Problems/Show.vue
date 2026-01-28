@@ -6,6 +6,7 @@ import StatusChangeModal from '@/Components/App/Modals/StatusChangeModal.vue'
 import EditModal from '@/Components/App/Modals/EditModal.vue'
 import AppButton from '@/Components/App/AppButton.vue'
 import AppInput from '@/Components/App/AppInput.vue'
+import AppBackButton from '@/Components/App/AppBackButton.vue'
 import { PROBLEM_STATUS_LABELS } from '@/constants/problemStatus'
 
 const props = defineProps({
@@ -55,9 +56,7 @@ const closeEditModal = () => {
     <AuthenticatedLayout>
         <div class="problem-detail">
             <div class="problem-header">
-                <button @click="handleBack" class="back-button">
-                    <img src="/icons/left-back-arrow.png" alt="Atgal" class="back-icon" />
-                </button>
+                <AppBackButton @click="handleBack" />
                 <div class="header-info header-info-left">
                     <span class="header-label">Nr</span>
                     <span class="header-value">{{ problem.internal_number }}</span>
@@ -192,21 +191,6 @@ const closeEditModal = () => {
     flex: 1;
 }
 
-.back-button {
-    background: transparent;
-    border: none;
-    cursor: pointer;
-    padding: 8px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: opacity 0.2s;
-}
-
-.back-button:hover {
-    opacity: 0.7;
-}
-
 .header-info {
     display: flex;
     flex-direction: column;
@@ -253,10 +237,12 @@ const closeEditModal = () => {
     display: flex;
     flex-direction: column;
     gap: 20px;
+    max-width: 600px;
 }
 
 .problem-fields-top .app-input-group {
     margin-bottom: 0;
+    width: 100%;
 }
 
 .problem-content-bottom {
@@ -351,11 +337,6 @@ const closeEditModal = () => {
     height: 16px;
 }
 
-.back-icon {
-    display: block;
-    width: 16px;
-    height: 16px;
-}
 
 .problem-actions {
     display: flex;
