@@ -2,6 +2,7 @@
 import { computed } from 'vue'
 import { Head, router } from '@inertiajs/vue3'
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue'
+import AppBackButton from '@/Components/App/AppBackButton.vue'
 import { PROBLEM_STATUS_LABELS } from '@/constants/problemStatus'
 
 const props = defineProps({
@@ -27,9 +28,7 @@ const handleBack = () => {
     <AuthenticatedLayout>
         <div class="review-progress-page">
             <div class="review-progress-header">
-                <button @click="handleBack" class="review-progress-back-button">
-                    <img src="/icons/left-back-arrow.png" alt="Atgal" class="review-progress-back-icon" />
-                </button>
+                <AppBackButton @click="handleBack" icon-size="16px" />
                 <div class="review-progress-header-info">
                     <div class="review-progress-header-info-item">
                         <span class="review-progress-header-label">Data</span>
@@ -173,26 +172,6 @@ const handleBack = () => {
     white-space: pre-wrap;
 }
 
-.review-progress-back-button {
-    background: transparent;
-    border: none;
-    cursor: pointer;
-    padding: 8px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: opacity 0.2s;
-}
-
-.review-progress-back-button:hover {
-    opacity: 0.7;
-}
-
-.review-progress-back-icon {
-    display: block;
-    width: 16px;
-    height: 16px;
-}
 
 .review-progress-title {
     font-size: 24px;
