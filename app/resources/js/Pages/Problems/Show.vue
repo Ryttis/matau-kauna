@@ -237,10 +237,12 @@ const closeEditModal = () => {
     display: flex;
     flex-direction: column;
     gap: 20px;
+    max-width: 600px;
 }
 
 .problem-fields-top .app-input-group {
     margin-bottom: 0;
+    width: 100%;
 }
 
 .problem-content-bottom {

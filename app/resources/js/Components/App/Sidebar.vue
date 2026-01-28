@@ -210,6 +210,10 @@ const toggleStatistics = () => {
 .nav-bottom {
     margin-top: auto;
     padding-bottom: 16px;
+    position: sticky;
+    bottom: 0;
+    background: #F6F7F9;
+    z-index: 10;
 }
 
 .nav-link {

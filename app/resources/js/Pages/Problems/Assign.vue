@@ -176,20 +176,21 @@ const toggleStatus = () => {
                     </div>
                 </div>
 
-                <div class="assign-section">
+                <div class="assign-section assign-section-email">
                     <AppInput
                         v-model="email"
                         label="Siųsti informaciją el. paštu"
                         type="email"
                         placeholder="El. paštas"
                         variant="filter"
+                        class="assign-email-input"
                     />
                     <AppButton
                         text="Siųsti"
                         variant="primary"
                         as-button
                         @click="handleSend"
-                        class="assign-send-btn"
+                        class="assign-send-btn assign-send-btn-email"
                     />
                 </div>
             </div>
@@ -282,6 +283,15 @@ const toggleStatus = () => {
 .assign-section {
     display: flex;
     flex-direction: column;
+}
+
+.assign-section-email {
+    gap: 20px;
+}
+
+.assign-section .app-input-group {
+    width: 100%;
+    max-width: 400px;
 }
 
 .assign-institution-item {
@@ -444,6 +454,14 @@ const toggleStatus = () => {
 
 .assign-send-btn {
     width: 100%;
+    max-width: 400px;
+}
+
+.assign-email-input {
+    max-width: 400px;
+}
+
+.assign-send-btn-email {
     max-width: 400px;
 }
 </style>

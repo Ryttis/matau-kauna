@@ -13,6 +13,16 @@ const props = defineProps({
     placeholder: {
         type: String,
         default: 'Pasirinkti'
+    },
+    labelPosition: {
+        type: String,
+        default: 'top',
+        validator: (value) => ['top', 'left'].includes(value)
+    },
+    variant: {
+        type: String,
+        default: 'blue',
+        validator: (value) => ['blue', 'white'].includes(value)
     }
 })
 
@@ -25,17 +35,17 @@ const value = computed({
 </script>
 
 <template>
-    <div class="app-select-group">
+    <div class="app-select-group" :class="`app-select-group--${labelPosition}`">
         <label v-if="label" class="app-select-label">{{ label }}</label>
 
         <div class="app-select-wrapper">
-            <select v-model="value" class="app-select">
+            <select v-model="value" class="app-select" :class="`app-select--${variant}`">
                 <option v-if="placeholder && (modelValue === '' || modelValue === null || modelValue === undefined)" value="">{{ placeholder }}</option>
                 <slot>
                 </slot>
             </select>
             <div class="app-select-icon">
-                <img src="/icons/arrow-icon.png" alt="Dropdown" class="app-select-arrow" />
+                <img src="/icons/arrow-icon.png" alt="Dropdown" class="app-select-arrow" :class="`app-select-arrow--${variant}`" />
             </div>
         </div>
     </div>
@@ -48,12 +58,28 @@ const value = computed({
     gap: 8px;
 }
 
+.app-select-group--left {
+    flex-direction: row;
+    align-items: center;
+    gap: 12px;
+}
+
+.app-select-group--left .app-select-label {
+    margin-bottom: 0;
+    white-space: nowrap;
+}
+
+.app-select-group--left .app-select-wrapper {
+    flex: 1;
+}
+
 .app-select-label {
     font-size: 16px;
     font-weight: 600;
     color: #333333;
     font-family: 'Inter', sans-serif;
     line-height: 1.5;
+    margin-bottom: 0;
 }
 
 .app-select-wrapper {
@@ -110,5 +136,28 @@ const value = computed({
     height: 16px;
     filter: brightness(0) invert(1);
     object-fit: contain;
+}
+
+.app-select-arrow--white {
+    filter: none;
+}
+
+.app-select--white {
+    background-color: #ffffff;
+    color: #333333;
+    border: 1px solid #e0e0e0;
+    padding: 10px 40px 10px 15px;
+    height: 40px;
+    line-height: 20px;
+}
+
+.app-select--white:focus {
+    outline: none;
+    border-color: #1946A0;
+}
+
+.app-select--white option {
+    background-color: #ffffff;
+    color: #333333;
 }
 </style>

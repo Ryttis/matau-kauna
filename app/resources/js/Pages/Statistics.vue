@@ -30,29 +30,29 @@ const effectivelyResolved = ref([])
 const employeeActivity = ref([])
 const institutionResults = ref([])
 
-const periodOptions = [
-    { value: 'all', label: 'Visas laikotarpis' },
-    { value: 'week', label: 'Paskutinė savaitė' },
-    { value: 'month', label: 'Paskutinis mėnuo' },
-    { value: 'quarter', label: 'Paskutinis ketvirtis' },
-    { value: 'year', label: 'Paskutiniai metai' },
-]
+const periodOptions = computed(() => [
+    { value: 'all', label: 'Laikotarpis: Visas laikotarpis' },
+    { value: 'week', label: 'Laikotarpis: Paskutinė savaitė' },
+    { value: 'month', label: 'Laikotarpis: Paskutinis mėnuo' },
+    { value: 'quarter', label: 'Laikotarpis: Paskutinis ketvirtis' },
+    { value: 'year', label: 'Laikotarpis: Paskutiniai metai' },
+])
 
 const institutionOptions = computed(() => {
-    const options = [{ value: 'all', label: 'Visos' }]
+    const options = [{ value: 'all', label: 'Įstaigos: Visos' }]
     if (props.institutions) {
         props.institutions.forEach(inst => {
-            options.push({ value: inst.id, label: inst.name })
+            options.push({ value: inst.id, label: `Įstaigos: ${inst.name}` })
         })
     }
     return options
 })
 
 const categoryOptions = computed(() => {
-    const options = [{ value: 'all', label: 'Visos' }]
+    const options = [{ value: 'all', label: 'Kategorija: Visos' }]
     if (props.categories) {
         props.categories.forEach(cat => {
-            options.push({ value: cat, label: cat })
+            options.push({ value: cat, label: `Kategorija: ${cat}` })
         })
     }
     return options
@@ -94,6 +94,7 @@ const downloadReport = () => {
             <div class="filters-section">
                 <AppSelect
                     v-model="periodFilter"
+                    variant="white"
                 >
                     <option v-for="option in periodOptions" :key="option.value" :value="option.value">
                         {{ option.label }}
@@ -102,6 +103,7 @@ const downloadReport = () => {
 
                 <AppSelect
                     v-model="institutionFilter"
+                    variant="white"
                 >
                     <option v-for="option in institutionOptions" :key="option.value" :value="option.value">
                         {{ option.label }}
@@ -110,6 +112,7 @@ const downloadReport = () => {
 
                 <AppSelect
                     v-model="categoryFilter"
+                    variant="white"
                 >
                     <option v-for="option in categoryOptions" :key="option.value" :value="option.value">
                         {{ option.label }}
@@ -297,16 +300,15 @@ const downloadReport = () => {
 }
 
 .filters-section {
-    display: flex;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
     gap: 20px;
-    align-items: flex-end;
     margin-bottom: 30px;
-    flex-wrap: wrap;
+    width: 100%;
 }
 
 .filters-section .app-select-group {
-    min-width: 180px;
-    flex: 0 1 auto;
+    width: 100%;
 }
 
 .chart-filter {
