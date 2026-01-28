@@ -2,6 +2,8 @@
 import { ref, computed, watch } from 'vue'
 import { Head, router } from '@inertiajs/vue3'
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue'
+import AppButton from '@/Components/App/AppButton.vue'
+import AppSelect from '@/Components/App/AppSelect.vue'
 import CategoryStatsBlock from '@/Components/Statistics/CategoryStatsBlock.vue'
 import EmployeeActivityBlock from '@/Components/Statistics/EmployeeActivityBlock.vue'
 import InstitutionResultsBlock from '@/Components/Statistics/InstitutionResultsBlock.vue'
@@ -83,30 +85,42 @@ const downloadReport = () => {
         <div class="statistics-page">
             <div class="page-header">
                 <h1 class="page-title">Statistika</h1>
-                <button @click="downloadReport" class="download-header-btn">
-                    <img src="/icons/arrow-icon.png" alt="Download" />
-                    Atsisiųsti
-                </button>
+                <AppButton
+                    text="Atsisiųsti"
+                    variant="secondary"
+                    as-button
+                    @click="downloadReport"
+                    class="download-header-btn"
+                />
             </div>
 
             <div class="filters-section">
-                <select v-model="periodFilter" class="filter-select">
+                <AppSelect
+                    v-model="periodFilter"
+                    placeholder="Pasirinkti laikotarpį"
+                >
                     <option v-for="option in periodOptions" :key="option.value" :value="option.value">
                         {{ option.label }}
                     </option>
-                </select>
+                </AppSelect>
 
-                <select v-model="institutionFilter" class="filter-select">
+                <AppSelect
+                    v-model="institutionFilter"
+                    placeholder="Pasirinkti įstaigą"
+                >
                     <option v-for="option in institutionOptions" :key="option.value" :value="option.value">
                         {{ option.label }}
                     </option>
-                </select>
+                </AppSelect>
 
-                <select v-model="categoryFilter" class="filter-select">
+                <AppSelect
+                    v-model="categoryFilter"
+                    placeholder="Pasirinkti kategoriją"
+                >
                     <option v-for="option in categoryOptions" :key="option.value" :value="option.value">
                         {{ option.label }}
                     </option>
-                </select>
+                </AppSelect>
             </div>
 
             <div class="kpi-chart-row">
@@ -193,9 +207,13 @@ const downloadReport = () => {
                 <div class="chart-card">
                     <div class="chart-header">
                         <h3 class="chart-title">Pranešimų skaičius</h3>
-                        <select class="chart-filter">
-                            <option>Mėnesiai</option>
-                        </select>
+                        <AppSelect
+                            model-value="months"
+                            placeholder="Mėnesiai"
+                            class="chart-filter"
+                        >
+                            <option value="months">Mėnesiai</option>
+                        </AppSelect>
                     </div>
                     <div class="chart-container">
                         <div class="bar-chart">
@@ -261,44 +279,31 @@ const downloadReport = () => {
 }
 
 .download-header-btn {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 8px 16px;
-    background: transparent;
-    border: none;
-    color: #333;
-    font-size: 14px;
-    cursor: pointer;
-    font-family: 'Open Sans', sans-serif;
-}
-
-.download-header-btn:hover {
-    opacity: 0.7;
-}
-
-.download-header-btn img {
-    width: 16px;
-    height: 16px;
+    width: auto;
+    min-width: auto;
+    margin-bottom: 0;
 }
 
 .filters-section {
     display: flex;
     gap: 20px;
-    align-items: center;
+    align-items: flex-end;
     margin-bottom: 30px;
     flex-wrap: wrap;
 }
 
-.filter-select {
-    padding: 10px 15px;
-    border: 1px solid #e0e0e0;
-    border-radius: 5px;
-    background: white;
-    font-size: 14px;
-    cursor: pointer;
-    font-family: 'Open Sans', sans-serif;
+.filters-section .app-select-group {
     min-width: 180px;
+    flex: 0 1 auto;
+}
+
+.chart-filter {
+    width: auto;
+    min-width: 150px;
+}
+
+.chart-filter .app-select-group {
+    margin-bottom: 0;
 }
 
 .kpi-chart-row {
@@ -369,16 +374,6 @@ const downloadReport = () => {
     margin: 0;
     font-family: 'Open Sans', sans-serif;
     color: #333;
-}
-
-.chart-filter {
-    padding: 5px 10px;
-    border: 1px solid #e0e0e0;
-    border-radius: 5px;
-    background: white;
-    font-size: 14px;
-    font-family: 'Open Sans', sans-serif;
-    cursor: pointer;
 }
 
 .chart-container {
