@@ -2,6 +2,8 @@
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { Head, router } from '@inertiajs/vue3'
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue'
+import AppSelect from '@/Components/App/AppSelect.vue'
+import AppButton from '@/Components/App/AppButton.vue'
 
 const props = defineProps({
     problem: Object,
@@ -39,7 +41,7 @@ const handleCategoryChange = (category) => {
     selectedCategory.value = category || ''
     showCategoryDropdown.value = false
     selectedProblems.value = []
-    
+
     router.get(route('problems.merge', props.problem.id), {
         category: category || ''
     }, {
@@ -62,7 +64,7 @@ const handleSelectItem = (problemId) => {
     if (problemId === props.problem.id) {
         return
     }
-    
+
     const index = selectedProblems.value.indexOf(problemId)
     if (index > -1) {
         selectedProblems.value.splice(index, 1)
@@ -73,12 +75,12 @@ const handleSelectItem = (problemId) => {
 
 const handleMerge = () => {
     const allSelectedProblems = [mainProblemId.value, ...selectedProblems.value]
-    
+
     if (allSelectedProblems.length < 2) {
         alert('Pasirinkite bent vieną problemą apjungimui')
         return
     }
-    
+
     console.log('Apjungti problemas:', allSelectedProblems)
     alert('Apjungimo funkcionalumas bus suderintas vykdant sutartį')
 }
@@ -109,14 +111,14 @@ onUnmounted(() => {
                 </button>
                 <div class="merge-header-content">
                     <div class="merge-category-wrapper" ref="categoryDropdownRef">
-                        <button 
+                        <button
                             class="merge-category-btn"
                             @click="showCategoryDropdown = !showCategoryDropdown"
                         >
                             <span>{{ selectedCategory || 'Kategorija' }}</span>
-                            <img 
-                                src="/icons/arrow-icon.png" 
-                                alt="Dropdown" 
+                            <img
+                                src="/icons/arrow-icon.png"
+                                alt="Dropdown"
                                 class="merge-dropdown-icon"
                                 :class="{ 'merge-dropdown-rotated': showCategoryDropdown }"
                             />
@@ -152,8 +154,8 @@ onUnmounted(() => {
                             <div class="merge-map-dummy">
                                 <div class="merge-map-grid"></div>
                                 <div class="merge-map-markers">
-                                    <div 
-                                        v-for="(marker, index) in mapMarkers" 
+                                    <div
+                                        v-for="(marker, index) in mapMarkers"
                                         :key="marker.id"
                                         class="merge-map-marker"
                                         :class="{ 'merge-map-marker-main': marker.isMain }"
@@ -172,8 +174,8 @@ onUnmounted(() => {
 
                 <div class="merge-problems-section">
                     <div class="merge-problems-list">
-                        <div 
-                            v-for="problemItem in filteredProblems" 
+                        <div
+                            v-for="problemItem in filteredProblems"
                             :key="problemItem.id"
                             class="merge-problem-item"
                             :class="{ 'merge-problem-item-main': problemItem.id === problem.id }"
@@ -193,7 +195,7 @@ onUnmounted(() => {
                             </label>
                         </div>
                     </div>
-                    
+
                     <div class="merge-actions">
                         <label class="merge-select-all-label">
                             <input
@@ -204,9 +206,13 @@ onUnmounted(() => {
                             />
                             <span class="merge-select-all-text">Pasirinkti visus</span>
                         </label>
-                        <button class="merge-btn" @click="handleMerge">
-                            Apjungti
-                        </button>
+                        <AppButton
+                            text="Apjungti"
+                            variant="primary"
+                            as-button
+                            @click="handleMerge"
+                            class="merge-btn"
+                        />
                     </div>
                 </div>
             </div>
@@ -383,7 +389,7 @@ onUnmounted(() => {
     width: 100%;
     height: 100%;
     min-height: 150px;
-    background-image: 
+    background-image:
         linear-gradient(to right, #e0e0e0 0.5px, transparent 0.5px),
         linear-gradient(to bottom, #e0e0e0 0.5px, transparent 0.5px);
     background-size: 20px 20px;
@@ -536,31 +542,5 @@ onUnmounted(() => {
 .merge-btn {
     width: 100%;
     max-width: 400px;
-    height: 45px;
-    background-color: #1946A0;
-    color: #ffffff;
-    border: 1px solid #1946A0;
-    border-radius: 5px;
-    padding: 0 24px;
-    font-size: 18px;
-    font-weight: 400;
-    font-family: 'Open Sans', sans-serif;
-    line-height: 150%;
-    letter-spacing: -1.1%;
-    cursor: pointer;
-    transition: background-color 0.2s;
-    box-sizing: border-box;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    text-align: center;
-}
-
-.merge-btn:hover {
-    background-color: #1a3d95;
-}
-
-.merge-btn:active {
-    background-color: #163882;
 }
 </style>

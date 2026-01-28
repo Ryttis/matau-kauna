@@ -48,6 +48,10 @@ const props = defineProps({
     rows: {
         type: Number,
         default: 3
+    },
+    readonly: {
+        type: Boolean,
+        default: false
     }
 })
 
@@ -78,6 +82,7 @@ const wrapperClass = computed(() => {
                 :placeholder="placeholder"
                 :class="inputClass"
                 :list="options.length > 0 ? datalistId : undefined"
+                :readonly="readonly"
             />
             <datalist v-if="options.length > 0" :id="datalistId">
                 <option v-for="option in options" :key="option" :value="option" />
@@ -91,6 +96,7 @@ const wrapperClass = computed(() => {
                 :placeholder="placeholder"
                 :rows="rows"
                 :class="inputClass"
+                :readonly="readonly"
             ></textarea>
             <img v-if="showIcon" :src="iconSrc" :alt="iconAlt" class="app-input-icon app-input-icon-textarea" />
         </div>
