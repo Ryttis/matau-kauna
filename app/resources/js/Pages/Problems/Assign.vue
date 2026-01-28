@@ -2,6 +2,8 @@
 import { ref, computed } from 'vue'
 import { Head, router } from '@inertiajs/vue3'
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue'
+import AppButton from '@/Components/App/AppButton.vue'
+import AppInput from '@/Components/App/AppInput.vue'
 import { PROBLEM_STATUS } from '@/constants/problemStatus'
 
 const props = defineProps({
@@ -48,7 +50,7 @@ const handleStatusSelect = (status) => {
 }
 
 const handleSend = () => {
-    
+
 }
 
 const handleBack = () => {
@@ -80,9 +82,9 @@ const toggleStatus = () => {
                 <div class="assign-title-wrapper">
                     <h1 class="assign-title">Problemai priskiriama atsakingai įstaigai</h1>
                     <button class="assign-title-icon-btn" type="button" @click="toggleInstitutions">
-                        <img 
-                            src="/icons/arrow-icon.png" 
-                            alt="Dropdown" 
+                        <img
+                            src="/icons/arrow-icon.png"
+                            alt="Dropdown"
                             class="assign-title-icon"
                             :class="{ 'assign-icon-rotated': !isInstitutionsExpanded }"
                         />
@@ -125,9 +127,9 @@ const toggleStatus = () => {
                     <div class="assign-section-header">
                         <label class="assign-section-label">Būsena</label>
                         <button class="assign-section-icon-btn" type="button" @click="toggleStatus">
-                            <img 
-                                src="/icons/arrow-icon.png" 
-                                alt="Dropdown" 
+                            <img
+                                src="/icons/arrow-icon.png"
+                                alt="Dropdown"
                                 class="assign-section-icon"
                                 :class="{ 'assign-icon-rotated': !isStatusExpanded }"
                             />
@@ -166,23 +168,31 @@ const toggleStatus = () => {
                                 Išspręsta
                             </button>
                         </div>
-                        <button class="assign-send-btn" @click="handleSend">
-                            Siųsti
-                        </button>
+                        <AppButton
+                            text="Siųsti"
+                            variant="primary"
+                            as-button
+                            @click="handleSend"
+                            class="assign-send-btn"
+                        />
                     </div>
                 </div>
 
                 <div class="assign-section">
-                    <label class="assign-section-label">Siųsti informaciją el. paštu</label>
-                    <input
+                    <AppInput
                         v-model="email"
+                        label="Siųsti informaciją el. paštu"
                         type="email"
-                        class="assign-email-input"
                         placeholder="El. paštas"
+                        variant="filter"
                     />
-                    <button class="assign-send-btn" @click="handleSend">
-                        Siųsti
-                    </button>
+                    <AppButton
+                        text="Siųsti"
+                        variant="primary"
+                        as-button
+                        @click="handleSend"
+                        class="assign-send-btn"
+                    />
                 </div>
             </div>
         </div>
@@ -483,60 +493,8 @@ const toggleStatus = () => {
     border-width: 3px;
 }
 
-.assign-email-input {
-    width: 100%;
-    max-width: 400px;
-    height: 40px;
-    padding: 0 15px;
-    border: 1px solid #e0e0e0;
-    border-radius: 5px;
-    font-size: 16px;
-    font-family: 'Inter', sans-serif;
-    color: #333333;
-    background-color: #f5f5f5;
-    box-sizing: border-box;
-    margin-bottom: 20px;
-}
-
-.assign-email-input:focus {
-    outline: none;
-    border-color: #1946A0;
-    background-color: #ffffff;
-}
-
-.assign-email-input::placeholder {
-    color: #999999;
-    font-style: italic;
-}
-
 .assign-send-btn {
     width: 100%;
     max-width: 400px;
-    height: 45px;
-    background-color: #1946A0;
-    color: #ffffff;
-    border: 1px solid #1946A0;
-    border-radius: 5px;
-    padding: 0 24px;
-    font-size: 18px;
-    font-weight: 400;
-    font-family: 'Open Sans', sans-serif;
-    line-height: 150%;
-    letter-spacing: -1.1%;
-    cursor: pointer;
-    transition: background-color 0.2s;
-    box-sizing: border-box;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    text-align: center;
-}
-
-.assign-send-btn:hover {
-    background-color: #1a3d95;
-}
-
-.assign-send-btn:active {
-    background-color: #163882;
 }
 </style>

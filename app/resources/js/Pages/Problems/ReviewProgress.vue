@@ -28,7 +28,7 @@ const handleBack = () => {
         <div class="review-progress-page">
             <div class="review-progress-header">
                 <button @click="handleBack" class="review-progress-back-button">
-                    <img src="/icons/arrow-icon.png" alt="Atgal" class="review-progress-back-icon" />
+                    <img src="/icons/left-back-arrow.png" alt="Atgal" class="review-progress-back-icon" />
                 </button>
                 <div class="review-progress-header-info">
                     <div class="review-progress-header-info-item">
@@ -190,8 +190,8 @@ const handleBack = () => {
 
 .review-progress-back-icon {
     display: block;
-    width: 24px;
-    height: 24px;
+    width: 16px;
+    height: 16px;
 }
 
 .review-progress-title {
