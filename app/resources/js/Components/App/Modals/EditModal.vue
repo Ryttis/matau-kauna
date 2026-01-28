@@ -2,6 +2,7 @@
 import { ref, watch, computed } from 'vue'
 import { router } from '@inertiajs/vue3'
 import { PROBLEM_STATUS_LABELS } from '@/constants/problemStatus'
+import BaseModal from '@/Components/App/BaseModal.vue'
 
 const props = defineProps({
     show: Boolean,
@@ -43,9 +44,9 @@ const handleClose = () => {
 
 const handleSave = () => {
     if (isSubmitting.value) return
-    
+
     isSubmitting.value = true
-    
+
     router.put(route('problems.update', props.problem.id), form.value, {
         preserveScroll: true,
         onSuccess: () => {
@@ -64,15 +65,16 @@ const handleFileAttach = () => {
 </script>
 
 <template>
-    <div v-if="show" class="edit-modal-overlay" @click="handleClose">
-        <div class="edit-modal-content" @click.stop>
-            <div class="edit-modal-header">
-                <button @click="handleClose" class="edit-modal-close">
-                    <img src="/icons/close-icon.png" alt="Uždaryti" class="edit-close-icon" />
-                </button>
-            </div>
+    <BaseModal
+        :show="show"
+        :max-width="'650px'"
+        @close="handleClose"
+    >
+        <template #header>
+            <div class="edit-modal-header-empty"></div>
+        </template>
 
-            <div class="edit-modal-body">
+        <div class="edit-modal-body">
                 <div class="edit-form-row edit-form-row-single">
                     <div class="edit-field-group">
                         <label class="edit-field-label">Nr</label>
@@ -159,74 +161,27 @@ const handleFileAttach = () => {
                         </div>
                     </div>
                 </div>
-            </div>
-
-            <div class="edit-modal-footer">
-                <button class="edit-save-btn" @click="handleSave" :disabled="isSubmitting">
-                    {{ isSubmitting ? 'Saugoma...' : 'Saugoti' }}
-                </button>
-            </div>
         </div>
-    </div>
+
+        <template #footer>
+            <button class="edit-save-btn" @click="handleSave" :disabled="isSubmitting">
+                {{ isSubmitting ? 'Saugoma...' : 'Saugoti' }}
+            </button>
+        </template>
+    </BaseModal>
 </template>
 
 <style scoped>
-.edit-modal-overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: rgba(0, 0, 0, 0.5);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 1000;
-    padding: 20px;
-}
-
-.edit-modal-content {
-    background: #ffffff;
-    border-radius: 5px;
-    width: 100%;
-    max-width: 650px;
-    max-height: 85vh;
-    overflow-y: auto;
-    display: flex;
-    flex-direction: column;
-}
-
-.edit-modal-header {
-    display: flex;
-    justify-content: flex-end;
-    padding: 16px;
-    border-bottom: 1px solid #e0e0e0;
-}
-
-.edit-modal-close {
-    background: transparent;
-    border: none;
-    cursor: pointer;
-    padding: 4px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: opacity 0.2s;
-}
-
-.edit-modal-close:hover {
-    opacity: 0.7;
-}
-
-.edit-close-icon {
-    width: 24px;
-    height: 24px;
-    display: block;
+.edit-modal-header-empty {
+    flex: 1;
 }
 
 .edit-modal-body {
+    padding: 0;
+}
+
+:deep(.modal-body) {
     padding: 20px;
-    flex: 1;
 }
 
 .edit-form-row {
@@ -430,14 +385,10 @@ input[list] {
     margin-top: 8px;
 }
 
-.edit-modal-footer {
-    padding: 16px 20px;
-    border-top: 1px solid #e0e0e0;
-    display: flex;
-    justify-content: center;
-}
-
 .edit-save-btn {
+    width: 100%;
+    max-width: 400px;
+    margin: 0 auto;
     width: 100%;
     max-width: 400px;
     height: 45px;
