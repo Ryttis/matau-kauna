@@ -2,6 +2,7 @@
 import { ref, watch } from 'vue'
 import { PROBLEM_STATUS_OPTIONS } from '@/constants/problemStatus'
 import BaseModal from '@/Components/App/BaseModal.vue'
+import AppButton from '@/Components/App/AppButton.vue'
 
 const props = defineProps({
     show: Boolean,
@@ -78,9 +79,15 @@ const handleClose = () => {
         </div>
 
         <template #footer>
-            <button class="status-modal-save-btn" @click="handleSave">
-                Saugoti
-            </button>
+            <div class="status-modal-footer-wrapper">
+                <AppButton
+                    text="Saugoti"
+                    variant="primary"
+                    as-button
+                    @click="handleSave"
+                    class="status-modal-save-btn"
+                />
+            </div>
         </template>
     </BaseModal>
 </template>
@@ -187,34 +194,15 @@ const handleClose = () => {
     border-width: 3px;
 }
 
+.status-modal-footer-wrapper {
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
 .status-modal-save-btn {
     width: auto;
     min-width: 202px;
-    height: 45px;
-    background-color: #1946A0;
-    color: #ffffff;
-    border: 1px solid #1946A0;
-    border-radius: 5px;
-    padding: 0 24px;
-    font-size: 18px;
-    font-weight: 400;
-    font-family: 'Open Sans', sans-serif;
-    line-height: 150%;
-    letter-spacing: -1.1%;
-    cursor: pointer;
-    transition: background-color 0.2s;
-    box-sizing: border-box;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    text-align: center;
-}
-
-.status-modal-save-btn:hover {
-    background-color: #1a3d95;
-}
-
-.status-modal-save-btn:active {
-    background-color: #163882;
 }
 </style>

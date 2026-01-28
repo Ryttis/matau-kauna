@@ -232,7 +232,7 @@ const handleAssignProblems = () => {
     if (selectedProblems.value.length === 0) {
         return
     }
-    
+
     if (selectedProblems.value.length === 1) {
         const problemId = selectedProblems.value[0]
         router.visit(route('problems.assign.single', problemId))
@@ -323,14 +323,14 @@ onUnmounted(() => {
                 class="view-more-link"
             >
                 <span>Žiūrėti daugiau</span>
-                <img src="/icons/right-next-arrow.png" alt="Rodyklė" class="view-more-arrow" />
+                <img src="/icons/circle-arrow-right.png" alt="Rodyklė" class="view-more-arrow" />
             </a>
         </div>
 
         <div class="list-navigation">
-            <AppButton 
-                text="Priskirti problemą" 
-                as-button 
+            <AppButton
+                text="Priskirti problemą"
+                as-button
                 @click="handleAssignProblems"
             />
             <AppButton
@@ -444,6 +444,11 @@ onUnmounted(() => {
     flex-direction: column;
     align-items: center;
     position: relative;
+    gap: 10px;
+}
+
+.list-navigation > * {
+    margin-bottom: 0 !important;
 }
 
 .export-wrapper {
