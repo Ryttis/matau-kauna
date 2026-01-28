@@ -13,7 +13,6 @@ Route::get('/', function () {
 
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/dashboard', [ProblemController::class, 'index'])->name('dashboard');
-    Route::get('/map', [ProblemController::class, 'map'])->name('map');
     Route::get('/problems/assign', [ProblemController::class, 'assign'])->name('problems.assign');
     Route::get('/problems/{problem}/assign', [ProblemController::class, 'assignSingle'])->name('problems.assign.single');
     Route::get('/problems/export', [ProblemController::class, 'export'])->name('problems.export');

@@ -187,19 +187,10 @@ const toggleStates = () => {
     margin: auto 0;
 }
 
-.nav-link:not(.active) img {
-    filter: brightness(0);
-}
-
 .nav-link:hover,
 .nav-link.active {
     background: #1946A0;
     color: #fff;
-}
-
-.nav-link.active img,
-.nav-link:hover img {
-    filter: brightness(0) invert(1);
 }
 
 .states-trigger {

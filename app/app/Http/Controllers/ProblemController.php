@@ -251,14 +251,4 @@ class ProblemController extends Controller
 
         return Excel::download(new ProblemsExport($problems), $filename);
     }
-
-    public function map(): Response
-    {
-        $categories = Problem::distinct()->pluck('category')->sort()->values();
-
-        return Inertia::render('Map', [
-            'categories' => $categories,
-            'statusOptions' => ProblemStatus::selectableOptions(),
-        ]);
-    }
 }
