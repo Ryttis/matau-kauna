@@ -4,6 +4,8 @@ import { Head, router } from '@inertiajs/vue3'
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue'
 import StatusChangeModal from '@/Components/App/Modals/StatusChangeModal.vue'
 import EditModal from '@/Components/App/Modals/EditModal.vue'
+import AppButton from '@/Components/App/AppButton.vue'
+import AppInput from '@/Components/App/AppInput.vue'
 import { PROBLEM_STATUS_LABELS } from '@/constants/problemStatus'
 
 const props = defineProps({
@@ -75,46 +77,34 @@ const closeEditModal = () => {
 
             <div class="problem-content">
                 <div class="problem-fields-top">
-                    <div class="field-group">
-                        <label class="field-label">Pavadinimas</label>
-                        <input
-                            type="text"
-                            :value="problem.title"
-                            class="field-input"
-                            readonly
-                        />
-                    </div>
-
-                    <div class="field-group">
-                        <label class="field-label">Kategorija</label>
-                        <input
-                            type="text"
-                            :value="problem.category"
-                            class="field-input"
-                            readonly
-                        />
-                    </div>
-
-                    <div class="field-group">
-                        <label class="field-label">Adresas</label>
-                        <input
-                            type="text"
-                            :value="problem.address"
-                            class="field-input"
-                            readonly
-                        />
-                    </div>
+                    <AppInput
+                        :model-value="problem.title"
+                        label="Pavadinimas"
+                        type="text"
+                        readonly
+                    />
+                    <AppInput
+                        :model-value="problem.category"
+                        label="Kategorija"
+                        type="text"
+                        readonly
+                    />
+                    <AppInput
+                        :model-value="problem.address"
+                        label="Adresas"
+                        type="text"
+                        readonly
+                    />
                 </div>
 
                 <div class="problem-content-bottom">
-                    <div class="field-group field-group-description">
-                        <label class="field-label">Aprašymas</label>
-                        <textarea
-                            :value="problem.description"
-                            class="field-textarea"
-                            readonly
-                        ></textarea>
-                    </div>
+                    <AppInput
+                        :model-value="problem.description"
+                        label="Aprašymas"
+                        :as-textarea="true"
+                        :rows="8"
+                        readonly
+                    />
 
                     <div class="problem-media">
                         <div class="media-placeholder">
@@ -131,20 +121,36 @@ const closeEditModal = () => {
 
             <div class="problem-actions">
                 <div class="actions-row">
-                    <button class="action-btn action-btn-primary" @click="() => router.visit(route('problems.assign.single', problem.id))">
-                        Priskirti problemą
-                    </button>
-                    <button class="action-btn action-btn-primary" @click="openStatusModal">
-                        Atvaizduoti/keisti būseną
-                    </button>
+                    <AppButton
+                        text="Priskirti problemą"
+                        variant="primary"
+                        as-button
+                        @click="() => router.visit(route('problems.assign.single', problem.id))"
+                        class="action-btn"
+                    />
+                    <AppButton
+                        text="Atvaizduoti/keisti būseną"
+                        variant="primary"
+                        as-button
+                        @click="openStatusModal"
+                        class="action-btn"
+                    />
                 </div>
                 <div class="actions-row">
-                    <button class="action-btn action-btn-secondary" @click="openEditModal">
-                        Koreguoti
-                    </button>
-                    <button class="action-btn action-btn-secondary" @click="() => router.visit(route('problems.merge', problem.id))">
-                        Apjungti
-                    </button>
+                    <AppButton
+                        text="Koreguoti"
+                        variant="secondary"
+                        as-button
+                        @click="openEditModal"
+                        class="action-btn"
+                    />
+                    <AppButton
+                        text="Apjungti"
+                        variant="secondary"
+                        as-button
+                        @click="() => router.visit(route('problems.merge', problem.id))"
+                        class="action-btn"
+                    />
                 </div>
             </div>
 
@@ -249,6 +255,10 @@ const closeEditModal = () => {
     gap: 20px;
 }
 
+.problem-fields-top .app-input-group {
+    margin-bottom: 0;
+}
+
 .problem-content-bottom {
     display: grid;
     grid-template-columns: 1fr 400px;
@@ -256,6 +266,18 @@ const closeEditModal = () => {
     gap: 32px;
     margin-top: 20px;
     align-items: start;
+}
+
+.problem-content-bottom .app-input-group {
+    margin-bottom: 0;
+    height: 100%;
+}
+
+.problem-content-bottom .app-input-group textarea {
+    min-height: 150px;
+    height: 100%;
+    max-height: 200px;
+    flex: 1;
 }
 
 .field-group {
@@ -278,48 +300,6 @@ const closeEditModal = () => {
     font-family: 'Inter', sans-serif;
 }
 
-.field-input {
-    width: 100%;
-    height: 40px;
-    padding: 0 16px;
-    border: 1px solid #e0e0e0;
-    border-radius: 5px;
-    font-size: 16px;
-    font-family: 'Inter', sans-serif;
-    color: #333;
-    background-color: #f9f9f9;
-    box-sizing: border-box;
-}
-
-.field-input:focus {
-    outline: none;
-    border-color: #1946A0;
-    background-color: #fff;
-}
-
-.field-textarea {
-    width: 100%;
-    min-height: 150px;
-    height: 100%;
-    max-height: 200px;
-    padding: 16px;
-    border: 1px solid #e0e0e0;
-    border-radius: 5px;
-    font-size: 16px;
-    font-family: 'Inter', sans-serif;
-    color: #333;
-    background-color: #f9f9f9;
-    resize: none;
-    box-sizing: border-box;
-    flex: 1;
-    overflow-y: auto;
-}
-
-.field-textarea:focus {
-    outline: none;
-    border-color: #1946A0;
-    background-color: #fff;
-}
 
 .problem-media {
     display: flex;
@@ -391,54 +371,5 @@ const closeEditModal = () => {
 
 .action-btn {
     flex: 1;
-    height: 45px;
-    padding: 0 24px;
-    border-radius: 5px;
-    font-size: 18px;
-    font-weight: 400;
-    font-family: 'Open Sans', sans-serif;
-    line-height: 150%;
-    letter-spacing: -1.1%;
-    cursor: pointer;
-    transition: all 0.2s;
-    box-sizing: border-box;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    text-align: center;
-}
-
-.action-btn-primary {
-    background-color: #1946A0;
-    color: #ffffff;
-    border: 1px solid #1946A0;
-}
-
-.action-btn-primary:hover {
-    background-color: #1a3d95;
-}
-
-.action-btn-primary:active {
-    background-color: #163882;
-}
-
-.action-btn-secondary {
-    background-color: #ffffff;
-    color: #333333;
-    border: 1px solid #e0e0e0;
-}
-
-.action-btn-secondary:hover {
-    background-color: #f5f5f5;
-}
-
-.action-btn-danger {
-    background-color: #ffffff;
-    color: #F41616;
-    border: 1px solid #F41616;
-}
-
-.action-btn-danger:hover {
-    background-color: #fff5f5;
 }
 </style>
