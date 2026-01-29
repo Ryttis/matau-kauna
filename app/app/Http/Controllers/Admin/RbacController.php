@@ -142,7 +142,7 @@ class RbacController extends Controller
         $user->name = $data['name'];
         $user->email = $data['email'];
 
-        if (!empty($data['password'])) {
+        if (! empty($data['password'])) {
             $user->password = Hash::make($data['password']);
         }
 
