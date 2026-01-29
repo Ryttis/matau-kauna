@@ -2,12 +2,11 @@
 
 namespace Database\Seeders;
 
-use Illuminate\Database\Seeder;
-use App\Models\User;
-use App\Models\UserRole;
 use App\Models\RolePermission;
 use App\Models\RolePermissionGroup;
-use Illuminate\Support\Str;
+use App\Models\User;
+use App\Models\UserRole;
+use Illuminate\Database\Seeder;
 
 class RolesSeeder extends Seeder
 {

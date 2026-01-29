@@ -1,9 +1,9 @@
 <?php
 
-use App\Http\Controllers\ProblemController;
+use App\Http\Controllers\Admin\RbacController;
+use App\Http\Controllers\SettingsController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
-use App\Http\Controllers\Admin\RbacController;
 
 Route::get('/', function () {
     return auth()->check()
@@ -12,21 +12,17 @@ Route::get('/', function () {
 });
 
 Route::middleware(['auth', 'verified'])->group(function () {
-    Route::get('/dashboard', [ProblemController::class, 'index'])->name('dashboard');
-    Route::get('/map', [ProblemController::class, 'map'])->name('map');
-    Route::get('/statistics', [ProblemController::class, 'statistics'])->name('statistics');
-    Route::get('/statistics/resolution-terms', [ProblemController::class, 'statistics'])->name('statistics.resolution-terms');
-    Route::get('/statistics/categories', [ProblemController::class, 'statistics'])->name('statistics.categories');
-    Route::get('/statistics/institutions', [ProblemController::class, 'statistics'])->name('statistics.institutions');
-    Route::get('/problems/assign', [ProblemController::class, 'assign'])->name('problems.assign');
-    Route::get('/problems/{problem}/assign', [ProblemController::class, 'assignSingle'])->name('problems.assign.single');
-    Route::get('/problems/export', [ProblemController::class, 'export'])->name('problems.export');
-    Route::get('/problems/{problem}', [ProblemController::class, 'show'])->name('problems.show');
-    Route::put('/problems/{problem}', [ProblemController::class, 'update'])->name('problems.update');
-    Route::get('/problems/{problem}/review-progress', [ProblemController::class, 'reviewProgress'])->name('problems.reviewProgress');
-    Route::get('/problems/{problem}/merge', [ProblemController::class, 'merge'])->name('problems.merge');
-    Route::patch('/problems/{problem}/status', [ProblemController::class, 'updateStatus'])->name('problems.updateStatus');
-    Route::post('/problems/bulk-update-status', [ProblemController::class, 'bulkUpdateStatus'])->name('problems.bulkUpdateStatus');
+    Route::get('/dashboard', function () {
+        return Inertia::render('Dashboard');
+    })->name('dashboard');
+
+    Route::get('/settings', [SettingsController::class, 'index'])->name('settings');
+    Route::patch('/settings/profile', [SettingsController::class, 'updateProfile'])->name('settings.profile');
+    Route::post('/settings/employees', [SettingsController::class, 'storeEmployee'])->name('settings.employees');
+    Route::patch('/settings/institution', [SettingsController::class, 'updateInstitution'])->name('settings.institution');
+    Route::patch('/settings/privacy', [SettingsController::class, 'updatePrivacy'])->name('settings.privacy');
+    Route::put('/settings/password', [SettingsController::class, 'updatePassword'])->name('settings.password');
+    Route::delete('/settings', [SettingsController::class, 'destroy'])->name('settings.destroy');
 
     Route::prefix('admin')
         ->middleware(['auth', 'verified', 'admin'])
@@ -59,4 +55,4 @@ Route::middleware(['auth', 'verified'])->group(function () {
         });
 });
 
-require __DIR__ . '/auth.php';
+require __DIR__.'/auth.php';
