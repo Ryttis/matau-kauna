@@ -6,7 +6,8 @@ const props = defineProps({
     },
     variant: {
         type: String,
-        default: 'primary'
+        default: 'primary',
+        validator: (v) => ['primary', 'secondary', 'link'].includes(v)
     },
     disabled: {
         type: Boolean,
@@ -60,6 +61,21 @@ const buttonType = props.asButton ? 'button' : 'submit'
     z-index: 1;
 }
 
+.app-button--link {
+    width: auto;
+    padding: 0;
+    margin-bottom: 0;
+    background: none;
+    color: #000;
+    font-size: 16px;
+    font-weight: 600;
+}
+
+.app-button--link:hover {
+    background: none;
+    text-decoration: underline;
+}
+
 .app-button--fixed {
     width: 290px;
     height: 45px;
@@ -80,7 +96,6 @@ const buttonType = props.asButton ? 'button' : 'submit'
     margin-bottom: 0;
 }
 
-/* Primary - tamsiai mėlynas fonas, baltas tekstas */
 .app-button--primary {
     background-color: #1946A0;
     color: #ffffff;
@@ -94,7 +109,6 @@ const buttonType = props.asButton ? 'button' : 'submit'
     background-color: #163882;
 }
 
-/* Secondary - baltas fonas, tamsiai mėlynas rėmelis, tamsiai pilkas tekstas */
 .app-button--secondary {
     background-color: #ffffff;
     color: #333333;

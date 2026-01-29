@@ -13,9 +13,21 @@ class UserRole extends Model
 
     protected $fillable = ['role', 'name'];
 
+    /** @deprecated Or possible we will need it*/
     public const ROLE_USER = 'ROLE_USER';
 
+    /** @deprecated */
     public const ROLE_ADMIN = 'ROLE_ADMIN';
+
+    public const ROLE_SYSTEM_ADMIN = 'ROLE_SYSTEM_ADMIN'; // Sistemos administratorius
+
+    public const ROLE_PROBLEM_ADMIN = 'ROLE_PROBLEM_ADMIN'; // Problemų administratorius
+
+    public const ROLE_INSTITUTION_ADMIN = 'ROLE_INSTITUTION_ADMIN'; // Įstaigos administratorius
+
+    public const ROLE_MUNICIPALITY_REP = 'ROLE_MUNICIPALITY_REP'; // Savivaldybės atstovas
+
+    public const ROLE_EMPLOYEE = 'ROLE_EMPLOYEE'; // Įstaigos darbuotojas
 
     public function permissionGroups()
     {

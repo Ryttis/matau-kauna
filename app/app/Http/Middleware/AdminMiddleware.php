@@ -11,7 +11,7 @@ class AdminMiddleware
     {
         $user = $request->user();
 
-        if (! $user || ! $user->hasRole(\App\Models\UserRole::ROLE_ADMIN)) {
+        if (! $user || ! $user->hasRole(\App\Models\UserRole::ROLE_SYSTEM_ADMIN)) {
             abort(403);
         }
 
