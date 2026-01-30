@@ -101,10 +101,10 @@ const saveGroupPermissions = async () => {
         <table class="table" v-if="groups.length">
             <thead>
                 <tr>
-                    <th>Name</th>
+                    <th>Pavadinimas</th>
                     <th>Teisės</th>
                     <th>Rolės</th>
-                    <th></th>
+                    <th>Veiksmai</th>
                 </tr>
             </thead>
 
@@ -138,7 +138,7 @@ const saveGroupPermissions = async () => {
         <!-- Create Group -->
         <BaseModal :open="isCreateOpen" title="Sukurti grupę" @close="isCreateOpen = false">
             <label class="field">
-                <span>Name</span>
+                <span>Pavadinimas</span>
                 <input class="input" placeholder="Users" v-model="createForm.name" />
             </label>
 

@@ -8,6 +8,7 @@ import AdminRules from '@/Pages/Admin/Tabs/AdminRules.vue'
 import AdminNotifications from '@/Pages/Admin/Tabs/AdminNotifications.vue'
 import AdminClassifiers from '@/Pages/Admin/Tabs/AdminClassifiers.vue'
 import AdminAudits from '@/Pages/Admin/Tabs/AdminAudits.vue'
+import AppTabNavigation from '@/Components/App/AppTabNavigation.vue'
 
 const page = usePage()
 
@@ -44,18 +45,7 @@ const activeComponent = computed(() => {
     <Head title="Admin" />
 
     <AuthenticatedLayout>
-        <div class="admin-navigation">
-            <button
-                v-for="tab in tabs"
-                :key="tab.key"
-                type="button"
-                class="nav-item"
-                :class="{ active: activeTab === tab.key }"
-                @click="setTab(tab.key)"
-            >
-                {{ tab.label }}
-            </button>
-        </div>
+        <AppTabNavigation :tabs="tabs" :active-tab="activeTab" @set-tab="setTab" />
 
         <div class="admin-content">
             <component :is="activeComponent" />
@@ -64,39 +54,7 @@ const activeComponent = computed(() => {
 </template>
 
 <style scoped>
-.admin-navigation {
-    display: flex;
-    width: 100%;
-    background: #ffffff;
-    border-radius: 14px;
-    overflow: hidden;
-}
-
-.nav-item {
-    flex: 1;
-    padding: 14px 10px;
-    text-align: center;
-    background: transparent;
-    border: none;
-    cursor: pointer;
-    color: #1946A0;
-    font-weight: 500;
-    border-bottom: 2px solid transparent;
-}
-
-.nav-item:hover {
-    background: #F6F7F9;
-}
-
-.nav-item.active {
-    border-bottom-color: #1946A0;
-    font-weight: 600;
-}
-
 .admin-content {
-    margin-top: 18px;
     background: #ffffff;
-    border-radius: 14px;
-    padding: 16px;
 }
 </style>

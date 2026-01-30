@@ -5,6 +5,7 @@ namespace Database\Seeders;
 use App\Models\User;
 use App\Models\UserRole;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 
 class RoleUsersSeeder extends Seeder
@@ -18,8 +19,9 @@ class RoleUsersSeeder extends Seeder
      * SAtstovas: Savivaldybės atstovas
      */
     public function run(): void
-
     {
+        DB::table('users')->truncate();
+
         $users = [
             [
                 'email' => 'sadmin@test.lt',
