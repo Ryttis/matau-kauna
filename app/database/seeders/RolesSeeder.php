@@ -12,31 +12,47 @@ class RolesSeeder extends Seeder
 {
     public function run(): void
     {
-        /*
-        |--------------------------------------------------------------------------
-        | 1. Roles
-        |--------------------------------------------------------------------------
-        */
-        $roleUser = UserRole::updateOrCreate(
+        // Deprecated: But possible we will need it
+        UserRole::updateOrCreate(
             ['role' => UserRole::ROLE_USER],
-            ['name' => 'User']
+            ['name' => 'Naudotojas']
         );
-
-        $roleAdmin = UserRole::updateOrCreate(
+        UserRole::updateOrCreate(
             ['role' => UserRole::ROLE_ADMIN],
             ['name' => 'Administratorius']
         );
 
-        /*
-        |--------------------------------------------------------------------------
-        | 2. Permission Groups
-        |--------------------------------------------------------------------------
-        */
+        $roleSystemAdmin = UserRole::updateOrCreate(
+            ['role' => UserRole::ROLE_SYSTEM_ADMIN],
+            ['name' => 'Sistemos administratorius']
+        );
+
+        $roleProblemAdmin = UserRole::updateOrCreate(
+            ['role' => UserRole::ROLE_PROBLEM_ADMIN],
+            ['name' => 'Problemų administratorius']
+        );
+
+        $roleInstitutionAdmin = UserRole::updateOrCreate(
+            ['role' => UserRole::ROLE_INSTITUTION_ADMIN],
+            ['name' => 'Įstaigos administratorius']
+        );
+
+        $roleMunicipalityRep = UserRole::updateOrCreate(
+            ['role' => UserRole::ROLE_MUNICIPALITY_REP],
+            ['name' => 'Savivaldybės atstovas']
+        );
+
+        $roleEmployee = UserRole::updateOrCreate(
+            ['role' => UserRole::ROLE_EMPLOYEE],
+            ['name' => 'Įstaigos darbuotojas']
+        );
+
         $groups = collect([
             'Users',
             'Roles',
             'Permissions',
             'Issues',
+            'Statistics',
             'Admin',
         ])->mapWithKeys(function ($name) {
             return [
@@ -47,29 +63,18 @@ class RolesSeeder extends Seeder
             ];
         });
 
-        /*
-        |--------------------------------------------------------------------------
-        | 3. Permissions
-        |--------------------------------------------------------------------------
-        */
         $permissions = collect([
-            // Users
             'users.view',
             'users.manage',
-
-            // Roles / RBAC
             'roles.view',
             'roles.manage',
             'permissions.view',
             'permissions.manage',
-
-            // Issues
             'issues.view',
             'issues.edit',
             'issues.assign',
             'issues.export',
-
-            // Admin
+            'statistics.view',
             'admin.access',
         ])->mapWithKeys(function ($permission) {
             return [
@@ -80,11 +85,6 @@ class RolesSeeder extends Seeder
             ];
         });
 
-        /*
-        |--------------------------------------------------------------------------
-        | 4. Attach permissions → groups
-        |--------------------------------------------------------------------------
-        */
         $groups['Users']->permissions()->sync([
             $permissions['users.view']->id,
             $permissions['users.manage']->id,
@@ -107,37 +107,38 @@ class RolesSeeder extends Seeder
             $permissions['issues.export']->id,
         ]);
 
+        $groups['Statistics']->permissions()->sync([
+            $permissions['statistics.view']->id,
+        ]);
+
         $groups['Admin']->permissions()->sync([
             $permissions['admin.access']->id,
         ]);
 
-        /*
-        |--------------------------------------------------------------------------
-        | 5. Attach groups → roles
-        |--------------------------------------------------------------------------
-        */
+        $roleSystemAdmin->permissionGroups()->sync($groups->pluck('id')->toArray());
 
-        // ROLE_USER: minimal access
-        $roleUser->permissionGroups()->sync([
+        $roleProblemAdmin->permissionGroups()->sync([
+            $groups['Issues']->id,
+            $groups['Statistics']->id,
+        ]);
+
+        $roleInstitutionAdmin->permissionGroups()->sync([
             $groups['Issues']->id,
         ]);
 
-        // ROLE_ADMIN: everything
-        $roleAdmin->permissionGroups()->sync(
-            $groups->pluck('id')->toArray()
-        );
+        $roleMunicipalityRep->permissionGroups()->sync([
+            $groups['Issues']->id,
+            $groups['Statistics']->id,
+        ]);
 
-        /*
-        |--------------------------------------------------------------------------
-        | 6. Assign ROLE_ADMIN to user ID = 1
-        |--------------------------------------------------------------------------
-        */
+        $roleEmployee->permissionGroups()->sync([
+            $groups['Issues']->id,
+        ]);
+
+        // Admin (pirmas vartotojas, id=1) gauna Sistemos administratoriaus teises
         $adminUser = User::find(1);
-
         if ($adminUser) {
-            $adminUser->roles()->syncWithoutDetaching([
-                $roleAdmin->id,
-            ]);
+            $adminUser->roles()->sync([$roleSystemAdmin->id]);
         }
     }
 }

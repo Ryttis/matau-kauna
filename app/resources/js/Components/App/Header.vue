@@ -50,22 +50,24 @@
     }
 
     .header-icons img {
-        width: 24px;
-        height: 24px;
+        width: 16px;
+        height: 16px;
     }
 
     .header-icons .active-img-wrp {
-        width: 29px;
-        height: 29px;
+        width: 24px;
+        height: 24px;
         background-color: #fff;
-        border-radius: 14.5px;
-        padding: 5px;
+        border-radius: 50%;
+        padding: 4px;
         display: flex;
+        align-items: center;
+        justify-content: center;
     }
 
     .header-icons img.active {
-        width: 18px;
-        height: 18px;
+        width: 16px;
+        height: 16px;
     }
 
     .icon-text-wrp {

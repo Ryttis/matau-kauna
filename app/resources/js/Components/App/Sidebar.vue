@@ -5,6 +5,23 @@ import { computed, ref } from 'vue'
 const page = usePage()
 
 const user = computed(() => page.props.auth?.user ?? null)
+const roles = computed(() => page.props.auth?.roles ?? [])
+const permissions = computed(() => page.props.auth?.permissions ?? [])
+const isSystemAdmin = computed(() => !!page.props.auth?.isSystemAdmin)
+
+const canAccessIssues = computed(() =>
+    isSystemAdmin.value || permissions.value.includes('issues.view')
+)
+
+const canAccessStatistics = computed(() =>
+    isSystemAdmin.value || permissions.value.includes('statistics.view')
+)
+
+const sidebarTitle = computed(() => {
+    if (isSystemAdmin.value) return 'Sistemos administratorius'
+    if (roles.value?.length) return roles.value[0].name
+    return 'Naudotojas'
+})
 
 const isActive = (path) => {
     if (path === '/dashboard') {
@@ -27,79 +44,83 @@ const toggleStatistics = () => {
 <template>
     <aside class="sidebar">
         <div class="sidebar-title">
-            <span>Problemų administratorius</span>
+            <span>{{ sidebarTitle }}</span>
         </div>
 
         <nav class="nav">
             <div class="nav-top">
-                <Link
-                    href="/dashboard"
-                    class="nav-link"
-                    :class="{ active: isActive('/dashboard') }"
-                >
-                    <img src="/icons/list-active-icon.png" />
-                    <span>Sąrašas</span>
-                </Link>
-
-                <Link
-                    href="/map"
-                    class="nav-link"
-                    :class="{ active: isActive('/map') }"
-                >
-                    <img src="/icons/map-icon.png" />
-                    <span>Žemėlapis</span>
-                </Link>
-
-                <button
-                    type="button"
-                    class="nav-link states-trigger"
-                    :class="{ active: isActive('/statistics') }"
-                    @click="toggleStatistics"
-                >
-                    <img src="/icons/statistics-icon.png" />
-                    <span>Statistika</span>
-                    <img
-                        src="/icons/arrow-icon.png"
-                        class="dropdown-icon"
-                        :class="{ open: isStatisticsOpen }"
-                    />
-                </button>
-
-                <div v-if="isStatisticsOpen" class="submenu">
+                <template v-if="canAccessIssues">
                     <Link
-                        href="/statistics"
-                        class="submenu-link"
-                        :class="{ active: page.url === '/statistics' }"
+                        href="/dashboard"
+                        class="nav-link"
+                        :class="{ active: isActive('/dashboard') }"
                     >
-                        Problemų statistika
+                        <img src="/icons/list-active-icon.png" />
+                        <span>Sąrašas</span>
                     </Link>
 
                     <Link
-                        href="/statistics/resolution-terms"
-                        class="submenu-link"
-                        :class="{ active: page.url === '/statistics/resolution-terms' }"
+                        href="/map"
+                        class="nav-link"
+                        :class="{ active: isActive('/map') }"
                     >
-                        Sprendimo terminai
+                        <img src="/icons/map-icon.png" />
+                        <span>Žemėlapis</span>
                     </Link>
+                </template>
 
-                    <Link
-                        href="/statistics/categories"
-                        class="submenu-link"
-                        :class="{ active: page.url === '/statistics/categories' }"
+                <template v-if="canAccessStatistics">
+                    <button
+                        type="button"
+                        class="nav-link states-trigger"
+                        :class="{ active: isActive('/statistics') }"
+                        @click="toggleStatistics"
                     >
-                        Kategorijos
-                    </Link>
+                        <img src="/icons/statistics-icon.png" />
+                        <span>Statistika</span>
+                        <img
+                            src="/icons/arrow-icon.png"
+                            class="dropdown-icon"
+                            :class="{ open: isStatisticsOpen }"
+                        />
+                    </button>
 
-                    <Link
-                        href="/statistics/institutions"
-                        class="submenu-link"
-                        :class="{ active: page.url === '/statistics/institutions' }"
-                    >
-                        Įstaigų statistika
-                    </Link>
-                </div>
+                    <div v-if="isStatisticsOpen" class="submenu">
+                        <Link
+                            href="/statistics"
+                            class="submenu-link"
+                            :class="{ active: page.url === '/statistics' }"
+                        >
+                            Problemų statistika
+                        </Link>
 
-                <!-- States with dropdown -->
+                        <Link
+                            href="/statistics/resolution-terms"
+                            class="submenu-link"
+                            :class="{ active: page.url === '/statistics/resolution-terms' }"
+                        >
+                            Sprendimo terminai
+                        </Link>
+
+                        <Link
+                            href="/statistics/categories"
+                            class="submenu-link"
+                            :class="{ active: page.url === '/statistics/categories' }"
+                        >
+                            Kategorijos
+                        </Link>
+
+                        <Link
+                            href="/statistics/institutions"
+                            class="submenu-link"
+                            :class="{ active: page.url === '/statistics/institutions' }"
+                        >
+                            Įstaigų statistika
+                        </Link>
+                    </div>
+                </template>
+
+                <template v-if="canAccessIssues">
                 <button
                     type="button"
                     class="nav-link states-trigger"
@@ -156,10 +177,12 @@ const toggleStatistics = () => {
                         Išspręsta
                     </Link>
                 </div>
+                </template>
             </div>
 
             <div class="nav-bottom">
                 <Link
+                    v-if="isSystemAdmin"
                     href="/admin"
                     class="nav-link"
                     :class="{ active: isActive('/admin') }"
@@ -255,9 +278,17 @@ const toggleStatistics = () => {
     align-items: center;
 }
 
+.nav-link img:not(.dropdown-icon),
+.nav-link .dropdown-icon {
+    width: 16px;
+    height: 16px;
+    display: block;
+}
+
 .dropdown-icon {
     margin-left: auto;
     transition: transform 0.2s ease;
+    flex-shrink: 0;
 }
 
 .dropdown-icon.open {
