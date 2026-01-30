@@ -25,6 +25,11 @@ class SettingsController extends Controller
         ]);
     }
 
+    public function changePassword(): Response
+    {
+        return Inertia::render('Settings/ChangePassword');
+    }
+
     public function updateProfile(Request $request)
     {
         $validated = $request->validate([
