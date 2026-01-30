@@ -70,8 +70,8 @@ const deletePermission = async () => {
         <table class="table" v-if="permissions.length">
             <thead>
                 <tr>
-                    <th>Permission</th>
-                    <th></th>
+                    <th>Pavadinimas</th>
+                    <th>Veiksmai</th>
                 </tr>
             </thead>
 
@@ -92,7 +92,7 @@ const deletePermission = async () => {
         <!-- Create Permission -->
         <BaseModal :open="isCreateOpen" title="Sukurti teisę" @close="isCreateOpen = false">
             <label class="field">
-                <span>Permission</span>
+                <span>Pavadinimas</span>
                 <input class="input" placeholder="users.manage" v-model="createForm.permission" />
             </label>
 

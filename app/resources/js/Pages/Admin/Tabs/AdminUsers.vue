@@ -142,22 +142,24 @@ onMounted(async () => {
     display: flex;
     gap: 10px;
     margin-bottom: 14px;
+    background-color: #1946a0;
 }
 
 .subtab {
     padding: 10px 14px;
-    border: 1px solid #e6e8ee;
-    background: #ffffff;
-    border-radius: 10px;
+    background: #1946a0;
     cursor: pointer;
-    color: #1946A0;
+    color: #ffffff;
     font-weight: 500;
+    border: none;
+    margin-top: 10px;
+    margin-left: 10px;
+    border-radius: 10px 10px 0 0;
 }
 
 .subtab.active {
-    background: #1946A0;
-    color: #ffffff;
-    border-color: #1946A0;
+    background: #ffffff;
+    color: #1946a0;
 }
 
 .panel {

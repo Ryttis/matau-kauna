@@ -7,20 +7,18 @@ use App\Models\RolePermissionGroup;
 use App\Models\User;
 use App\Models\UserRole;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\DB;
 
 class RolesSeeder extends Seeder
 {
     public function run(): void
     {
-        // Deprecated: But possible we will need it
-        UserRole::updateOrCreate(
-            ['role' => UserRole::ROLE_USER],
-            ['name' => 'Naudotojas']
-        );
-        UserRole::updateOrCreate(
-            ['role' => UserRole::ROLE_ADMIN],
-            ['name' => 'Administratorius']
-        );
+        DB::table('user_role_permission_group_role_map')->truncate();
+        DB::table('user_role_permission_group_map')->truncate();
+        DB::table('user_role_permission_group')->truncate();
+        DB::table('user_role_permission')->truncate();
+        DB::table('user_role_map')->truncate();
+        DB::table('user_role')->truncate();
 
         $roleSystemAdmin = UserRole::updateOrCreate(
             ['role' => UserRole::ROLE_SYSTEM_ADMIN],

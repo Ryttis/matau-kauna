@@ -101,10 +101,10 @@ const saveRoleGroups = async () => {
         <table class="table" v-if="roles.length">
             <thead>
                 <tr>
-                    <th>Name</th>
-                    <th>Role</th>
+                    <th>Pavadinimas</th>
+                    <th>Rolės kodas</th>
                     <th>Grupės</th>
-                    <th></th>
+                    <th>Veiksmai</th>
                 </tr>
             </thead>
 
@@ -134,13 +134,13 @@ const saveRoleGroups = async () => {
         <!-- Create Role -->
         <BaseModal :open="isCreateOpen" title="Sukurti rolę" @close="isCreateOpen = false">
             <label class="field">
-                <span>Role</span>
-                <input class="input" placeholder="ROLE_MANAGER" v-model="createForm.role" />
+                <span>Rolės kodas</span>
+                <input class="input" placeholder="ROLE_MODERATOR" v-model="createForm.role" />
             </label>
 
             <label class="field">
-                <span>Name</span>
-                <input class="input" placeholder="Manager" v-model="createForm.name" />
+                <span>Pavadinimas</span>
+                <input class="input" placeholder="Moderatorius" v-model="createForm.name" />
             </label>
 
             <template #footer>

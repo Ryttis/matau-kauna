@@ -112,9 +112,9 @@ const saveUserRoles = async () => {
                 <tr>
                     <th>ID</th>
                     <th>Vardas</th>
-                    <th>Email</th>
+                    <th>Paštas</th>
                     <th>Rolės</th>
-                    <th></th>
+                    <th>Veiksmai</th>
                 </tr>
             </thead>
 
@@ -147,7 +147,7 @@ const saveUserRoles = async () => {
             </label>
 
             <label class="field">
-                <span>Email</span>
+                <span>Paštas</span>
                 <input class="input" v-model="createForm.email" />
             </label>
 
@@ -172,7 +172,7 @@ const saveUserRoles = async () => {
             </label>
 
             <label class="field">
-                <span>Email</span>
+                <span>Paštas</span>
                 <input class="input" v-model="editForm.email" />
             </label>
 
