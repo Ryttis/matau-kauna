@@ -3,8 +3,8 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
-use App\Models\RolePermission;
-use App\Models\RolePermissionGroup;
+use App\Models\UserRolePermission;
+use App\Models\UserRolePermissionGroup;
 use App\Models\User;
 use App\Models\UserRole;
 use Illuminate\Http\Request;
@@ -54,7 +54,7 @@ class RbacController extends Controller
 
     public function groups()
     {
-        return RolePermissionGroup::query()
+        return UserRolePermissionGroup::query()
             ->with(['permissions:id,permission', 'roles:id,role,name'])
             ->orderBy('name')
             ->get();
@@ -66,12 +66,12 @@ class RbacController extends Controller
             'name' => ['required', 'string', 'max:255'],
         ]);
 
-        return RolePermissionGroup::create($data);
+        return UserRolePermissionGroup::create($data);
     }
 
     public function permissions()
     {
-        return RolePermission::query()
+        return UserRolePermission::query()
             ->orderBy('permission')
             ->get();
     }
@@ -82,7 +82,7 @@ class RbacController extends Controller
             'permission' => ['required', 'string', 'max:255', 'unique:user_role_permission,permission'],
         ]);
 
-        return RolePermission::create($data);
+        return UserRolePermission::create($data);
     }
 
     public function syncRoleGroups(Request $request, UserRole $role)
@@ -97,7 +97,7 @@ class RbacController extends Controller
         return $role->load('permissionGroups:id,name');
     }
 
-    public function syncGroupPermissions(Request $request, RolePermissionGroup $group)
+    public function syncGroupPermissions(Request $request, UserRolePermissionGroup $group)
     {
         $data = $request->validate([
             'permission_ids' => ['array'],
