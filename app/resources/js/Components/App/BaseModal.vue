@@ -64,7 +64,12 @@ const handleOverlayClick = (event) => {
                     <div v-if="title" class="modal-title">{{ title }}</div>
                     <div v-else class="modal-title-empty"></div>
                 </slot>
-                <button v-if="showCloseButton" type="button" class="x-btn" @click="handleClose">
+                <button
+                    v-if="showCloseButton"
+                    type="button"
+                    class="x-btn"
+                    @click="handleClose"
+                >
                     <img src="/icons/close-icon.png" alt="Uždaryti" class="close-icon" />
                 </button>
             </div>

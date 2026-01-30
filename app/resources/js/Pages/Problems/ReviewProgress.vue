@@ -1,9 +1,20 @@
 <script setup>
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import { Head, router } from '@inertiajs/vue3'
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue'
 import AppBackButton from '@/Components/App/AppBackButton.vue'
+import AddEntryModal from '@/Components/App/Modals/AddEntryModal.vue'
 import { PROBLEM_STATUS_LABELS } from '@/constants/problemStatus'
+
+const showAddEntryModal = ref(false)
+
+const openAddEntry = () => {
+    showAddEntryModal.value = true
+}
+
+const closeAddEntry = () => {
+    showAddEntryModal.value = false
+}
 
 const props = defineProps({
     problem: Object,
@@ -82,7 +93,18 @@ const handleBack = () => {
                     <span>Nėra nagrinėjimo įrašų</span>
                 </div>
             </div>
+
+            <div class="review-progress-actions">
+                <button type="button" class="review-progress-add-btn" @click="openAddEntry">
+                    Pridėti įrašą
+                </button>
+            </div>
         </div>
+
+        <AddEntryModal
+            :open="showAddEntryModal"
+            @close="closeAddEntry"
+        />
     </AuthenticatedLayout>
 </template>
 
@@ -270,5 +292,28 @@ const handleBack = () => {
     color: #999;
     font-size: 16px;
     font-family: 'Inter', sans-serif;
+}
+
+.review-progress-actions {
+    display: flex;
+    justify-content: center;
+    margin-top: 40px;
+    padding-top: 24px;
+}
+
+.review-progress-add-btn {
+    padding: 12px 32px;
+    background-color: #1946A0;
+    color: #fff;
+    border: none;
+    border-radius: 5px;
+    font-size: 18px;
+    font-weight: 400;
+    font-family: 'Inter', sans-serif;
+    cursor: pointer;
+}
+
+.review-progress-add-btn:hover {
+    background-color: #1a3d95;
 }
 </style>
