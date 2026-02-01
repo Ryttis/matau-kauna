@@ -4,7 +4,7 @@ import SettingsSection from '@/Components/App/SettingsSection.vue'
 import AppInput from '@/Components/App/AppInput.vue'
 import AppButton from '@/Components/App/AppButton.vue'
 import DeleteAccountModal from '@/Components/App/DeleteAccountModal.vue'
-import { Head, Link, useForm, usePage } from '@inertiajs/vue3'
+import { Head, Link, router, useForm, usePage } from '@inertiajs/vue3'
 import { ref, computed } from 'vue'
 
 const props = defineProps({
@@ -15,8 +15,8 @@ const page = usePage()
 const user = page.props.auth.user
 const authRoles = computed(() => page.props.auth?.roles || [])
 
-const hasInstitutionRole = computed(() =>
-    authRoles.value.some((r) => ['ROLE_INSTITUTION_ADMIN', 'ROLE_EMPLOYEE'].includes(r.role))
+const isInstitutionAdmin = computed(() =>
+    authRoles.value.some((r) => r.role === 'ROLE_INSTITUTION_ADMIN')
 )
 
 const profileForm = useForm({
@@ -42,6 +42,7 @@ const deleteAccountForm = useForm({
 
 const showDeleteModal = ref(false)
 const twoFactorEnabled = ref(!!user.two_factor_enabled)
+const emailUpdatesInstitutionAdmin = ref(!!user.email_updates_institution_admin)
 
 const sections = ref({
     profile: true,
@@ -82,6 +83,12 @@ const deleteAccount = () => {
         },
     })
 }
+
+const saveEmailUpdatesInstitutionAdmin = () => {
+    router.patch(route('settings.privacy'), {
+        email_updates_institution_admin: emailUpdatesInstitutionAdmin,
+    }, { preserveScroll: true })
+}
 </script>
 
 <template>
@@ -108,7 +115,7 @@ const deleteAccount = () => {
             </SettingsSection>
 
             <SettingsSection
-                v-if="hasInstitutionRole"
+                v-if="isInstitutionAdmin"
                 title="Darbuotojas"
                 :open="sections.employee"
                 @toggle="toggleSection('employee')"
@@ -134,7 +141,7 @@ const deleteAccount = () => {
             </SettingsSection>
 
             <SettingsSection
-                v-if="hasInstitutionRole"
+                v-if="isInstitutionAdmin"
                 title="Įstaigos nustatymai"
                 :open="sections.institution"
                 @toggle="toggleSection('institution')"
@@ -165,6 +172,23 @@ const deleteAccount = () => {
                     <div class="privacy-row-2fa-right">
                         <label class="switch">
                             <input v-model="twoFactorEnabled" type="checkbox" />
+                            <span class="slider round"></span>
+                        </label>
+                    </div>
+                </div>
+
+                <div
+                    v-if="isInstitutionAdmin"
+                    class="privacy-row privacy-row-2fa"
+                >
+                    <span class="privacy-label">Informacijos atnaujinimo siuntimas el. paštu – Įstaigos administratorius</span>
+                    <div class="privacy-row-2fa-right">
+                        <label class="switch">
+                            <input
+                                v-model="emailUpdatesInstitutionAdmin"
+                                type="checkbox"
+                                @change="saveEmailUpdatesInstitutionAdmin"
+                            />
                             <span class="slider round"></span>
                         </label>
                     </div>

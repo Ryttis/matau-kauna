@@ -7,7 +7,7 @@ const props = defineProps({
     variant: {
         type: String,
         default: 'primary',
-        validator: (v) => ['primary', 'secondary', 'link'].includes(v)
+        validator: (v) => ['primary', 'secondary', 'light', 'outline-light', 'link'].includes(v)
     },
     disabled: {
         type: Boolean,
@@ -117,6 +117,26 @@ const buttonType = props.asButton ? 'button' : 'submit'
 
 .app-button--secondary:hover {
     background-color: #f5f5f5;
+}
+
+.app-button--light {
+    background-color: #DCE2ED;
+    color: #1946A0;
+    border: none;
+}
+
+.app-button--light:hover:not(.app-button--disabled) {
+    background-color: #CBD4E6;
+}
+
+.app-button--outline-light {
+    background-color: #ffffff;
+    color: #666666;
+    border: 1px solid #A8B8D4;
+}
+
+.app-button--outline-light:hover:not(.app-button--disabled) {
+    background-color: #f8f9fb;
 }
 
 .app-button--disabled {

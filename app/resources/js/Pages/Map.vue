@@ -1,14 +1,17 @@
 <script setup>
 import { ref, onMounted, onUnmounted } from 'vue'
-import { Head } from '@inertiajs/vue3'
+import { Head, router } from '@inertiajs/vue3'
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue'
 import AppButton from '@/Components/App/AppButton.vue'
 import FilterModal from '@/Components/App/Modals/FilterModal.vue'
+import { useAuth } from '@/composables/useAuth'
 
 const props = defineProps({
     categories: Array,
     statusOptions: Array,
 })
+
+const { canSeeProblemAdminButtons, canSeeInstitutionAdminButtons, isMunicipalityRep } = useAuth()
 
 const searchQuery = ref('')
 const addressInput = ref('')
@@ -34,10 +37,7 @@ const kaunasBounds = [
 const initMap = () => {
     if (mapInitialized || !mapContainer.value) return
 
-    if (typeof L === 'undefined') {
-        console.error('Leaflet not loaded')
-        return
-    }
+    if (typeof L === 'undefined') return
 
     map = L.map(mapContainer.value, {
         center: kaunasCenter,
@@ -46,7 +46,6 @@ const initMap = () => {
         maxBoundsViscosity: 1.0
     })
 
-    // Keistas toks.. ateityje testuoti
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         attribution: '© OpenStreetMap contributors',
         maxZoom: 18
@@ -56,7 +55,6 @@ const initMap = () => {
     mapInitialized = true
 }
 
-// Ateityje perziureti...
 onMounted(() => {
     const link = document.createElement('link')
     link.rel = 'stylesheet'
@@ -108,10 +106,18 @@ const handleFilterClose = () => {
 }
 
 const handleAssignProblem = () => {
+    // TODO: atidaryti assign puslapį arba modalą pagal rolę
+}
+
+const handleAssignInstitution = () => {
+    router.visit(route('dashboard'))
 }
 
 const handleDisplayStatus = () => {
+    // TODO: atidaryti būsenos keitimo modalą
 }
+
+const handleIeskoti = () => {}
 </script>
 
 <template>
@@ -159,16 +165,52 @@ const handleDisplayStatus = () => {
                     class="address-input"
                     placeholder="Suveskite adresą"
                 />
-                <AppButton
-                    text="Priskirti problemą"
-                    as-button
-                    @click="handleAssignProblem"
-                />
-                <AppButton
-                    text="Atvaizduoti/keisti būseną"
-                    as-button
-                    @click="handleDisplayStatus"
-                />
+
+                <!-- Problemos administratorius / Sistemos administratorius -->
+                <template v-if="canSeeProblemAdminButtons">
+                    <AppButton
+                        text="Priskirti problemą"
+                        as-button
+                        @click="handleAssignProblem"
+                    />
+                    <AppButton
+                        text="Atvaizduoti/keisti būseną"
+                        as-button
+                        @click="handleDisplayStatus"
+                    />
+                </template>
+
+                <!-- Įstaigos administratorius -->
+                <template v-else-if="canSeeInstitutionAdminButtons">
+                    <AppButton
+                        text="Priskirti/Peradresuoti problemą"
+                        as-button
+                        @click="handleAssignInstitution"
+                    />
+                    <AppButton
+                        text="Atvaizduoti/keisti būseną"
+                        as-button
+                        @click="handleDisplayStatus"
+                    />
+                </template>
+
+                <!-- Įstaigos darbuotojas – tik adresas + keisti būseną -->
+                <template v-else-if="!isMunicipalityRep">
+                    <AppButton
+                        text="Atvaizduoti/keisti būseną"
+                        as-button
+                        @click="handleDisplayStatus"
+                    />
+                </template>
+
+                <!-- Savivaldybės atstovas – tik Ieškoti -->
+                <template v-else>
+                    <AppButton
+                        text="Ieškoti"
+                        as-button
+                        @click="handleIeskoti"
+                    />
+                </template>
             </div>
 
             <FilterModal

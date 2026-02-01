@@ -4,7 +4,9 @@ namespace App\Http\Controllers;
 
 use App\Enums\ProblemStatus;
 use App\Exports\ProblemsExport;
+use App\Models\Employee;
 use App\Models\Problem;
+use App\Models\UserRole;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -87,6 +89,11 @@ class ProblemController extends Controller
 
     public function update(Request $request, Problem $problem)
     {
+        $user = $request->user();
+        if (! $user->hasRole(UserRole::ROLE_PROBLEM_ADMIN) && ! $user->hasRole(UserRole::ROLE_SYSTEM_ADMIN)) {
+            abort(403);
+        }
+
         $validated = $request->validate([
             'internal_number' => 'required|string|max:255',
             'title' => 'required|string|max:255',
@@ -100,8 +107,25 @@ class ProblemController extends Controller
         return redirect()->back()->with('success', 'Problema atnaujinta');
     }
 
+    public function destroy(Problem $problem)
+    {
+        $user = request()->user();
+        if (! $user->hasRole(UserRole::ROLE_EMPLOYEE) && ! $user->hasRole(UserRole::ROLE_SYSTEM_ADMIN)) {
+            abort(403);
+        }
+
+        $problem->delete();
+
+        return redirect()->route('dashboard')->with('success', 'Problema pašalinta');
+    }
+
     public function assign(Request $request): Response
     {
+        $user = $request->user();
+        if (! $user->hasRole(UserRole::ROLE_PROBLEM_ADMIN) && ! $user->hasRole(UserRole::ROLE_SYSTEM_ADMIN)) {
+            abort(403);
+        }
+
         $institutions = [];
         $problemIds = $request->get('problem_ids', []);
 
@@ -131,6 +155,11 @@ class ProblemController extends Controller
 
     public function assignSingle(Problem $problem): Response
     {
+        $user = request()->user();
+        if (! $user->hasRole(UserRole::ROLE_PROBLEM_ADMIN) && ! $user->hasRole(UserRole::ROLE_SYSTEM_ADMIN)) {
+            abort(403);
+        }
+
         $institutions = [];
 
         return Inertia::render('Problems/Assign', [
@@ -160,8 +189,37 @@ class ProblemController extends Controller
         ]);
     }
 
+    public function assignInstitution(Problem $problem): Response
+    {
+        $user = request()->user();
+        if (! $user->hasRole(UserRole::ROLE_INSTITUTION_ADMIN) && ! $user->hasRole(UserRole::ROLE_SYSTEM_ADMIN)) {
+            abort(403);
+        }
+
+        $employees = [];
+        if ($user->institution_id) {
+            $employees = Employee::where('institution_id', $user->institution_id)
+                ->get(['id', 'name', 'surname', 'email'])
+                ->map(fn ($e) => [
+                    'id' => $e->id,
+                    'name' => trim($e->name . ' ' . $e->surname) ?: $e->email,
+                    'email' => $e->email,
+                ]);
+        }
+
+        return Inertia::render('Problems/AssignInstitution', [
+            'problem' => $problem,
+            'employees' => $employees,
+        ]);
+    }
+
     public function merge(Request $request, Problem $problem): Response
     {
+        $user = $request->user();
+        if (! $user->hasRole(UserRole::ROLE_PROBLEM_ADMIN) && ! $user->hasRole(UserRole::ROLE_INSTITUTION_ADMIN) && ! $user->hasRole(UserRole::ROLE_SYSTEM_ADMIN)) {
+            abort(403);
+        }
+
         $categoryFilter = $request->get('category');
 
         if ($categoryFilter === null || $categoryFilter === '') {
@@ -222,6 +280,11 @@ class ProblemController extends Controller
 
     public function export(Request $request)
     {
+        $user = $request->user();
+        if (! $user->hasRole(UserRole::ROLE_PROBLEM_ADMIN) && ! $user->hasRole(UserRole::ROLE_SYSTEM_ADMIN)) {
+            abort(403);
+        }
+
         $filters = [
             'search' => $request->get('search'),
             'status' => $request->get('status'),

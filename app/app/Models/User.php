@@ -24,6 +24,7 @@ class User extends Authenticatable
         'password',
         'two_factor_enabled',
         'email_notifications_enabled',
+        'email_updates_institution_admin',
         'institution_id',
     ];
 
@@ -49,6 +50,7 @@ class User extends Authenticatable
             'password' => 'hashed',
             'two_factor_enabled' => 'boolean',
             'email_notifications_enabled' => 'boolean',
+            'email_updates_institution_admin' => 'boolean',
         ];
     }
 

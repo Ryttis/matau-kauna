@@ -17,8 +17,6 @@ class RolesSeeder extends Seeder
         DB::table('user_role_permission_group_map')->truncate();
         DB::table('user_role_permission_group')->truncate();
         DB::table('user_role_permission')->truncate();
-        DB::table('user_role_map')->truncate();
-        DB::table('user_role')->truncate();
 
         $roleSystemAdmin = UserRole::updateOrCreate(
             ['role' => UserRole::ROLE_SYSTEM_ADMIN],
@@ -122,6 +120,7 @@ class RolesSeeder extends Seeder
 
         $roleInstitutionAdmin->permissionGroups()->sync([
             $groups['Issues']->id,
+            $groups['Statistics']->id,
         ]);
 
         $roleMunicipalityRep->permissionGroups()->sync([
@@ -131,9 +130,9 @@ class RolesSeeder extends Seeder
 
         $roleEmployee->permissionGroups()->sync([
             $groups['Issues']->id,
+            $groups['Statistics']->id,
         ]);
 
-        // Admin (pirmas vartotojas, id=1) gauna Sistemos administratoriaus teises
         $adminUser = User::find(1);
         if ($adminUser) {
             $adminUser->roles()->sync([$roleSystemAdmin->id]);

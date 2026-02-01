@@ -1,13 +1,15 @@
 <script setup>
-import AppButton from '@/Components/App/AppButton.vue';
-import StatusChangeModal from '@/Components/App/Modals/StatusChangeModal.vue';
-import FilterModal from '@/Components/App/Modals/FilterModal.vue';
-import ProblemsTable from '@/Components/Problems/ProblemsTable.vue';
+import AppButton from '@/Components/App/AppButton.vue'
+import ConfirmModal from '@/Components/App/ConfirmModal.vue'
+import StatusChangeModal from '@/Components/App/Modals/StatusChangeModal.vue'
+import FilterModal from '@/Components/App/Modals/FilterModal.vue'
+import ProblemsTable from '@/Components/Problems/ProblemsTable.vue'
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue'
 import { Head, router } from '@inertiajs/vue3'
 import { ref, watch, computed, onMounted, onUnmounted } from 'vue'
 import { debounce } from 'lodash-es'
 import { PROBLEM_STATUS_LABELS, PROBLEM_STATUS_OPTIONS } from '@/constants/problemStatus'
+import { useAuth } from '@/composables/useAuth'
 
 const props = defineProps({
     problems: Object,
@@ -34,9 +36,24 @@ const showExportDropdown = ref(false)
 const exportWrapper = ref(null)
 const exportDropdown = ref(null)
 const problemsList = ref([])
+const showDeleteModal = ref(false)
+
+const {
+    canSeeProblemAdminButtons,
+    canSeeInstitutionAdminButtons,
+    canExport,
+    canAssignProblem,
+    canDeleteProblem,
+} = useAuth()
 
 const statusLabels = PROBLEM_STATUS_LABELS
-const allStatusOptions = props.statusOptions || PROBLEM_STATUS_OPTIONS
+const selectedProblemIdForReview = computed(() =>
+    selectedProblems.value.length === 1 ? selectedProblems.value[0] : null
+)
+const allStatusOptions = computed(() => {
+    const raw = props.statusOptions || PROBLEM_STATUS_OPTIONS
+    return Array.isArray(raw) ? raw : Object.entries(raw || {}).map(([value, label]) => ({ value, label: typeof label === 'string' ? label : value }))
+})
 
 const loadProblems = (resetPage = true) => {
     const params = {
@@ -229,20 +246,42 @@ const handleFilterClose = () => {
 }
 
 const handleAssignProblems = () => {
-    if (selectedProblems.value.length === 0) {
-        return
-    }
-
+    if (selectedProblems.value.length === 0) return
     if (selectedProblems.value.length === 1) {
         const problemId = selectedProblems.value[0]
         router.visit(route('problems.assign.single', problemId))
     } else {
         const params = new URLSearchParams()
-        selectedProblems.value.forEach(id => {
-            params.append('problem_ids[]', id)
-        })
+        selectedProblems.value.forEach(id => params.append('problem_ids[]', id))
         router.visit(route('problems.assign') + '?' + params.toString())
     }
+}
+
+const handleAssignInstitution = () => {
+    if (selectedProblems.value.length !== 1) return
+    router.visit(route('problems.assignInstitution', selectedProblems.value[0]))
+}
+
+const handleDeleteProblems = () => {
+    if (selectedProblems.value.length === 0) return
+    showDeleteModal.value = true
+}
+
+const handleConfirmDelete = () => {
+    if (selectedProblems.value.length === 0) return
+    router.delete(route('problems.destroy', selectedProblems.value[0]), {
+        preserveScroll: false,
+        onSuccess: () => {
+            showDeleteModal.value = false
+            selectedProblems.value = []
+            loadProblems(false)
+        },
+    })
+}
+
+const handleStebeti = () => {
+    if (!selectedProblemIdForReview.value) return
+    router.visit(route('problems.reviewProgress', selectedProblemIdForReview.value))
 }
 
 const handleSelectAll = (checked) => {
@@ -328,33 +367,105 @@ onUnmounted(() => {
         </div>
 
         <div class="list-navigation">
-            <AppButton
-                text="Priskirti problemą"
-                as-button
-                @click="handleAssignProblems"
-            />
-            <AppButton
-                text="Atvaizduoti/keisti būseną"
-                as-button
-                @click="openStatusModal()"
-            />
-            <div class="export-wrapper" ref="exportWrapper">
+            <!-- Problemos administratorius / Sistemos administratorius -->
+            <template v-if="canSeeProblemAdminButtons">
                 <AppButton
-                    text="Eksportuoti į .xlsx"
+                    text="Priskirti problemą"
+                    as-button
+                    @click="handleAssignProblems"
+                />
+                <AppButton
+                    text="Atvaizduoti/keisti būseną"
+                    as-button
+                    @click="openStatusModal()"
+                />
+                <div v-if="canExport" class="export-wrapper" ref="exportWrapper">
+                    <AppButton
+                        text="Eksportuoti į .xlsx"
+                        variant="secondary"
+                        as-button
+                        @click="showExportDropdown = !showExportDropdown"
+                    />
+                    <div v-if="showExportDropdown" class="export-dropdown" ref="exportDropdown">
+                        <button @click="handleExport('all')" class="export-option">
+                            Eksportuoti visus rezultatus
+                        </button>
+                        <button @click="handleExport('current_page')" class="export-option">
+                            Eksportuoti tik esamą puslapį
+                        </button>
+                    </div>
+                </div>
+            </template>
+
+            <!-- Įstaigos administratorius -->
+            <template v-else-if="canSeeInstitutionAdminButtons">
+                <AppButton
+                    text="Priskirti/Peradresuoti problemą"
+                    variant="light"
+                    as-button
+                    :disabled="selectedProblems.length !== 1"
+                    @click="handleAssignInstitution"
+                />
+                <AppButton
+                    text="Atvaizduoti/keisti būseną"
+                    as-button
+                    @click="openStatusModal()"
+                />
+                <AppButton
+                    text="Stebėti"
+                    variant="outline-light"
+                    as-button
+                    :disabled="!selectedProblemIdForReview"
+                    @click="handleStebeti"
+                />
+            </template>
+
+            <!-- Įstaigos darbuotojas -->
+            <template v-else-if="canDeleteProblem">
+                <AppButton
+                    text="Atvaizduoti/keisti būseną"
+                    as-button
+                    @click="openStatusModal()"
+                />
+                <AppButton
+                    text="Šalinti"
                     variant="secondary"
                     as-button
-                    @click="showExportDropdown = !showExportDropdown"
+                    :disabled="selectedProblems.length !== 1"
+                    @click="handleDeleteProblems"
                 />
-                <div v-if="showExportDropdown" class="export-dropdown" ref="exportDropdown">
-                    <button @click="handleExport('all')" class="export-option">
-                        Eksportuoti visus rezultatus
-                    </button>
-                    <button @click="handleExport('current_page')" class="export-option">
-                        Eksportuoti tik esamą puslapį
-                    </button>
-                </div>
-            </div>
+                <AppButton
+                    text="Stebėti"
+                    variant="secondary"
+                    as-button
+                    :disabled="!selectedProblemIdForReview"
+                    @click="handleStebeti"
+                />
+            </template>
+
+            <!-- Savivaldybės atstovas – tik Stebėti -->
+            <template v-else>
+                <AppButton
+                    text="Stebėti"
+                    as-button
+                    :disabled="!selectedProblemIdForReview"
+                    @click="handleStebeti"
+                />
+            </template>
         </div>
+
+        <ConfirmModal
+            :open="showDeleteModal"
+            message="Ar tikrai norite ištrinti šią problemą?"
+            confirm-text="Patvirtinti"
+            cancel-text="Atšaukti"
+            footer-layout="column"
+            confirm-variant="primary"
+            width="369px"
+            max-height="275px"
+            @close="showDeleteModal = false"
+            @confirm="handleConfirmDelete"
+        />
 
         <StatusChangeModal
             :show="showStatusModal"
