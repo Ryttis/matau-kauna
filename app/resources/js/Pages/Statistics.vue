@@ -73,9 +73,7 @@ watch([periodFilter, institutionFilter, categoryFilter], () => {
     applyFilters()
 })
 
-const downloadReport = () => {
-    console.log('Download report')
-}
+const downloadReport = () => {}
 </script>
 
 <template>

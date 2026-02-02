@@ -2,12 +2,14 @@
 import { ref, computed } from 'vue'
 import { Head, router } from '@inertiajs/vue3'
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue'
+import ConfirmModal from '@/Components/App/ConfirmModal.vue'
 import StatusChangeModal from '@/Components/App/Modals/StatusChangeModal.vue'
 import EditModal from '@/Components/App/Modals/EditModal.vue'
 import AppButton from '@/Components/App/AppButton.vue'
 import AppInput from '@/Components/App/AppInput.vue'
 import AppBackButton from '@/Components/App/AppBackButton.vue'
 import { PROBLEM_STATUS_LABELS } from '@/constants/problemStatus'
+import { useAuth } from '@/composables/useAuth'
 
 const props = defineProps({
     problem: Object,
@@ -15,8 +17,18 @@ const props = defineProps({
     categories: Array,
 })
 
+const {
+    canSeeProblemAdminButtons,
+    canSeeInstitutionAdminButtons,
+    canEditProblem,
+    canMergeProblem,
+    canDeleteProblem,
+    isEmployee,
+} = useAuth()
+
 const showStatusModal = ref(false)
 const showEditModal = ref(false)
+const showDeleteModal = ref(false)
 
 const currentStatusLabel = computed(() => {
     return PROBLEM_STATUS_LABELS[props.problem?.status] || 'Neužregistruota'
@@ -48,6 +60,17 @@ const openEditModal = () => {
 const closeEditModal = () => {
     showEditModal.value = false
 }
+
+const handleConfirmDelete = () => {
+    router.delete(route('problems.destroy', props.problem.id), {
+        preserveScroll: false,
+        onSuccess: () => {
+            showDeleteModal.value = false
+        },
+    })
+}
+
+const handleGrazintiAdmin = () => {}
 </script>
 
 <template>
@@ -118,7 +141,7 @@ const closeEditModal = () => {
                 <img src="/icons/right-next-arrow.png" alt="Rodyklė" class="review-progress-arrow" />
             </div>
 
-            <div class="problem-actions">
+            <div v-if="canSeeProblemAdminButtons" class="problem-actions">
                 <div class="actions-row">
                     <AppButton
                         text="Priskirti problemą"
@@ -137,6 +160,7 @@ const closeEditModal = () => {
                 </div>
                 <div class="actions-row">
                     <AppButton
+                        v-if="canEditProblem"
                         text="Koreguoti"
                         variant="secondary"
                         as-button
@@ -144,10 +168,66 @@ const closeEditModal = () => {
                         class="action-btn"
                     />
                     <AppButton
+                        v-if="canMergeProblem"
                         text="Apjungti"
                         variant="secondary"
                         as-button
                         @click="() => router.visit(route('problems.merge', problem.id))"
+                        class="action-btn"
+                    />
+                </div>
+            </div>
+
+            <div v-else-if="canSeeInstitutionAdminButtons" class="problem-actions">
+                <div class="actions-row">
+                    <AppButton
+                        text="Priskirti/Peradresuoti problemą"
+                        variant="primary"
+                        as-button
+                        @click="() => router.visit(route('problems.assignInstitution', problem.id))"
+                        class="action-btn"
+                    />
+                    <AppButton
+                        text="Atvaizduoti/keisti būseną"
+                        variant="primary"
+                        as-button
+                        @click="openStatusModal"
+                        class="action-btn"
+                    />
+                </div>
+                <div class="actions-row">
+                    <AppButton
+                        text="Apjungti"
+                        variant="secondary"
+                        as-button
+                        @click="() => router.visit(route('problems.merge', problem.id))"
+                        class="action-btn"
+                    />
+                </div>
+            </div>
+
+            <div v-else-if="canDeleteProblem" class="problem-actions">
+                <div class="actions-row">
+                    <AppButton
+                        text="Atvaizduoti/keisti būseną"
+                        variant="primary"
+                        as-button
+                        @click="openStatusModal"
+                        class="action-btn"
+                    />
+                    <AppButton
+                        v-if="isEmployee"
+                        text="Grąžinti problemos administratoriui"
+                        variant="primary"
+                        as-button
+                        @click="handleGrazintiAdmin"
+                        class="action-btn"
+                    />
+                    <AppButton
+                        text="Šalinti"
+                        variant="secondary"
+                        as-button
+                        @click="showDeleteModal = true"
                         class="action-btn"
                     />
                 </div>
@@ -166,6 +246,19 @@ const closeEditModal = () => {
                 :problem="problem"
                 :categories="categories"
                 @close="closeEditModal"
+            />
+
+            <ConfirmModal
+                :open="showDeleteModal"
+                message="Ar tikrai norite ištrinti šią problemą?"
+                confirm-text="Patvirtinti"
+                cancel-text="Atšaukti"
+                footer-layout="column"
+                confirm-variant="primary"
+                width="369px"
+                max-height="275px"
+                @close="showDeleteModal = false"
+                @confirm="handleConfirmDelete"
             />
         </div>
     </AuthenticatedLayout>

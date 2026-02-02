@@ -26,6 +26,10 @@ const props = defineProps({
         type: String,
         default: null
     },
+    maxHeight: {
+        type: String,
+        default: null
+    },
     showCloseButton: {
         type: Boolean,
         default: true
@@ -58,7 +62,7 @@ const handleOverlayClick = (event) => {
 
 <template>
     <div v-if="isOpen" class="modal-overlay" @click="handleOverlayClick">
-        <div class="modal" :style="{ width, maxWidth: maxWidth || 'none', minWidth: minWidth || 'none' }" @click.stop>
+        <div class="modal" :style="{ width, maxWidth: maxWidth || 'none', minWidth: minWidth || 'none', maxHeight: maxHeight || 'none' }" @click.stop>
             <div v-if="$slots.header || title || showCloseButton" class="modal-header">
                 <slot name="header">
                     <div v-if="title" class="modal-title">{{ title }}</div>
@@ -107,7 +111,6 @@ const handleOverlayClick = (event) => {
     overflow: hidden;
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
     max-height: 85vh;
-    overflow-y: auto;
     display: flex;
     flex-direction: column;
 }
@@ -117,7 +120,6 @@ const handleOverlayClick = (event) => {
     justify-content: space-between;
     align-items: center;
     padding: 16px 20px;
-    border-bottom: 1px solid #e0e0e0;
     flex-shrink: 0;
 }
 
@@ -158,7 +160,8 @@ const handleOverlayClick = (event) => {
 .modal-body {
     padding: 20px;
     flex: 1;
-    overflow-y: auto;
+    min-height: 0;
+    overflow: hidden;
 }
 
 .modal-footer {
@@ -166,7 +169,6 @@ const handleOverlayClick = (event) => {
     justify-content: flex-end;
     gap: 10px;
     padding: 16px 20px;
-    border-top: 1px solid #e0e0e0;
     flex-shrink: 0;
 }
 

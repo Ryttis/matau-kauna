@@ -4,7 +4,10 @@ import AppButton from '@/Components/App/AppButton.vue'
 
 const props = defineProps({
     open: Boolean,
-    title: String,
+    title: {
+        type: String,
+        default: ''
+    },
     message: String,
     confirmText: {
         type: String,
@@ -17,6 +20,24 @@ const props = defineProps({
     loading: {
         type: Boolean,
         default: false
+    },
+    footerLayout: {
+        type: String,
+        default: 'row',
+        validator: (v) => ['row', 'column'].includes(v)
+    },
+    confirmVariant: {
+        type: String,
+        default: 'danger',
+        validator: (v) => ['primary', 'danger'].includes(v)
+    },
+    width: {
+        type: String,
+        default: '520px'
+    },
+    maxHeight: {
+        type: String,
+        default: null
     }
 })
 
@@ -27,31 +48,60 @@ const emit = defineEmits(['close', 'confirm'])
     <BaseModal
         :open="open"
         :title="title"
-        width="520px"
+        :width="width"
+        :max-height="maxHeight"
+        :footer-layout="footerLayout"
         @close="emit('close')"
     >
-        <p>{{ message }}</p>
+        <p class="confirm-modal-message">{{ message }}</p>
 
         <template #footer>
-            <AppButton
-                :text="cancelText"
-                variant="secondary"
-                as-button
-                @click="emit('close')"
-            />
-            <AppButton
-                :text="loading ? '...' : confirmText"
-                variant="primary"
-                as-button
-                :disabled="loading"
-                @click="emit('confirm')"
-                class="confirm-modal-danger-btn"
-            />
+            <template v-if="footerLayout === 'column'">
+                <AppButton
+                    :text="loading ? '...' : confirmText"
+                    variant="primary"
+                    as-button
+                    :disabled="loading"
+                    :class="{ 'confirm-modal-danger-btn': confirmVariant === 'danger' }"
+                    @click="emit('confirm')"
+                />
+                <AppButton
+                    :text="cancelText"
+                    variant="secondary"
+                    as-button
+                    @click="emit('close')"
+                />
+            </template>
+            <template v-else>
+                <AppButton
+                    :text="cancelText"
+                    variant="secondary"
+                    as-button
+                    @click="emit('close')"
+                />
+                <AppButton
+                    :text="loading ? '...' : confirmText"
+                    variant="primary"
+                    as-button
+                    :disabled="loading"
+                    :class="{ 'confirm-modal-danger-btn': confirmVariant === 'danger' }"
+                    @click="emit('confirm')"
+                />
+            </template>
         </template>
     </BaseModal>
 </template>
 
 <style scoped>
+.confirm-modal-message {
+    text-align: center;
+    font-size: 1rem;
+    font-weight: 600;
+    color: #333;
+    margin: 0;
+    line-height: 1.5;
+}
+
 .confirm-modal-danger-btn {
     background-color: #b42318 !important;
     border-color: #b42318 !important;
