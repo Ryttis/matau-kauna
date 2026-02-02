@@ -21,6 +21,10 @@ defineProps({
         type: String,
         default: '',
     },
+    readonly: {
+        type: Boolean,
+        default: false,
+    },
 });
 
 defineEmits(['update:modelValue']);
@@ -34,6 +38,7 @@ defineEmits(['update:modelValue']);
             :type="type"
             :placeholder="placeholder"
             :value="modelValue"
+            :readonly="readonly"
             required
             autofocus
             @input="$emit('update:modelValue', $event.target.value)"

@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Enums\ProblemStatus;
 use App\Exports\ProblemsExport;
 use App\Models\Employee;
+use App\Models\Institution;
 use App\Models\Problem;
 use App\Models\UserRole;
 use Illuminate\Http\Request;
@@ -126,7 +127,12 @@ class ProblemController extends Controller
             abort(403);
         }
 
-        $institutions = [];
+        $institutions = Institution::query()
+            ->where('is_active', true)
+            ->orderBy('name')
+            ->get(['id', 'name'])
+            ->map(fn ($i) => ['id' => $i->id, 'name' => $i->name]);
+
         $problemIds = $request->get('problem_ids', []);
 
         $problem = null;
@@ -160,7 +166,11 @@ class ProblemController extends Controller
             abort(403);
         }
 
-        $institutions = [];
+        $institutions = Institution::query()
+            ->where('is_active', true)
+            ->orderBy('name')
+            ->get(['id', 'name'])
+            ->map(fn ($i) => ['id' => $i->id, 'name' => $i->name]);
 
         return Inertia::render('Problems/Assign', [
             'problem' => $problem,
