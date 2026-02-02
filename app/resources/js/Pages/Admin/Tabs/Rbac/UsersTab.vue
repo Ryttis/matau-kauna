@@ -1,12 +1,14 @@
 <script setup>
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 import axios from 'axios'
 import BaseModal from '@/Components/App/BaseModal.vue'
 import ConfirmModal from '@/Components/App/ConfirmModal.vue'
+import { ROLE_INSTITUTION_ADMIN, ROLE_EMPLOYEE } from '@/constants/roles.js'
 
 const props = defineProps({
     usersPage: Object,
     roles: Array,
+    institutions: { type: Array, default: () => [] },
     saving: Boolean
 })
 
@@ -16,21 +18,24 @@ const isCreateOpen = ref(false)
 const isEditOpen = ref(false)
 const isDeleteOpen = ref(false)
 const isAssignRolesOpen = ref(false)
+const isInviteOpen = ref(false)
+const inviteError = ref('')
 
-const createForm = ref({ name: '', email: '', password: '' })
-const editForm = ref({ id: null, name: '', email: '', password: '' })
+const createForm = ref({ name: '', email: '', password: '', institution_id: '' })
+const inviteForm = ref({ email: '', institution_id: '', role_id: '' })
+const editForm = ref({ id: null, name: '', email: '', password: '', institution_id: '' })
 const deleteTarget = ref({ id: null, name: '', email: '' })
 
 const selectedUser = ref(null)
 const selectedRoleIds = ref([])
 
 const openCreate = () => {
-    createForm.value = { name: '', email: '', password: '' }
+    createForm.value = { name: '', email: '', password: '', institution_id: '' }
     isCreateOpen.value = true
 }
 
 const openEdit = (u) => {
-    editForm.value = { id: u.id, name: u.name, email: u.email, password: '' }
+    editForm.value = { id: u.id, name: u.name, email: u.email, password: '', institution_id: u.institution_id ?? '' }
     isEditOpen.value = true
 }
 
@@ -45,10 +50,39 @@ const openAssignRoles = (u) => {
     isAssignRolesOpen.value = true
 }
 
+const inviteRoles = computed(() =>
+    (props.roles ?? []).filter(
+        (r) => r.role === ROLE_INSTITUTION_ADMIN || r.role === ROLE_EMPLOYEE
+    )
+)
+
+const openInvite = () => {
+    inviteForm.value = { email: '', institution_id: '', role_id: '' }
+    inviteError.value = ''
+    isInviteOpen.value = true
+}
+
+const inviteUser = async () => {
+    inviteError.value = ''
+    emit('set-saving', true)
+    try {
+        await axios.post('/invitations', inviteForm.value)
+        isInviteOpen.value = false
+        emit('refresh')
+    } catch (e) {
+        inviteError.value = e.response?.data?.message ?? 'Nepavyko išsiųsti pakvietimo.'
+    } finally {
+        emit('set-saving', false)
+    }
+}
+
 const createUser = async () => {
     emit('set-saving', true)
     try {
-        await axios.post('/admin/rbac/users', createForm.value)
+        await axios.post('/admin/rbac/users', {
+            ...createForm.value,
+            institution_id: createForm.value.institution_id || null
+        })
         isCreateOpen.value = false
         emit('refresh')
     } finally {
@@ -62,7 +96,8 @@ const updateUser = async () => {
         await axios.put(`/admin/rbac/users/${editForm.value.id}`, {
             name: editForm.value.name,
             email: editForm.value.email,
-            password: editForm.value.password || null
+            password: editForm.value.password || null,
+            institution_id: editForm.value.institution_id || null
         })
         isEditOpen.value = false
         emit('refresh')
@@ -102,9 +137,14 @@ const saveUserRoles = async () => {
     <div>
         <div class="header-row">
             <h3 class="title">Naudotojai</h3>
-            <button type="button" class="primary-btn small" @click="openCreate">
-                + Pridėti
-            </button>
+            <div class="header-actions">
+                <button type="button" class="secondary-btn small" @click="openInvite">
+                    Pakviesti
+                </button>
+                <button type="button" class="primary-btn small" @click="openCreate">
+                    + Pridėti
+                </button>
+            </div>
         </div>
 
         <table class="table" v-if="usersPage?.data?.length">
@@ -113,6 +153,7 @@ const saveUserRoles = async () => {
                     <th>ID</th>
                     <th>Vardas</th>
                     <th>Paštas</th>
+                    <th>Įstaiga</th>
                     <th>Rolės</th>
                     <th>Veiksmai</th>
                 </tr>
@@ -123,6 +164,7 @@ const saveUserRoles = async () => {
                     <td>{{ u.id }}</td>
                     <td>{{ u.name }}</td>
                     <td>{{ u.email }}</td>
+                    <td>{{ u.institution?.name ?? '—' }}</td>
                     <td>
                         <span v-for="r in (u.roles ?? [])" :key="r.id" class="pill">
                             {{ r.name }}
@@ -156,10 +198,47 @@ const saveUserRoles = async () => {
                 <input class="input" type="password" v-model="createForm.password" />
             </label>
 
+            <label class="field">
+                <span>Įstaiga</span>
+                <select class="input" v-model="createForm.institution_id">
+                    <option value="">— Nepriskirta</option>
+                    <option v-for="i in institutions" :key="i.id" :value="i.id">{{ i.name }}</option>
+                </select>
+            </label>
+
             <template #footer>
                 <button type="button" class="secondary-btn" @click="isCreateOpen = false">Atšaukti</button>
                 <button type="button" class="primary-btn fixed" :disabled="saving" @click="createUser">
                     {{ saving ? 'Kuriama...' : 'Sukurti' }}
+                </button>
+            </template>
+        </BaseModal>
+
+        <!-- Invite -->
+        <BaseModal :open="isInviteOpen" title="Pakviesti naudotoją" @close="isInviteOpen = false">
+            <div v-if="inviteError" class="error">{{ inviteError }}</div>
+            <label class="field">
+                <span>El. paštas</span>
+                <input class="input" type="email" v-model="inviteForm.email" />
+            </label>
+            <label class="field">
+                <span>Įstaiga</span>
+                <select class="input" v-model="inviteForm.institution_id">
+                    <option value="">— Pasirinkite</option>
+                    <option v-for="i in institutions" :key="i.id" :value="i.id">{{ i.name }}</option>
+                </select>
+            </label>
+            <label class="field">
+                <span>Rolė</span>
+                <select class="input" v-model="inviteForm.role_id">
+                    <option value="">— Pasirinkite</option>
+                    <option v-for="r in inviteRoles" :key="r.id" :value="r.id">{{ r.name }}</option>
+                </select>
+            </label>
+            <template #footer>
+                <button type="button" class="secondary-btn" @click="isInviteOpen = false">Atšaukti</button>
+                <button type="button" class="primary-btn fixed" :disabled="saving || !inviteForm.email || !inviteForm.institution_id || !inviteForm.role_id" @click="inviteUser">
+                    {{ saving ? 'Siunčiama...' : 'Siųsti pakvietimą' }}
                 </button>
             </template>
         </BaseModal>
@@ -174,6 +253,14 @@ const saveUserRoles = async () => {
             <label class="field">
                 <span>Paštas</span>
                 <input class="input" v-model="editForm.email" />
+            </label>
+
+            <label class="field">
+                <span>Įstaiga</span>
+                <select class="input" v-model="editForm.institution_id">
+                    <option value="">— Nepriskirta</option>
+                    <option v-for="i in institutions" :key="i.id" :value="i.id">{{ i.name }}</option>
+                </select>
             </label>
 
             <label class="field">
@@ -236,6 +323,21 @@ const saveUserRoles = async () => {
     align-items: center;
     gap: 12px;
     margin-bottom: 10px;
+}
+
+.header-actions {
+    display: flex;
+    gap: 8px;
+}
+
+.error {
+    background: #fff0f0;
+    border: 1px solid #ffd2d2;
+    color: #8b1e1e;
+    padding: 10px 12px;
+    border-radius: 10px;
+    margin-bottom: 12px;
+    font-size: 13px;
 }
 
 .title {
@@ -363,5 +465,10 @@ th, td {
     padding: 10px 12px;
     cursor: pointer;
     font-weight: 600;
+}
+
+.secondary-btn.small {
+    padding: 8px 14px;
+    font-size: 13px;
 }
 </style>

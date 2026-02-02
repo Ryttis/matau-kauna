@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Employee;
 use App\Models\Institution;
+use App\Models\UserRole;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
@@ -20,8 +21,13 @@ class SettingsController extends Controller
             ->where('institution_id', $user->institution_id)
             ->get();
 
+        $inviteRoles = UserRole::query()
+            ->whereIn('role', [UserRole::ROLE_INSTITUTION_ADMIN, UserRole::ROLE_EMPLOYEE])
+            ->get(['id', 'role', 'name']);
+
         return Inertia::render('Settings', [
             'employees' => $employees,
+            'inviteRoles' => $inviteRoles,
         ]);
     }
 

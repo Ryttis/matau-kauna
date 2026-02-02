@@ -91,6 +91,26 @@ class User extends Authenticatable
         return array_values($permissions);
     }
 
+    public function permissionsForRole(string $roleId): array
+    {
+        $role = $this->roles()->with('permissionGroups.permissions')
+            ->where('user_role.id', $roleId)
+            ->first();
+
+        if (! $role) {
+            return [];
+        }
+
+        $permissions = [];
+        foreach ($role->permissionGroups as $group) {
+            foreach ($group->permissions as $permission) {
+                $permissions[$permission->permission] = $permission->permission;
+            }
+        }
+
+        return array_values($permissions);
+    }
+
     public function hasPermission(string $permission): bool
     {
         return in_array($permission, $this->permissions(), true);

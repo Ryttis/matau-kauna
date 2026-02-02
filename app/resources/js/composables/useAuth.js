@@ -13,11 +13,14 @@ export function useAuth() {
 
     const user = computed(() => page.props.auth?.user ?? null)
     const roles = computed(() => page.props.auth?.roles ?? [])
+    const activeRole = computed(() => page.props.auth?.activeRole ?? null)
     const permissions = computed(() => page.props.auth?.permissions ?? [])
     const isSystemAdmin = computed(() => !!page.props.auth?.isSystemAdmin)
 
     const hasRole = (roleConstant) =>
-        roles.value.some((r) => r.role === roleConstant)
+        activeRole.value
+            ? activeRole.value.role === roleConstant
+            : roles.value.some((r) => r.role === roleConstant)
 
     const hasPermission = (permission) =>
         isSystemAdmin.value || permissions.value.includes(permission)

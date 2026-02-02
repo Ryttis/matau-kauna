@@ -16,8 +16,8 @@ class RbacController extends Controller
     public function users()
     {
         return User::query()
-            ->select(['id', 'name', 'email'])
-            ->with(['roles:id,role,name'])
+            ->select(['id', 'name', 'email', 'institution_id'])
+            ->with(['roles:id,role,name', 'institution:id,name'])
             ->orderBy('id', 'desc')
             ->paginate(20);
     }
@@ -115,15 +115,17 @@ class RbacController extends Controller
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'email', 'max:255', 'unique:users,email'],
             'password' => ['required', 'string', 'min:8'],
+            'institution_id' => ['nullable', 'integer', 'exists:institutions,id'],
         ]);
 
         $user = User::create([
             'name' => $data['name'],
             'email' => $data['email'],
             'password' => Hash::make($data['password']),
+            'institution_id' => $data['institution_id'] ?? null,
         ]);
 
-        return $user->load('roles:id,role,name');
+        return $user->load(['roles:id,role,name', 'institution:id,name']);
     }
 
     public function updateUser(Request $request, User $user)
@@ -137,10 +139,12 @@ class RbacController extends Controller
                 Rule::unique('users', 'email')->ignore($user->id),
             ],
             'password' => ['nullable', 'string', 'min:8'],
+            'institution_id' => ['nullable', 'integer', 'exists:institutions,id'],
         ]);
 
         $user->name = $data['name'];
         $user->email = $data['email'];
+        $user->institution_id = array_key_exists('institution_id', $data) ? $data['institution_id'] : $user->institution_id;
 
         if (! empty($data['password'])) {
             $user->password = Hash::make($data['password']);
@@ -148,12 +152,11 @@ class RbacController extends Controller
 
         $user->save();
 
-        return $user->load('roles:id,role,name');
+        return $user->load(['roles:id,role,name', 'institution:id,name']);
     }
 
     public function deleteUser(User $user)
     {
-        // Optional: prevent deleting yourself
         if (auth()->id() === $user->id) {
             abort(422, 'Negalima ištrinti savo naudotojo.');
         }
