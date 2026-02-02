@@ -40,6 +40,12 @@ class HandleInertiaRequests extends Middleware
                 'permissions' => $user ? $user->permissions() : [],
                 'isSystemAdmin' => $user && $user->hasRole(UserRole::ROLE_SYSTEM_ADMIN),
             ],
+
+            'flash' => [
+                'status' => fn () => $request->session()->get('status'),
+                'success' => fn () => $request->session()->get('success'),
+                'error' => fn () => $request->session()->get('error'),
+            ],
         ];
     }
 }

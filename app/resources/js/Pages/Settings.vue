@@ -98,6 +98,13 @@ const updatePassword = () => {
     })
 }
 
+const requestPasswordReset = () => {
+  // simple post; you can show status flash on success
+  passwordForm.post(route('settings.password.email'), {
+    preserveScroll: true,
+  })
+}
+
 const deleteAccount = () => {
     deleteAccountForm.delete(route('settings.destroy'), {
         preserveScroll: true,
@@ -115,133 +122,104 @@ const deleteAccount = () => {
     <AuthenticatedLayout>
         <div class="settings-container">
             <div class="settings-content">
-            <SettingsSection
-                title="Profilio duomenys"
-                :open="sections.profile"
-                @toggle="toggleSection('profile')"
-            >
-                <form @submit.prevent="updateProfile" class="form-grid">
-                    <AppInput v-model="profileForm.name" placeholder="Vardas" :showIcon="true" />
-                    <AppInput v-model="profileForm.surname" placeholder="Pavardė" :showIcon="true" />
-                    <AppInput v-model="profileForm.email" type="email" placeholder="El. paštas" :showIcon="true" />
-                    <AppButton
-                        text="Saugoti"
-                        variant="primary"
-                        :disabled="profileForm.processing"
-                    />
-                </form>
-            </SettingsSection>
-
-            <SettingsSection
-                v-if="hasInstitutionRole"
-                title="Darbuotojas"
-                :open="sections.employee"
-                @toggle="toggleSection('employee')"
-            >
-                <form @submit.prevent="storeEmployee" class="form-grid">
-                    <AppInput v-model="employeeForm.name" placeholder="Vardas" />
-                    <AppInput v-model="employeeForm.surname" placeholder="Pavardė" />
-                    <AppInput v-model="employeeForm.email" type="email" placeholder="El. paštas" />
-                    <AppButton
-                        text="Saugoti"
-                        variant="primary"
-                        :disabled="employeeForm.processing"
-                    />
-                </form>
-                <div v-if="employees && employees.length > 0" class="employee-list">
-                    <h3>Darbuotojų sąrašas:</h3>
-                    <ul>
-                        <li v-for="emp in employees" :key="emp.id">
-                            {{ emp.name }} {{ emp.surname }} ({{ emp.email }})
-                        </li>
-                    </ul>
-                </div>
-            </SettingsSection>
-
-            <SettingsSection
-                v-if="hasInstitutionRole"
-                title="Įstaigos nustatymai"
-                :open="sections.institution"
-                @toggle="toggleSection('institution')"
-            >
-                <form @submit.prevent="updateInstitution" class="form-grid">
-                    <AppInput v-model="institutionForm.name" placeholder="Pavadinimas" :showIcon="true" />
-                    <AppInput v-model="institutionForm.code" placeholder="Kodas" :showIcon="true" />
-                    <AppButton
-                        text="Saugoti"
-                        variant="primary"
-                        :disabled="institutionForm.processing"
-                    />
-                </form>
-            </SettingsSection>
-
-            <div class="privacy-block">
                 <SettingsSection
-                    title="Privatumo taisyklės"
-                    :open="sections.privacy"
-                    :noBorder="true"
-                    class="privacy-section"
-                    @toggle="toggleSection('privacy')"
+                    title="Profilio duomenys"
+                    :open="sections.profile"
+                    @toggle="toggleSection('profile')"
                 >
+                    <form @submit.prevent="updateProfile" class="form-grid">
+                        <AppInput v-model="profileForm.name" placeholder="Vardas" :showIcon="true" />
+                        <AppInput v-model="profileForm.surname" placeholder="Pavardė" :showIcon="true" />
+                        <AppInput v-model="profileForm.email" type="email" placeholder="El. paštas" :showIcon="true" />
+                        <AppButton
+                            text="Saugoti"
+                            variant="primary"
+                            :disabled="profileForm.processing"
+                        />
+                    </form>
                 </SettingsSection>
 
-                <div class="privacy-row privacy-row-2fa">
-                    <span class="privacy-label">2 FA autentifikavimas</span>
-                    <div class="privacy-row-2fa-right">
-                        <label class="switch">
-                            <input v-model="twoFactorEnabled" type="checkbox" />
-                            <span class="slider round"></span>
-                        </label>
-                    </div>
-                </div>
-
-                <div class="privacy-row">
-                    <AppButton
-                        text="Keisti slaptažodį"
-                        variant="link"
-                        as-button
-                        class="privacy-link"
-                        @click="showPasswordForm = true"
-                    />
-                </div>
-
-                <div class="privacy-row">
-                    <AppButton
-                        text="Šalinti paskyrą"
-                        variant="link"
-                        as-button
-                        class="privacy-link"
-                        @click="showDeleteModal = true"
-                    />
-                </div>
-            </div>
-
-            <div v-if="showPasswordForm" class="password-form-expanded">
-                <form @submit.prevent="updatePassword" class="password-form">
-                    <div class="form-grid">
-                        <AppInput
-                            v-model="passwordForm.current_password"
-                            type="password"
-                            placeholder="Esamas slaptažodis"
-                        />
-                        <AppInput
-                            v-model="passwordForm.password"
-                            type="password"
-                            placeholder="Naujas slaptažodis"
-                        />
-                        <AppInput
-                            v-model="passwordForm.password_confirmation"
-                            type="password"
-                            placeholder="Pakartoti slaptažodį"
-                        />
+                <SettingsSection
+                    v-if="hasInstitutionRole"
+                    title="Darbuotojas"
+                    :open="sections.employee"
+                    @toggle="toggleSection('employee')"
+                >
+                    <form @submit.prevent="storeEmployee" class="form-grid">
+                        <AppInput v-model="employeeForm.name" placeholder="Vardas" />
+                        <AppInput v-model="employeeForm.surname" placeholder="Pavardė" />
+                        <AppInput v-model="employeeForm.email" type="email" placeholder="El. paštas" />
                         <AppButton
-                            text="Patvirtinti"
+                            text="Saugoti"
                             variant="primary"
-                            :disabled="passwordForm.processing"
+                            :disabled="employeeForm.processing"
+                        />
+                    </form>
+                    <div v-if="employees && employees.length > 0" class="employee-list">
+                        <h3>Darbuotojų sąrašas:</h3>
+                        <ul>
+                            <li v-for="emp in employees" :key="emp.id">
+                                {{ emp.name }} {{ emp.surname }} ({{ emp.email }})
+                            </li>
+                        </ul>
+                    </div>
+                </SettingsSection>
+
+                <SettingsSection
+                    v-if="hasInstitutionRole"
+                    title="Įstaigos nustatymai"
+                    :open="sections.institution"
+                    @toggle="toggleSection('institution')"
+                >
+                    <form @submit.prevent="updateInstitution" class="form-grid">
+                        <AppInput v-model="institutionForm.name" placeholder="Pavadinimas" :showIcon="true" />
+                        <AppInput v-model="institutionForm.code" placeholder="Kodas" :showIcon="true" />
+                        <AppButton
+                            text="Saugoti"
+                            variant="primary"
+                            :disabled="institutionForm.processing"
+                        />
+                    </form>
+                </SettingsSection>
+
+                <div class="privacy-block">
+                    <SettingsSection
+                        title="Privatumo taisyklės"
+                        :open="sections.privacy"
+                        :noBorder="true"
+                        class="privacy-section"
+                        @toggle="toggleSection('privacy')"
+                    >
+                    </SettingsSection>
+
+                    <div class="privacy-row privacy-row-2fa">
+                        <span class="privacy-label">2 FA autentifikavimas</span>
+                        <div class="privacy-row-2fa-right">
+                            <label class="switch">
+                                <input v-model="twoFactorEnabled" type="checkbox" />
+                                <span class="slider round"></span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <AppButton
+                        text="Gauti slaptažodžio keitimo nuorodą el. paštu"
+                        variant="link"
+                        as-button
+                        class="privacy-link"
+                        @click="requestPasswordReset"
+                    />
+
+                    <div class="privacy-row">
+                        <AppButton
+                            text="Šalinti paskyrą"
+                            variant="link"
+                            as-button
+                            class="privacy-link"
+                            @click="showDeleteModal = true"
                         />
                     </div>
-                </form>
-            </div>
+                </div>
             </div>
         </div>
 
@@ -278,6 +256,10 @@ const deleteAccount = () => {
                 />
             </template>
         </BaseModal>
+
+        <div v-if="$page.props.flash?.status" style="margin-top: 8px; color: #065F46;">
+            {{ $page.props.flash.status }}
+        </div>
     </AuthenticatedLayout>
 </template>
 
