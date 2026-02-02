@@ -4,7 +4,7 @@ import SettingsSection from '@/Components/App/SettingsSection.vue'
 import AppInput from '@/Components/App/AppInput.vue'
 import AppButton from '@/Components/App/AppButton.vue'
 import DeleteAccountModal from '@/Components/App/DeleteAccountModal.vue'
-import { Head, Link, useForm, usePage } from '@inertiajs/vue3'
+import { Head, Link, router, useForm, usePage } from '@inertiajs/vue3'
 import { ref, computed } from 'vue'
 
 const props = defineProps({
@@ -15,8 +15,8 @@ const page = usePage()
 const user = page.props.auth.user
 const authRoles = computed(() => page.props.auth?.roles || [])
 
-const hasInstitutionRole = computed(() =>
-    authRoles.value.some((r) => ['ROLE_INSTITUTION_ADMIN', 'ROLE_EMPLOYEE'].includes(r.role))
+const isInstitutionAdmin = computed(() =>
+    authRoles.value.some((r) => r.role === 'ROLE_INSTITUTION_ADMIN')
 )
 
 const profileForm = useForm({
@@ -42,6 +42,7 @@ const deleteAccountForm = useForm({
 
 const showDeleteModal = ref(false)
 const twoFactorEnabled = ref(!!user.two_factor_enabled)
+const emailUpdatesInstitutionAdmin = ref(!!user.email_updates_institution_admin)
 
 const sections = ref({
     profile: true,
@@ -102,6 +103,12 @@ const deleteAccount = () => {
         },
     })
 }
+
+const saveEmailUpdatesInstitutionAdmin = () => {
+    router.patch(route('settings.privacy'), {
+        email_updates_institution_admin: emailUpdatesInstitutionAdmin,
+    }, { preserveScroll: true })
+}
 </script>
 
 <template>
@@ -110,6 +117,67 @@ const deleteAccount = () => {
     <AuthenticatedLayout>
         <div class="settings-container">
             <div class="settings-content">
+            <SettingsSection
+                title="Profilio duomenys"
+                :open="sections.profile"
+                @toggle="toggleSection('profile')"
+            >
+                <form @submit.prevent="updateProfile" class="form-grid">
+                    <AppInput v-model="profileForm.name" placeholder="Vardas" :showIcon="true" />
+                    <AppInput v-model="profileForm.surname" placeholder="Pavardė" :showIcon="true" />
+                    <AppInput v-model="profileForm.email" type="email" placeholder="El. paštas" :showIcon="true" />
+                    <AppButton
+                        text="Saugoti"
+                        variant="primary"
+                        :disabled="profileForm.processing"
+                    />
+                </form>
+            </SettingsSection>
+
+            <SettingsSection
+                v-if="isInstitutionAdmin"
+                title="Darbuotojas"
+                :open="sections.employee"
+                @toggle="toggleSection('employee')"
+            >
+                <form @submit.prevent="storeEmployee" class="form-grid">
+                    <AppInput v-model="employeeForm.name" placeholder="Vardas" />
+                    <AppInput v-model="employeeForm.surname" placeholder="Pavardė" />
+                    <AppInput v-model="employeeForm.email" type="email" placeholder="El. paštas" />
+                    <AppButton
+                        text="Saugoti"
+                        variant="primary"
+                        :disabled="employeeForm.processing"
+                    />
+                </form>
+                <div v-if="employees && employees.length > 0" class="employee-list">
+                    <h3>Darbuotojų sąrašas:</h3>
+                    <ul>
+                        <li v-for="emp in employees" :key="emp.id">
+                            {{ emp.name }} {{ emp.surname }} ({{ emp.email }})
+                        </li>
+                    </ul>
+                </div>
+            </SettingsSection>
+
+            <SettingsSection
+                v-if="isInstitutionAdmin"
+                title="Įstaigos nustatymai"
+                :open="sections.institution"
+                @toggle="toggleSection('institution')"
+            >
+                <form @submit.prevent="updateInstitution" class="form-grid">
+                    <AppInput v-model="institutionForm.name" placeholder="Pavadinimas" :showIcon="true" />
+                    <AppInput v-model="institutionForm.code" placeholder="Kodas" :showIcon="true" />
+                    <AppButton
+                        text="Saugoti"
+                        variant="primary"
+                        :disabled="institutionForm.processing"
+                    />
+                </form>
+            </SettingsSection>
+
+            <div class="privacy-block">
                 <SettingsSection
                     title="Profilio duomenys"
                     :open="sections.profile"
@@ -189,6 +257,28 @@ const deleteAccount = () => {
                             </label>
                         </div>
                     </div>
+                <div
+                    v-if="isInstitutionAdmin"
+                    class="privacy-row privacy-row-2fa"
+                >
+                    <span class="privacy-label">Informacijos atnaujinimo siuntimas el. paštu – Įstaigos administratorius</span>
+                    <div class="privacy-row-2fa-right">
+                        <label class="switch">
+                            <input
+                                v-model="emailUpdatesInstitutionAdmin"
+                                type="checkbox"
+                                @change="saveEmailUpdatesInstitutionAdmin"
+                            />
+                            <span class="slider round"></span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="privacy-row">
+                    <Link :href="route('settings.change-password')" class="privacy-link">
+                        Keisti slaptažodį
+                    </Link>
+                </div>
 
                     <AppButton
                         text="Gauti slaptažodžio keitimo nuorodą el. paštu"

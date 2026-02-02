@@ -83,7 +83,6 @@ const handleMerge = () => {
         return
     }
 
-    console.log('Apjungti problemas:', allSelectedProblems)
     alert('Apjungimo funkcionalumas bus suderintas vykdant sutartį')
 }
 

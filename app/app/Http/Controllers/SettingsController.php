@@ -79,6 +79,7 @@ class SettingsController extends Controller
         $validated = $request->validate([
             'two_factor_enabled' => ['boolean'],
             'email_notifications_enabled' => ['boolean'],
+            'email_updates_institution_admin' => ['sometimes', 'boolean'],
         ]);
 
         Auth::user()->update($validated);

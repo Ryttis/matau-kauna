@@ -36,10 +36,11 @@ enum ProblemStatus: string
 
     public static function selectableOptions(): array
     {
-        return array_map(fn($case) => [
+        $cases = array_filter(self::cases(), fn($case) => $case !== self::UNREGISTERED);
+        return array_values(array_map(fn($case) => [
             'value' => $case->value,
             'label' => $case->label(),
-        ], array_filter(self::cases(), fn($case) => $case !== self::UNREGISTERED));
+        ], $cases));
     }
 
     public static function labels(): array
