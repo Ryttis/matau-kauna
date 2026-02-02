@@ -3,8 +3,8 @@ import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue'
 import SettingsSection from '@/Components/App/SettingsSection.vue'
 import AppInput from '@/Components/App/AppInput.vue'
 import AppButton from '@/Components/App/AppButton.vue'
-import BaseModal from '@/Components/App/BaseModal.vue'
-import { Head, useForm, usePage } from '@inertiajs/vue3'
+import DeleteAccountModal from '@/Components/App/DeleteAccountModal.vue'
+import { Head, Link, useForm, usePage } from '@inertiajs/vue3'
 import { ref, computed } from 'vue'
 
 const props = defineProps({
@@ -36,23 +36,11 @@ const institutionForm = useForm({
     code: user.institution?.code || '',
 })
 
-const privacyForm = useForm({
-    two_factor_enabled: !!user.two_factor_enabled,
-    email_notifications_enabled: !!user.email_notifications_enabled,
-})
-
-const passwordForm = useForm({
-    current_password: '',
-    password: '',
-    password_confirmation: '',
-})
-
 const deleteAccountForm = useForm({
     password: '',
 })
 
 const showDeleteModal = ref(false)
-const showPasswordForm = ref(false)
 const twoFactorEnabled = ref(!!user.two_factor_enabled)
 
 const sections = ref({
@@ -223,9 +211,9 @@ const deleteAccount = () => {
             </div>
         </div>
 
-        <BaseModal
+        <DeleteAccountModal
             :open="showDeleteModal"
-            title="Ar tikrai norite pašalinti paskyrą?"
+            :confirm-loading="deleteAccountForm.processing"
             @close="showDeleteModal = false"
         >
             <p class="modal-description">Šio veiksmo atšaukti negalėsite.</p>
@@ -393,28 +381,11 @@ const deleteAccount = () => {
     text-align: left;
     display: inline-block;
     line-height: 32px;
+    text-decoration: none;
 }
 
 .privacy-link:hover {
     text-decoration: underline;
-}
-
-.password-form-expanded {
-    margin-top: 8px;
-    margin-bottom: 24px;
-}
-
-.toggle-group {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    max-width: 400px;
-    margin-bottom: 16px;
-}
-
-.toggle-group span {
-    font-size: 15px;
-    font-weight: 500;
 }
 
 .switch {
@@ -470,38 +441,4 @@ input:checked + .slider:before {
     border-radius: 50%;
 }
 
-.password-form {
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-    max-width: 400px;
-}
-
-.delete-link {
-    font-size: 18px;
-    font-weight: 600;
-    color: #000;
-    cursor: pointer;
-    margin: 0;
-}
-
-.modal-description {
-    color: #6B7280;
-    margin-bottom: 20px;
-}
-
-.modal-inputs {
-    margin-bottom: 20px;
-}
-
-.error {
-    color: #DC2626;
-    font-size: 12px;
-    margin-top: 4px;
-}
-
-.btn-delete {
-    background-color: #DC2626 !important;
-    border-color: #DC2626 !important;
-}
 </style>
