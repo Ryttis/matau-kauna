@@ -2,8 +2,8 @@
 
 namespace Database\Seeders;
 
-use App\Models\RolePermission;
-use App\Models\RolePermissionGroup;
+use App\Models\UserRolePermission;
+use App\Models\UserRolePermissionGroup;
 use App\Models\User;
 use App\Models\UserRole;
 use Illuminate\Database\Seeder;
@@ -52,7 +52,7 @@ class RolesSeeder extends Seeder
             'Admin',
         ])->mapWithKeys(function ($name) {
             return [
-                $name => RolePermissionGroup::updateOrCreate(
+                $name => UserRolePermissionGroup::updateOrCreate(
                     ['name' => $name],
                     []
                 ),
@@ -74,7 +74,7 @@ class RolesSeeder extends Seeder
             'admin.access',
         ])->mapWithKeys(function ($permission) {
             return [
-                $permission => RolePermission::updateOrCreate(
+                $permission => UserRolePermission::updateOrCreate(
                     ['permission' => $permission],
                     []
                 ),

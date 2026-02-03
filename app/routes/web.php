@@ -44,7 +44,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('/settings/employees', [SettingsController::class, 'storeEmployee'])->name('settings.employees');
     Route::patch('/settings/institution', [SettingsController::class, 'updateInstitution'])->name('settings.institution');
     Route::patch('/settings/privacy', [SettingsController::class, 'updatePrivacy'])->name('settings.privacy');
-    Route::put('/settings/password', [SettingsController::class, 'updatePassword'])->name('settings.password');
+    Route::post('/settings/password/email', [SettingsController::class, 'sendPasswordResetLink'])->name('settings.password.email');
     Route::delete('/settings', [SettingsController::class, 'destroy'])->name('settings.destroy');
 
     Route::post('/invitations', [AdminInvitationController::class, 'store']);

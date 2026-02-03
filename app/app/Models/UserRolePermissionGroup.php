@@ -5,7 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 
-class RolePermissionGroup extends Model
+class UserRolePermissionGroup extends Model
 {
     use HasUuids;
 
@@ -16,7 +16,7 @@ class RolePermissionGroup extends Model
     public function permissions()
     {
         return $this->belongsToMany(
-            RolePermission::class,
+            UserRolePermission::class,
             'user_role_permission_group_map',
             'group_id',
             'permission_id'

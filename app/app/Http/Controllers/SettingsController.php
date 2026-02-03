@@ -7,8 +7,7 @@ use App\Models\Institution;
 use App\Models\UserRole;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Hash;
-use Illuminate\Validation\Rules\Password;
+use Illuminate\Support\Facades\Password;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -94,18 +93,21 @@ class SettingsController extends Controller
         return back();
     }
 
-    public function updatePassword(Request $request)
+    public function sendPasswordResetLink(Request $request)
     {
-        $validated = $request->validate([
-            'current_password' => ['required', 'current_password'],
-            'password' => ['required', 'confirmed', Password::defaults()],
-        ]);
+        $email = $request->user()->email;
 
-        Auth::user()->update([
-            'password' => Hash::make($validated['password']),
-        ]);
+        $status = Password::sendResetLink(['email' => $email]);
 
-        return back();
+        if ($status === Password::RESET_LINK_SENT) {
+            return back()->with('status', 'Išsiuntėme slaptažodžio keitimo nuorodą į jūsų el. paštą.');
+        }
+
+        if ($status === Password::RESET_THROTTLED) {
+            return back()->with('status', 'Nuoroda jau buvo siųsta neseniai. Palaukite minutę ir bandykite dar kartą.');
+        }
+
+        return back()->withErrors(['email' => __($status)]);
     }
 
     public function destroy(Request $request)

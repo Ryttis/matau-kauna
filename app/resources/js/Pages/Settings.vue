@@ -46,6 +46,8 @@ const institutionForm = useForm({
     code: user.institution?.code || '',
 })
 
+const passwordForm = useForm({})
+
 const deleteAccountForm = useForm({
     password: '',
 })
@@ -83,6 +85,26 @@ const updateInstitution = () => {
     institutionForm.patch(route('settings.institution'), {
         preserveScroll: true,
     })
+}
+
+const updatePrivacy = () => {
+    privacyForm.patch(route('settings.privacy'), {
+        preserveScroll: true,
+    })
+}
+
+const updatePassword = () => {
+    passwordForm.put(route('settings.password'), {
+        preserveScroll: true,
+        onSuccess: () => passwordForm.reset(),
+    })
+}
+
+const requestPasswordReset = () => {
+  // simple post; you can show status flash on success
+  passwordForm.post(route('settings.password.email'), {
+    preserveScroll: true,
+  })
 }
 
 const deleteAccount = () => {
@@ -133,142 +155,175 @@ const sendInvite = async () => {
     <AuthenticatedLayout>
         <div class="settings-container">
             <div class="settings-content">
-            <SettingsSection
-                title="Profilio duomenys"
-                :open="sections.profile"
-                @toggle="toggleSection('profile')"
-            >
-                <form @submit.prevent="updateProfile" class="form-grid">
-                    <AppInput v-model="profileForm.name" placeholder="Vardas" :showIcon="true" />
-                    <AppInput v-model="profileForm.surname" placeholder="Pavardė" :showIcon="true" />
-                    <AppInput v-model="profileForm.email" type="email" placeholder="El. paštas" :showIcon="true" />
-                    <AppButton
-                        text="Saugoti"
-                        variant="primary"
-                        :disabled="profileForm.processing"
-                    />
-                </form>
-            </SettingsSection>
-
-            <SettingsSection
-                v-if="isInstitutionAdmin"
-                title="Darbuotojas"
-                :open="sections.employee"
-                @toggle="toggleSection('employee')"
-            >
-                <form @submit.prevent="storeEmployee" class="form-grid">
-                    <AppInput v-model="employeeForm.name" placeholder="Vardas" />
-                    <AppInput v-model="employeeForm.surname" placeholder="Pavardė" />
-                    <AppInput v-model="employeeForm.email" type="email" placeholder="El. paštas" />
-                    <AppButton
-                        text="Saugoti"
-                        variant="primary"
-                        :disabled="employeeForm.processing"
-                    />
-                </form>
-                <div v-if="employees && employees.length > 0" class="employee-list">
-                    <h3>Darbuotojų sąrašas:</h3>
-                    <ul>
-                        <li v-for="emp in employees" :key="emp.id">
-                            {{ emp.name }} {{ emp.surname }} ({{ emp.email }})
-                        </li>
-                    </ul>
-                </div>
-            </SettingsSection>
-
-            <SettingsSection
-                v-if="isInstitutionAdmin"
-                title="Pakviesti darbuotoją"
-                :open="sections.invite"
-                @toggle="toggleSection('invite')"
-            >
-                <div v-if="inviteSuccess" class="invite-success">Pkvietimas išsiųstas.</div>
-                <div v-if="inviteError" class="invite-error">{{ inviteError }}</div>
-                <form @submit.prevent="sendInvite" class="form-grid">
-                    <AppInput v-model="inviteForm.email" type="email" placeholder="El. paštas" :showIcon="true" />
-                    <select v-model="inviteForm.role_id" class="settings-select" required>
-                        <option value="">— Rolė</option>
-                        <option v-for="r in inviteRoles" :key="r.id" :value="r.id">{{ r.name }}</option>
-                    </select>
-                    <AppButton
-                        text="Siųsti pakvietimą"
-                        variant="primary"
-                        :disabled="inviteSending || !inviteForm.email || !inviteForm.role_id"
-                    />
-                </form>
-            </SettingsSection>
-
-            <SettingsSection
-                v-if="isInstitutionAdmin"
-                title="Įstaigos nustatymai"
-                :open="sections.institution"
-                @toggle="toggleSection('institution')"
-            >
-                <form @submit.prevent="updateInstitution" class="form-grid">
-                    <AppInput v-model="institutionForm.name" placeholder="Pavadinimas" :showIcon="true" />
-                    <AppInput v-model="institutionForm.code" placeholder="Kodas" :showIcon="true" />
-                    <AppButton
-                        text="Saugoti"
-                        variant="primary"
-                        :disabled="institutionForm.processing"
-                    />
-                </form>
-            </SettingsSection>
-
-            <div class="privacy-block">
                 <SettingsSection
-                    title="Privatumo taisyklės"
-                    :open="sections.privacy"
-                    :noBorder="true"
-                    class="privacy-section"
-                    @toggle="toggleSection('privacy')"
+                    title="Profilio duomenys"
+                    :open="sections.profile"
+                    @toggle="toggleSection('profile')"
                 >
+                    <form @submit.prevent="updateProfile" class="form-grid">
+                        <AppInput v-model="profileForm.name" placeholder="Vardas" :showIcon="true" />
+                        <AppInput v-model="profileForm.surname" placeholder="Pavardė" :showIcon="true" />
+                        <AppInput v-model="profileForm.email" type="email" placeholder="El. paštas" :showIcon="true" />
+                        <AppButton
+                            text="Saugoti"
+                            variant="primary"
+                            :disabled="profileForm.processing"
+                        />
+                    </form>
                 </SettingsSection>
 
-                <div class="privacy-row privacy-row-2fa">
-                    <span class="privacy-label">2 FA autentifikavimas</span>
-                    <div class="privacy-row-2fa-right">
-                        <label class="switch">
-                            <input v-model="twoFactorEnabled" type="checkbox" />
-                            <span class="slider round"></span>
-                        </label>
-                    </div>
-                </div>
-
-                <div
-                    v-if="canManageEmailUpdatesAssigned"
-                    class="privacy-row privacy-row-2fa"
+                <SettingsSection
+                    v-if="isInstitutionAdmin"
+                    title="Darbuotojas"
+                    :open="sections.employee"
+                    @toggle="toggleSection('employee')"
                 >
-                    <span class="privacy-label">Pranešimai apie naujai priskirtas problemas el. paštu</span>
-                    <div class="privacy-row-2fa-right">
-                        <label class="switch">
-                            <input
-                                v-model="emailUpdatesInstitutionAdmin"
-                                type="checkbox"
-                                @change="saveEmailUpdatesInstitutionAdmin"
-                            />
-                            <span class="slider round"></span>
-                        </label>
+                    <form @submit.prevent="storeEmployee" class="form-grid">
+                        <AppInput v-model="employeeForm.name" placeholder="Vardas" />
+                        <AppInput v-model="employeeForm.surname" placeholder="Pavardė" />
+                        <AppInput v-model="employeeForm.email" type="email" placeholder="El. paštas" />
+                        <AppButton
+                            text="Saugoti"
+                            variant="primary"
+                            :disabled="employeeForm.processing"
+                        />
+                    </form>
+                    <div v-if="employees && employees.length > 0" class="employee-list">
+                        <h3>Darbuotojų sąrašas:</h3>
+                        <ul>
+                            <li v-for="emp in employees" :key="emp.id">
+                                {{ emp.name }} {{ emp.surname }} ({{ emp.email }})
+                            </li>
+                        </ul>
                     </div>
-                </div>
+                </SettingsSection>
 
-                <div class="privacy-row">
-                    <Link :href="route('settings.change-password')" class="privacy-link">
-                        Keisti slaptažodį
-                    </Link>
-                </div>
+                <SettingsSection
+                    v-if="isInstitutionAdmin"
+                    title="Pakviesti darbuotoją"
+                    :open="sections.invite"
+                    @toggle="toggleSection('invite')"
+                >
+                    <div v-if="inviteSuccess" class="invite-success">Pkvietimas išsiųstas.</div>
+                    <div v-if="inviteError" class="invite-error">{{ inviteError }}</div>
+                    <form @submit.prevent="sendInvite" class="form-grid">
+                        <AppInput v-model="inviteForm.email" type="email" placeholder="El. paštas" :showIcon="true" />
+                        <select v-model="inviteForm.role_id" class="settings-select" required>
+                            <option value="">— Rolė</option>
+                            <option v-for="r in inviteRoles" :key="r.id" :value="r.id">{{ r.name }}</option>
+                        </select>
+                        <AppButton
+                            text="Siųsti pakvietimą"
+                            variant="primary"
+                            :disabled="inviteSending || !inviteForm.email || !inviteForm.role_id"
+                        />
+                    </form>
+                </SettingsSection>
 
-                <div class="privacy-row">
+                <SettingsSection
+                    v-if="isInstitutionAdmin"
+                    title="Įstaigos nustatymai"
+                    :open="sections.institution"
+                    @toggle="toggleSection('institution')"
+                >
+                    <form @submit.prevent="updateInstitution" class="form-grid">
+                        <AppInput v-model="institutionForm.name" placeholder="Pavadinimas" :showIcon="true" />
+                        <AppInput v-model="institutionForm.code" placeholder="Kodas" :showIcon="true" />
+                        <AppButton
+                            text="Saugoti"
+                            variant="primary"
+                            :disabled="institutionForm.processing"
+                        />
+                    </form>
+                </SettingsSection>
+
+                <SettingsSection
+                    v-if="isInstitutionAdmin"
+                    title="Įstaigos nustatymai"
+                    :open="sections.institution"
+                    @toggle="toggleSection('institution')"
+                >
+                    <form @submit.prevent="updateInstitution" class="form-grid">
+                        <AppInput v-model="institutionForm.name" placeholder="Pavadinimas" :showIcon="true" />
+                        <AppInput v-model="institutionForm.code" placeholder="Kodas" :showIcon="true" />
+                        <AppButton
+                            text="Saugoti"
+                            variant="primary"
+                            :disabled="institutionForm.processing"
+                        />
+                    </form>
+                </SettingsSection>
+
+                <div class="privacy-block">
+                    <SettingsSection
+                        title="Privatumo taisyklės"
+                        :open="sections.privacy"
+                        :noBorder="true"
+                        class="privacy-section"
+                        @toggle="toggleSection('privacy')"
+                    >
+                    </SettingsSection>
+
+                    <div class="privacy-row privacy-row-2fa">
+                        <span class="privacy-label">2 FA autentifikavimas</span>
+                        <div class="privacy-row-2fa-right">
+                            <label class="switch">
+                                <input v-model="twoFactorEnabled" type="checkbox" />
+                                <span class="slider round"></span>
+                            </label>
+                        </div>
+                    </div>
+                    <div
+                        v-if="isInstitutionAdmin"
+                        class="privacy-row privacy-row-2fa"
+                    >
+                        <span class="privacy-label">Informacijos atnaujinimo siuntimas el. paštu – Įstaigos administratorius</span>
+                        <div class="privacy-row-2fa-right">
+                            <label class="switch">
+                                <input
+                                    v-model="emailUpdatesInstitutionAdmin"
+                                    type="checkbox"
+                                    @change="saveEmailUpdatesInstitutionAdmin"
+                                />
+                                <span class="slider round"></span>
+                            </label>
+                        </div>
+                    </div>
+                    <div
+                        v-if="canManageEmailUpdatesAssigned"
+                        class="privacy-row privacy-row-2fa"
+                    >
+                        <span class="privacy-label">Pranešimai apie naujai priskirtas problemas el. paštu</span>
+                        <div class="privacy-row-2fa-right">
+                            <label class="switch">
+                                <input
+                                    v-model="emailUpdatesInstitutionAdmin"
+                                    type="checkbox"
+                                    @change="saveEmailUpdatesInstitutionAdmin"
+                                />
+                                <span class="slider round"></span>
+                            </label>
+                        </div>
+                    </div>
+
                     <AppButton
-                        text="Šalinti paskyrą"
+                        text="Gauti slaptažodžio keitimo nuorodą el. paštu"
                         variant="link"
                         as-button
                         class="privacy-link"
-                        @click="showDeleteModal = true"
+                        @click="requestPasswordReset"
                     />
-                </div>
-            </div>
 
+                    <div class="privacy-row">
+                        <AppButton
+                            text="Šalinti paskyrą"
+                            variant="link"
+                            as-button
+                            class="privacy-link"
+                            @click="showDeleteModal = true"
+                        />
+                    </div>
+                </div>
             </div>
         </div>
 
@@ -276,8 +331,39 @@ const sendInvite = async () => {
             :open="showDeleteModal"
             :confirm-loading="deleteAccountForm.processing"
             @close="showDeleteModal = false"
-            @confirm="deleteAccount"
-        />
+        >
+            <p class="modal-description">Šio veiksmo atšaukti negalėsite.</p>
+            <div class="modal-inputs">
+                <AppInput
+                    v-model="deleteAccountForm.password"
+                    type="password"
+                    placeholder="Įveskite slaptažodį patvirtinimui"
+                />
+                <div v-if="deleteAccountForm.errors.password" class="error">
+                    {{ deleteAccountForm.errors.password }}
+                </div>
+            </div>
+            <template #footer>
+                <AppButton
+                    text="Atšaukti"
+                    variant="secondary"
+                    as-button
+                    @click="showDeleteModal = false"
+                />
+                <AppButton
+                    text="Šalinti"
+                    variant="primary"
+                    as-button
+                    :disabled="deleteAccountForm.processing"
+                    class="btn-delete"
+                    @click="deleteAccount"
+                />
+            </template>
+        </DeleteAccountModal>
+
+        <div v-if="$page.props.flash?.status" style="margin-top: 8px; color: #065F46;">
+            {{ $page.props.flash.status }}
+        </div>
     </AuthenticatedLayout>
 </template>
 

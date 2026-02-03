@@ -26,7 +26,7 @@ class UserRole extends Model
     public function permissionGroups()
     {
         return $this->belongsToMany(
-            RolePermissionGroup::class,
+            UserRolePermissionGroup::class,
             'user_role_permission_group_role_map',
             'role_id',
             'group_id'
