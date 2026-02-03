@@ -36,6 +36,8 @@ const institutionForm = useForm({
     code: user.institution?.code || '',
 })
 
+const passwordForm = useForm({})
+
 const deleteAccountForm = useForm({
     password: '',
 })
@@ -117,67 +119,6 @@ const saveEmailUpdatesInstitutionAdmin = () => {
     <AuthenticatedLayout>
         <div class="settings-container">
             <div class="settings-content">
-            <SettingsSection
-                title="Profilio duomenys"
-                :open="sections.profile"
-                @toggle="toggleSection('profile')"
-            >
-                <form @submit.prevent="updateProfile" class="form-grid">
-                    <AppInput v-model="profileForm.name" placeholder="Vardas" :showIcon="true" />
-                    <AppInput v-model="profileForm.surname" placeholder="Pavardė" :showIcon="true" />
-                    <AppInput v-model="profileForm.email" type="email" placeholder="El. paštas" :showIcon="true" />
-                    <AppButton
-                        text="Saugoti"
-                        variant="primary"
-                        :disabled="profileForm.processing"
-                    />
-                </form>
-            </SettingsSection>
-
-            <SettingsSection
-                v-if="isInstitutionAdmin"
-                title="Darbuotojas"
-                :open="sections.employee"
-                @toggle="toggleSection('employee')"
-            >
-                <form @submit.prevent="storeEmployee" class="form-grid">
-                    <AppInput v-model="employeeForm.name" placeholder="Vardas" />
-                    <AppInput v-model="employeeForm.surname" placeholder="Pavardė" />
-                    <AppInput v-model="employeeForm.email" type="email" placeholder="El. paštas" />
-                    <AppButton
-                        text="Saugoti"
-                        variant="primary"
-                        :disabled="employeeForm.processing"
-                    />
-                </form>
-                <div v-if="employees && employees.length > 0" class="employee-list">
-                    <h3>Darbuotojų sąrašas:</h3>
-                    <ul>
-                        <li v-for="emp in employees" :key="emp.id">
-                            {{ emp.name }} {{ emp.surname }} ({{ emp.email }})
-                        </li>
-                    </ul>
-                </div>
-            </SettingsSection>
-
-            <SettingsSection
-                v-if="isInstitutionAdmin"
-                title="Įstaigos nustatymai"
-                :open="sections.institution"
-                @toggle="toggleSection('institution')"
-            >
-                <form @submit.prevent="updateInstitution" class="form-grid">
-                    <AppInput v-model="institutionForm.name" placeholder="Pavadinimas" :showIcon="true" />
-                    <AppInput v-model="institutionForm.code" placeholder="Kodas" :showIcon="true" />
-                    <AppButton
-                        text="Saugoti"
-                        variant="primary"
-                        :disabled="institutionForm.processing"
-                    />
-                </form>
-            </SettingsSection>
-
-            <div class="privacy-block">
                 <SettingsSection
                     title="Profilio duomenys"
                     :open="sections.profile"
@@ -196,7 +137,7 @@ const saveEmailUpdatesInstitutionAdmin = () => {
                 </SettingsSection>
 
                 <SettingsSection
-                    v-if="hasInstitutionRole"
+                    v-if="isInstitutionAdmin"
                     title="Darbuotojas"
                     :open="sections.employee"
                     @toggle="toggleSection('employee')"
@@ -222,7 +163,7 @@ const saveEmailUpdatesInstitutionAdmin = () => {
                 </SettingsSection>
 
                 <SettingsSection
-                    v-if="hasInstitutionRole"
+                    v-if="isInstitutionAdmin"
                     title="Įstaigos nustatymai"
                     :open="sections.institution"
                     @toggle="toggleSection('institution')"
@@ -257,28 +198,22 @@ const saveEmailUpdatesInstitutionAdmin = () => {
                             </label>
                         </div>
                     </div>
-                <div
-                    v-if="isInstitutionAdmin"
-                    class="privacy-row privacy-row-2fa"
-                >
-                    <span class="privacy-label">Informacijos atnaujinimo siuntimas el. paštu – Įstaigos administratorius</span>
-                    <div class="privacy-row-2fa-right">
-                        <label class="switch">
-                            <input
-                                v-model="emailUpdatesInstitutionAdmin"
-                                type="checkbox"
-                                @change="saveEmailUpdatesInstitutionAdmin"
-                            />
-                            <span class="slider round"></span>
-                        </label>
+                    <div
+                        v-if="isInstitutionAdmin"
+                        class="privacy-row privacy-row-2fa"
+                    >
+                        <span class="privacy-label">Informacijos atnaujinimo siuntimas el. paštu – Įstaigos administratorius</span>
+                        <div class="privacy-row-2fa-right">
+                            <label class="switch">
+                                <input
+                                    v-model="emailUpdatesInstitutionAdmin"
+                                    type="checkbox"
+                                    @change="saveEmailUpdatesInstitutionAdmin"
+                                />
+                                <span class="slider round"></span>
+                            </label>
+                        </div>
                     </div>
-                </div>
-
-                <div class="privacy-row">
-                    <Link :href="route('settings.change-password')" class="privacy-link">
-                        Keisti slaptažodį
-                    </Link>
-                </div>
 
                     <AppButton
                         text="Gauti slaptažodžio keitimo nuorodą el. paštu"
@@ -333,7 +268,7 @@ const saveEmailUpdatesInstitutionAdmin = () => {
                     @click="deleteAccount"
                 />
             </template>
-        </BaseModal>
+        </DeleteAccountModal>
 
         <div v-if="$page.props.flash?.status" style="margin-top: 8px; color: #065F46;">
             {{ $page.props.flash.status }}
