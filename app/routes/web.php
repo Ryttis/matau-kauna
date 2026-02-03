@@ -77,6 +77,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
             Route::post('/rbac/permissions', [RbacController::class, 'createPermission']);
             Route::delete('/rbac/permissions/{permission}', [RbacController::class, 'deletePermission']);
 
+            Route::get('/invitations', [AdminInvitationController::class, 'index']);
+            Route::post('/invitations/{invitation}/resend', [AdminInvitationController::class, 'resend']);
+
             Route::get('/institutions', [AdminInstitutionController::class, 'index']);
             Route::get('/institutions/list', [AdminInstitutionController::class, 'list']);
             Route::post('/institutions', [AdminInstitutionController::class, 'store']);
