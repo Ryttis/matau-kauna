@@ -20,6 +20,7 @@ class Problem extends Model
         'description',
         'status_updated_at',
         'institution_id',
+        'assigned_employee_id',
     ];
 
     protected $casts = [
@@ -114,5 +115,10 @@ class Problem extends Model
     public function institution(): BelongsTo
     {
         return $this->belongsTo(Institution::class);
+    }
+
+    public function assignedEmployee(): BelongsTo
+    {
+        return $this->belongsTo(Employee::class, 'assigned_employee_id');
     }
 }

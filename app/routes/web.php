@@ -24,6 +24,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('/problems/export', [ProblemController::class, 'export'])->name('problems.export');
         Route::get('/problems/{problem}/assign', [ProblemController::class, 'assignSingle'])->name('problems.assign.single');
         Route::get('/problems/{problem}/assign-institution', [ProblemController::class, 'assignInstitution'])->name('problems.assignInstitution');
+        Route::post('/problems/{problem}/assign-institution', [ProblemController::class, 'storeAssignInstitution'])->name('problems.assignInstitution.store');
         Route::get('/problems/{problem}/review-progress', [ProblemController::class, 'reviewProgress'])->name('problems.reviewProgress');
         Route::get('/problems/{problem}/merge', [ProblemController::class, 'merge'])->name('problems.merge');
         Route::get('/problems/{problem}', [ProblemController::class, 'show'])->name('problems.show');

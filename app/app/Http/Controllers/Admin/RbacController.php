@@ -7,6 +7,7 @@ use App\Models\UserRolePermission;
 use App\Models\UserRolePermissionGroup;
 use App\Models\User;
 use App\Models\UserRole;
+use App\Models\Employee;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rule;
@@ -125,6 +126,8 @@ class RbacController extends Controller
             'institution_id' => $data['institution_id'] ?? null,
         ]);
 
+        $this->ensureEmployeeForInstitution($user);
+
         return $user->load(['roles:id,role,name', 'institution:id,name']);
     }
 
@@ -152,6 +155,8 @@ class RbacController extends Controller
 
         $user->save();
 
+        $this->ensureEmployeeForInstitution($user);
+
         return $user->load(['roles:id,role,name', 'institution:id,name']);
     }
 
@@ -164,5 +169,31 @@ class RbacController extends Controller
         $user->delete();
 
         return response()->noContent();
+    }
+
+    private function ensureEmployeeForInstitution(User $user): void
+    {
+        if (! $user->institution_id) {
+            Employee::where('email', $user->email)->delete();
+            return;
+        }
+
+        $employee = Employee::firstOrCreate(
+            [
+                'email' => $user->email,
+                'institution_id' => $user->institution_id,
+            ],
+            [
+                'name' => $user->name ?? '',
+                'surname' => '',
+            ]
+        );
+
+        if ($employee->wasRecentlyCreated) {
+            return;
+        }
+
+        $employee->name = $user->name ?? $employee->name;
+        $employee->save();
     }
 }

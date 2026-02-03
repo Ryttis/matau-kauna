@@ -31,10 +31,22 @@ class ProblemController extends Controller
         $sortBy = $request->get('sort_by', 'created_at');
         $sortDirection = $request->get('sort_direction', 'desc');
 
+        $employeeId = $this->employeeIdForUser($user);
+
         $problems = Problem::query()
             ->when(
                 $user && $this->isInstitutionScoped($user),
                 fn ($query) => $query->where('institution_id', $user->institution_id)
+            )
+            ->when(
+                $user && $this->isEmployeeScoped($user),
+                function ($query) use ($employeeId) {
+                    if ($employeeId) {
+                        $query->where('assigned_employee_id', $employeeId);
+                    } else {
+                        $query->whereRaw('1 = 0');
+                    }
+                }
             )
             ->filtered($filters)
             ->sorted($sortBy, $sortDirection)
@@ -58,6 +70,12 @@ class ProblemController extends Controller
         $user = $request->user();
         if ($user && $this->isInstitutionScoped($user)) {
             if ((int) $problem->institution_id !== (int) $user->institution_id) {
+                abort(403);
+            }
+        }
+        if ($user && $this->isEmployeeScoped($user)) {
+            $employeeId = $this->employeeIdForUser($user);
+            if (! $employeeId || (int) $problem->assigned_employee_id !== (int) $employeeId) {
                 abort(403);
             }
         }
@@ -91,6 +109,17 @@ class ProblemController extends Controller
                 abort(403);
             }
         }
+        if ($user && $this->isEmployeeScoped($user)) {
+            $employeeId = $this->employeeIdForUser($user);
+            if (! $employeeId) {
+                abort(403);
+            }
+            $query->where('assigned_employee_id', $employeeId);
+            $matchedCount = (clone $query)->count();
+            if ($matchedCount !== count($validated['problem_ids'])) {
+                abort(403);
+            }
+        }
 
         $query->update([
             'status' => $validated['status'],
@@ -105,6 +134,12 @@ class ProblemController extends Controller
         $user = request()->user();
         if ($user && $this->isInstitutionScoped($user)) {
             if ((int) $problem->institution_id !== (int) $user->institution_id) {
+                abort(403);
+            }
+        }
+        if ($user && $this->isEmployeeScoped($user)) {
+            $employeeId = $this->employeeIdForUser($user);
+            if (! $employeeId || (int) $problem->assigned_employee_id !== (int) $employeeId) {
                 abort(403);
             }
         }
@@ -293,6 +328,12 @@ class ProblemController extends Controller
                 abort(403);
             }
         }
+        if ($user && $this->isEmployeeScoped($user)) {
+            $employeeId = $this->employeeIdForUser($user);
+            if (! $employeeId || (int) $problem->assigned_employee_id !== (int) $employeeId) {
+                abort(403);
+            }
+        }
 
         $problem->load('reviewHistory');
 
@@ -326,6 +367,17 @@ class ProblemController extends Controller
 
         $employees = [];
         if ($user->institution_id) {
+            Employee::firstOrCreate(
+                [
+                    'email' => $user->email,
+                    'institution_id' => $user->institution_id,
+                ],
+                [
+                    'name' => $user->name ?? '',
+                    'surname' => $user->surname ?? '',
+                ]
+            );
+
             $employees = Employee::where('institution_id', $user->institution_id)
                 ->get(['id', 'name', 'surname', 'email'])
                 ->map(fn ($e) => [
@@ -341,6 +393,37 @@ class ProblemController extends Controller
         ]);
     }
 
+    public function storeAssignInstitution(Request $request, Problem $problem)
+    {
+        $user = $request->user();
+        if (! $user->hasRole(UserRole::ROLE_INSTITUTION_ADMIN) && ! $user->hasRole(UserRole::ROLE_SYSTEM_ADMIN)) {
+            abort(403);
+        }
+        if ($this->isInstitutionScoped($user)) {
+            if ((int) $problem->institution_id !== (int) $user->institution_id) {
+                abort(403);
+            }
+        }
+
+        $validated = $request->validate([
+            'employee_id' => ['required', 'integer', 'exists:employees,id'],
+        ]);
+
+        $employee = Employee::where('id', $validated['employee_id'])
+            ->where('institution_id', $user->institution_id)
+            ->first();
+
+        if (! $employee) {
+            abort(403);
+        }
+
+        $problem->update([
+            'assigned_employee_id' => $employee->id,
+        ]);
+
+        return redirect()->back()->with('success', 'Problema priskirta darbuotojui.');
+    }
+
     public function merge(Request $request, Problem $problem): Response
     {
         $user = $request->user();
@@ -349,6 +432,12 @@ class ProblemController extends Controller
         }
         if ($this->isInstitutionScoped($user)) {
             if ((int) $problem->institution_id !== (int) $user->institution_id) {
+                abort(403);
+            }
+        }
+        if ($this->isEmployeeScoped($user)) {
+            $employeeId = $this->employeeIdForUser($user);
+            if (! $employeeId || (int) $problem->assigned_employee_id !== (int) $employeeId) {
                 abort(403);
             }
         }
@@ -365,6 +454,14 @@ class ProblemController extends Controller
             ->where('status', '!=', 'neuzregistruota');
         if ($this->isInstitutionScoped($user)) {
             $query->where('institution_id', $user->institution_id);
+        }
+        if ($this->isEmployeeScoped($user)) {
+            $employeeId = $this->employeeIdForUser($user);
+            if ($employeeId) {
+                $query->where('assigned_employee_id', $employeeId);
+            } else {
+                $query->whereRaw('1 = 0');
+            }
         }
 
         if ($categoryFilter !== '') {
@@ -463,6 +560,17 @@ class ProblemController extends Controller
                 $user && $this->isInstitutionScoped($user),
                 fn ($q) => $q->where('institution_id', $user->institution_id)
             )
+            ->when(
+                $user && $this->isEmployeeScoped($user),
+                function ($q) use ($user) {
+                    $employeeId = $this->employeeIdForUser($user);
+                    if ($employeeId) {
+                        $q->where('assigned_employee_id', $employeeId);
+                    } else {
+                        $q->whereRaw('1 = 0');
+                    }
+                }
+            )
             ->distinct()
             ->pluck('category')
             ->sort()
@@ -485,6 +593,17 @@ class ProblemController extends Controller
             ->when(
                 $user && $this->isInstitutionScoped($user),
                 fn ($q) => $q->where('institution_id', $user->institution_id)
+            )
+            ->when(
+                $user && $this->isEmployeeScoped($user),
+                function ($q) use ($user) {
+                    $employeeId = $this->employeeIdForUser($user);
+                    if ($employeeId) {
+                        $q->where('assigned_employee_id', $employeeId);
+                    } else {
+                        $q->whereRaw('1 = 0');
+                    }
+                }
             )
             ->distinct()
             ->pluck('category')
@@ -522,5 +641,21 @@ class ProblemController extends Controller
                 || $user->hasRole(UserRole::ROLE_EMPLOYEE)
                 || $user->hasRole(UserRole::ROLE_MUNICIPALITY_REP)
             );
+    }
+
+    private function isEmployeeScoped($user): bool
+    {
+        return $user && $user->hasRole(UserRole::ROLE_EMPLOYEE);
+    }
+
+    private function employeeIdForUser($user): ?int
+    {
+        if (! $user) {
+            return null;
+        }
+
+        return Employee::where('email', $user->email)
+            ->where('institution_id', $user->institution_id)
+            ->value('id');
     }
 }
