@@ -19,6 +19,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('/dashboard', [ProblemController::class, 'index'])->name('dashboard');
         Route::get('/map', [ProblemController::class, 'map'])->name('map');
         Route::get('/problems/assign', [ProblemController::class, 'assign'])->name('problems.assign');
+        Route::post('/problems/assign', [ProblemController::class, 'storeAssign'])->name('problems.assign.store');
+        Route::post('/problems/assign/email', [ProblemController::class, 'sendAssignEmail'])->name('problems.assign.email');
         Route::get('/problems/export', [ProblemController::class, 'export'])->name('problems.export');
         Route::get('/problems/{problem}/assign', [ProblemController::class, 'assignSingle'])->name('problems.assign.single');
         Route::get('/problems/{problem}/assign-institution', [ProblemController::class, 'assignInstitution'])->name('problems.assignInstitution');

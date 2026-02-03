@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { Head, router } from '@inertiajs/vue3'
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue'
 import AppButton from '@/Components/App/AppButton.vue'
@@ -14,6 +14,10 @@ const props = defineProps({
     problem: {
         type: Object,
         default: null
+    },
+    problems: {
+        type: Array,
+        default: () => []
     },
     institutions: {
         type: Array,
@@ -32,6 +36,38 @@ const displayedInstitutions = computed(() => {
     return props.institutions.slice(0, displayedCount.value)
 })
 
+const selectedInstitutionId = computed(() => selectedInstitutionIds.value[0] || null)
+
+const resolveInitialInstitutionId = () => {
+    if (props.problem?.institution_id) {
+        return props.problem.institution_id
+    }
+
+    if (props.problems?.length) {
+        const ids = props.problems
+            .map((p) => p.institution_id)
+            .filter((id) => id)
+
+        if (!ids.length) return null
+
+        const unique = new Set(ids)
+        if (unique.size === 1) {
+            return ids[0]
+        }
+    }
+
+    return null
+}
+
+const syncInitialSelection = () => {
+    const initialId = resolveInitialInstitutionId()
+    selectedInstitutionIds.value = initialId ? [initialId] : []
+}
+
+watch(() => [props.problem, props.problems], () => {
+    syncInitialSelection()
+}, { immediate: true, deep: true })
+
 const hasMore = computed(() => {
     return props.institutions.length > displayedCount.value
 })
@@ -39,23 +75,16 @@ const hasMore = computed(() => {
 const handleTableSelectItem = (key) => {
     const idx = selectedInstitutionIds.value.indexOf(key)
     if (idx > -1) {
-        selectedInstitutionIds.value.splice(idx, 1)
-    } else {
-        selectedInstitutionIds.value.push(key)
+        selectedInstitutionIds.value = []
+        return
     }
+
+    selectedInstitutionIds.value = [key]
 }
 
 const handleTableSelectAll = (checked) => {
-    if (checked) {
-        const ids = props.institutions.slice(0, displayedCount.value).map((i) => i.id)
-        ids.forEach((id) => {
-            if (!selectedInstitutionIds.value.includes(id)) {
-                selectedInstitutionIds.value.push(id)
-            }
-        })
-    } else {
-        const ids = props.institutions.slice(0, displayedCount.value).map((i) => i.id)
-        selectedInstitutionIds.value = selectedInstitutionIds.value.filter((id) => !ids.includes(id))
+    if (!checked) {
+        selectedInstitutionIds.value = []
     }
 }
 
@@ -68,7 +97,44 @@ const handleStatusSelect = (status) => {
 }
 
 const handleSend = () => {
+    if (!selectedInstitutionIds.value.length) return
 
+    const ids = props.problems?.length
+        ? props.problems.map((p) => p.id)
+        : props.problem
+            ? [props.problem.id]
+            : []
+
+    if (!ids.length) return
+
+    router.post(route('problems.assign.store'), {
+        problem_ids: ids,
+        institution_id: selectedInstitutionIds.value[0],
+        status: selectedStatus.value,
+    }, {
+        preserveScroll: true,
+    })
+}
+
+const handleSendEmail = () => {
+    const ids = props.problems?.length
+        ? props.problems.map((p) => p.id)
+        : props.problem
+            ? [props.problem.id]
+            : []
+
+    if (!email.value || !ids.length) return
+
+    router.post(route('problems.assign.email'), {
+        email: email.value,
+        problem_ids: ids,
+        institution_id: selectedInstitutionId.value,
+    }, {
+        preserveScroll: true,
+        onSuccess: () => {
+            email.value = ''
+        },
+    })
 }
 
 const handleBack = () => {
@@ -116,6 +182,7 @@ const toggleStatus = () => {
                             :columns="institutionColumns"
                             row-key="id"
                             :selectable="true"
+                            :single-select="true"
                             :selected-keys="selectedInstitutionIds"
                             @select-item="handleTableSelectItem"
                             @select-all="handleTableSelectAll"
@@ -183,6 +250,7 @@ const toggleStatus = () => {
                             variant="primary"
                             as-button
                             @click="handleSend"
+                            :disabled="selectedInstitutionIds.length === 0"
                             class="assign-send-btn"
                         />
                     </div>
@@ -201,7 +269,7 @@ const toggleStatus = () => {
                         text="Siųsti"
                         variant="primary"
                         as-button
-                        @click="handleSend"
+                        @click="handleSendEmail"
                         class="assign-send-btn assign-send-btn-email"
                     />
                 </div>

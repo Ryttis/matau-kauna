@@ -30,12 +30,6 @@ class RoleUsersSeeder extends Seeder
                 'role' => UserRole::ROLE_SYSTEM_ADMIN,
             ],
             [
-                'email' => 'zarbakas@gmail.com',
-                'name' => 'zarbakas',
-                'password' => 'Admin123',
-                'role' => UserRole::ROLE_SYSTEM_ADMIN,
-            ],
-            [
                 'email' => 'padmin@test.lt',
                 'name' => 'PAdmin',
                 'password' => 'Admin123',

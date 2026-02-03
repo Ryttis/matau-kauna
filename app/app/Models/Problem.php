@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Problem extends Model
@@ -18,6 +19,7 @@ class Problem extends Model
         'address',
         'description',
         'status_updated_at',
+        'institution_id',
     ];
 
     protected $casts = [
@@ -107,5 +109,10 @@ class Problem extends Model
     public function reviewHistory(): HasMany
     {
         return $this->hasMany(ProblemReviewHistory::class, 'problem_id')->orderBy('created_at', 'desc');
+    }
+
+    public function institution(): BelongsTo
+    {
+        return $this->belongsTo(Institution::class);
     }
 }
