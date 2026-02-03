@@ -7,6 +7,8 @@ use App\Models\UserRolePermission;
 use App\Models\UserRolePermissionGroup;
 use App\Models\User;
 use App\Models\UserRole;
+use App\Models\Employee;
+use App\Models\Invitation;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rule;
@@ -28,6 +30,35 @@ class RbacController extends Controller
             'role_ids' => ['array'],
             'role_ids.*' => ['uuid', 'exists:user_role,id'],
         ]);
+
+        $roleIds = $data['role_ids'] ?? [];
+        $currentRoleIds = $user->roles()->pluck('id')->toArray();
+        $addedRoleIds = array_values(array_diff($roleIds, $currentRoleIds));
+
+        if (! empty($addedRoleIds)) {
+            $restrictedRoleIds = UserRole::query()
+                ->whereIn('role', [UserRole::ROLE_INSTITUTION_ADMIN, UserRole::ROLE_EMPLOYEE])
+                ->pluck('id')
+                ->toArray();
+
+            $addedRestricted = array_values(array_intersect($addedRoleIds, $restrictedRoleIds));
+            if (! empty($addedRestricted)) {
+                $missingInvite = collect($addedRestricted)->first(function ($roleId) use ($user) {
+                    return ! Invitation::query()
+                        ->where('email', $user->email)
+                        ->where('institution_id', $user->institution_id)
+                        ->where('role_id', $roleId)
+                        ->whereNotNull('used_at')
+                        ->exists();
+                });
+
+                if ($missingInvite) {
+                    return response()->json([
+                        'message' => 'Įstaigos administratorių ar darbuotojų paskyros turi būti kuriamos per pakvietimą.',
+                    ], 422);
+                }
+            }
+        }
 
         $user->roles()->sync($data['role_ids'] ?? []);
 
@@ -125,6 +156,8 @@ class RbacController extends Controller
             'institution_id' => $data['institution_id'] ?? null,
         ]);
 
+        $this->ensureEmployeeForInstitution($user);
+
         return $user->load(['roles:id,role,name', 'institution:id,name']);
     }
 
@@ -152,6 +185,8 @@ class RbacController extends Controller
 
         $user->save();
 
+        $this->ensureEmployeeForInstitution($user);
+
         return $user->load(['roles:id,role,name', 'institution:id,name']);
     }
 
@@ -164,5 +199,31 @@ class RbacController extends Controller
         $user->delete();
 
         return response()->noContent();
+    }
+
+    private function ensureEmployeeForInstitution(User $user): void
+    {
+        if (! $user->institution_id) {
+            Employee::where('email', $user->email)->delete();
+            return;
+        }
+
+        $employee = Employee::firstOrCreate(
+            [
+                'email' => $user->email,
+                'institution_id' => $user->institution_id,
+            ],
+            [
+                'name' => $user->name ?? '',
+                'surname' => '',
+            ]
+        );
+
+        if ($employee->wasRecentlyCreated) {
+            return;
+        }
+
+        $employee->name = $user->name ?? $employee->name;
+        $employee->save();
     }
 }

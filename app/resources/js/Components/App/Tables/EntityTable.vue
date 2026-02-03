@@ -34,6 +34,10 @@ const props = defineProps({
         type: Array,
         default: () => []
     },
+    singleSelect: {
+        type: Boolean,
+        default: false
+    },
 
     // Row interaction (optional)
     rowClickable: {
@@ -64,10 +68,10 @@ const itemKeys = computed(() => props.items.map(getRowKey).filter(Boolean))
 watch(
     () => props.selectedKeys,
     (newVal) => {
-        if (!props.selectable) {
-            selectAll.value = false
-            return
-        }
+    if (!props.selectable || props.singleSelect) {
+        selectAll.value = false
+        return
+    }
 
         if (props.items.length === 0) {
             selectAll.value = false
@@ -82,10 +86,10 @@ watch(
 watch(
     () => props.items,
     () => {
-        if (!props.selectable) {
-            selectAll.value = false
-            return
-        }
+    if (!props.selectable || props.singleSelect) {
+        selectAll.value = false
+        return
+    }
 
         if (props.items.length === 0) {
             selectAll.value = false
@@ -141,7 +145,7 @@ const sortArrow = (key) => {
                     </span>
                 </th>
 
-                <th v-if="selectable">
+                <th v-if="selectable && !singleSelect">
                     <input
                         type="checkbox"
                         :checked="selectAll"

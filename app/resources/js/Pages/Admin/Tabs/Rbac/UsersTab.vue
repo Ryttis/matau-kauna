@@ -20,6 +20,7 @@ const isDeleteOpen = ref(false)
 const isAssignRolesOpen = ref(false)
 const isInviteOpen = ref(false)
 const inviteError = ref('')
+const assignRolesError = ref('')
 
 const createForm = ref({ name: '', email: '', password: '', institution_id: '' })
 const inviteForm = ref({ email: '', institution_id: '', role_id: '' })
@@ -47,6 +48,7 @@ const openDelete = (u) => {
 const openAssignRoles = (u) => {
     selectedUser.value = u
     selectedRoleIds.value = (u.roles ?? []).map(r => r.id)
+    assignRolesError.value = ''
     isAssignRolesOpen.value = true
 }
 
@@ -54,6 +56,21 @@ const inviteRoles = computed(() =>
     (props.roles ?? []).filter(
         (r) => r.role === ROLE_INSTITUTION_ADMIN || r.role === ROLE_EMPLOYEE
     )
+)
+
+const restrictedRoleIds = computed(() =>
+    (props.roles ?? [])
+        .filter((r) => r.role === ROLE_INSTITUTION_ADMIN || r.role === ROLE_EMPLOYEE)
+        .map((r) => r.id)
+)
+
+const hasRestrictedRole = (user) =>
+    (user?.roles ?? []).some((r) => restrictedRoleIds.value.includes(r.id))
+
+const isRestrictedRole = (role) => restrictedRoleIds.value.includes(role.id)
+
+const assignableRoles = computed(() =>
+    (props.roles ?? []).filter((r) => !isRestrictedRole(r))
 )
 
 const openInvite = () => {
@@ -120,6 +137,18 @@ const deleteUser = async () => {
 const saveUserRoles = async () => {
     if (!selectedUser.value) return
 
+    assignRolesError.value = ''
+    const restrictedRoleIds = (props.roles ?? [])
+        .filter((r) => r.role === ROLE_INSTITUTION_ADMIN || r.role === ROLE_EMPLOYEE)
+        .map((r) => r.id)
+    const hasRestrictedRoles = selectedRoleIds.value.some((id) => restrictedRoleIds.includes(id))
+
+    if (hasRestrictedRoles && !selectedUser.value?.institution_id) {
+        inviteError.value = 'Įstaigos administratorių ar darbuotojų paskyros turi būti kuriamos per pakvietimą.';
+        isAssignRolesOpen.value = false
+        return
+    }
+
     emit('set-saving', true)
     try {
         await axios.post(`/admin/rbac/users/${selectedUser.value.id}/roles`, {
@@ -127,6 +156,8 @@ const saveUserRoles = async () => {
         })
         isAssignRolesOpen.value = false
         emit('refresh')
+    } catch (e) {
+        assignRolesError.value = e.response?.data?.message ?? 'Nepavyko išsaugoti rolių.'
     } finally {
         emit('set-saving', false)
     }
@@ -183,6 +214,9 @@ const saveUserRoles = async () => {
 
         <!-- Create -->
         <BaseModal :open="isCreateOpen" title="Sukurti naudotoją" @close="isCreateOpen = false">
+            <div class="hint">
+                Įstaigos administratorių ir darbuotojų paskyros kuriamos tik per pakvietimą.
+            </div>
             <label class="field">
                 <span>Vardas</span>
                 <input class="input" v-model="createForm.name" />
@@ -283,14 +317,27 @@ const saveUserRoles = async () => {
             width="640px"
             @close="isAssignRolesOpen = false"
         >
+            <div v-if="assignRolesError" class="error">{{ assignRolesError }}</div>
+            <div v-if="hasRestrictedRole(selectedUser) && !selectedUser?.institution_id" class="error">
+                Įstaigos administratorių ar darbuotojų paskyros turi būti kuriamos per pakvietimą.
+            </div>
             <div class="hint">
                 Naudotojas: <strong>{{ selectedUser?.name }}</strong>
             </div>
+            <div class="hint">
+                Įstaigos administratorių ir darbuotojų rolės priskiriamos tik per pakvietimą.
+            </div>
 
             <div class="checklist">
-                <label v-for="r in roles" :key="r.id" class="check">
-                    <input type="checkbox" :value="r.id" v-model="selectedRoleIds" />
-                    <span>{{ r.name }} ({{ r.role }})</span>
+                <label v-for="r in assignableRoles" :key="r.id" class="check">
+                    <input
+                        type="checkbox"
+                        :value="r.id"
+                        v-model="selectedRoleIds"
+                    />
+                    <span>
+                        {{ r.name }} ({{ r.role }})
+                    </span>
                 </label>
             </div>
 

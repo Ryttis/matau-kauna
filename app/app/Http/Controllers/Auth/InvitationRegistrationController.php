@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
+use App\Models\Employee;
 use App\Models\Invitation;
 use App\Models\User;
 use Illuminate\Http\RedirectResponse;
@@ -59,6 +60,19 @@ class InvitationRegistrationController extends Controller
         ]);
 
         $user->roles()->sync([$invitation->role_id]);
+
+        if ($invitation->institution_id) {
+            Employee::firstOrCreate(
+                [
+                    'email' => $user->email,
+                    'institution_id' => $invitation->institution_id,
+                ],
+                [
+                    'name' => $user->name ?? '',
+                    'surname' => '',
+                ]
+            );
+        }
 
         $invitation->update(['used_at' => now()]);
 

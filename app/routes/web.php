@@ -19,9 +19,12 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('/dashboard', [ProblemController::class, 'index'])->name('dashboard');
         Route::get('/map', [ProblemController::class, 'map'])->name('map');
         Route::get('/problems/assign', [ProblemController::class, 'assign'])->name('problems.assign');
+        Route::post('/problems/assign', [ProblemController::class, 'storeAssign'])->name('problems.assign.store');
+        Route::post('/problems/assign/email', [ProblemController::class, 'sendAssignEmail'])->name('problems.assign.email');
         Route::get('/problems/export', [ProblemController::class, 'export'])->name('problems.export');
         Route::get('/problems/{problem}/assign', [ProblemController::class, 'assignSingle'])->name('problems.assign.single');
         Route::get('/problems/{problem}/assign-institution', [ProblemController::class, 'assignInstitution'])->name('problems.assignInstitution');
+        Route::post('/problems/{problem}/assign-institution', [ProblemController::class, 'storeAssignInstitution'])->name('problems.assignInstitution.store');
         Route::get('/problems/{problem}/review-progress', [ProblemController::class, 'reviewProgress'])->name('problems.reviewProgress');
         Route::get('/problems/{problem}/merge', [ProblemController::class, 'merge'])->name('problems.merge');
         Route::get('/problems/{problem}', [ProblemController::class, 'show'])->name('problems.show');
@@ -42,6 +45,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/settings/change-password', [SettingsController::class, 'changePassword'])->name('settings.change-password');
     Route::patch('/settings/profile', [SettingsController::class, 'updateProfile'])->name('settings.profile');
     Route::post('/settings/employees', [SettingsController::class, 'storeEmployee'])->name('settings.employees');
+    Route::post('/settings/teams', [SettingsController::class, 'storeTeam'])->name('settings.teams');
+    Route::put('/settings/teams/{team}', [SettingsController::class, 'updateTeam'])->name('settings.teams.update');
+    Route::delete('/settings/teams/{team}', [SettingsController::class, 'destroyTeam'])->name('settings.teams.destroy');
+    Route::post('/settings/teams/{team}/members', [SettingsController::class, 'syncTeamMembers'])->name('settings.teams.members');
     Route::patch('/settings/institution', [SettingsController::class, 'updateInstitution'])->name('settings.institution');
     Route::patch('/settings/privacy', [SettingsController::class, 'updatePrivacy'])->name('settings.privacy');
     Route::post('/settings/password/email', [SettingsController::class, 'sendPasswordResetLink'])->name('settings.password.email');
@@ -73,6 +80,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
             Route::get('/rbac/permissions', [RbacController::class, 'permissions']);
             Route::post('/rbac/permissions', [RbacController::class, 'createPermission']);
             Route::delete('/rbac/permissions/{permission}', [RbacController::class, 'deletePermission']);
+
+            Route::get('/invitations', [AdminInvitationController::class, 'index']);
+            Route::post('/invitations/{invitation}/resend', [AdminInvitationController::class, 'resend']);
 
             Route::get('/institutions', [AdminInstitutionController::class, 'index']);
             Route::get('/institutions/list', [AdminInstitutionController::class, 'list']);

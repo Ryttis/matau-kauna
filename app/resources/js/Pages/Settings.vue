@@ -12,6 +12,7 @@ import { ROLE_INSTITUTION_ADMIN, ROLE_EMPLOYEE } from '@/constants/roles.js'
 
 const props = defineProps({
     employees: Array,
+    teams: { type: Array, default: () => [] },
     inviteRoles: { type: Array, default: () => [] },
 })
 
@@ -55,10 +56,12 @@ const deleteAccountForm = useForm({
 const showDeleteModal = ref(false)
 const twoFactorEnabled = ref(!!user.two_factor_enabled)
 const emailUpdatesInstitutionAdmin = ref(!!user.email_updates_institution_admin)
+const emailNotificationsEnabled = ref(!!user.email_notifications_enabled)
 
 const sections = ref({
     profile: true,
     employee: true,
+    groups: true,
     invite: true,
     institution: true,
     privacy: true,
@@ -123,10 +126,28 @@ const saveEmailUpdatesInstitutionAdmin = () => {
     }, { preserveScroll: true })
 }
 
+const saveEmailNotificationsEnabled = () => {
+    router.patch(route('settings.privacy'), {
+        email_notifications_enabled: emailNotificationsEnabled,
+    }, { preserveScroll: true })
+}
+
 const inviteForm = ref({ email: '', role_id: '' })
 const inviteError = ref('')
 const inviteSending = ref(false)
 const inviteSuccess = ref(false)
+
+const teams = ref(props.teams ? [...props.teams] : [])
+const teamForm = ref({ name: '' })
+const teamError = ref('')
+const teamSaving = ref(false)
+const teamMembersOpen = ref(false)
+const selectedTeam = ref(null)
+const selectedMemberIds = ref([])
+const teamMembersSaving = ref(false)
+const teamEditOpen = ref(false)
+const editTeamForm = ref({ id: null, name: '' })
+const teamEditSaving = ref(false)
 
 const sendInvite = async () => {
     if (!user?.institution_id || !inviteForm.value.email || !inviteForm.value.role_id) return
@@ -145,6 +166,86 @@ const sendInvite = async () => {
         inviteError.value = e.response?.data?.message ?? 'Nepavyko išsiųsti pakvietimo.'
     } finally {
         inviteSending.value = false
+    }
+}
+
+const createTeam = async () => {
+    if (!teamForm.value.name) return
+    teamError.value = ''
+    teamSaving.value = true
+    try {
+        const { data } = await axios.post(route('settings.teams'), {
+            name: teamForm.value.name,
+        })
+        teams.value = [...teams.value, data].sort((a, b) => a.name.localeCompare(b.name))
+        teamForm.value.name = ''
+    } catch (e) {
+        teamError.value = e.response?.data?.message ?? 'Nepavyko sukurti grupės.'
+    } finally {
+        teamSaving.value = false
+    }
+}
+
+const openTeamMembers = (team) => {
+    selectedTeam.value = team
+    selectedMemberIds.value = (team.employees ?? []).map((e) => e.id)
+    teamMembersOpen.value = true
+}
+
+const openTeamEdit = (team) => {
+    editTeamForm.value = { id: team.id, name: team.name }
+    teamEditOpen.value = true
+}
+
+const saveTeamEdit = async () => {
+    if (!editTeamForm.value.id || !editTeamForm.value.name) return
+    teamError.value = ''
+    teamEditSaving.value = true
+    try {
+        const { data } = await axios.put(
+            route('settings.teams.update', editTeamForm.value.id),
+            { name: editTeamForm.value.name }
+        )
+        teams.value = teams.value
+            .map((t) => (t.id === data.id ? data : t))
+            .sort((a, b) => a.name.localeCompare(b.name))
+        teamEditOpen.value = false
+    } catch (e) {
+        teamError.value = e.response?.data?.message ?? 'Nepavyko pervadinti grupės.'
+    } finally {
+        teamEditSaving.value = false
+    }
+}
+
+const saveTeamMembers = async () => {
+    if (!selectedTeam.value) return
+    teamError.value = ''
+    teamMembersSaving.value = true
+    try {
+        const { data } = await axios.post(route('settings.teams.members', selectedTeam.value.id), {
+            employee_ids: selectedMemberIds.value,
+        })
+        teams.value = teams.value.map((t) => (t.id === data.id ? data : t))
+        teamMembersOpen.value = false
+    } catch (e) {
+        teamError.value = e.response?.data?.message ?? 'Nepavyko atnaujinti narių.'
+    } finally {
+        teamMembersSaving.value = false
+    }
+}
+
+const deleteTeam = async (team) => {
+    if (!team) return
+    if (!confirm(`Ar tikrai norite pašalinti grupę \"${team.name}\"?`)) return
+    teamError.value = ''
+    teamSaving.value = true
+    try {
+        await axios.delete(route('settings.teams.destroy', team.id))
+        teams.value = teams.value.filter((t) => t.id !== team.id)
+    } catch (e) {
+        teamError.value = e.response?.data?.message ?? 'Nepavyko pašalinti grupės.'
+    } finally {
+        teamSaving.value = false
     }
 }
 </script>
@@ -200,6 +301,42 @@ const sendInvite = async () => {
 
                 <SettingsSection
                     v-if="isInstitutionAdmin"
+                    title="Darbuotojų grupės"
+                    :open="sections.groups"
+                    @toggle="toggleSection('groups')"
+                >
+                    <div v-if="teamError" class="invite-error">{{ teamError }}</div>
+                    <form @submit.prevent="createTeam" class="form-grid form-grid-inline">
+                        <AppInput v-model="teamForm.name" placeholder="Grupės pavadinimas" />
+                        <AppButton
+                            text="Sukurti grupę"
+                            variant="primary"
+                            :disabled="teamSaving || !teamForm.name"
+                        />
+                    </form>
+                    <div v-if="teams && teams.length > 0" class="employee-list">
+                        <h3>Grupių sąrašas:</h3>
+                        <ul class="groups-list">
+                            <li v-for="team in teams" :key="team.id" class="groups-item">
+                                <span class="groups-name">{{ team.name }}</span>
+                                <span class="groups-members">({{ team.employees?.length ?? 0 }} darbuotojai)</span>
+                                <button type="button" class="link-btn small" @click="openTeamMembers(team)">
+                                    Nariai
+                                </button>
+                                <button type="button" class="link-btn small" @click="openTeamEdit(team)">
+                                    Pervadinti
+                                </button>
+                                <button type="button" class="link-btn small" @click="deleteTeam(team)">
+                                    Šalinti
+                                </button>
+                            </li>
+                        </ul>
+                    </div>
+                    <div v-else class="groups-empty">Grupių dar nėra.</div>
+                </SettingsSection>
+
+                <SettingsSection
+                    v-if="isInstitutionAdmin"
                     title="Pakviesti darbuotoją"
                     :open="sections.invite"
                     @toggle="toggleSection('invite')"
@@ -216,23 +353,6 @@ const sendInvite = async () => {
                             text="Siųsti pakvietimą"
                             variant="primary"
                             :disabled="inviteSending || !inviteForm.email || !inviteForm.role_id"
-                        />
-                    </form>
-                </SettingsSection>
-
-                <SettingsSection
-                    v-if="isInstitutionAdmin"
-                    title="Įstaigos nustatymai"
-                    :open="sections.institution"
-                    @toggle="toggleSection('institution')"
-                >
-                    <form @submit.prevent="updateInstitution" class="form-grid">
-                        <AppInput v-model="institutionForm.name" placeholder="Pavadinimas" :showIcon="true" />
-                        <AppInput v-model="institutionForm.code" placeholder="Kodas" :showIcon="true" />
-                        <AppButton
-                            text="Saugoti"
-                            variant="primary"
-                            :disabled="institutionForm.processing"
                         />
                     </form>
                 </SettingsSection>
@@ -297,9 +417,9 @@ const sendInvite = async () => {
                         <div class="privacy-row-2fa-right">
                             <label class="switch">
                                 <input
-                                    v-model="emailUpdatesInstitutionAdmin"
+                                    v-model="emailNotificationsEnabled"
                                     type="checkbox"
-                                    @change="saveEmailUpdatesInstitutionAdmin"
+                                    @change="saveEmailNotificationsEnabled"
                                 />
                                 <span class="slider round"></span>
                             </label>
@@ -361,6 +481,63 @@ const sendInvite = async () => {
             </template>
         </DeleteAccountModal>
 
+        <BaseModal
+            :open="teamMembersOpen"
+            title="Grupės nariai"
+            @close="teamMembersOpen = false"
+        >
+            <div class="members-checklist">
+                <label
+                    v-for="emp in employees"
+                    :key="emp.id"
+                    class="members-check"
+                >
+                    <input type="checkbox" :value="emp.id" v-model="selectedMemberIds" />
+                    <span>{{ emp.name }} {{ emp.surname }} ({{ emp.email }})</span>
+                </label>
+            </div>
+            <template #footer>
+                <AppButton
+                    text="Atšaukti"
+                    variant="secondary"
+                    as-button
+                    @click="teamMembersOpen = false"
+                />
+                <AppButton
+                    text="Išsaugoti"
+                    variant="primary"
+                    as-button
+                    :disabled="teamMembersSaving"
+                    @click="saveTeamMembers"
+                />
+            </template>
+        </BaseModal>
+
+        <BaseModal
+            :open="teamEditOpen"
+            title="Pervadinti grupę"
+            @close="teamEditOpen = false"
+        >
+            <form @submit.prevent="saveTeamEdit" class="form-grid">
+                <AppInput v-model="editTeamForm.name" placeholder="Grupės pavadinimas" />
+            </form>
+            <template #footer>
+                <AppButton
+                    text="Atšaukti"
+                    variant="secondary"
+                    as-button
+                    @click="teamEditOpen = false"
+                />
+                <AppButton
+                    text="Išsaugoti"
+                    variant="primary"
+                    as-button
+                    :disabled="teamEditSaving || !editTeamForm.name"
+                    @click="saveTeamEdit"
+                />
+            </template>
+        </BaseModal>
+
         <div v-if="$page.props.flash?.status" style="margin-top: 8px; color: #065F46;">
             {{ $page.props.flash.status }}
         </div>
@@ -375,7 +552,6 @@ const sendInvite = async () => {
 }
 
 .settings-content {
-    width: 400px;
     max-width: 100%;
     box-sizing: border-box;
 }

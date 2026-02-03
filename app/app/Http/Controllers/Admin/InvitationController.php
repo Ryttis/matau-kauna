@@ -12,6 +12,24 @@ use Illuminate\Support\Str;
 
 class InvitationController extends Controller
 {
+    public function index(Request $request)
+    {
+        $user = $request->user();
+        if (! $user->hasRole(UserRole::ROLE_SYSTEM_ADMIN) && ! $user->hasRole(UserRole::ROLE_INSTITUTION_ADMIN)) {
+            abort(403);
+        }
+
+        $query = Invitation::query()
+            ->with(['institution:id,name', 'role:id,role,name', 'creator:id,name,email'])
+            ->orderBy('created_at', 'desc');
+
+        if (! $user->hasRole(UserRole::ROLE_SYSTEM_ADMIN)) {
+            $query->where('institution_id', $user->institution_id);
+        }
+
+        return $query->paginate(20);
+    }
+
     public function store(Request $request)
     {
         $data = $request->validate([
@@ -49,6 +67,34 @@ class InvitationController extends Controller
             'expires_at' => now()->addDays(7),
             'created_by' => $user->id,
         ]);
+
+        \Illuminate\Support\Facades\Notification::route('mail', $invitation->email)
+            ->notify(new InvitationNotification($invitation));
+
+        return $invitation->load(['institution:id,name', 'role:id,role,name']);
+    }
+
+    public function resend(Request $request, Invitation $invitation)
+    {
+        $user = $request->user();
+        if (! $user->hasRole(UserRole::ROLE_SYSTEM_ADMIN) && ! $user->hasRole(UserRole::ROLE_INSTITUTION_ADMIN)) {
+            abort(403);
+        }
+
+        if (! $user->hasRole(UserRole::ROLE_SYSTEM_ADMIN) && (int) $invitation->institution_id !== (int) $user->institution_id) {
+            abort(403);
+        }
+
+        if ($invitation->used_at) {
+            return response()->json(['message' => 'Pakvietimas jau panaudotas.'], 422);
+        }
+
+        if (! $invitation->expires_at || $invitation->expires_at->isPast()) {
+            $invitation->update([
+                'token' => Str::random(64),
+                'expires_at' => now()->addDays(7),
+            ]);
+        }
 
         \Illuminate\Support\Facades\Notification::route('mail', $invitation->email)
             ->notify(new InvitationNotification($invitation));

@@ -1,5 +1,5 @@
 <script setup>
-import { ref } from 'vue'
+import { ref, watch } from 'vue'
 import { Head, router } from '@inertiajs/vue3'
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue'
 import AppButton from '@/Components/App/AppButton.vue'
@@ -34,8 +34,11 @@ const handleBack = () => {
 
 const toggleEmployee = (id) => {
     const i = selectedEmployeeIds.value.indexOf(id)
-    if (i > -1) selectedEmployeeIds.value.splice(i, 1)
-    else selectedEmployeeIds.value.push(id)
+    if (i > -1) {
+        selectedEmployeeIds.value = []
+        return
+    }
+    selectedEmployeeIds.value = [id]
 }
 
 const toggleReassign = (id) => {
@@ -44,10 +47,27 @@ const toggleReassign = (id) => {
     else selectedReassignIds.value.push(id)
 }
 
-const handleSendAssign = () => {}
+const handleSendAssign = () => {
+    if (!selectedEmployeeIds.value.length) return
+
+    router.post(route('problems.assignInstitution.store', props.problem.id), {
+        employee_id: selectedEmployeeIds.value[0],
+    }, {
+        preserveScroll: true,
+    })
+}
 const handleSendEmail = () => {}
 const handleReturnToAdmin = () => {}
 const handleReassign = () => {}
+
+watch(
+    () => props.problem,
+    (newProblem) => {
+        const assignedId = newProblem?.assigned_employee_id
+        selectedEmployeeIds.value = assignedId ? [assignedId] : []
+    },
+    { immediate: true }
+)
 </script>
 
 <template>
