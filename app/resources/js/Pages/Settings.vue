@@ -55,6 +55,7 @@ const deleteAccountForm = useForm({
 const showDeleteModal = ref(false)
 const twoFactorEnabled = ref(!!user.two_factor_enabled)
 const emailUpdatesInstitutionAdmin = ref(!!user.email_updates_institution_admin)
+const emailNotificationsEnabled = ref(!!user.email_notifications_enabled)
 
 const sections = ref({
     profile: true,
@@ -120,6 +121,12 @@ const deleteAccount = () => {
 const saveEmailUpdatesInstitutionAdmin = () => {
     router.patch(route('settings.privacy'), {
         email_updates_institution_admin: emailUpdatesInstitutionAdmin,
+    }, { preserveScroll: true })
+}
+
+const saveEmailNotificationsEnabled = () => {
+    router.patch(route('settings.privacy'), {
+        email_notifications_enabled: emailNotificationsEnabled,
     }, { preserveScroll: true })
 }
 
@@ -237,23 +244,6 @@ const sendInvite = async () => {
                     </form>
                 </SettingsSection>
 
-                <SettingsSection
-                    v-if="isInstitutionAdmin"
-                    title="Įstaigos nustatymai"
-                    :open="sections.institution"
-                    @toggle="toggleSection('institution')"
-                >
-                    <form @submit.prevent="updateInstitution" class="form-grid">
-                        <AppInput v-model="institutionForm.name" placeholder="Pavadinimas" :showIcon="true" />
-                        <AppInput v-model="institutionForm.code" placeholder="Kodas" :showIcon="true" />
-                        <AppButton
-                            text="Saugoti"
-                            variant="primary"
-                            :disabled="institutionForm.processing"
-                        />
-                    </form>
-                </SettingsSection>
-
                 <div class="privacy-block">
                     <SettingsSection
                         title="Privatumo taisyklės"
@@ -297,9 +287,9 @@ const sendInvite = async () => {
                         <div class="privacy-row-2fa-right">
                             <label class="switch">
                                 <input
-                                    v-model="emailUpdatesInstitutionAdmin"
+                                    v-model="emailNotificationsEnabled"
                                     type="checkbox"
-                                    @change="saveEmailUpdatesInstitutionAdmin"
+                                    @change="saveEmailNotificationsEnabled"
                                 />
                                 <span class="slider round"></span>
                             </label>
@@ -375,7 +365,6 @@ const sendInvite = async () => {
 }
 
 .settings-content {
-    width: 400px;
     max-width: 100%;
     box-sizing: border-box;
 }

@@ -10,6 +10,7 @@ use App\Models\Problem;
 use App\Models\UserRole;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Mail;
+use App\Models\User;
 use Inertia\Inertia;
 use Inertia\Response;
 use Maatwebsite\Excel\Facades\Excel;
@@ -249,6 +250,8 @@ class ProblemController extends Controller
 
         Problem::whereIn('id', $validated['problem_ids'])->update($update);
 
+        $this->notifyInstitutionAdminsOfAssignment($validated['problem_ids'], $validated['institution_id']);
+
         return redirect()->route('dashboard')->with('success', 'Problemos priskirtos įstaigai.');
     }
 
@@ -420,6 +423,8 @@ class ProblemController extends Controller
         $problem->update([
             'assigned_employee_id' => $employee->id,
         ]);
+
+        $this->notifyEmployeeOfAssignment($problem, $employee);
 
         return redirect()->back()->with('success', 'Problema priskirta darbuotojui.');
     }
@@ -657,5 +662,75 @@ class ProblemController extends Controller
         return Employee::where('email', $user->email)
             ->where('institution_id', $user->institution_id)
             ->value('id');
+    }
+
+    private function notifyInstitutionAdminsOfAssignment(array $problemIds, int $institutionId): void
+    {
+        $problems = Problem::whereIn('id', $problemIds)
+            ->orderBy('created_at', 'desc')
+            ->get(['id', 'internal_number', 'title', 'created_at']);
+
+        if ($problems->isEmpty()) {
+            return;
+        }
+
+        $institution = Institution::find($institutionId);
+
+        $admins = User::query()
+            ->where('institution_id', $institutionId)
+            ->where('email_updates_institution_admin', true)
+            ->whereHas('roles', fn ($q) => $q->where('role', UserRole::ROLE_INSTITUTION_ADMIN))
+            ->get(['email', 'name']);
+
+        if ($admins->isEmpty()) {
+            return;
+        }
+
+        $lines = [];
+        $lines[] = 'Jums priskirtos naujos problemos:';
+        foreach ($problems as $problem) {
+            $lines[] = sprintf(
+                '- %s | %s | %s | %s',
+                $problem->internal_number,
+                $problem->title,
+                $problem->created_at?->format('Y-m-d'),
+                route('problems.show', $problem->id)
+            );
+        }
+        if ($institution) {
+            $lines[] = '';
+            $lines[] = 'Įstaiga: ' . $institution->name;
+        }
+
+        $subject = 'Naujos priskirtos problemos';
+        $body = implode("\n", $lines);
+
+        foreach ($admins as $admin) {
+            Mail::raw($body, function ($message) use ($admin, $subject) {
+                $message->to($admin->email)->subject($subject);
+            });
+        }
+    }
+
+    private function notifyEmployeeOfAssignment(Problem $problem, Employee $employee): void
+    {
+        $user = User::where('email', $employee->email)
+            ->where('institution_id', $employee->institution_id)
+            ->where('email_notifications_enabled', true)
+            ->first(['email']);
+
+        if (! $user) {
+            return;
+        }
+
+        $subject = 'Jums priskirta nauja problema';
+        $body = implode("\n", [
+            'Jums priskirta nauja problema:',
+            sprintf('%s | %s | %s', $problem->internal_number, $problem->title, route('problems.show', $problem->id)),
+        ]);
+
+        Mail::raw($body, function ($message) use ($user, $subject) {
+            $message->to($user->email)->subject($subject);
+        });
     }
 }
