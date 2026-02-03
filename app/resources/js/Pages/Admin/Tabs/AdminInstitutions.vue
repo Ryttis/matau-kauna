@@ -72,7 +72,7 @@ const openEdit = (inst) => {
         contact_phone: inst.contact_phone ?? '',
         contact_email: inst.contact_email ?? '',
         contact_address: inst.contact_address ?? '',
-        integration_email: inst.integration_email ?? '',
+        integration_email: inst.contact_email ?? inst.integration_email ?? '',
         integration_dvs: inst.integration_dvs ?? '',
         integration_gis: inst.integration_gis ?? '',
         is_active: inst.is_active ?? true,
@@ -87,6 +87,7 @@ const createInstitution = async () => {
     try {
         await axios.post('/admin/institutions', {
             ...createForm.value,
+            integration_email: createForm.value.contact_email || null,
             is_email_only: createForm.value.is_email_only ?? false
         })
         isCreateOpen.value = false
@@ -109,7 +110,7 @@ const updateInstitution = async () => {
             contact_phone: editForm.value.contact_phone || null,
             contact_email: editForm.value.contact_email || null,
             contact_address: editForm.value.contact_address || null,
-            integration_email: editForm.value.integration_email || null,
+            integration_email: editForm.value.contact_email || null,
             integration_dvs: editForm.value.integration_dvs || null,
             integration_gis: editForm.value.integration_gis || null,
             is_active: editForm.value.is_active,
@@ -209,9 +210,8 @@ onMounted(async () => {
                     <input class="input" style="margin-top:6px" v-model="createForm.contact_address" placeholder="Adresas" />
                 </label>
                 <label class="field full">
-                    <span>Integracijos nustatymai (el. paštas / DVS / GIS)</span>
-                    <input class="input" v-model="createForm.integration_email" placeholder="El. paštas" />
-                    <input class="input" style="margin-top:6px" v-model="createForm.integration_dvs" placeholder="DVS" />
+                    <span>Integracijos nustatymai (el. paštas naudoja kontaktinį / DVS / GIS)</span>
+                    <input class="input" v-model="createForm.integration_dvs" placeholder="DVS" />
                     <input class="input" style="margin-top:6px" v-model="createForm.integration_gis" placeholder="GIS" />
                 </label>
                 <label class="field checkbox">
@@ -255,9 +255,8 @@ onMounted(async () => {
                     <input class="input" style="margin-top:6px" v-model="editForm.contact_address" placeholder="Adresas" />
                 </label>
                 <label class="field full">
-                    <span>Integracijos nustatymai (el. paštas / DVS / GIS)</span>
-                    <input class="input" v-model="editForm.integration_email" placeholder="El. paštas" />
-                    <input class="input" style="margin-top:6px" v-model="editForm.integration_dvs" placeholder="DVS" />
+                    <span>Integracijos nustatymai (DVS / GIS)</span>
+                    <input class="input" v-model="editForm.integration_dvs" placeholder="DVS" />
                     <input class="input" style="margin-top:6px" v-model="editForm.integration_gis" placeholder="GIS" />
                 </label>
                 <label class="field checkbox">

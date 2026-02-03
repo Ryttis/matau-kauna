@@ -235,13 +235,17 @@ class ProblemController extends Controller
         $validated = $request->validate([
             'problem_ids' => ['required', 'array'],
             'problem_ids.*' => ['required', 'integer', 'exists:problems,id'],
-            'institution_id' => ['required', 'integer', 'exists:institutions,id'],
+            'institution_id' => ['nullable', 'integer', 'exists:institutions,id'],
             'status' => ['nullable', 'string', 'in:' . implode(',', ProblemStatus::values())],
         ]);
 
         $update = [
-            'institution_id' => $validated['institution_id'],
+            'institution_id' => $validated['institution_id'] ?? null,
         ];
+
+        if (empty($validated['institution_id'])) {
+            $update['assigned_employee_id'] = null;
+        }
 
         if (! empty($validated['status'])) {
             $update['status'] = $validated['status'];
@@ -250,9 +254,16 @@ class ProblemController extends Controller
 
         Problem::whereIn('id', $validated['problem_ids'])->update($update);
 
-        $this->notifyInstitutionAdminsOfAssignment($validated['problem_ids'], $validated['institution_id']);
+        if (! empty($validated['institution_id'])) {
+            $this->notifyInstitutionAdminsOfAssignment($validated['problem_ids'], $validated['institution_id']);
+            $this->notifyInstitutionEmailOfAssignment($validated['problem_ids'], $validated['institution_id']);
+        }
 
-        return redirect()->route('dashboard')->with('success', 'Problemos priskirtos įstaigai.');
+        $message = empty($validated['institution_id'])
+            ? 'Problemos atšauktos nuo įstaigos.'
+            : 'Problemos priskirtos įstaigai.';
+
+        return redirect()->route('dashboard')->with('success', $message);
     }
 
     public function sendAssignEmail(Request $request)
@@ -710,6 +721,49 @@ class ProblemController extends Controller
                 $message->to($admin->email)->subject($subject);
             });
         }
+    }
+
+    private function notifyInstitutionEmailOfAssignment(array $problemIds, int $institutionId): void
+    {
+        $institution = Institution::find($institutionId);
+
+        if (! $institution) {
+            return;
+        }
+
+        $email = $institution->integration_email ?: $institution->contact_email;
+        if (! $email) {
+            return;
+        }
+
+        $problems = Problem::whereIn('id', $problemIds)
+            ->orderBy('created_at', 'desc')
+            ->get(['id', 'internal_number', 'title', 'created_at']);
+
+        if ($problems->isEmpty()) {
+            return;
+        }
+
+        $lines = [];
+        $lines[] = 'Priskirtų problemų sąrašas:';
+        foreach ($problems as $problem) {
+            $lines[] = sprintf(
+                '- %s | %s | %s | %s',
+                $problem->internal_number,
+                $problem->title,
+                $problem->created_at?->format('Y-m-d'),
+                route('problems.show', $problem->id)
+            );
+        }
+        $lines[] = '';
+        $lines[] = 'Įstaiga: ' . $institution->name;
+
+        $subject = 'Naujos priskirtos problemos';
+        $body = implode("\n", $lines);
+
+        Mail::raw($body, function ($message) use ($email, $subject) {
+            $message->to($email)->subject($subject);
+        });
     }
 
     private function notifyEmployeeOfAssignment(Problem $problem, Employee $employee): void

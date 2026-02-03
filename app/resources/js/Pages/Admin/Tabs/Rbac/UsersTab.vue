@@ -58,6 +58,14 @@ const inviteRoles = computed(() =>
     )
 )
 
+const selectedInviteInstitution = computed(() =>
+    (props.institutions ?? []).find(
+        (inst) => String(inst.id) === String(inviteForm.value.institution_id)
+    )
+)
+
+const isInviteInstitutionEmailOnly = computed(() => !!selectedInviteInstitution.value?.is_email_only)
+
 const restrictedRoleIds = computed(() =>
     (props.roles ?? [])
         .filter((r) => r.role === ROLE_INSTITUTION_ADMIN || r.role === ROLE_EMPLOYEE)
@@ -81,6 +89,10 @@ const openInvite = () => {
 
 const inviteUser = async () => {
     inviteError.value = ''
+    if (isInviteInstitutionEmailOnly.value) {
+        inviteError.value = 'Ši įstaiga pažymėta kaip el. pašto integracija, todėl pakvietimai negalimi.';
+        return
+    }
     emit('set-saving', true)
     try {
         await axios.post('/invitations', inviteForm.value)
@@ -259,9 +271,14 @@ const saveUserRoles = async () => {
                 <span>Įstaiga</span>
                 <select class="input" v-model="inviteForm.institution_id">
                     <option value="">— Pasirinkite</option>
-                    <option v-for="i in institutions" :key="i.id" :value="i.id">{{ i.name }}</option>
+                    <option v-for="i in institutions" :key="i.id" :value="i.id" :disabled="i.is_email_only">
+                        {{ i.name }}{{ i.is_email_only ? ' (tik el. paštu)' : '' }}
+                    </option>
                 </select>
             </label>
+            <div v-if="isInviteInstitutionEmailOnly" class="hint">
+                Ši įstaiga yra tik el. pašto integracija, todėl pakvietimai nesiunčiami.
+            </div>
             <label class="field">
                 <span>Rolė</span>
                 <select class="input" v-model="inviteForm.role_id">
@@ -271,7 +288,12 @@ const saveUserRoles = async () => {
             </label>
             <template #footer>
                 <button type="button" class="secondary-btn" @click="isInviteOpen = false">Atšaukti</button>
-                <button type="button" class="primary-btn fixed" :disabled="saving || !inviteForm.email || !inviteForm.institution_id || !inviteForm.role_id" @click="inviteUser">
+                <button
+                    type="button"
+                    class="primary-btn fixed"
+                    :disabled="saving || !inviteForm.email || !inviteForm.institution_id || !inviteForm.role_id || isInviteInstitutionEmailOnly"
+                    @click="inviteUser"
+                >
                     {{ saving ? 'Siunčiama...' : 'Siųsti pakvietimą' }}
                 </button>
             </template>

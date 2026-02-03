@@ -38,6 +38,16 @@ const displayedInstitutions = computed(() => {
 
 const selectedInstitutionId = computed(() => selectedInstitutionIds.value[0] || null)
 
+const hasAnyAssignedInstitution = computed(() => {
+    if (props.problem?.institution_id) return true
+    if (props.problems?.length) {
+        return props.problems.some((p) => p.institution_id)
+    }
+    return false
+})
+
+const canRemoveAssignment = computed(() => hasAnyAssignedInstitution.value)
+
 const resolveInitialInstitutionId = () => {
     if (props.problem?.institution_id) {
         return props.problem.institution_id
@@ -111,6 +121,25 @@ const handleSend = () => {
         problem_ids: ids,
         institution_id: selectedInstitutionIds.value[0],
         status: selectedStatus.value,
+    }, {
+        preserveScroll: true,
+    })
+}
+
+const handleRemoveAssignment = () => {
+    if (!canRemoveAssignment.value) return
+
+    const ids = props.problems?.length
+        ? props.problems.map((p) => p.id)
+        : props.problem
+            ? [props.problem.id]
+            : []
+
+    if (!ids.length) return
+
+    router.post(route('problems.assign.store'), {
+        problem_ids: ids,
+        institution_id: null,
     }, {
         preserveScroll: true,
     })
@@ -252,6 +281,14 @@ const toggleStatus = () => {
                             @click="handleSend"
                             :disabled="selectedInstitutionIds.length === 0"
                             class="assign-send-btn"
+                        />
+                        <AppButton
+                            text="Pašalinti priskyrimą"
+                            variant="secondary"
+                            as-button
+                            @click="handleRemoveAssignment"
+                            :disabled="!canRemoveAssignment"
+                            class="assign-send-btn assign-send-btn-remove"
                         />
                     </div>
                 </div>
