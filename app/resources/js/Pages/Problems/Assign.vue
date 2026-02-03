@@ -5,8 +5,10 @@ import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue'
 import AppButton from '@/Components/App/AppButton.vue'
 import AppInput from '@/Components/App/AppInput.vue'
 import AppBackButton from '@/Components/App/AppBackButton.vue'
-import AppCheckbox from '@/Components/App/AppCheckbox.vue'
+import EntityTable from '@/Components/App/Tables/EntityTable.vue'
 import { PROBLEM_STATUS } from '@/constants/problemStatus'
+
+const institutionColumns = [{ key: 'name', label: 'Įstaiga' }]
 
 const props = defineProps({
     problem: {
@@ -19,7 +21,7 @@ const props = defineProps({
     }
 })
 
-const selectedInstitutions = ref([])
+const selectedInstitutionIds = ref([])
 const selectedStatus = ref(props.problem?.status || PROBLEM_STATUS.NEW)
 const email = ref('')
 const displayedCount = ref(6)
@@ -34,12 +36,26 @@ const hasMore = computed(() => {
     return props.institutions.length > displayedCount.value
 })
 
-const handleInstitutionToggle = (institution) => {
-    const index = selectedInstitutions.value.indexOf(institution)
-    if (index > -1) {
-        selectedInstitutions.value.splice(index, 1)
+const handleTableSelectItem = (key) => {
+    const idx = selectedInstitutionIds.value.indexOf(key)
+    if (idx > -1) {
+        selectedInstitutionIds.value.splice(idx, 1)
     } else {
-        selectedInstitutions.value.push(institution)
+        selectedInstitutionIds.value.push(key)
+    }
+}
+
+const handleTableSelectAll = (checked) => {
+    if (checked) {
+        const ids = props.institutions.slice(0, displayedCount.value).map((i) => i.id)
+        ids.forEach((id) => {
+            if (!selectedInstitutionIds.value.includes(id)) {
+                selectedInstitutionIds.value.push(id)
+            }
+        })
+    } else {
+        const ids = props.institutions.slice(0, displayedCount.value).map((i) => i.id)
+        selectedInstitutionIds.value = selectedInstitutionIds.value.filter((id) => !ids.includes(id))
     }
 }
 
@@ -93,32 +109,28 @@ const toggleStatus = () => {
             </div>
 
             <div class="assign-content">
-                <div class="assign-section" v-show="isInstitutionsExpanded">
-                    <div
-                        v-if="displayedInstitutions.length > 0"
-                        v-for="institution in displayedInstitutions"
-                        :key="institution"
-                        class="assign-institution-item"
-                    >
-                        <label class="assign-institution-label">
-                            <AppCheckbox
-                                :model-value="selectedInstitutions.includes(institution)"
-                                :value="institution"
-                                @change="handleInstitutionToggle(institution)"
-                            />
-                            <span class="assign-institution-text">{{ institution }}</span>
-                        </label>
-                    </div>
+                <div class="assign-section assign-institutions-table-wrap" v-show="isInstitutionsExpanded">
+                    <template v-if="displayedInstitutions.length > 0">
+                        <EntityTable
+                            :items="displayedInstitutions"
+                            :columns="institutionColumns"
+                            row-key="id"
+                            :selectable="true"
+                            :selected-keys="selectedInstitutionIds"
+                            @select-item="handleTableSelectItem"
+                            @select-all="handleTableSelectAll"
+                        />
+                        <button
+                            v-if="hasMore"
+                            @click="handleLoadMore"
+                            class="assign-more-btn"
+                        >
+                            Daugiau
+                        </button>
+                    </template>
                     <div v-else class="assign-empty-state">
                         <span class="assign-empty-text">Nėra prieinamų institucijų</span>
                     </div>
-                    <button
-                        v-if="hasMore"
-                        @click="handleLoadMore"
-                        class="assign-more-btn"
-                    >
-                        Daugiau
-                    </button>
                 </div>
 
                 <div class="assign-section">
@@ -285,6 +297,45 @@ const toggleStatus = () => {
     flex-direction: column;
 }
 
+.assign-institutions-table-wrap :deep(table) {
+    margin-top: 0;
+    border: none;
+}
+
+.assign-institutions-table-wrap :deep(thead) {
+    display: none;
+}
+
+.assign-institutions-table-wrap :deep(tbody tr) {
+    border-bottom: 1px solid #d0d0d0;
+}
+
+.assign-institutions-table-wrap :deep(td) {
+    padding: 12px 0;
+    border-bottom: none;
+    vertical-align: middle;
+}
+
+.assign-institutions-table-wrap :deep(td:first-child) {
+    padding-right: 12px;
+    font-size: 16px;
+    color: #333333;
+    font-family: 'Inter', sans-serif;
+}
+
+.assign-institutions-table-wrap :deep(td:last-child) {
+    text-align: right;
+    width: 1%;
+}
+
+.assign-institutions-table-wrap :deep(input[type="checkbox"]) {
+    margin-left: auto;
+    cursor: pointer;
+    width: 18px;
+    height: 18px;
+    accent-color: #1946a0;
+}
+
 .assign-section-email {
     gap: 20px;
 }
@@ -292,34 +343,6 @@ const toggleStatus = () => {
 .assign-section .app-input-group {
     width: 100%;
     max-width: 400px;
-}
-
-.assign-institution-item {
-    display: flex;
-    align-items: center;
-    padding: 12px 0;
-    border-bottom: 1px solid #e0e0e0;
-}
-
-.assign-institution-item:last-of-type {
-    border-bottom: none;
-}
-
-.assign-institution-label {
-    display: flex;
-    align-items: center;
-    cursor: pointer;
-    width: 100%;
-    gap: 12px;
-}
-
-
-.assign-institution-text {
-    font-size: 16px;
-    color: #333333;
-    font-family: 'Inter', sans-serif;
-    line-height: 1.5;
-    font-weight: 400;
 }
 
 .assign-more-btn {

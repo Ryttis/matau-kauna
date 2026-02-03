@@ -1,5 +1,7 @@
 <?php
 
+use App\Http\Controllers\Admin\InstitutionController as AdminInstitutionController;
+use App\Http\Controllers\Admin\InvitationController as AdminInvitationController;
 use App\Http\Controllers\Admin\RbacController;
 use App\Http\Controllers\ProblemController;
 use App\Http\Controllers\SettingsController;
@@ -45,6 +47,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('/settings/password/email', [SettingsController::class, 'sendPasswordResetLink'])->name('settings.password.email');
     Route::delete('/settings', [SettingsController::class, 'destroy'])->name('settings.destroy');
 
+    Route::post('/invitations', [AdminInvitationController::class, 'store']);
+
     Route::prefix('admin')
         ->middleware(['auth', 'verified', 'admin'])
         ->group(function () {
@@ -69,6 +73,11 @@ Route::middleware(['auth', 'verified'])->group(function () {
             Route::get('/rbac/permissions', [RbacController::class, 'permissions']);
             Route::post('/rbac/permissions', [RbacController::class, 'createPermission']);
             Route::delete('/rbac/permissions/{permission}', [RbacController::class, 'deletePermission']);
+
+            Route::get('/institutions', [AdminInstitutionController::class, 'index']);
+            Route::get('/institutions/list', [AdminInstitutionController::class, 'list']);
+            Route::post('/institutions', [AdminInstitutionController::class, 'store']);
+            Route::put('/institutions/{institution}', [AdminInstitutionController::class, 'update']);
         });
 });
 

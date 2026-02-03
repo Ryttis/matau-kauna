@@ -4,6 +4,7 @@ import { Head, usePage } from '@inertiajs/vue3'
 import { computed, ref } from 'vue'
 
 import AdminUsers from '@/Pages/Admin/Tabs/AdminUsers.vue'
+import AdminInstitutions from '@/Pages/Admin/Tabs/AdminInstitutions.vue'
 import AdminRules from '@/Pages/Admin/Tabs/AdminRules.vue'
 import AdminNotifications from '@/Pages/Admin/Tabs/AdminNotifications.vue'
 import AdminClassifiers from '@/Pages/Admin/Tabs/AdminClassifiers.vue'
@@ -14,6 +15,7 @@ const page = usePage()
 
 const tabs = [
     { key: 'users', label: 'Naudotojai', component: AdminUsers },
+    { key: 'institutions', label: 'Įstaigos', component: AdminInstitutions },
     { key: 'rules', label: 'Taisyklės ir turinys', component: AdminRules },
     { key: 'notifications', label: 'Pranešimai', component: AdminNotifications },
     { key: 'classifiers', label: 'Klasifikatoriai ir terminai', component: AdminClassifiers },

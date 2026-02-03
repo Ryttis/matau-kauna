@@ -4,11 +4,15 @@ import SettingsSection from '@/Components/App/SettingsSection.vue'
 import AppInput from '@/Components/App/AppInput.vue'
 import AppButton from '@/Components/App/AppButton.vue'
 import DeleteAccountModal from '@/Components/App/DeleteAccountModal.vue'
+import BaseModal from '@/Components/App/BaseModal.vue'
+import axios from 'axios'
 import { Head, Link, router, useForm, usePage } from '@inertiajs/vue3'
 import { ref, computed } from 'vue'
+import { ROLE_INSTITUTION_ADMIN, ROLE_EMPLOYEE } from '@/constants/roles.js'
 
 const props = defineProps({
     employees: Array,
+    inviteRoles: { type: Array, default: () => [] },
 })
 
 const page = usePage()
@@ -16,7 +20,13 @@ const user = page.props.auth.user
 const authRoles = computed(() => page.props.auth?.roles || [])
 
 const isInstitutionAdmin = computed(() =>
-    authRoles.value.some((r) => r.role === 'ROLE_INSTITUTION_ADMIN')
+    authRoles.value.some((r) => r.role === ROLE_INSTITUTION_ADMIN)
+)
+const isEmployee = computed(() =>
+    authRoles.value.some((r) => r.role === ROLE_EMPLOYEE)
+)
+const canManageEmailUpdatesAssigned = computed(
+    () => isInstitutionAdmin.value || isEmployee.value
 )
 
 const profileForm = useForm({
@@ -49,6 +59,7 @@ const emailUpdatesInstitutionAdmin = ref(!!user.email_updates_institution_admin)
 const sections = ref({
     profile: true,
     employee: true,
+    invite: true,
     institution: true,
     privacy: true,
 })
@@ -111,6 +122,31 @@ const saveEmailUpdatesInstitutionAdmin = () => {
         email_updates_institution_admin: emailUpdatesInstitutionAdmin,
     }, { preserveScroll: true })
 }
+
+const inviteForm = ref({ email: '', role_id: '' })
+const inviteError = ref('')
+const inviteSending = ref(false)
+const inviteSuccess = ref(false)
+
+const sendInvite = async () => {
+    if (!user?.institution_id || !inviteForm.value.email || !inviteForm.value.role_id) return
+    inviteError.value = ''
+    inviteSuccess.value = false
+    inviteSending.value = true
+    try {
+        await axios.post('/invitations', {
+            email: inviteForm.value.email,
+            institution_id: user.institution_id,
+            role_id: inviteForm.value.role_id,
+        })
+        inviteSuccess.value = true
+        inviteForm.value = { email: '', role_id: '' }
+    } catch (e) {
+        inviteError.value = e.response?.data?.message ?? 'Nepavyko išsiųsti pakvietimo.'
+    } finally {
+        inviteSending.value = false
+    }
+}
 </script>
 
 <template>
@@ -164,6 +200,45 @@ const saveEmailUpdatesInstitutionAdmin = () => {
 
                 <SettingsSection
                     v-if="isInstitutionAdmin"
+                    title="Pakviesti darbuotoją"
+                    :open="sections.invite"
+                    @toggle="toggleSection('invite')"
+                >
+                    <div v-if="inviteSuccess" class="invite-success">Pkvietimas išsiųstas.</div>
+                    <div v-if="inviteError" class="invite-error">{{ inviteError }}</div>
+                    <form @submit.prevent="sendInvite" class="form-grid">
+                        <AppInput v-model="inviteForm.email" type="email" placeholder="El. paštas" :showIcon="true" />
+                        <select v-model="inviteForm.role_id" class="settings-select" required>
+                            <option value="">— Rolė</option>
+                            <option v-for="r in inviteRoles" :key="r.id" :value="r.id">{{ r.name }}</option>
+                        </select>
+                        <AppButton
+                            text="Siųsti pakvietimą"
+                            variant="primary"
+                            :disabled="inviteSending || !inviteForm.email || !inviteForm.role_id"
+                        />
+                    </form>
+                </SettingsSection>
+
+                <SettingsSection
+                    v-if="isInstitutionAdmin"
+                    title="Įstaigos nustatymai"
+                    :open="sections.institution"
+                    @toggle="toggleSection('institution')"
+                >
+                    <form @submit.prevent="updateInstitution" class="form-grid">
+                        <AppInput v-model="institutionForm.name" placeholder="Pavadinimas" :showIcon="true" />
+                        <AppInput v-model="institutionForm.code" placeholder="Kodas" :showIcon="true" />
+                        <AppButton
+                            text="Saugoti"
+                            variant="primary"
+                            :disabled="institutionForm.processing"
+                        />
+                    </form>
+                </SettingsSection>
+
+                <SettingsSection
+                    v-if="isInstitutionAdmin"
                     title="Įstaigos nustatymai"
                     :open="sections.institution"
                     @toggle="toggleSection('institution')"
@@ -203,6 +278,22 @@ const saveEmailUpdatesInstitutionAdmin = () => {
                         class="privacy-row privacy-row-2fa"
                     >
                         <span class="privacy-label">Informacijos atnaujinimo siuntimas el. paštu – Įstaigos administratorius</span>
+                        <div class="privacy-row-2fa-right">
+                            <label class="switch">
+                                <input
+                                    v-model="emailUpdatesInstitutionAdmin"
+                                    type="checkbox"
+                                    @change="saveEmailUpdatesInstitutionAdmin"
+                                />
+                                <span class="slider round"></span>
+                            </label>
+                        </div>
+                    </div>
+                    <div
+                        v-if="canManageEmailUpdatesAssigned"
+                        class="privacy-row privacy-row-2fa"
+                    >
+                        <span class="privacy-label">Pranešimai apie naujai priskirtas problemas el. paštu</span>
                         <div class="privacy-row-2fa-right">
                             <label class="switch">
                                 <input
@@ -289,6 +380,26 @@ const saveEmailUpdatesInstitutionAdmin = () => {
     box-sizing: border-box;
 }
 
+.invite-success {
+    color: #2e7d32;
+    font-size: 14px;
+    margin-bottom: 12px;
+}
+
+.invite-error {
+    color: #c62828;
+    font-size: 14px;
+    margin-bottom: 12px;
+}
+
+.settings-select {
+    padding: 10px 12px;
+    border: 1px solid #e6e8ee;
+    border-radius: 10px;
+    font-size: 16px;
+    min-width: 200px;
+}
+
 .form-grid {
     display: flex;
     flex-direction: column;
@@ -296,6 +407,96 @@ const saveEmailUpdatesInstitutionAdmin = () => {
     width: 100%;
     max-width: 400px;
     box-sizing: border-box;
+}
+
+.form-grid-inline {
+    flex-direction: row;
+    align-items: flex-end;
+    flex-wrap: wrap;
+}
+
+.groups-list {
+    list-style: none;
+    padding: 0;
+    margin: 12px 0 0;
+}
+
+.groups-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 0;
+    border-bottom: 1px solid #e5e7eb;
+    font-size: 14px;
+}
+
+.groups-name {
+    font-weight: 500;
+}
+
+.groups-members {
+    color: #6b7280;
+}
+
+.groups-empty {
+    color: #6b7280;
+    font-size: 14px;
+    margin: 12px 0 0;
+}
+
+.link-btn.small {
+    margin-left: auto;
+    padding: 0;
+    border: none;
+    background: none;
+    color: #1946a0;
+    cursor: pointer;
+    font-size: 13px;
+}
+
+.link-btn.small:hover {
+    text-decoration: underline;
+}
+
+.members-checklist {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    max-height: 320px;
+    overflow: auto;
+}
+
+.members-check {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 14px;
+    cursor: pointer;
+}
+
+.btn-primary, .btn-secondary {
+    padding: 10px 16px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+}
+
+.btn-primary {
+    background: #1946a0;
+    color: #fff;
+    border: none;
+}
+
+.btn-primary:disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
+}
+
+.btn-secondary {
+    background: #f5f5f5;
+    color: #333;
+    border: 1px solid #ddd;
 }
 
 .employee-list {

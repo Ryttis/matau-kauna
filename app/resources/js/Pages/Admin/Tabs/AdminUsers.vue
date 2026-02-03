@@ -15,6 +15,7 @@ const errorMessage = ref('')
 
 const usersPage = ref(null)
 const roles = ref([])
+const institutions = ref([])
 const groups = ref([])
 const permissions = ref([])
 
@@ -30,6 +31,11 @@ const loadUsers = async () => {
 const loadRoles = async () => {
     const { data } = await axios.get('/admin/rbac/roles')
     roles.value = data
+}
+
+const loadInstitutions = async () => {
+    const { data } = await axios.get('/admin/institutions/list')
+    institutions.value = data
 }
 
 const loadGroups = async () => {
@@ -49,7 +55,7 @@ const setTab = async (tab) => {
 
     try {
         if (tab === 'users') {
-            await Promise.all([loadUsers(), loadRoles()])
+            await Promise.all([loadUsers(), loadRoles(), loadInstitutions()])
         }
 
         if (tab === 'roles') {
@@ -104,6 +110,7 @@ onMounted(async () => {
                 :saving="saving"
                 :users-page="usersPage"
                 :roles="roles"
+                :institutions="institutions"
                 @set-saving="saving = $event"
                 @refresh="setTab('users')"
             />
