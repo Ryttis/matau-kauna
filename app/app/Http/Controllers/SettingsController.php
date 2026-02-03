@@ -4,10 +4,12 @@ namespace App\Http\Controllers;
 
 use App\Models\Employee;
 use App\Models\Institution;
+use App\Models\InstitutionTeam;
 use App\Models\UserRole;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Password;
+use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -20,12 +22,19 @@ class SettingsController extends Controller
             ->where('institution_id', $user->institution_id)
             ->get();
 
+        $teams = InstitutionTeam::query()
+            ->where('institution_id', $user->institution_id)
+            ->with(['employees:id,name,surname,email'])
+            ->orderBy('name')
+            ->get();
+
         $inviteRoles = UserRole::query()
             ->whereIn('role', [UserRole::ROLE_INSTITUTION_ADMIN, UserRole::ROLE_EMPLOYEE])
             ->get(['id', 'role', 'name']);
 
         return Inertia::render('Settings', [
             'employees' => $employees,
+            'teams' => $teams,
             'inviteRoles' => $inviteRoles,
         ]);
     }
@@ -60,6 +69,68 @@ class SettingsController extends Controller
         Employee::create($validated);
 
         return back();
+    }
+
+    public function storeTeam(Request $request)
+    {
+        $user = Auth::user();
+        $this->ensureInstitutionAdmin($user);
+
+        $validated = $request->validate([
+            'name' => ['required', 'string', 'max:255'],
+        ]);
+
+        $team = InstitutionTeam::create([
+            'institution_id' => $user->institution_id,
+            'name' => $validated['name'],
+        ]);
+
+        return $team->load('employees:id,name,surname,email');
+    }
+
+    public function updateTeam(Request $request, InstitutionTeam $team)
+    {
+        $user = Auth::user();
+        $this->ensureInstitutionAdmin($user);
+        $this->ensureSameInstitution($user, $team);
+
+        $validated = $request->validate([
+            'name' => ['required', 'string', 'max:255'],
+        ]);
+
+        $team->update($validated);
+
+        return $team->fresh()->load('employees:id,name,surname,email');
+    }
+
+    public function destroyTeam(InstitutionTeam $team)
+    {
+        $user = Auth::user();
+        $this->ensureInstitutionAdmin($user);
+        $this->ensureSameInstitution($user, $team);
+
+        $team->delete();
+
+        return response()->noContent();
+    }
+
+    public function syncTeamMembers(Request $request, InstitutionTeam $team)
+    {
+        $user = Auth::user();
+        $this->ensureInstitutionAdmin($user);
+        $this->ensureSameInstitution($user, $team);
+
+        $validated = $request->validate([
+            'employee_ids' => ['array'],
+            'employee_ids.*' => [
+                'integer',
+                Rule::exists('employees', 'id')->where('institution_id', $user->institution_id),
+            ],
+        ]);
+
+        $team->employees()->sync($validated['employee_ids'] ?? []);
+
+        return $team->fresh()->load('employees:id,name,surname,email');
     }
 
     public function updateInstitution(Request $request)
@@ -123,5 +194,19 @@ class SettingsController extends Controller
         $request->session()->regenerateToken();
 
         return redirect('/');
+    }
+
+    private function ensureInstitutionAdmin($user): void
+    {
+        if (! $user || ! $user->hasRole(UserRole::ROLE_INSTITUTION_ADMIN) || ! $user->institution_id) {
+            abort(403);
+        }
+    }
+
+    private function ensureSameInstitution($user, InstitutionTeam $team): void
+    {
+        if ((int) $team->institution_id !== (int) $user->institution_id) {
+            abort(403);
+        }
     }
 }

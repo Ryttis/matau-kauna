@@ -40,6 +40,11 @@ class Institution extends Model
         return $this->hasMany(Employee::class);
     }
 
+    public function teams()
+    {
+        return $this->hasMany(InstitutionTeam::class);
+    }
+
     public function creator()
     {
         return $this->belongsTo(User::class, 'created_by');

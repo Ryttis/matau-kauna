@@ -20,4 +20,14 @@ class Employee extends Model
     {
         return $this->belongsTo(Institution::class);
     }
+
+    public function teams()
+    {
+        return $this->belongsToMany(
+            InstitutionTeam::class,
+            'employee_institution_team',
+            'employee_id',
+            'institution_team_id'
+        );
+    }
 }

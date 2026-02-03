@@ -45,6 +45,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/settings/change-password', [SettingsController::class, 'changePassword'])->name('settings.change-password');
     Route::patch('/settings/profile', [SettingsController::class, 'updateProfile'])->name('settings.profile');
     Route::post('/settings/employees', [SettingsController::class, 'storeEmployee'])->name('settings.employees');
+    Route::post('/settings/teams', [SettingsController::class, 'storeTeam'])->name('settings.teams');
+    Route::put('/settings/teams/{team}', [SettingsController::class, 'updateTeam'])->name('settings.teams.update');
+    Route::delete('/settings/teams/{team}', [SettingsController::class, 'destroyTeam'])->name('settings.teams.destroy');
+    Route::post('/settings/teams/{team}/members', [SettingsController::class, 'syncTeamMembers'])->name('settings.teams.members');
     Route::patch('/settings/institution', [SettingsController::class, 'updateInstitution'])->name('settings.institution');
     Route::patch('/settings/privacy', [SettingsController::class, 'updatePrivacy'])->name('settings.privacy');
     Route::post('/settings/password/email', [SettingsController::class, 'sendPasswordResetLink'])->name('settings.password.email');
