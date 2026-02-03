@@ -20,7 +20,7 @@ class InstitutionController extends Controller
     {
         return Institution::query()
             ->orderBy('name')
-            ->get(['id', 'name']);
+            ->get(['id', 'name', 'is_email_only']);
     }
 
     public function store(Request $request)
