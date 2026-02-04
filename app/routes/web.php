@@ -8,11 +8,16 @@ use App\Http\Controllers\SettingsController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
-Route::get('/', function () {
-    return auth()->check()
-        ? redirect()->route('dashboard')
-        : redirect()->route('login');
-});
+Route::get('/', [ProblemController::class, 'landing'])->name('landing');
+
+Route::get('/faq', fn () => Inertia::render('Faq'))->name('faq');
+Route::get('/privacy', fn () => Inertia::render('PrivacyPolicy'))->name('privacy');
+Route::get('/contacts', fn () => Inertia::render('Contacts'))->name('contacts');
+Route::get('/help', fn () => Inertia::render('Help'))->name('help');
+
+Route::get('/statistika', fn () => Inertia::render('PublicStatistics'))->name('public.statistics');
+
+Route::get('/reports', [ProblemController::class, 'publicMap'])->name('reports');
 
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::middleware(['permission:issues.view'])->group(function () {

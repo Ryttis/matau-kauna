@@ -598,6 +598,48 @@ class ProblemController extends Controller
         ]);
     }
 
+    public function landing(): Response
+    {
+        return Inertia::render('Landing', [
+            'problems' => $this->getPublicProblemsForMap(),
+        ]);
+    }
+
+    public function publicMap(): Response
+    {
+        return Inertia::render('PublicMap', [
+            'problems' => $this->getPublicProblemsForMap(),
+        ]);
+    }
+
+    private function getPublicProblemsForMap(): array
+    {
+        $centerLat = 54.8985;
+        $centerLng = 23.9036;
+
+        return Problem::query()
+            ->orderBy('address')
+            ->orderBy('created_at', 'desc')
+            ->get(['id', 'internal_number', 'title', 'status', 'category', 'address', 'lat', 'lng', 'created_at'])
+            ->map(function ($problem, $index) use ($centerLat, $centerLng) {
+                $hasCoords = $problem->lat !== null && $problem->lng !== null;
+                $offset = $index * 0.002;
+                return [
+                    'id' => $problem->id,
+                    'internal_number' => $problem->internal_number,
+                    'title' => $problem->title,
+                    'status' => $problem->status,
+                    'category' => $problem->category,
+                    'address' => $problem->address,
+                    'created_at' => $problem->created_at?->toIso8601String(),
+                    'lat' => $hasCoords ? (float) $problem->lat : $centerLat + ($offset * 0.1),
+                    'lng' => $hasCoords ? (float) $problem->lng : $centerLng + ($offset * 0.1),
+                ];
+            })
+            ->values()
+            ->all();
+    }
+
     public function statistics(Request $request): Response
     {
         $user = $request->user();
