@@ -22,104 +22,113 @@ class ProblemSeeder extends Seeder
 
         $statuses = ProblemStatus::values();
 
-        $categories = [
-            'Eismas',
-            'Keliai',
-            'Apšvietimas',
-            'Infrastruktūra',
-            'Pėsčiųjų takai',
-            'Aplinka',
-            'Viešoji tvarka',
-            'Parkai',
+        $problemsData = [
+            [
+                'address' => 'Laisvės al. 1, Kaunas',
+                'lat' => 54.8985,
+                'lng' => 23.8863,
+                'title' => 'Sugedęs šviesoforas',
+                'category' => 'Eismas',
+                'description' => 'Neveikia šviesoforas sankryžoje',
+            ],
+            [
+                'address' => 'Gedimino g. 5, Kaunas',
+                'lat' => 54.8970,
+                'lng' => 23.8850,
+                'title' => 'Duobė kelyje',
+                'category' => 'Keliai',
+                'description' => 'Didelė duobė važiuojamojoje dalyje',
+            ],
+            [
+                'address' => 'Vilniaus g. 12, Kaunas',
+                'lat' => 54.8990,
+                'lng' => 23.8920,
+                'title' => 'Neveikiantis apšvietimas',
+                'category' => 'Apšvietimas',
+                'description' => 'Nedega gatvės šviestuvas',
+            ],
+            [
+                'address' => 'Kęstučio g. 25, Kaunas',
+                'lat' => 54.9010,
+                'lng' => 23.9080,
+                'title' => 'Sugedęs šaligatvis',
+                'category' => 'Pėsčiųjų takai',
+                'description' => 'Atskilę plytelės',
+            ],
+            [
+                'address' => 'Vytauto pr. 45, Kaunas',
+                'lat' => 54.8940,
+                'lng' => 23.9180,
+                'title' => 'Užtvindyta gatvė',
+                'category' => 'Keliai',
+                'description' => 'Po lietaus telkšo vanduo',
+            ],
+            [
+                'address' => 'Donelaičio g. 8, Kaunas',
+                'lat' => 54.8960,
+                'lng' => 23.8810,
+                'title' => 'Pažeistas asfaltas',
+                'category' => 'Keliai',
+                'description' => 'Iškilęs asfaltas kelio ruože',
+            ],
+            [
+                'address' => 'Maironio g. 15, Kaunas',
+                'lat' => 54.8975,
+                'lng' => 23.8870,
+                'title' => 'Sugedęs tvoros elementas',
+                'category' => 'Infrastruktūra',
+                'description' => 'Pažeistas tvoros elementas',
+            ],
+            [
+                'address' => 'Rotušės a. 3, Kaunas',
+                'lat' => 54.8972,
+                'lng' => 23.8865,
+                'title' => 'Neveikiantis fontanas',
+                'category' => 'Parkai',
+                'description' => 'Neveikia fontano sistema',
+            ],
         ];
 
-        $addresses = [
-            'Laisvės al. 1, Kaunas',
-            'Gedimino g. 5, Kaunas',
-            'Vilniaus g. 12, Kaunas',
-            'Kęstučio g. 25, Kaunas',
-            'Vytauto pr. 45, Kaunas',
-            'Donelaičio g. 8, Kaunas',
-            'Maironio g. 15, Kaunas',
-            'Rotušės a. 3, Kaunas',
-            'Nepriklausomybės a. 12, Kaunas',
-            'K. Donelaičio g. 62, Kaunas',
+        $responsibleNames = [
+            'Antanas Antanaitis',
+            'Jonas Jonaitis',
+            'Petras Petraitis',
         ];
 
-        $titles = [
-            'Sugedęs šviesoforas',
-            'Duobė kelyje',
-            'Neveikiantis apšvietimas',
-            'Užtvindyta gatvė',
-            'Sugedęs šaligatvis',
-            'Nelegalus šiukšlynas',
-            'Triukšmas naktį',
-            'Sugedęs suoliukas',
-            'Sulūžęs stulpas',
-            'Pažeista žolė',
-            'Neveikiantis fontanas',
-            'Sugedęs tvoros elementas',
-            'Užterštas vanduo',
-            'Pažeistas asfaltas',
-            'Neveikiantis šildymas',
+        $comments = [
+            'Problema perduota nagrinėjimui',
+            'Reikia papildomų tyrimų',
+            'Laukiama atsakymo iš atsakingos institucijos',
+            'Problema išspręsta',
         ];
 
-        $descriptions = [
-            'Neveikia šviesoforas sankryžoje',
-            'Didelė duobė važiuojamojoje dalyje',
-            'Nedega gatvės šviestuvas',
-            'Po lietaus telkšo vanduo',
-            'Atskilę plytelės',
-            'Paliktos statybinės atliekos',
-            'Triukšmingi renginiai po 23 val.',
-            'Sulūžusi sėdimoji dalis',
-            'Nulūžęs apšvietimo stulpas',
-            'Išrausta žolė parke',
-            'Neveikia fontano sistema',
-            'Pažeistas tvoros elementas',
-            'Užterštas vanduo baseine',
-            'Iškilęs asfaltas kelio ruože',
-            'Neveikia šildymo sistema',
-        ];
-
-        for ($i = 0; $i < 25; $i++) {
+        foreach ($problemsData as $i => $data) {
             $daysAgo = rand(0, 30);
             $createdAt = Carbon::now()->subDays($daysAgo);
             $statusUpdatedAt = $createdAt->copy()->addDays(rand(0, min($daysAgo, 10)));
 
-            $problem = new Problem([
+            $problem = Problem::create([
                 'status' => $statuses[array_rand($statuses)],
-                'title' => $titles[array_rand($titles)],
-                'category' => $categories[array_rand($categories)],
-                'address' => $addresses[array_rand($addresses)],
-                'description' => $descriptions[array_rand($descriptions)],
+                'title' => $data['title'],
+                'category' => $data['category'],
+                'address' => $data['address'],
+                'lat' => $data['lat'],
+                'lng' => $data['lng'],
+                'description' => $data['description'],
                 'status_updated_at' => $statusUpdatedAt,
             ]);
 
             $problem->created_at = $createdAt;
             $problem->updated_at = $createdAt;
-            $problem->save();
-
-            $responsibleNames = [
-                'Antanas Antanaitis',
-                'Jonas Jonaitis',
-                'Petras Petraitis',
-                'Marius Mariusaitis',
-                'Tomas Tomaitis',
-            ];
-
-            $comments = [
-                'Problema perduota nagrinėjimui',
-                'Reikia papildomų tyrimų',
-                'Laukiama atsakymo iš atsakingos institucijos',
-                'Problema išspręsta',
-                'Reikia papildomos informacijos',
-            ];
+            $problem->saveQuietly();
 
             $historyCount = rand(2, 4);
             for ($j = 0; $j < $historyCount; $j++) {
-                $historyDate = $createdAt->copy()->addDays(rand(1, max(1, $daysAgo)))->addHours(rand(8, 18))->addMinutes(rand(0, 59));
-                
+                $historyDate = $createdAt->copy()
+                    ->addDays(rand(1, max(1, $daysAgo)))
+                    ->addHours(rand(8, 18))
+                    ->addMinutes(rand(0, 59));
+
                 ProblemReviewHistory::create([
                     'problem_id' => $problem->id,
                     'status' => $statuses[array_rand($statuses)],

@@ -17,6 +17,8 @@ class Problem extends Model
         'title',
         'category',
         'address',
+        'lat',
+        'lng',
         'description',
         'status_updated_at',
         'institution_id',

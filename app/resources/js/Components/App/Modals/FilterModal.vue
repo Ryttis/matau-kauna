@@ -2,11 +2,23 @@
 import { ref, watch } from 'vue'
 import BaseModal from '@/Components/App/BaseModal.vue'
 import AppButton from '@/Components/App/AppButton.vue'
+import AppCheckbox from '@/Components/App/AppCheckbox.vue'
 import AppInput from '@/Components/App/AppInput.vue'
 import AppSelect from '@/Components/App/AppSelect.vue'
 
+const PUBLIC_STATUS_OPTIONS = [
+    { value: 'nauja', label: 'Nauja' },
+    { value: 'nagrinejama', label: 'Nagrinėjama' },
+    { value: 'isspresta', label: 'Išspręsta' },
+]
+
 const props = defineProps({
     show: Boolean,
+    variant: {
+        type: String,
+        default: 'dashboard',
+        validator: (v) => ['dashboard', 'publicMap'].includes(v),
+    },
     filters: {
         type: Object,
         default: () => ({
@@ -15,7 +27,8 @@ const props = defineProps({
             dateFrom: '',
             dateTo: '',
             status: '',
-        })
+            statuses: [],
+        }),
     },
     categories: Array,
     allStatusOptions: Array,
@@ -23,37 +36,74 @@ const props = defineProps({
 
 const emit = defineEmits(['close', 'apply', 'clear'])
 
+const isPublicMap = () => props.variant === 'publicMap'
+
 const localFilters = ref({
     reportNumber: props.filters?.reportNumber || '',
-    problemType: props.filters?.problemType || '',
+    problemType: props.filters?.problemType ?? (isPublicMap() ? 'all' : ''),
     dateFrom: props.filters?.dateFrom || '',
     dateTo: props.filters?.dateTo || '',
     status: props.filters?.status || '',
+    statuses: props.filters?.statuses ? [...props.filters.statuses] : [],
 })
 
 watch(() => props.show, (newVal) => {
     if (newVal) {
         localFilters.value = {
             reportNumber: props.filters?.reportNumber || '',
-            problemType: props.filters?.problemType || '',
+            problemType: props.filters?.problemType ?? (isPublicMap() ? 'all' : ''),
             dateFrom: props.filters?.dateFrom || '',
             dateTo: props.filters?.dateTo || '',
             status: props.filters?.status || '',
+            statuses: props.filters?.statuses ? [...props.filters.statuses] : [],
         }
     }
 })
 
+function setStatus(value, checked) {
+    const arr = localFilters.value.statuses || []
+    if (checked) {
+        if (!arr.includes(value)) localFilters.value.statuses = [...arr, value]
+    } else {
+        localFilters.value.statuses = arr.filter((v) => v !== value)
+    }
+}
+
 const handleApply = () => {
-    emit('apply', { ...localFilters.value })
+    if (isPublicMap()) {
+        emit('apply', {
+            statuses: [...(localFilters.value.statuses || [])],
+            problemType: localFilters.value.problemType,
+            dateFrom: localFilters.value.dateFrom,
+            dateTo: localFilters.value.dateTo,
+        })
+    } else {
+        emit('apply', {
+            reportNumber: localFilters.value.reportNumber,
+            problemType: localFilters.value.problemType,
+            dateFrom: localFilters.value.dateFrom,
+            dateTo: localFilters.value.dateTo,
+            status: localFilters.value.status,
+        })
+    }
 }
 
 const handleClear = () => {
-    localFilters.value = {
-        reportNumber: '',
-        problemType: '',
-        dateFrom: '',
-        dateTo: '',
-        status: '',
+    if (isPublicMap()) {
+        localFilters.value = {
+            problemType: 'all',
+            dateFrom: '',
+            dateTo: '',
+            statuses: [],
+        }
+    } else {
+        localFilters.value = {
+            reportNumber: '',
+            problemType: '',
+            dateFrom: '',
+            dateTo: '',
+            status: '',
+        }
     }
     emit('clear')
 }
@@ -71,49 +121,72 @@ const handleClose = () => {
         @close="handleClose"
     >
         <div class="filter-modal-body">
-                <div class="filter-section">
+            <!-- Dashboard: Pranešimo numeris -->
+            <div v-if="!isPublicMap()" class="filter-section">
+                <AppInput
+                    v-model="localFilters.reportNumber"
+                    label="Pranešimo numeris"
+                    type="text"
+                    placeholder="Įrašykite numerį"
+                    variant="filter"
+                />
+            </div>
+
+            <!-- PublicMap: Būsena -->
+            <div v-else class="filter-section">
+                <label class="filter-label">Būsena</label>
+                <div class="filter-status-checkboxes">
+                    <label
+                        v-for="opt in PUBLIC_STATUS_OPTIONS"
+                        :key="opt.value"
+                        class="filter-checkbox-label"
+                    >
+                        <AppCheckbox
+                            :model-value="(localFilters.statuses || []).includes(opt.value)"
+                            @update:model-value="(checked) => setStatus(opt.value, checked)"
+                        />
+                        <span>{{ opt.label }}</span>
+                    </label>
+                </div>
+            </div>
+
+            <!-- Problemos tipas (category) -->
+            <div class="filter-section">
+                <AppSelect
+                    v-model="localFilters.problemType"
+                    label="Problemos tipas"
+                    placeholder="Pasirinkti kategorija"
+                    :variant="isPublicMap() ? 'blue' : 'white'"
+                >
+                    <option v-if="isPublicMap()" value="all">Pasirinkti kategorija</option>
+                    <option v-for="category in (categories || [])" :key="category" :value="category">
+                        {{ category }}
+                    </option>
+                </AppSelect>
+            </div>
+
+            <!-- Data -->
+            <div class="filter-section">
+                <label class="filter-label">Data</label>
+                <div class="date-inputs">
                     <AppInput
-                        v-model="localFilters.reportNumber"
-                        label="Pranešimo numeris"
+                        v-model="localFilters.dateFrom"
                         type="text"
-                        placeholder="Įrašykite numerį"
+                        placeholder="dd/mm/yyyy"
+                        variant="filter"
+                    />
+                    <AppInput
+                        v-model="localFilters.dateTo"
+                        type="text"
+                        placeholder="dd/mm/yyyy"
                         variant="filter"
                     />
                 </div>
-
-                <div class="filter-section">
-                    <AppSelect
-                        v-model="localFilters.problemType"
-                        label="Problemos tipas"
-                        placeholder="Pasirinkti kategorija"
-                    >
-                        <option v-for="category in categories" :key="category" :value="category">
-                            {{ category }}
-                        </option>
-                    </AppSelect>
-                </div>
-
-                <div class="filter-section">
-                    <label class="filter-label">Data</label>
-                    <div class="date-inputs">
-                        <AppInput
-                            v-model="localFilters.dateFrom"
-                            type="text"
-                            placeholder="dd/mm/yyyy"
-                            variant="filter"
-                        />
-                        <AppInput
-                            v-model="localFilters.dateTo"
-                            type="text"
-                            placeholder="dd/mm/yyyy"
-                            variant="filter"
-                        />
-                    </div>
-                </div>
+            </div>
         </div>
 
         <template #footer>
-            <div style="display: flex; flex-direction: column; gap: 10px; width: 100%; align-items: center;">
+            <div class="filter-modal-footer" :class="{ 'filter-modal-footer--narrow': isPublicMap() }">
                 <AppButton
                     text="Išvalyti filtrą"
                     variant="secondary"
@@ -139,7 +212,7 @@ const handleClose = () => {
 }
 
 :deep(.modal-body) {
-    padding: 30px;
+    padding: 16px 20px 20px;
 }
 
 .filter-section {
@@ -160,9 +233,41 @@ const handleClose = () => {
     line-height: 1.5;
 }
 
+.filter-status-checkboxes {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.filter-checkbox-label {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    cursor: pointer;
+    font-size: 16px;
+    color: #333;
+}
+
 .date-inputs {
     display: flex;
     gap: 10px;
+}
+
+.date-inputs :deep(.app-input-group) {
+    flex: 1;
+}
+
+.filter-modal-footer {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    width: 100%;
+    align-items: center;
+}
+
+.filter-modal-footer--narrow .filter-modal-clear-btn,
+.filter-modal-footer--narrow .filter-modal-apply-btn {
+    max-width: 260px;
 }
 
 .filter-modal-clear-btn,
