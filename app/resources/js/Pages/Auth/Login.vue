@@ -6,7 +6,7 @@ import LoginNavigation from '@/Components/Auth/Login/LoginNavigation.vue';
 import LandingHeader from '@/Components/Landing/LandingHeader.vue';
 import LandingFooter from '@/Components/Landing/LandingFooter.vue';
 import { Head, Link, useForm } from '@inertiajs/vue3';
-import { ref } from 'vue';
+import { ref, watch } from 'vue';
 
 defineProps({
     canResetPassword: {
@@ -23,9 +23,15 @@ const form = useForm({
     email: '',
     password: '',
     remember: false,
+    login_type: 'darbuotojas',
+});
+
+watch(activeRole, (tab) => {
+    form.login_type = tab;
 });
 
 const submit = () => {
+    form.login_type = activeRole.value;
     form.post(route('login'), {
         onFinish: () => form.reset('password'),
         showProgress: false,
@@ -70,22 +76,47 @@ const submit = () => {
                     <LoginActions :can-reset-password="canResetPassword" />
                 </template>
 
-                <div v-else class="login-form-actions login-form-actions--pareiskejas">
-                    <AppButton text="Prisijungti" :as-button="true" />
-                    <Link
-                        v-if="canResetPassword"
-                        :href="route('password.request')"
-                        class="login-form-link"
-                    >
-                        *Priminti slaptažodį
-                    </Link>
-                    <Link
-                        :href="route('register')"
-                        class="login-form-register"
-                    >
-                        Registruotis
-                    </Link>
-                </div>
+                <template v-else>
+                    <AuthInput
+                        id="email-pareiskejas"
+                        type="email"
+                        placeholder="Paštas"
+                        v-model="form.email"
+                        :error="form.errors.email"
+                    />
+
+                    <AuthInput
+                        id="password-pareiskejas"
+                        type="password"
+                        placeholder="Slaptažodis"
+                        v-model="form.password"
+                        :error="form.errors.password"
+                    />
+
+                    <div class="login-form-actions login-form-actions--pareiskejas">
+                        <AppButton text="Prisijungti" :as-button="false" />
+                        <Link
+                            v-if="canResetPassword"
+                            :href="route('password.request')"
+                            class="login-form-forgot"
+                        >
+                            Priminti slaptažodį
+                        </Link>
+                        <button
+                            type="button"
+                            class="login-form-el-vartai"
+                            @click.prevent
+                        >
+                            Prisijungti el. vartais
+                        </button>
+                        <Link
+                            :href="route('register')"
+                            class="login-form-register"
+                        >
+                            Registruotis
+                        </Link>
+                    </div>
+                </template>
             </form>
         </main>
 
@@ -142,13 +173,42 @@ const submit = () => {
     justify-content: center;
 }
 
-.login-form-link {
+.login-form-forgot {
     display: block;
     text-align: center;
     text-decoration: none;
     color: #333;
-    font-size: 12px;
+    font-size: 14px;
     margin-bottom: 10px;
+}
+
+.login-form-forgot:hover {
+    color: #1946A0;
+}
+
+.login-form-el-vartai {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 45px;
+    min-height: 45px;
+    margin-bottom: 10px;
+    padding: 0;
+    border-radius: 5px;
+    font-size: 18px;
+    text-align: center;
+    color: #666;
+    background: #fff;
+    border: 1px solid #ccc;
+    box-sizing: border-box;
+    cursor: pointer;
+    font-family: inherit;
+}
+
+.login-form-el-vartai:hover {
+    background: #f5f5f5;
+    color: #333;
 }
 
 .login-form-register {

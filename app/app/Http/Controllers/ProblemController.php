@@ -20,6 +20,17 @@ class ProblemController extends Controller
     public function index(Request $request): Response
     {
         $user = $request->user();
+
+        if ($user->hasRole(UserRole::ROLE_REPORTER) && ! $user->hasPermission('issues.view')) {
+            return Inertia::render('Dashboard', [
+                'reporterView' => true,
+            ]);
+        }
+
+        if (! $user->hasPermission('issues.view')) {
+            abort(403);
+        }
+
         $filters = [
             'search' => $request->get('search'),
             'status' => $request->get('status'),
@@ -57,6 +68,7 @@ class ProblemController extends Controller
         $categories = Problem::distinct()->pluck('category')->sort()->values();
 
         return Inertia::render('Dashboard', [
+            'reporterView' => false,
             'problems' => $problems,
             'filters' => $filters,
             'sortBy' => $sortBy,

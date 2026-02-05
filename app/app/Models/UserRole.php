@@ -23,6 +23,8 @@ class UserRole extends Model
 
     public const ROLE_EMPLOYEE = 'ROLE_EMPLOYEE'; // Įstaigos darbuotojas
 
+    public const ROLE_REPORTER = 'ROLE_REPORTER'; // Pareiškėjas (paprastas naudotojas)
+
     public function permissionGroups()
     {
         return $this->belongsToMany(

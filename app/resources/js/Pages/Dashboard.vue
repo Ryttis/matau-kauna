@@ -12,6 +12,10 @@ import { PROBLEM_STATUS_LABELS, PROBLEM_STATUS_OPTIONS } from '@/constants/probl
 import { useAuth } from '@/composables/useAuth'
 
 const props = defineProps({
+    reporterView: {
+        type: Boolean,
+        default: false,
+    },
     problems: Object,
     filters: Object,
     sortBy: String,
@@ -329,6 +333,11 @@ onUnmounted(() => {
     <Head title="Dashboard" />
 
     <AuthenticatedLayout>
+        <div v-if="reporterView" class="reporter-dashboard">
+            <h1 class="reporter-dashboard-title">Pareiškėjas</h1>
+        </div>
+
+        <template v-else>
         <div class="search-wrp">
             <input
                 v-model="search"
@@ -490,10 +499,22 @@ onUnmounted(() => {
             @apply="handleFilterApply"
             @clear="handleFilterClear"
         />
+        </template>
     </AuthenticatedLayout>
 </template>
 
 <style scoped>
+.reporter-dashboard {
+    padding: 24px 0;
+}
+
+.reporter-dashboard-title {
+    margin: 0;
+    font-size: 24px;
+    font-weight: 600;
+    color: #333;
+}
+
 .search-wrp {
     display: flex;
     gap: 40px;

@@ -20,8 +20,9 @@ Route::get('/statistika', fn () => Inertia::render('PublicStatistics'))->name('p
 Route::get('/reports', [ProblemController::class, 'publicMap'])->name('reports');
 
 Route::middleware(['auth', 'verified'])->group(function () {
+    Route::get('/dashboard', [ProblemController::class, 'index'])->name('dashboard');
+
     Route::middleware(['permission:issues.view'])->group(function () {
-        Route::get('/dashboard', [ProblemController::class, 'index'])->name('dashboard');
         Route::get('/map', [ProblemController::class, 'map'])->name('map');
         Route::get('/problems/assign', [ProblemController::class, 'assign'])->name('problems.assign');
         Route::post('/problems/assign', [ProblemController::class, 'storeAssign'])->name('problems.assign.store');

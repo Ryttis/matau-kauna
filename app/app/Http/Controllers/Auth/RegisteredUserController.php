@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use App\Models\UserRole;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rules\Password;
@@ -32,12 +33,20 @@ class RegisteredUserController extends Controller
             ],
         ]);
 
-        User::create([
+        $user = User::create([
             'name' => $validated['name'],
             'email' => $validated['email'],
             'password' => $validated['password'],
         ]);
 
-        return redirect()->route('login')->with('status', 'Registracija sėkminga. Galite prisijungti.');
+        $reporterRole = UserRole::firstOrCreate(
+            ['role' => UserRole::ROLE_REPORTER],
+            ['name' => 'Pareiškėjas']
+        );
+        $user->roles()->sync([$reporterRole->id]);
+
+        $user->sendEmailVerificationNotification();
+
+        return redirect()->route('login')->with('status', 'Registracija sėkminga. Patikrinkite el. paštą ir patvirtinkite paskyrą.');
     }
 }

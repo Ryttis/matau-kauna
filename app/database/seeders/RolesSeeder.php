@@ -43,6 +43,11 @@ class RolesSeeder extends Seeder
             ['name' => 'Įstaigos darbuotojas']
         );
 
+        $roleReporter = UserRole::updateOrCreate(
+            ['role' => UserRole::ROLE_REPORTER],
+            ['name' => 'Pareiškėjas']
+        );
+
         $groups = collect([
             'Users',
             'Roles',
@@ -132,6 +137,8 @@ class RolesSeeder extends Seeder
             $groups['Issues']->id,
             $groups['Statistics']->id,
         ]);
+
+        $roleReporter->permissionGroups()->sync([]);
 
         $adminUser = User::find(1);
         if ($adminUser) {
