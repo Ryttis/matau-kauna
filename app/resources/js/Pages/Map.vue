@@ -1,10 +1,11 @@
 <script setup>
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, onMounted, onUnmounted, nextTick } from 'vue'
 import { Head, router } from '@inertiajs/vue3'
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue'
 import AppButton from '@/Components/App/AppButton.vue'
 import FilterModal from '@/Components/App/Modals/FilterModal.vue'
 import { useAuth } from '@/composables/useAuth'
+import { loadLeaflet, createBaseMap } from '@/composables/leafletKaunas'
 
 const props = defineProps({
     categories: Array,
@@ -28,49 +29,15 @@ const filters = ref({
     status: '',
 })
 
-const kaunasCenter = [54.8985, 23.9036]
-const kaunasBounds = [
-    [54.75, 23.65],
-    [55.05, 24.15]
-]
-
-const initMap = () => {
-    if (mapInitialized || !mapContainer.value) return
-
-    if (typeof L === 'undefined') return
-
-    map = L.map(mapContainer.value, {
-        center: kaunasCenter,
-        zoom: 12,
-        maxBounds: kaunasBounds,
-        maxBoundsViscosity: 1.0
-    })
-
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '© OpenStreetMap contributors',
-        maxZoom: 18
-    }).addTo(map)
-
-    map.setMaxBounds(kaunasBounds)
+function initMap() {
+    if (mapInitialized || !mapContainer.value || typeof L === 'undefined') return
+    map = createBaseMap(mapContainer.value)
+    if (!map) return
     mapInitialized = true
 }
 
 onMounted(() => {
-    const link = document.createElement('link')
-    link.rel = 'stylesheet'
-    link.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css'
-    link.integrity = 'sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY='
-    link.crossOrigin = ''
-    document.head.appendChild(link)
-
-    const script = document.createElement('script')
-    script.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js'
-    script.integrity = 'sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo='
-    script.crossOrigin = ''
-    script.onload = () => {
-        setTimeout(initMap, 100)
-    }
-    document.head.appendChild(script)
+    loadLeaflet().then(() => nextTick(() => setTimeout(initMap, 100)))
 })
 
 onUnmounted(() => {
@@ -105,17 +72,13 @@ const handleFilterClose = () => {
     showFilterModal.value = false
 }
 
-const handleAssignProblem = () => {
-    // TODO: atidaryti assign puslapį arba modalą pagal rolę
-}
+const handleAssignProblem = () => {}
 
 const handleAssignInstitution = () => {
     router.visit(route('dashboard'))
 }
 
-const handleDisplayStatus = () => {
-    // TODO: atidaryti būsenos keitimo modalą
-}
+const handleDisplayStatus = () => {}
 
 const handleIeskoti = () => {}
 </script>

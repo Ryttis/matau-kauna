@@ -42,6 +42,10 @@ const props = defineProps({
         type: String,
         default: 'row',
         validator: (value) => ['row', 'column'].includes(value)
+    },
+    zIndex: {
+        type: Number,
+        default: 1000
     }
 })
 
@@ -61,7 +65,7 @@ const handleOverlayClick = (event) => {
 </script>
 
 <template>
-    <div v-if="isOpen" class="modal-overlay" @click="handleOverlayClick">
+    <div v-if="isOpen" class="modal-overlay" :style="{ zIndex: props.zIndex }" @click="handleOverlayClick">
         <div class="modal" :style="{ width, maxWidth: maxWidth || 'none', minWidth: minWidth || 'none', maxHeight: maxHeight || 'none' }" @click.stop>
             <div v-if="$slots.header || title || showCloseButton" class="modal-header">
                 <slot name="header">
@@ -100,7 +104,6 @@ const handleOverlayClick = (event) => {
     display: flex;
     align-items: center;
     justify-content: center;
-    z-index: 1000;
     padding: 20px;
 }
 

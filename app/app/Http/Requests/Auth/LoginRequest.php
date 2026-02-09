@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Auth;
 
+use App\Models\UserRole;
 use Illuminate\Auth\Events\Lockout;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\Facades\Auth;
@@ -29,6 +30,7 @@ class LoginRequest extends FormRequest
         return [
             'email' => ['required', 'string', 'email'],
             'password' => ['required', 'string'],
+            'login_type' => ['required', 'string', 'in:pareiskejas,darbuotojas'],
         ];
     }
 
@@ -47,6 +49,40 @@ class LoginRequest extends FormRequest
             throw ValidationException::withMessages([
                 'email' => trans('auth.failed'),
             ]);
+        }
+
+        $user = Auth::user();
+        $loginType = $this->string('login_type')->toString();
+
+        $staffRoles = [
+            UserRole::ROLE_SYSTEM_ADMIN,
+            UserRole::ROLE_PROBLEM_ADMIN,
+            UserRole::ROLE_INSTITUTION_ADMIN,
+            UserRole::ROLE_MUNICIPALITY_REP,
+            UserRole::ROLE_EMPLOYEE,
+        ];
+        $hasStaffRole = collect($staffRoles)->contains(fn ($role) => $user->hasRole($role));
+
+        if ($loginType === 'pareiskejas') {
+            if (! $user->hasRole(UserRole::ROLE_REPORTER) || $hasStaffRole) {
+                Auth::logout();
+                $this->session()->invalidate();
+                $this->session()->regenerateToken();
+
+                throw ValidationException::withMessages([
+                    'email' => trans('auth.failed'),
+                ]);
+            }
+        } else {
+            if (! $hasStaffRole) {
+                Auth::logout();
+                $this->session()->invalidate();
+                $this->session()->regenerateToken();
+
+                throw ValidationException::withMessages([
+                    'email' => trans('auth.failed'),
+                ]);
+            }
         }
 
         RateLimiter::clear($this->throttleKey());

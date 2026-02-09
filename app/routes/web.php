@@ -18,10 +18,22 @@ Route::get('/help', fn () => Inertia::render('Help'))->name('help');
 Route::get('/statistika', fn () => Inertia::render('PublicStatistics'))->name('public.statistics');
 
 Route::get('/reports', [ProblemController::class, 'publicMap'])->name('reports');
+Route::get('/reports/{problem}', [ProblemController::class, 'publicShow'])->name('reports.show');
 
-Route::middleware(['auth', 'verified'])->group(function () {
+Route::middleware(['auth', 'verified', 'reporter.terms'])->group(function () {
+    Route::get('/reporter/terms', [\App\Http\Controllers\Auth\ReporterTermsController::class, 'show'])
+        ->name('reporter.terms');
+    Route::post('/reporter/terms', [\App\Http\Controllers\Auth\ReporterTermsController::class, 'store'])
+        ->name('reporter.terms.store');
+
+    Route::get('/dashboard', [ProblemController::class, 'index'])->name('dashboard');
+    Route::get('/reporter/report', [ProblemController::class, 'reporterReport'])->name('reporter.report');
+    Route::post('/reporter/report', [ProblemController::class, 'reporterReportStore'])->name('reporter.report.store');
+    Route::post('/reporter/wizard-dismissed', [ProblemController::class, 'reporterWizardDismissed'])->name('reporter.wizardDismissed');
+    Route::post('/reporter/terms-accepted', [ProblemController::class, 'reporterTermsAccepted'])->name('reporter.termsAccepted');
+    Route::get('/problems/{problem}/review-progress', [ProblemController::class, 'reviewProgress'])->name('problems.reviewProgress');
+
     Route::middleware(['permission:issues.view'])->group(function () {
-        Route::get('/dashboard', [ProblemController::class, 'index'])->name('dashboard');
         Route::get('/map', [ProblemController::class, 'map'])->name('map');
         Route::get('/problems/assign', [ProblemController::class, 'assign'])->name('problems.assign');
         Route::post('/problems/assign', [ProblemController::class, 'storeAssign'])->name('problems.assign.store');
@@ -30,7 +42,6 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('/problems/{problem}/assign', [ProblemController::class, 'assignSingle'])->name('problems.assign.single');
         Route::get('/problems/{problem}/assign-institution', [ProblemController::class, 'assignInstitution'])->name('problems.assignInstitution');
         Route::post('/problems/{problem}/assign-institution', [ProblemController::class, 'storeAssignInstitution'])->name('problems.assignInstitution.store');
-        Route::get('/problems/{problem}/review-progress', [ProblemController::class, 'reviewProgress'])->name('problems.reviewProgress');
         Route::get('/problems/{problem}/merge', [ProblemController::class, 'merge'])->name('problems.merge');
         Route::get('/problems/{problem}', [ProblemController::class, 'show'])->name('problems.show');
         Route::put('/problems/{problem}', [ProblemController::class, 'update'])->name('problems.update');

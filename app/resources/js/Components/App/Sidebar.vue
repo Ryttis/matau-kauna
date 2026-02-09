@@ -13,6 +13,11 @@ const canAccessIssues = computed(() =>
     isSystemAdmin.value || permissions.value.includes('issues.view')
 )
 
+const isReporterOnly = computed(() => {
+    const r = roles.value || []
+    return r.length === 1 && r[0]?.role === 'ROLE_REPORTER'
+})
+
 const canAccessStatistics = computed(() =>
     isSystemAdmin.value || permissions.value.includes('statistics.view')
 )
@@ -49,7 +54,26 @@ const toggleStatistics = () => {
 
         <nav class="nav">
             <div class="nav-top">
-                <template v-if="canAccessIssues">
+                <template v-if="isReporterOnly">
+                    <Link
+                        href="/dashboard"
+                        class="nav-link"
+                        :class="{ active: isActive('/dashboard') }"
+                    >
+                        <img src="/icons/map-icon.png" />
+                        <span>Žemėlapis</span>
+                    </Link>
+                    <Link
+                        :href="route('reporter.report')"
+                        class="nav-link"
+                        :class="{ active: isActive('/reporter/report') }"
+                    >
+                        <img src="/icons/pencil-icon.png" />
+                        <span>Pranešimas</span>
+                    </Link>
+                </template>
+
+                <template v-else-if="canAccessIssues">
                     <Link
                         href="/dashboard"
                         class="nav-link"

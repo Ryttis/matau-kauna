@@ -19,7 +19,9 @@
 </template>
 
 <script setup>
-import { ref, watch, onMounted, onUnmounted } from 'vue'
+import { ref, watch, onMounted, onUnmounted, nextTick } from 'vue'
+import { loadLeaflet, createBaseMap } from '@/composables/leafletKaunas'
+import { getMarkerColorForStatus } from '@/constants/problemStatus'
 
 const props = defineProps({
     problems: { type: Array, default: () => [] },
@@ -30,32 +32,15 @@ let map = null
 let mapInitialized = false
 let markersLayer = null
 
-const kaunasCenter = [54.8985, 23.9036]
-const kaunasBounds = [
-    [54.75, 23.65],
-    [55.05, 24.15]
-]
-
-const markerColorByStatus = {
-    nauja: '#e67e22',
-    nagrinejama: '#f1c40f',
-    isspresta: '#27ae60',
-    neuzregistruota: '#95a5a6',
-    neaktuali: '#95a5a6',
-}
-
-function getMarkerColor(status) {
-    return markerColorByStatus[status] || '#95a5a6'
-}
-
 function updateMarkers() {
     if (!map || !markersLayer || typeof L === 'undefined') return
     markersLayer.clearLayers()
     const list = props.problems || []
     list.forEach((p) => {
+        const color = getMarkerColorForStatus(p.status)
         const icon = L.divIcon({
             className: 'landing-map-marker',
-            html: `<span style="background-color:${getMarkerColor(p.status)};width:14px;height:14px;border-radius:50%;border:2px solid #fff;box-shadow:0 1px 3px rgba(0,0,0,0.3);display:block;"></span>`,
+            html: `<span style="background-color:${color};width:14px;height:14px;border-radius:50%;border:2px solid #fff;box-shadow:0 1px 3px rgba(0,0,0,0.3);display:block;"></span>`,
             iconSize: [14, 14],
             iconAnchor: [7, 7],
         })
@@ -67,24 +52,8 @@ function updateMarkers() {
 
 function initMap() {
     if (mapInitialized || !mapContainer.value || typeof L === 'undefined') return
-
-    map = L.map(mapContainer.value, {
-        center: kaunasCenter,
-        zoom: 12,
-        maxBounds: kaunasBounds,
-        maxBoundsViscosity: 1.0,
-        zoomControl: false
-    })
-
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '© OpenStreetMap contributors',
-        maxZoom: 18
-    }).addTo(map)
-
-    map.setMaxBounds(kaunasBounds)
-    map.setMinZoom(11)
-    map.setMaxZoom(14)
-    L.control.zoom({ position: 'topright' }).addTo(map)
+    map = createBaseMap(mapContainer.value, { maxZoom: 14 })
+    if (!map) return
     markersLayer = L.layerGroup().addTo(map)
     mapInitialized = true
     updateMarkers()
@@ -93,25 +62,14 @@ function initMap() {
 watch(() => props.problems, () => updateMarkers(), { deep: true })
 
 onMounted(() => {
-    const link = document.createElement('link')
-    link.rel = 'stylesheet'
-    link.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css'
-    link.integrity = 'sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY='
-    link.crossOrigin = ''
-    document.head.appendChild(link)
-
-    const script = document.createElement('script')
-    script.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js'
-    script.integrity = 'sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo='
-    script.crossOrigin = ''
-    script.onload = () => setTimeout(initMap, 100)
-    document.head.appendChild(script)
+    loadLeaflet().then(() => nextTick(() => setTimeout(initMap, 100)))
 })
 
 onUnmounted(() => {
     if (map) {
         map.remove()
         map = null
+        markersLayer = null
         mapInitialized = false
     }
 })

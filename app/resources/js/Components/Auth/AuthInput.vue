@@ -34,6 +34,7 @@ defineEmits(['update:modelValue']);
     <div class="form-input-wrp">
         <input
             class="form-input"
+            :class="{ 'form-input--error': error }"
             :id="id"
             :type="type"
             :placeholder="placeholder"
@@ -43,6 +44,7 @@ defineEmits(['update:modelValue']);
             autofocus
             @input="$emit('update:modelValue', $event.target.value)"
         />
+        <p v-if="error" class="form-input-error">{{ error }}</p>
     </div>
 </template>
 
@@ -56,7 +58,17 @@ defineEmits(['update:modelValue']);
     padding: 10px;
     border: 1px solid #D9D9D9;
     border-radius: 5px;
-    margin-bottom: 10px;
+    margin-bottom: 4px;
     font-size: 18px;
+}
+
+.form-input--error {
+    border-color: #c00;
+}
+
+.form-input-error {
+    color: #c00;
+    font-size: 14px;
+    margin: 0 0 10px 0;
 }
 </style>

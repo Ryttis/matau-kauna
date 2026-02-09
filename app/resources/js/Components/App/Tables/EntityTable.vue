@@ -14,8 +14,6 @@ const props = defineProps({
         type: [String, Function],
         default: 'id'
     },
-
-    // Sorting
     sortBy: {
         type: String,
         default: ''
@@ -24,8 +22,6 @@ const props = defineProps({
         type: String,
         default: 'asc'
     },
-
-    // Selection (optional)
     selectable: {
         type: Boolean,
         default: false
@@ -38,8 +34,6 @@ const props = defineProps({
         type: Boolean,
         default: false
     },
-
-    // Row interaction (optional)
     rowClickable: {
         type: Boolean,
         default: false
