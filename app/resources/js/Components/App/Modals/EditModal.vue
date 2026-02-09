@@ -1,7 +1,7 @@
 <script setup>
-import { ref, watch, computed } from 'vue'
+import { ref, watch } from 'vue'
 import { router } from '@inertiajs/vue3'
-import { PROBLEM_STATUS_LABELS } from '@/constants/problemStatus'
+import StatusBadge from '@/Components/Problems/StatusBadge.vue'
 import BaseModal from '@/Components/App/BaseModal.vue'
 import AppButton from '@/Components/App/AppButton.vue'
 import AppInput from '@/Components/App/AppInput.vue'
@@ -36,9 +36,6 @@ watch(() => props.show, (newVal) => {
     }
 })
 
-const currentStatusLabel = computed(() => {
-    return PROBLEM_STATUS_LABELS[props.problem?.status] || 'Neužregistruota'
-})
 
 const handleClose = () => {
     emit('close')
@@ -91,7 +88,7 @@ const handleFileAttach = () => {
                         <span class="edit-date-value">{{ new Date(problem.created_at).toLocaleDateString('lt-LT') }}</span>
                     </div>
                     <div class="edit-field-group">
-                        <span class="edit-status-badge">{{ currentStatusLabel }}</span>
+                        <StatusBadge :status="problem?.status" />
                     </div>
                 </div>
 
@@ -216,19 +213,6 @@ const handleFileAttach = () => {
     display: block;
     margin-bottom: 8px;
 }
-
-.edit-status-badge {
-    display: inline-block;
-    padding: 6px 12px;
-    background-color: #f5f5f5;
-    border: 1px solid #e0e0e0;
-    border-radius: 20px;
-    font-size: 14px;
-    color: #333;
-    font-family: 'Inter', sans-serif;
-    width: fit-content;
-}
-
 
 .edit-file-attach {
     grid-column: 2;

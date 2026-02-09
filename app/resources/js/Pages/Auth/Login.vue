@@ -109,12 +109,6 @@ const submit = () => {
                         >
                             Prisijungti el. vartais
                         </button>
-                        <Link
-                            :href="route('register')"
-                            class="login-form-register"
-                        >
-                            Registruotis
-                        </Link>
                     </div>
                 </template>
             </form>

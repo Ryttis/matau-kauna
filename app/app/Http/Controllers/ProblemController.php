@@ -22,8 +22,11 @@ class ProblemController extends Controller
         $user = $request->user();
 
         if ($user->hasRole(UserRole::ROLE_REPORTER) && ! $user->hasPermission('issues.view')) {
+            $onlyMine = $request->boolean('only_mine');
             return Inertia::render('Dashboard', [
                 'reporterView' => true,
+                'onlyMine' => $onlyMine,
+                'problems' => $this->getPublicProblemsForMap($onlyMine ? $user->id : null),
             ]);
         }
 
@@ -349,16 +352,24 @@ class ProblemController extends Controller
     public function reviewProgress(Problem $problem): Response
     {
         $user = request()->user();
-        if ($user && $this->isInstitutionScoped($user)) {
+        if (! $user) {
+            abort(403);
+        }
+        if ($user->hasRole(UserRole::ROLE_REPORTER) && ! $user->hasPermission('issues.view')) {
+            if ((int) $problem->reported_by_user_id !== (int) $user->id) {
+                abort(403);
+            }
+        } elseif ($user && $this->isInstitutionScoped($user)) {
             if ((int) $problem->institution_id !== (int) $user->institution_id) {
                 abort(403);
             }
-        }
-        if ($user && $this->isEmployeeScoped($user)) {
+        } elseif ($user && $this->isEmployeeScoped($user)) {
             $employeeId = $this->employeeIdForUser($user);
             if (! $employeeId || (int) $problem->assigned_employee_id !== (int) $employeeId) {
                 abort(403);
             }
+        } elseif (! $user->hasPermission('issues.view')) {
+            abort(403);
         }
 
         $problem->load('reviewHistory');
@@ -624,12 +635,102 @@ class ProblemController extends Controller
         ]);
     }
 
-    private function getPublicProblemsForMap(): array
+    public function reporterReport(Request $request): Response
+    {
+        $user = $request->user();
+        $categories = Problem::query()
+            ->distinct()
+            ->pluck('category')
+            ->sort()
+            ->values();
+
+        return Inertia::render('ReporterReport', [
+            'categories' => $categories,
+            'showReporterWizard' => $user && ! $user->reporter_wizard_completed_at,
+            'hasAcceptedReportTerms' => $user && $user->reporter_report_terms_accepted_at !== null,
+        ]);
+    }
+
+    public function reporterWizardDismissed(Request $request): \Illuminate\Http\JsonResponse
+    {
+        $request->user()?->update(['reporter_wizard_completed_at' => now()]);
+
+        return response()->json(['ok' => true]);
+    }
+
+    public function reporterTermsAccepted(Request $request): \Illuminate\Http\JsonResponse
+    {
+        $request->user()?->update(['reporter_report_terms_accepted_at' => now()]);
+
+        return response()->json(['ok' => true]);
+    }
+
+    public function reporterReportStore(Request $request): \Illuminate\Http\JsonResponse
+    {
+        $user = $request->user();
+        if (! $user || ! $user->hasRole(UserRole::ROLE_REPORTER)) {
+            return response()->json(['message' => 'Unauthorized'], 403);
+        }
+
+        $validated = $request->validate([
+            'category' => 'required|string|max:255',
+            'description' => 'required|string|max:65535',
+            'address' => 'required|string|max:500',
+            'lat' => 'nullable|numeric',
+            'lng' => 'nullable|numeric',
+        ]);
+
+        $user->update(['reporter_report_terms_accepted_at' => now()]);
+
+        $problem = Problem::create([
+            'title' => \Str::limit($validated['description'], 255),
+            'category' => $validated['category'],
+            'address' => $validated['address'],
+            'lat' => $validated['lat'] ?? null,
+            'lng' => $validated['lng'] ?? null,
+            'description' => $validated['description'],
+            'reported_by_user_id' => $user->id,
+        ]);
+
+        return response()->json(['ok' => true, 'problem_id' => $problem->id]);
+    }
+
+    public function publicShow(Request $request, Problem $problem): Response
+    {
+        $user = $request->user();
+        $isReporterView = $user
+            && $user->hasRole(UserRole::ROLE_REPORTER)
+            && ! $user->hasPermission('issues.view');
+
+        $problemData = [
+            'id' => $problem->id,
+            'internal_number' => $problem->internal_number,
+            'title' => $problem->title,
+            'status' => $problem->status,
+            'category' => $problem->category,
+            'address' => $problem->address,
+            'description' => $problem->description,
+            'created_at' => $problem->created_at?->toIso8601String(),
+        ];
+
+        if ($isReporterView) {
+            return Inertia::render('ReporterProblemShow', [
+                'problem' => $problemData,
+            ]);
+        }
+
+        return Inertia::render('PublicProblemShow', [
+            'problem' => $problemData,
+        ]);
+    }
+
+    private function getPublicProblemsForMap(?int $reportedByUserId = null): array
     {
         $centerLat = 54.8985;
         $centerLng = 23.9036;
 
         return Problem::query()
+            ->when($reportedByUserId !== null, fn ($q) => $q->where('reported_by_user_id', $reportedByUserId))
             ->orderBy('address')
             ->orderBy('created_at', 'desc')
             ->get(['id', 'internal_number', 'title', 'status', 'category', 'address', 'lat', 'lng', 'created_at'])
@@ -680,7 +781,6 @@ class ProblemController extends Controller
             ->sort()
             ->values();
 
-        // TODO: Get institutions from database when model is available
         $institutions = [];
 
         $route = $request->route()->getName();

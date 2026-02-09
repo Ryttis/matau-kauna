@@ -4,9 +4,12 @@ import ConfirmModal from '@/Components/App/ConfirmModal.vue'
 import StatusChangeModal from '@/Components/App/Modals/StatusChangeModal.vue'
 import FilterModal from '@/Components/App/Modals/FilterModal.vue'
 import ProblemsTable from '@/Components/Problems/ProblemsTable.vue'
+import KaunasProblemsMap from '@/Components/Map/KaunasProblemsMap.vue'
+import ProblemsMapList from '@/Components/Map/ProblemsMapList.vue'
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue'
 import { Head, router } from '@inertiajs/vue3'
 import { ref, watch, computed, onMounted, onUnmounted } from 'vue'
+import { useProblemsMapFilter } from '@/composables/useProblemsMapFilter'
 import { debounce } from 'lodash-es'
 import { PROBLEM_STATUS_LABELS, PROBLEM_STATUS_OPTIONS } from '@/constants/problemStatus'
 import { useAuth } from '@/composables/useAuth'
@@ -16,7 +19,11 @@ const props = defineProps({
         type: Boolean,
         default: false,
     },
-    problems: Object,
+    onlyMine: {
+        type: Boolean,
+        default: false,
+    },
+    problems: [Object, Array],
     filters: Object,
     sortBy: String,
     sortDirection: String,
@@ -41,6 +48,53 @@ const exportWrapper = ref(null)
 const exportDropdown = ref(null)
 const problemsList = ref([])
 const showDeleteModal = ref(false)
+
+const reporterProblems = computed(() => {
+    if (!props.reporterView) return []
+    const p = props.problems
+    if (Array.isArray(p)) return p
+    if (p && typeof p === 'object' && !p.data && !p.current_page) return Object.values(p)
+    return []
+})
+
+const {
+    searchQuery: reporterSearchQuery,
+    filterState: reporterFilterState,
+    selectedIds: reporterSelectedIds,
+    categoryOptions: reporterCategoryOptions,
+    filteredProblems: reporterFilteredProblems,
+    problemsToShowOnMap: reporterProblemsToShowOnMap,
+    toggle: reporterToggle,
+    applyFilters: reporterApplyFilters,
+    clearFilters: reporterClearFilters,
+} = useProblemsMapFilter(reporterProblems)
+
+const reporterShowFilterModal = ref(false)
+function reporterOpenFilterModal() { reporterShowFilterModal.value = true }
+function reporterHandleFilterApply(filters) {
+    reporterApplyFilters(filters)
+    reporterShowFilterModal.value = false
+}
+function reporterHandleFilterClear() { reporterClearFilters() }
+
+function reporterOpenProblemView(problemId) {
+    router.visit(route('reports.show', problemId))
+}
+const reporterSelectedProblemId = computed(() =>
+    reporterSelectedIds.value.size === 1 ? [...reporterSelectedIds.value][0] : null
+)
+function reporterHandleStebeti() {
+    if (!reporterSelectedProblemId.value) return
+    router.visit(route('problems.reviewProgress', reporterSelectedProblemId.value))
+}
+
+const showOnlyMyReports = ref(props.onlyMine ?? false)
+watch(() => props.onlyMine, (v) => { showOnlyMyReports.value = !!v })
+function reporterToggleOnlyMine() {
+    const base = route('dashboard')
+    const query = showOnlyMyReports.value ? '?only_mine=1' : ''
+    router.visit(base + query, { preserveState: false })
+}
 
 const {
     canSeeProblemAdminButtons,
@@ -334,7 +388,69 @@ onUnmounted(() => {
 
     <AuthenticatedLayout>
         <div v-if="reporterView" class="reporter-dashboard">
-            <h1 class="reporter-dashboard-title">Pareiškėjas</h1>
+            <div class="reporter-dashboard-top">
+                <div class="reporter-dashboard-toolbar">
+                    <input
+                        v-model="reporterSearchQuery"
+                        type="text"
+                        class="reporter-dashboard-search"
+                        placeholder="ieškoti"
+                    />
+                    <button
+                        type="button"
+                        class="reporter-dashboard-filter-btn"
+                        aria-label="Filtruoti"
+                        @click="reporterOpenFilterModal"
+                    >
+                        <img src="/icons/filter-icon.png" class="reporter-dashboard-filter-icon" alt="" />
+                    </button>
+                </div>
+                <label class="reporter-dashboard-checkbox-label">
+                    <input
+                        v-model="showOnlyMyReports"
+                        type="checkbox"
+                        class="reporter-dashboard-checkbox"
+                        @change="reporterToggleOnlyMine"
+                    />
+                    <span>Rodyti tik mano pranešimus</span>
+                </label>
+            </div>
+            <div class="reporter-dashboard-layout">
+                <div class="reporter-dashboard-map-wrap">
+                    <KaunasProblemsMap
+                        :problems="reporterProblemsToShowOnMap"
+                        marker-class="reporter-dashboard-marker"
+                        @open-problem="reporterOpenProblemView"
+                    />
+                </div>
+                <aside class="reporter-dashboard-list">
+                    <ProblemsMapList
+                        :problems="reporterFilteredProblems"
+                        :all-count="reporterProblems.length"
+                        :selected-ids="reporterSelectedIds"
+                        @select="reporterToggle"
+                        @open="reporterOpenProblemView"
+                    />
+                    <div class="reporter-dashboard-actions">
+                        <AppButton
+                            text="Stebėti"
+                            variant="primary"
+                            as-button
+                            :disabled="!reporterSelectedProblemId"
+                            @click="reporterHandleStebeti"
+                        />
+                    </div>
+                </aside>
+            </div>
+            <FilterModal
+                :show="reporterShowFilterModal"
+                variant="publicMap"
+                :filters="reporterFilterState"
+                :categories="reporterCategoryOptions"
+                @close="reporterShowFilterModal = false"
+                @apply="reporterHandleFilterApply"
+                @clear="reporterHandleFilterClear"
+            />
         </div>
 
         <template v-else>
@@ -505,14 +621,138 @@ onUnmounted(() => {
 
 <style scoped>
 .reporter-dashboard {
-    padding: 24px 0;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    min-height: 0;
+    flex: 1;
+    height: 100%;
+    min-height: 500px;
 }
 
-.reporter-dashboard-title {
-    margin: 0;
-    font-size: 24px;
-    font-weight: 600;
+.reporter-dashboard-top {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    flex-shrink: 0;
+}
+
+.reporter-dashboard-toolbar {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+.reporter-dashboard-search {
+    flex: 1;
+    min-width: 0;
+    max-width: 400px;
+    height: 40px;
+    border: none;
+    border-radius: 20px;
+    background: #f6f7f9;
     color: #333;
+    padding: 0 16px;
+    font-size: 14px;
+    box-sizing: border-box;
+}
+
+.reporter-dashboard-search::placeholder {
+    color: #999;
+}
+
+.reporter-dashboard-filter-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    padding: 0;
+    border: none;
+    border-radius: 50%;
+    background: transparent;
+    cursor: pointer;
+}
+
+.reporter-dashboard-filter-btn:hover {
+    background: #f0f0f0;
+}
+
+.reporter-dashboard-filter-icon {
+    width: 24px;
+    height: 24px;
+}
+
+.reporter-dashboard-checkbox-label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 14px;
+    color: #333;
+    cursor: pointer;
+    margin: 0;
+    padding: 4px 0;
+}
+
+.reporter-dashboard-checkbox-label span {
+    user-select: none;
+}
+
+.reporter-dashboard-checkbox {
+    width: 18px;
+    height: 18px;
+    flex-shrink: 0;
+    cursor: pointer;
+}
+
+.reporter-dashboard-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 3fr) minmax(280px, 2fr);
+    gap: 1rem;
+    flex: 1;
+    min-height: 450px;
+    height: 100%;
+}
+
+.reporter-dashboard-map-wrap {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    background: #fafafa;
+}
+
+.reporter-dashboard-map-wrap :deep(.kaunas-map-container) {
+    min-height: 350px;
+    height: 350px;
+}
+
+.reporter-dashboard-map-wrap :deep(.leaflet-marker-icon.reporter-dashboard-marker) {
+    background: transparent !important;
+    border: none !important;
+}
+
+.reporter-dashboard-list {
+    background: #f6f7f9;
+    padding: 1.25rem 1rem 1.5rem;
+    overflow-y: auto;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.reporter-dashboard-actions {
+    flex-shrink: 0;
+}
+
+.reporter-dashboard-actions .app-button {
+    width: 100%;
+}
+
+@media (max-width: 900px) {
+    .reporter-dashboard-layout {
+        grid-template-columns: 1fr;
+    }
 }
 
 .search-wrp {

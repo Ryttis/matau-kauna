@@ -104,10 +104,9 @@ const updatePassword = () => {
 }
 
 const requestPasswordReset = () => {
-  // simple post; you can show status flash on success
-  passwordForm.post(route('settings.password.email'), {
-    preserveScroll: true,
-  })
+    passwordForm.post(route('settings.password.email'), {
+        preserveScroll: true,
+    })
 }
 
 const deleteAccount = () => {

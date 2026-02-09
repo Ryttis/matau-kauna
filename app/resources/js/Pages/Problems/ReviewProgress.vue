@@ -1,9 +1,10 @@
 <script setup>
-import { computed, ref } from 'vue'
+import { ref } from 'vue'
 import { Head, router } from '@inertiajs/vue3'
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue'
 import AppBackButton from '@/Components/App/AppBackButton.vue'
 import AddEntryModal from '@/Components/App/Modals/AddEntryModal.vue'
+import StatusBadge from '@/Components/Problems/StatusBadge.vue'
 import { PROBLEM_STATUS_LABELS } from '@/constants/problemStatus'
 
 const showAddEntryModal = ref(false)
@@ -22,10 +23,6 @@ const props = defineProps({
         type: Array,
         default: () => []
     }
-})
-
-const currentStatusLabel = computed(() => {
-    return PROBLEM_STATUS_LABELS[props.problem?.status] || 'Neužregistruota'
 })
 
 const handleBack = () => {
@@ -54,9 +51,7 @@ const handleBack = () => {
             </div>
 
             <div class="review-progress-status-section">
-                <button class="review-progress-status-btn">
-                    {{ currentStatusLabel }}
-                </button>
+                <StatusBadge :status="problem?.status" />
             </div>
 
             <div class="review-progress-description">
@@ -156,18 +151,6 @@ const handleBack = () => {
 
 .review-progress-status-section {
     margin-bottom: 20px;
-}
-
-.review-progress-status-btn {
-    padding: 8px 16px;
-    border-radius: 5px;
-    font-size: 16px;
-    font-weight: 400;
-    font-family: 'Inter', sans-serif;
-    border: 1px solid #E0E0E0;
-    cursor: pointer;
-    background-color: transparent;
-    color: #333333;
 }
 
 .review-progress-description {

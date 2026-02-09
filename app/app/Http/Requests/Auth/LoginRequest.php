@@ -54,8 +54,17 @@ class LoginRequest extends FormRequest
         $user = Auth::user();
         $loginType = $this->string('login_type')->toString();
 
+        $staffRoles = [
+            UserRole::ROLE_SYSTEM_ADMIN,
+            UserRole::ROLE_PROBLEM_ADMIN,
+            UserRole::ROLE_INSTITUTION_ADMIN,
+            UserRole::ROLE_MUNICIPALITY_REP,
+            UserRole::ROLE_EMPLOYEE,
+        ];
+        $hasStaffRole = collect($staffRoles)->contains(fn ($role) => $user->hasRole($role));
+
         if ($loginType === 'pareiskejas') {
-            if (! $user->hasRole(UserRole::ROLE_REPORTER)) {
+            if (! $user->hasRole(UserRole::ROLE_REPORTER) || $hasStaffRole) {
                 Auth::logout();
                 $this->session()->invalidate();
                 $this->session()->regenerateToken();
@@ -65,14 +74,6 @@ class LoginRequest extends FormRequest
                 ]);
             }
         } else {
-            $staffRoles = [
-                UserRole::ROLE_SYSTEM_ADMIN,
-                UserRole::ROLE_PROBLEM_ADMIN,
-                UserRole::ROLE_INSTITUTION_ADMIN,
-                UserRole::ROLE_MUNICIPALITY_REP,
-                UserRole::ROLE_EMPLOYEE,
-            ];
-            $hasStaffRole = collect($staffRoles)->contains(fn ($role) => $user->hasRole($role));
             if (! $hasStaffRole) {
                 Auth::logout();
                 $this->session()->invalidate();

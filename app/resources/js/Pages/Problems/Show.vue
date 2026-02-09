@@ -8,7 +8,7 @@ import EditModal from '@/Components/App/Modals/EditModal.vue'
 import AppButton from '@/Components/App/AppButton.vue'
 import AppInput from '@/Components/App/AppInput.vue'
 import AppBackButton from '@/Components/App/AppBackButton.vue'
-import { PROBLEM_STATUS_LABELS } from '@/constants/problemStatus'
+import StatusBadge from '@/Components/Problems/StatusBadge.vue'
 import { useAuth } from '@/composables/useAuth'
 
 const props = defineProps({
@@ -29,10 +29,6 @@ const {
 const showStatusModal = ref(false)
 const showEditModal = ref(false)
 const showDeleteModal = ref(false)
-
-const currentStatusLabel = computed(() => {
-    return PROBLEM_STATUS_LABELS[props.problem?.status] || 'Neužregistruota'
-})
 
 const handleBack = () => {
     router.visit(route('dashboard'))
@@ -92,9 +88,7 @@ const handleGrazintiAdmin = () => {}
             </div>
 
             <div class="problem-status-section">
-                <button class="status-btn">
-                    {{ currentStatusLabel }}
-                </button>
+                <StatusBadge :status="problem?.status" />
             </div>
 
             <div class="problem-content">
@@ -307,18 +301,6 @@ const handleGrazintiAdmin = () => {}
     margin-bottom: 20px;
 }
 
-.status-btn {
-    padding: 8px 16px;
-    border-radius: 5px;
-    font-size: 16px;
-    font-weight: 400;
-    font-family: 'Inter', sans-serif;
-    border: 1px solid #E0E0E0;
-    cursor: pointer;
-    background-color: transparent;
-    color: #333333;
-}
-
 .problem-content {
     display: flex;
     flex-direction: column;
@@ -349,14 +331,13 @@ const handleGrazintiAdmin = () => {}
 
 .problem-content-bottom .app-input-group {
     margin-bottom: 0;
-    height: 100%;
 }
 
 .problem-content-bottom .app-input-group textarea {
+    height: 150px;
     min-height: 150px;
-    height: 100%;
-    max-height: 200px;
-    flex: 1;
+    max-height: 150px;
+    resize: none;
 }
 
 .field-group {
@@ -381,16 +362,12 @@ const handleGrazintiAdmin = () => {}
 
 
 .problem-media {
-    display: flex;
-    flex-direction: column;
-    height: 100%;
+    height: 150px;
 }
 
 .media-placeholder {
     width: 100%;
-    height: 100%;
-    min-height: 150px;
-    max-height: 200px;
+    height: 150px;
     background: repeating-conic-gradient(#f0f0f0 0% 25%, #ffffff 0% 50%) 50% / 20px 20px;
     border: 1px solid #e0e0e0;
     border-radius: 5px;
@@ -400,7 +377,6 @@ const handleGrazintiAdmin = () => {}
     color: #999;
     font-size: 16px;
     font-family: 'Inter', sans-serif;
-    flex: 1;
 }
 
 .review-progress-section {

@@ -130,7 +130,6 @@ const handleClose = () => {
     box-sizing: border-box;
 }
 
-/* Nauja - oranžinė/šviesiai ruda rėmelis */
 .status-modal-option-btn-nauja {
     border-color: #D4A574;
 }
@@ -146,7 +145,6 @@ const handleClose = () => {
     border-width: 3px;
 }
 
-/* Nagrinėjama - geltona rėmelis */
 .status-modal-option-btn-nagrinejama {
     border-color: #F5C842;
 }
@@ -162,7 +160,6 @@ const handleClose = () => {
     border-width: 3px;
 }
 
-/* Išspręsta - žalia rėmelis */
 .status-modal-option-btn-isspresta {
     border-color: #4CAF50;
 }
@@ -178,7 +175,6 @@ const handleClose = () => {
     border-width: 3px;
 }
 
-/* Neaktuali - tamsiai pilka/juoda rėmelis */
 .status-modal-option-btn-neaktuali {
     border-color: #666666;
 }

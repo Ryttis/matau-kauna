@@ -105,17 +105,13 @@ const handleFilterClose = () => {
     showFilterModal.value = false
 }
 
-const handleAssignProblem = () => {
-    // TODO: atidaryti assign puslapį arba modalą pagal rolę
-}
+const handleAssignProblem = () => {}
 
 const handleAssignInstitution = () => {
     router.visit(route('dashboard'))
 }
 
-const handleDisplayStatus = () => {
-    // TODO: atidaryti būsenos keitimo modalą
-}
+const handleDisplayStatus = () => {}
 
 const handleIeskoti = () => {}
 </script>

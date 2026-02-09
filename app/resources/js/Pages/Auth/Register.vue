@@ -148,7 +148,6 @@ const submit = () => {
     gap: 1rem;
 }
 
-/* Vienodas plotis visiems laukams – viena wrapper klasė, AuthInput margin perrašomas */
 .register-field {
     width: 100%;
 }
