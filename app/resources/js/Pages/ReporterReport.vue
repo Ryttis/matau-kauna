@@ -44,6 +44,7 @@ const showSuccessModal = ref(false)
 const showCancelModal = ref(false)
 const createdProblemId = ref(null)
 const isSubmitting = ref(false)
+const submitError = ref('')
 
 const api = useReporterApi()
 
@@ -100,9 +101,16 @@ function handleBackToStep1() {
 function handlePerziureti() {
     step.value = 1
     wizardHiddenUntilNextStep.value = false
+    submitError.value = ''
 }
 
 function handlePateikti() {
+    submitError.value = ''
+    const address = (addressStep2.value ?? '').trim()
+    if (!address) {
+        submitError.value = 'Pasirinkite problemos vietą žemėlapyje arba įveskite adresą.'
+        return
+    }
     if (props.hasAcceptedReportTerms || termsAcceptedThisSession.value) {
         handleReviewConfirm()
         return
@@ -120,11 +128,17 @@ function handleReviewContinue() {
 
 function handleReviewConfirm() {
     if (isSubmitting.value) return
+    const address = (addressStep2.value ?? '').trim()
+    if (!address) {
+        submitError.value = 'Pasirinkite problemos vietą žemėlapyje arba įveskite adresą.'
+        return
+    }
+    submitError.value = ''
     isSubmitting.value = true
     const payload = {
         category: category.value,
         description: description.value,
-        address: addressStep2.value,
+        address,
         lat: latStep2.value ?? null,
         lng: lngStep2.value ?? null,
     }
@@ -135,7 +149,15 @@ function handleReviewConfirm() {
             createdProblemId.value = res.data?.problem_id ?? null
             showSuccessModal.value = true
         })
-        .catch(() => {})
+        .catch((err) => {
+            const data = err.response?.data
+            if (data?.errors) {
+                const first = Object.values(data.errors).flat()
+                submitError.value = first[0] || 'Nepavyko pateikti.'
+            } else {
+                submitError.value = data?.message || 'Nepavyko pateikti. Bandykite dar kartą.'
+            }
+        })
         .finally(() => { isSubmitting.value = false })
 }
 
@@ -263,6 +285,7 @@ function openCancelModal() {
                             @update:lat="latStep2 = $event"
                             @update:lng="lngStep2 = $event"
                         />
+                        <p v-if="submitError" class="reporter-report-error">{{ submitError }}</p>
                         <div class="reporter-report-step2-actions">
                             <AppButton
                                 text="Pateikti"
@@ -436,6 +459,12 @@ function openCancelModal() {
     font-size: 18px;
     font-weight: 600;
     color: #333;
+}
+
+.reporter-report-error {
+    margin: 0 0 12px;
+    font-size: 14px;
+    color: #c62828;
 }
 
 .reporter-report-step2-actions {

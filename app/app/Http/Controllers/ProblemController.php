@@ -824,9 +824,16 @@ class ProblemController extends Controller
             return null;
         }
 
-        return Employee::where('email', $user->email)
-            ->where('institution_id', $user->institution_id)
-            ->value('id');
+        $query = Employee::where('email', $user->email);
+        if ($user->institution_id !== null) {
+            $query->where('institution_id', $user->institution_id);
+            return $query->value('id');
+        }
+        $employees = $query->get(['id', 'institution_id']);
+        if ($employees->count() === 1) {
+            return $employees->first()->id;
+        }
+        return null;
     }
 
     private function notifyInstitutionAdminsOfAssignment(array $problemIds, int $institutionId): void
