@@ -1,36 +1,8 @@
 import { ref, onMounted, onUnmounted, nextTick } from 'vue'
+import { loadLeaflet, createBaseMap, KAUNAS_CENTER } from '@/composables/leafletKaunas'
 
-const KAUNAS_CENTER = [54.8985, 23.9036]
-const KAUNAS_BOUNDS = [[54.75, 23.65], [55.05, 24.15]]
-
-let leafletLoaded = false
-let leafletPromise = null
-
-function loadLeaflet() {
-    if (leafletLoaded) return Promise.resolve()
-    if (leafletPromise) return leafletPromise
-    leafletPromise = new Promise((resolve) => {
-        const link = document.createElement('link')
-        link.rel = 'stylesheet'
-        link.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css'
-        link.integrity = 'sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY='
-        link.crossOrigin = ''
-        document.head.appendChild(link)
-        const script = document.createElement('script')
-        script.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js'
-        script.integrity = 'sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo='
-        script.crossOrigin = ''
-        script.onload = () => {
-            leafletLoaded = true
-            resolve()
-        }
-        document.head.appendChild(script)
-    })
-    return leafletPromise
-}
-
-let lastGeocodeAt = 0
 const NOMINATIM_DELAY_MS = 1100
+let lastGeocodeAt = 0
 
 async function geocodeAddress(query) {
     if (!query || !query.trim()) return null
@@ -106,21 +78,8 @@ export function useKaunasMapLocationPicker(containerRef, options = {}) {
 
     function initMap() {
         if (initialized || !containerRef.value || typeof L === 'undefined') return
-        map = L.map(containerRef.value, {
-            center: [lat.value, lng.value],
-            zoom: 12,
-            maxBounds: KAUNAS_BOUNDS,
-            maxBoundsViscosity: 1.0,
-            zoomControl: false,
-        })
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            attribution: '© OpenStreetMap contributors',
-            maxZoom: 18,
-        }).addTo(map)
-        map.setMaxBounds(KAUNAS_BOUNDS)
-        map.setMinZoom(11)
-        map.setMaxZoom(18)
-        L.control.zoom({ position: 'topright' }).addTo(map)
+        map = createBaseMap(containerRef.value, { center: [lat.value, lng.value] })
+        if (!map) return
         marker = L.marker([lat.value, lng.value], { draggable: true }).addTo(map)
         marker.on('dragend', async () => {
             const pos = marker.getLatLng()

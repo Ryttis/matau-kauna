@@ -1,34 +1,6 @@
 import { watch, onMounted, onUnmounted, nextTick } from 'vue'
 import { getMarkerColorForStatus } from '@/constants/problemStatus'
-
-const KAUNAS_CENTER = [54.8985, 23.9036]
-const KAUNAS_BOUNDS = [[54.75, 23.65], [55.05, 24.15]]
-
-let leafletScriptLoaded = false
-let leafletLoadPromise = null
-
-function loadLeaflet() {
-    if (leafletScriptLoaded) return Promise.resolve()
-    if (leafletLoadPromise) return leafletLoadPromise
-    leafletLoadPromise = new Promise((resolve) => {
-        const link = document.createElement('link')
-        link.rel = 'stylesheet'
-        link.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css'
-        link.integrity = 'sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY='
-        link.crossOrigin = ''
-        document.head.appendChild(link)
-        const script = document.createElement('script')
-        script.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js'
-        script.integrity = 'sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo='
-        script.crossOrigin = ''
-        script.onload = () => {
-            leafletScriptLoaded = true
-            resolve()
-        }
-        document.head.appendChild(script)
-    })
-    return leafletLoadPromise
-}
+import { loadLeaflet, createBaseMap, KAUNAS_CENTER } from '@/composables/leafletKaunas'
 
 export function useKaunasMap(containerRef, problemsToShowRef, options = {}) {
     const { onProblemOpen, markerClassName = 'kaunas-map-marker', invalidateSizeDelay = 150 } = options
@@ -65,22 +37,9 @@ export function useKaunasMap(containerRef, problemsToShowRef, options = {}) {
 
     function initMap() {
         if (initialized || !containerRef.value || typeof L === 'undefined') return
-        map = L.map(containerRef.value, {
-            center: KAUNAS_CENTER,
-            zoom: 12,
-            maxBounds: KAUNAS_BOUNDS,
-            maxBoundsViscosity: 1.0,
-            zoomControl: false,
-        })
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            attribution: '© OpenStreetMap contributors',
-            maxZoom: 18,
-        }).addTo(map)
-        map.setMaxBounds(KAUNAS_BOUNDS)
-        map.setMinZoom(11)
-        map.setMaxZoom(14)
+        map = createBaseMap(containerRef.value, { maxZoom: 14 })
+        if (!map) return
         map.setView(KAUNAS_CENTER, 12)
-        L.control.zoom({ position: 'topright' }).addTo(map)
         markersLayer = L.layerGroup().addTo(map)
         initialized = true
         updateMarkers()

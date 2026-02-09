@@ -355,15 +355,21 @@ class ProblemController extends Controller
         if (! $user) {
             abort(403);
         }
-        if ($user->hasRole(UserRole::ROLE_REPORTER) && ! $user->hasPermission('issues.view')) {
-            if ((int) $problem->reported_by_user_id !== (int) $user->id) {
-                abort(403);
+
+        $isReporterOnly = $user->hasRole(UserRole::ROLE_REPORTER) && ! $user->hasPermission('issues.view');
+        if ($isReporterOnly) {
+            if ($problem->reported_by_user_id === null || (int) $problem->reported_by_user_id !== (int) $user->id) {
+                abort(403, 'Neturite teisės peržiūrėti šios problemos nagrinėjimo eigos.');
             }
-        } elseif ($user && $this->isInstitutionScoped($user)) {
+            $problem->load('reviewHistory');
+            return $this->reviewProgressResponse($problem);
+        }
+
+        if ($this->isInstitutionScoped($user)) {
             if ((int) $problem->institution_id !== (int) $user->institution_id) {
                 abort(403);
             }
-        } elseif ($user && $this->isEmployeeScoped($user)) {
+        } elseif ($this->isEmployeeScoped($user)) {
             $employeeId = $this->employeeIdForUser($user);
             if (! $employeeId || (int) $problem->assigned_employee_id !== (int) $employeeId) {
                 abort(403);
@@ -374,6 +380,11 @@ class ProblemController extends Controller
 
         $problem->load('reviewHistory');
 
+        return $this->reviewProgressResponse($problem);
+    }
+
+    private function reviewProgressResponse(Problem $problem): Response
+    {
         $reviewEntries = $problem->reviewHistory->map(function ($entry) {
             return [
                 'id' => $entry->id,
