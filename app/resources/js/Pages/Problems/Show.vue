@@ -13,6 +13,7 @@ import { useAuth } from '@/composables/useAuth'
 
 const props = defineProps({
     problem: Object,
+    mergedSiblings: { type: Array, default: () => [] },
     statusOptions: Array,
     categories: Array,
 })
@@ -68,21 +69,12 @@ const handleConfirmDelete = () => {
 
 const handleGrazintiAdmin = () => {}
 
+const mainProblem = computed(() => props.problem?.merged_into || props.problem?.merged_into_problem || null)
 const isMergedIntoOther = computed(
-    () => Boolean(props.problem?.merged_into_problem_id && props.problem?.merged_into_problem)
+    () => Boolean(props.problem?.merged_into_problem_id && mainProblem.value)
 )
 
-const mainProblem = computed(() => props.problem?.merged_into_problem || null)
-
-const mergedWithText = computed(() => {
-    if (isMergedIntoOther.value && mainProblem.value) return null
-    const list = props.problem?.merged_problems || []
-    if (list.length === 0) return ''
-    const parts = list.map((p) => 'Nr ' + (p.internal_number || ''))
-    if (parts.length === 1) return parts[0]
-    if (parts.length === 2) return parts[0] + ' ir ' + parts[1]
-    return parts.slice(0, -1).join(', ') + ' ir ' + parts[parts.length - 1]
-})
+const mergedChildren = computed(() => props.problem?.merged_problems || [])
 
 const mergeTargetId = computed(() =>
     isMergedIntoOther.value && mainProblem.value ? mainProblem.value.id : props.problem?.id
@@ -111,17 +103,40 @@ const mergeTargetId = computed(() =>
                 <StatusBadge :status="problem?.status" />
             </div>
 
-            <div v-if="isMergedIntoOther && mainProblem" class="problem-merged-with">
-                Ši problema apjungta su:
-                <button
-                    type="button"
-                    class="problem-merged-with-link"
-                    @click="router.visit(route('problems.show', mainProblem.id))"
-                >
-                    {{ mainProblem.title }} (Nr. {{ mainProblem.internal_number }})
-                </button>
+            <div v-if="(isMergedIntoOther && mainProblem) || mergedChildren.length" class="problem-merged-with">
+                <span class="problem-merged-with-label">Apjungta su:</span>
+                <span class="problem-merged-with-links">
+                    <template v-if="isMergedIntoOther && mainProblem">
+                        <button
+                            type="button"
+                            class="problem-merged-with-link"
+                            @click="router.visit(route('problems.show', mainProblem.id))"
+                        >
+                            {{ mainProblem.internal_number }}
+                        </button>
+                        <button
+                            v-for="sib in mergedSiblings"
+                            :key="sib.id"
+                            type="button"
+                            class="problem-merged-with-link"
+                            @click="router.visit(route('problems.show', sib.id))"
+                        >
+                            {{ sib.internal_number }}
+                        </button>
+                    </template>
+                    <template v-else>
+                        <button
+                            v-for="child in mergedChildren"
+                            :key="child.id"
+                            type="button"
+                            class="problem-merged-with-link"
+                            @click="router.visit(route('problems.show', child.id))"
+                        >
+                            {{ child.internal_number }}
+                        </button>
+                    </template>
+                </span>
             </div>
-            <div v-else-if="mergedWithText" class="problem-merged-with">Apjungta su: {{ mergedWithText }}</div>
 
             <div class="problem-content">
                 <div class="problem-fields-top">
@@ -334,6 +349,10 @@ const mergeTargetId = computed(() =>
 }
 
 .problem-merged-with {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 4px 8px;
     font-weight: 600;
     font-size: 1rem;
     color: #1946A0;
@@ -344,6 +363,17 @@ const mergeTargetId = computed(() =>
     margin: 0 0 20px 0;
 }
 
+.problem-merged-with-label {
+    margin-right: 4px;
+}
+
+.problem-merged-with-links {
+    display: inline-flex;
+    flex-wrap: wrap;
+    gap: 4px 8px;
+    align-items: center;
+}
+
 .problem-merged-with-link {
     margin-left: 0.25rem;
     padding: 0;
@@ -352,7 +382,7 @@ const mergeTargetId = computed(() =>
     font: inherit;
     font-weight: 600;
     color: #1946A0;
-    text-decoration: underline;
+    text-decoration: none;
     cursor: pointer;
 }
 

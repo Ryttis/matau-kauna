@@ -9,6 +9,9 @@ import StatusBadge from '@/Components/Problems/StatusBadge.vue'
 
 const props = defineProps({
     problem: Object,
+    mergeTarget: { type: Object, default: null },
+    mergedChildren: { type: Array, default: () => [] },
+    mergedSiblings: { type: Array, default: () => [] },
 })
 
 const formattedDate = computed(() => {
@@ -40,6 +43,41 @@ const formattedDate = computed(() => {
 
                 <div v-if="problem?.status" class="public-problem-status-section">
                     <StatusBadge :status="problem.status" />
+                </div>
+
+                <div v-if="mergeTarget || mergedSiblings?.length" class="public-problem-merged-section public-problem-merged-one-line">
+                    <span class="public-problem-merged-label">Apjungta su:</span>
+                    <span class="public-problem-merged-inline">
+                        <template v-if="mergeTarget">
+                            <Link
+                                :href="route('reports.show', mergeTarget.id)"
+                                class="public-problem-merged-link"
+                            >
+                                {{ mergeTarget.internal_number }}
+                            </Link>
+                        </template>
+                        <Link
+                            v-for="sib in mergedSiblings"
+                            :key="sib.id"
+                            :href="route('reports.show', sib.id)"
+                            class="public-problem-merged-link"
+                        >
+                            {{ sib.internal_number }}
+                        </Link>
+                    </span>
+                </div>
+                <div v-if="mergedChildren?.length" class="public-problem-merged-section public-problem-merged-one-line">
+                    <span class="public-problem-merged-label">Apjungta su:</span>
+                    <span class="public-problem-merged-inline">
+                        <Link
+                            v-for="child in mergedChildren"
+                            :key="child.id"
+                            :href="route('reports.show', child.id)"
+                            class="public-problem-merged-link"
+                        >
+                            {{ child.internal_number }}
+                        </Link>
+                    </span>
                 </div>
 
                 <div class="public-problem-content">
@@ -149,6 +187,55 @@ const formattedDate = computed(() => {
 
 .public-problem-status-section {
     margin-bottom: 20px;
+}
+
+.public-problem-merged-section {
+    margin-bottom: 20px;
+    padding: 12px 16px;
+    background: #f0f4ff;
+    border-radius: 6px;
+}
+
+.public-problem-merged-label {
+    margin-right: 8px;
+    color: #555;
+    font-size: 14px;
+}
+
+.public-problem-merged-section:has(.public-problem-merged-children) .public-problem-merged-label {
+    display: block;
+    margin-right: 0;
+    margin-bottom: 6px;
+}
+
+.public-problem-merged-one-line {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 4px 8px;
+}
+
+.public-problem-merged-inline {
+    display: inline-flex;
+    flex-wrap: wrap;
+    gap: 4px 8px;
+    align-items: center;
+}
+
+.public-problem-merged-children {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 12px;
+}
+
+.public-problem-merged-link {
+    color: #1946A0;
+    font-weight: 600;
+    text-decoration: none;
+}
+
+.public-problem-merged-link:hover {
+    text-decoration: none;
 }
 
 .public-problem-content {

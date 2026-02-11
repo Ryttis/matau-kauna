@@ -19,14 +19,13 @@ const closeAddEntry = () => {
 
 const props = defineProps({
     problem: Object,
-    reviewEntries: {
-        type: Array,
-        default: () => []
-    }
+    reviewEntries: { type: Array, default: () => [] },
+    backUrl: { type: String, default: '' },
 })
 
 const handleBack = () => {
-    router.visit(route('problems.show', props.problem.id))
+    const url = props.backUrl || route('problems.show', props.problem.id)
+    router.visit(url)
 }
 </script>
 
