@@ -10,6 +10,7 @@ import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue'
 import { Head, router } from '@inertiajs/vue3'
 import { ref, watch, computed, onMounted, onUnmounted } from 'vue'
 import { useProblemsMapFilter } from '@/composables/useProblemsMapFilter'
+import { useProblemDisplayRows } from '@/composables/useProblemDisplayRows'
 import { debounce } from 'lodash-es'
 import { PROBLEM_STATUS_LABELS, PROBLEM_STATUS_OPTIONS } from '@/constants/problemStatus'
 import { useAuth } from '@/composables/useAuth'
@@ -48,6 +49,8 @@ const exportWrapper = ref(null)
 const exportDropdown = ref(null)
 const problemsList = ref([])
 const showDeleteModal = ref(false)
+
+const { displayRows } = useProblemDisplayRows(problemsList)
 
 const reporterProblems = computed(() => {
     if (!props.reporterView) return []
@@ -246,9 +249,10 @@ const handleModalClose = () => {
 }
 
 const openStatusModal = () => {
-    if (selectedProblems.value.length === 1) {
-        const problem = problemsList.value.find(p => p.id === selectedProblems.value[0])
-        selectedProblem.value = problem || null
+    if (selectedProblems.value.length >= 1) {
+        const firstId = selectedProblems.value[0]
+        const row = displayRows.value.find((r) => r.problem.id === firstId)
+        selectedProblem.value = row ? row.problem : problemsList.value.find((p) => p.id === firstId) || null
     } else {
         selectedProblem.value = null
     }
@@ -344,18 +348,29 @@ const handleStebeti = () => {
 
 const handleSelectAll = (checked) => {
     if (checked) {
-        selectedProblems.value = problemsList.value.map(p => p.id)
+        selectedProblems.value = displayRows.value.map((r) => r.problem.id)
     } else {
         selectedProblems.value = []
     }
 }
 
-const handleSelectItem = (problemId) => {
-    const index = selectedProblems.value.indexOf(problemId)
-    if (index > -1) {
-        selectedProblems.value.splice(index, 1)
+const handleSelectItem = (payload) => {
+    if (Array.isArray(payload)) {
+        const allSelected = payload.every((id) => selectedProblems.value.includes(id))
+        if (allSelected) {
+            selectedProblems.value = selectedProblems.value.filter((id) => !payload.includes(id))
+        } else {
+            const next = new Set(selectedProblems.value)
+            payload.forEach((id) => next.add(id))
+            selectedProblems.value = [...next]
+        }
     } else {
-        selectedProblems.value.push(problemId)
+        const index = selectedProblems.value.indexOf(payload)
+        if (index > -1) {
+            selectedProblems.value.splice(index, 1)
+        } else {
+            selectedProblems.value.push(payload)
+        }
     }
 }
 
@@ -471,6 +486,7 @@ onUnmounted(() => {
 
         <ProblemsTable
             :problems="problemsList"
+            :display-rows="displayRows"
             :selected-problems="selectedProblems"
             :status-labels="statusLabels"
             :sort-by="sortBy"
@@ -492,7 +508,6 @@ onUnmounted(() => {
         </div>
 
         <div class="list-navigation">
-            <!-- Problemos administratorius / Sistemos administratorius -->
             <template v-if="canSeeProblemAdminButtons">
                 <AppButton
                     text="Priskirti problemą"
@@ -522,7 +537,6 @@ onUnmounted(() => {
                 </div>
             </template>
 
-            <!-- Įstaigos administratorius -->
             <template v-else-if="canSeeInstitutionAdminButtons">
                 <AppButton
                     text="Priskirti/Peradresuoti problemą"
@@ -545,7 +559,6 @@ onUnmounted(() => {
                 />
             </template>
 
-            <!-- Įstaigos darbuotojas -->
             <template v-else-if="canDeleteProblem">
                 <AppButton
                     text="Atvaizduoti/keisti būseną"
@@ -568,7 +581,6 @@ onUnmounted(() => {
                 />
             </template>
 
-            <!-- Savivaldybės atstovas – tik Stebėti -->
             <template v-else>
                 <AppButton
                     text="Stebėti"

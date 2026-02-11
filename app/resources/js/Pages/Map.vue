@@ -1,25 +1,23 @@
 <script setup>
-import { ref, onMounted, onUnmounted, nextTick } from 'vue'
+import { ref } from 'vue'
 import { Head, router } from '@inertiajs/vue3'
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue'
 import AppButton from '@/Components/App/AppButton.vue'
 import FilterModal from '@/Components/App/Modals/FilterModal.vue'
+import KaunasProblemsMap from '@/Components/Map/KaunasProblemsMap.vue'
 import { useAuth } from '@/composables/useAuth'
-import { loadLeaflet, createBaseMap } from '@/composables/leafletKaunas'
 
 const props = defineProps({
     categories: Array,
     statusOptions: Array,
+    problems: { type: Array, default: () => [] },
 })
 
 const { canSeeProblemAdminButtons, canSeeInstitutionAdminButtons, isMunicipalityRep } = useAuth()
 
 const searchQuery = ref('')
 const addressInput = ref('')
-const mapContainer = ref(null)
 const showFilterModal = ref(false)
-let map = null
-let mapInitialized = false
 
 const filters = ref({
     reportNumber: '',
@@ -29,24 +27,9 @@ const filters = ref({
     status: '',
 })
 
-function initMap() {
-    if (mapInitialized || !mapContainer.value || typeof L === 'undefined') return
-    map = createBaseMap(mapContainer.value)
-    if (!map) return
-    mapInitialized = true
+function openProblemView(problemId) {
+    router.visit(route('problems.show', problemId))
 }
-
-onMounted(() => {
-    loadLeaflet().then(() => nextTick(() => setTimeout(initMap, 100)))
-})
-
-onUnmounted(() => {
-    if (map) {
-        map.remove()
-        map = null
-        mapInitialized = false
-    }
-})
 
 const handleFilterClick = () => {
     showFilterModal.value = true
@@ -118,7 +101,14 @@ const handleIeskoti = () => {}
                 </div>
             </div>
 
-            <div class="map-container" ref="mapContainer"></div>
+            <div class="map-container">
+                <KaunasProblemsMap
+                    :problems="problems || []"
+                    marker-class="map-page-marker"
+                    :show-legend="false"
+                    @open-problem="openProblemView"
+                />
+            </div>
 
             <div class="location-selection">
                 <h3 class="location-title">Pasirinkite problemos vietą</h3>
@@ -129,7 +119,6 @@ const handleIeskoti = () => {}
                     placeholder="Suveskite adresą"
                 />
 
-                <!-- Problemos administratorius / Sistemos administratorius -->
                 <template v-if="canSeeProblemAdminButtons">
                     <AppButton
                         text="Priskirti problemą"
@@ -143,7 +132,6 @@ const handleIeskoti = () => {}
                     />
                 </template>
 
-                <!-- Įstaigos administratorius -->
                 <template v-else-if="canSeeInstitutionAdminButtons">
                     <AppButton
                         text="Priskirti/Peradresuoti problemą"
@@ -157,7 +145,6 @@ const handleIeskoti = () => {}
                     />
                 </template>
 
-                <!-- Įstaigos darbuotojas – tik adresas + keisti būseną -->
                 <template v-else-if="!isMunicipalityRep">
                     <AppButton
                         text="Atvaizduoti/keisti būseną"
@@ -166,7 +153,6 @@ const handleIeskoti = () => {}
                     />
                 </template>
 
-                <!-- Savivaldybės atstovas – tik Ieškoti -->
                 <template v-else>
                     <AppButton
                         text="Ieškoti"
@@ -264,6 +250,11 @@ const handleIeskoti = () => {}
     border-radius: 8px;
     overflow: hidden;
     z-index: 0;
+}
+
+.map-container :deep(.kaunas-map-container) {
+    height: 100%;
+    min-height: 400px;
 }
 
 .location-selection {

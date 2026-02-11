@@ -6,16 +6,21 @@ const props = defineProps({
     problems: { type: Array, default: () => [] },
     markerClass: { type: String, default: 'kaunas-map-marker' },
     showLegend: { type: Boolean, default: true },
+    highlightedProblemId: { type: [Number, null], default: null },
+    mergedProblemIds: { type: Array, default: () => [] },
 })
 
 const emit = defineEmits(['openProblem'])
 
 const mapContainer = ref(null)
 const problemsToShow = computed(() => props.problems || [])
+const mergedIds = computed(() => props.mergedProblemIds || [])
 
 useKaunasMap(mapContainer, problemsToShow, {
     onProblemOpen: (id) => emit('openProblem', id),
     markerClassName: props.markerClass,
+    highlightedProblemId: computed(() => props.highlightedProblemId),
+    mergedProblemIds: mergedIds,
 })
 </script>
 

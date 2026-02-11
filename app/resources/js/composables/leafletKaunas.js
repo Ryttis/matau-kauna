@@ -1,6 +1,9 @@
 export const KAUNAS_CENTER = [54.8985, 23.9036]
 export const KAUNAS_BOUNDS = [[54.75, 23.65], [55.05, 24.15]]
 
+export const MAP_MIN_ZOOM = 11
+export const MAP_MAX_ZOOM = 18
+
 const LEAFLET_VERSION = '1.9.4'
 const LEAFLET_CSS = `https://unpkg.com/leaflet@${LEAFLET_VERSION}/dist/leaflet.css`
 const LEAFLET_JS = `https://unpkg.com/leaflet@${LEAFLET_VERSION}/dist/leaflet.js`
@@ -37,8 +40,8 @@ export function createBaseMap(containerElement, options = {}) {
     const {
         center = KAUNAS_CENTER,
         zoom = 12,
-        minZoom = 11,
-        maxZoom = 18,
+        minZoom = MAP_MIN_ZOOM,
+        maxZoom = MAP_MAX_ZOOM,
     } = options
     const map = L.map(containerElement, {
         center: Array.isArray(center) ? center : KAUNAS_CENTER,
@@ -49,7 +52,7 @@ export function createBaseMap(containerElement, options = {}) {
     })
     L.tileLayer(TILE_URL, {
         attribution: '© OpenStreetMap contributors',
-        maxZoom: 18,
+        maxZoom: MAP_MAX_ZOOM,
     }).addTo(map)
     map.setMaxBounds(KAUNAS_BOUNDS)
     map.setMinZoom(minZoom)

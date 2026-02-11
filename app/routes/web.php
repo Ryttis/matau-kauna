@@ -43,6 +43,8 @@ Route::middleware(['auth', 'verified', 'reporter.terms'])->group(function () {
         Route::get('/problems/{problem}/assign-institution', [ProblemController::class, 'assignInstitution'])->name('problems.assignInstitution');
         Route::post('/problems/{problem}/assign-institution', [ProblemController::class, 'storeAssignInstitution'])->name('problems.assignInstitution.store');
         Route::get('/problems/{problem}/merge', [ProblemController::class, 'merge'])->name('problems.merge');
+        Route::post('/problems/{problem}/merge', [ProblemController::class, 'storeMerge'])->name('problems.merge.store');
+        Route::patch('/problems/{problem}/unmerge', [ProblemController::class, 'unmerge'])->name('problems.unmerge');
         Route::get('/problems/{problem}', [ProblemController::class, 'show'])->name('problems.show');
         Route::put('/problems/{problem}', [ProblemController::class, 'update'])->name('problems.update');
         Route::delete('/problems/{problem}', [ProblemController::class, 'destroy'])->name('problems.destroy');
