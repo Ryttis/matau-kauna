@@ -10,6 +10,7 @@ import ReporterLocationMap from '@/Components/Reporter/ReporterLocationMap.vue'
 import ReporterReviewModal from '@/Components/Reporter/ReporterReviewModal.vue'
 import ReporterSuccessModal from '@/Components/Reporter/ReporterSuccessModal.vue'
 import ReporterCancelConfirmModal from '@/Components/Reporter/ReporterCancelConfirmModal.vue'
+import { KAUNAS_CENTER } from '@/composables/leafletKaunas'
 import { REPORTER_WIZARD_STEPS } from '@/constants/reporterWizardSteps'
 
 const props = defineProps({
@@ -279,8 +280,8 @@ function openCancelModal() {
                     <template v-else>
                         <h2 class="reporter-report-step2-title">Pasirinkite problemos vietą</h2>
                         <ReporterLocationMap
-                            :initial-lat="latStep2 ?? 54.8985"
-                            :initial-lng="lngStep2 ?? 23.9036"
+                            :initial-lat="latStep2 ?? KAUNAS_CENTER[0]"
+                            :initial-lng="lngStep2 ?? KAUNAS_CENTER[1]"
                             @update:address="addressStep2 = $event"
                             @update:lat="latStep2 = $event"
                             @update:lng="lngStep2 = $event"

@@ -10,12 +10,12 @@ use Inertia\Inertia;
 
 Route::get('/', [ProblemController::class, 'landing'])->name('landing');
 
-Route::get('/faq', fn () => Inertia::render('Faq'))->name('faq');
-Route::get('/privacy', fn () => Inertia::render('PrivacyPolicy'))->name('privacy');
-Route::get('/contacts', fn () => Inertia::render('Contacts'))->name('contacts');
-Route::get('/help', fn () => Inertia::render('Help'))->name('help');
+Route::get('/faq', fn () => Inertia::render('Guest/Faq'))->name('faq');
+Route::get('/privacy', fn () => Inertia::render('Guest/PrivacyPolicy'))->name('privacy');
+Route::get('/contacts', fn () => Inertia::render('Guest/Contacts'))->name('contacts');
+Route::get('/help', fn () => Inertia::render('Guest/Help'))->name('help');
 
-Route::get('/statistika', fn () => Inertia::render('PublicStatistics'))->name('public.statistics');
+Route::get('/statistika', fn () => Inertia::render('Guest/PublicStatistics'))->name('public.statistics');
 
 Route::get('/reports', [ProblemController::class, 'publicMap'])->name('reports');
 Route::get('/reports/{problem}', [ProblemController::class, 'publicShow'])->name('reports.show');

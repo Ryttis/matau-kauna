@@ -56,8 +56,11 @@ const handleSendAssign = () => {
         preserveScroll: true,
     })
 }
+// TODO: Siųsti informaciją el. paštu – dar neįgyvendinta
 const handleSendEmail = () => {}
+// TODO: Grąžinti problemos administratoriui – dar neįgyvendinta
 const handleReturnToAdmin = () => {}
+// TODO: Peradresuoti – dar neįgyvendinta
 const handleReassign = () => {}
 
 watch(

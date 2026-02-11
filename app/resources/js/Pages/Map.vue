@@ -55,14 +55,17 @@ const handleFilterClose = () => {
     showFilterModal.value = false
 }
 
+// TODO: Priskirti problemą – dar neįgyvendinta
 const handleAssignProblem = () => {}
 
 const handleAssignInstitution = () => {
     router.visit(route('dashboard'))
 }
 
+// TODO: Atvaizduoti/keisti būseną – dar neįgyvendinta
 const handleDisplayStatus = () => {}
 
+// TODO: Ieškoti – dar neįgyvendinta
 const handleIeskoti = () => {}
 </script>
 

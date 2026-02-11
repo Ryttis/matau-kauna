@@ -7,6 +7,7 @@ import FilterModal from '@/Components/App/Modals/FilterModal.vue'
 import KaunasProblemsMap from '@/Components/Map/KaunasProblemsMap.vue'
 import ProblemsMapList from '@/Components/Map/ProblemsMapList.vue'
 import { useProblemsMapFilter } from '@/composables/useProblemsMapFilter'
+import { useProblemDisplayRows } from '@/composables/useProblemDisplayRows'
 
 const props = defineProps({
     problems: { type: Array, default: () => [] },
@@ -22,9 +23,32 @@ const {
     filteredProblems,
     problemsToShowOnMap,
     toggle,
+    toggleGroup,
     applyFilters,
     clearFilters,
 } = useProblemsMapFilter(allProblems)
+
+// Grupuoti pagal merged_into_problem_id, kad sąraše būtų teisingai rodomos apjungtos problemos
+const groupedForList = computed(() => {
+    const list = filteredProblems.value || []
+    const mains = list.filter((p) => !p.merged_into_problem_id)
+    const children = list.filter((p) => p.merged_into_problem_id)
+    const parentIds = new Set(mains.map((m) => m.id))
+    const byParent = {}
+    children.forEach((p) => {
+        const pid = p.merged_into_problem_id
+        if (!byParent[pid]) byParent[pid] = []
+        byParent[pid].push(p)
+    })
+    const grouped = mains.map((m) => ({ ...m, merged_problems: byParent[m.id] || [] }))
+    const orphanChildren = children.filter((p) => !parentIds.has(p.merged_into_problem_id))
+    orphanChildren.forEach((orphan) => {
+        grouped.push({ ...orphan, merged_into_problem_id: null, merged_problems: [] })
+    })
+    return grouped
+})
+
+const { displayRows } = useProblemDisplayRows(groupedForList)
 
 const showFilterModal = ref(false)
 function openFilterModal() { showFilterModal.value = true }
@@ -74,9 +98,11 @@ function openProblemView(problemId) {
             <aside class="public-map-list">
                 <ProblemsMapList
                     :problems="filteredProblems"
+                    :display-rows="displayRows"
                     :all-count="allProblems.length"
                     :selected-ids="selectedIds"
                     @select="toggle"
+                    @select-group="toggleGroup"
                     @open="openProblemView"
                 />
             </aside>

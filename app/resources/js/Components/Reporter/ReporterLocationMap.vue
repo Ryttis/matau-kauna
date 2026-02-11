@@ -1,10 +1,11 @@
 <script setup>
 import { ref, watch } from 'vue'
+import { KAUNAS_CENTER } from '@/composables/leafletKaunas'
 import { useKaunasMapLocationPicker } from '@/composables/useKaunasMapLocationPicker'
 
 const props = defineProps({
-    initialLat: { type: Number, default: 54.8985 },
-    initialLng: { type: Number, default: 23.9036 },
+    initialLat: { type: Number, default: () => KAUNAS_CENTER[0] },
+    initialLng: { type: Number, default: () => KAUNAS_CENTER[1] },
 })
 
 const emit = defineEmits(['update:address', 'update:lat', 'update:lng'])

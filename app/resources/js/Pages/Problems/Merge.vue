@@ -7,6 +7,7 @@ import AppButton from '@/Components/App/AppButton.vue'
 import AppBackButton from '@/Components/App/AppBackButton.vue'
 import AppCheckbox from '@/Components/App/AppCheckbox.vue'
 import KaunasProblemsMap from '@/Components/Map/KaunasProblemsMap.vue'
+import { KAUNAS_CENTER } from '@/composables/leafletKaunas'
 
 const props = defineProps({
     problem: Object,
@@ -28,8 +29,7 @@ const problemsForMap = computed(() => {
     const fromBackend = props.mapProblems || []
     if (fromBackend.length > 0) return fromBackend
     const list = [props.problem, ...(props.mergedProblems || []), ...(props.similarProblems || [])].filter(Boolean)
-    const centerLat = 54.8985
-    const centerLng = 23.9036
+    const [centerLat, centerLng] = KAUNAS_CENTER
     return list.map((p, i) => {
         const hasCoords = p.lat != null && p.lng != null
         const offset = i * 0.002

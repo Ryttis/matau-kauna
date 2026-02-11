@@ -4,6 +4,7 @@ import { Head, Link, router } from '@inertiajs/vue3'
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue'
 import AppInput from '@/Components/App/AppInput.vue'
 import ProblemDetailBlocks from '@/Components/Problems/ProblemDetailBlocks.vue'
+import ProblemMergeLinks from '@/Components/Problems/ProblemMergeLinks.vue'
 import StatusBadge from '@/Components/Problems/StatusBadge.vue'
 
 const props = defineProps({
@@ -53,40 +54,12 @@ function goToReviewProgress() {
                     <StatusBadge :status="problem.status" />
                 </div>
 
-                <div v-if="mergeTarget || mergedSiblings?.length" class="reporter-problem-merged-section reporter-problem-merged-one-line">
-                    <span class="reporter-problem-merged-label">Apjungta su:</span>
-                    <span class="reporter-problem-merged-inline">
-                        <template v-if="mergeTarget">
-                            <Link
-                                :href="route('reports.show', mergeTarget.id)"
-                                class="reporter-problem-merged-link"
-                            >
-                                {{ mergeTarget.internal_number }}
-                            </Link>
-                        </template>
-                        <Link
-                            v-for="sib in mergedSiblings"
-                            :key="sib.id"
-                            :href="route('reports.show', sib.id)"
-                            class="reporter-problem-merged-link"
-                        >
-                            {{ sib.internal_number }}
-                        </Link>
-                    </span>
-                </div>
-                <div v-if="mergedChildren?.length" class="reporter-problem-merged-section reporter-problem-merged-one-line">
-                    <span class="reporter-problem-merged-label">Apjungta su:</span>
-                    <span class="reporter-problem-merged-inline">
-                        <Link
-                            v-for="child in mergedChildren"
-                            :key="child.id"
-                            :href="route('reports.show', child.id)"
-                            class="reporter-problem-merged-link"
-                        >
-                            {{ child.internal_number }}
-                        </Link>
-                    </span>
-                </div>
+                <ProblemMergeLinks
+                    :merge-target="mergeTarget"
+                    :merged-siblings="mergedSiblings"
+                    :merged-children="mergedChildren"
+                    link-route="reports.show"
+                />
 
                 <div class="reporter-problem-content">
                     <div class="reporter-problem-fields">
@@ -182,55 +155,6 @@ function goToReviewProgress() {
 
 .reporter-problem-status-section {
     margin-bottom: 20px;
-}
-
-.reporter-problem-merged-section {
-    margin-bottom: 20px;
-    padding: 12px 16px;
-    background: #f0f4ff;
-    border-radius: 6px;
-}
-
-.reporter-problem-merged-label {
-    margin-right: 8px;
-    color: #555;
-    font-size: 14px;
-}
-
-.reporter-problem-merged-section:has(.reporter-problem-merged-children) .reporter-problem-merged-label {
-    display: block;
-    margin-right: 0;
-    margin-bottom: 6px;
-}
-
-.reporter-problem-merged-one-line {
-    display: flex;
-    align-items: center;
-    flex-wrap: wrap;
-    gap: 4px 8px;
-}
-
-.reporter-problem-merged-inline {
-    display: inline-flex;
-    flex-wrap: wrap;
-    gap: 4px 8px;
-    align-items: center;
-}
-
-.reporter-problem-merged-children {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px 12px;
-}
-
-.reporter-problem-merged-link {
-    color: #1946a0;
-    font-weight: 600;
-    text-decoration: none;
-}
-
-.reporter-problem-merged-link:hover {
-    text-decoration: none;
 }
 
 .reporter-problem-content {
