@@ -8,6 +8,7 @@ use App\Models\Employee;
 use App\Models\Institution;
 use App\Models\Problem;
 use App\Models\UserRole;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Mail;
 use App\Models\User;
@@ -167,8 +168,20 @@ class ProblemController extends Controller
         $problem->load('mergedProblems:id,internal_number,merged_into_problem_id');
         $problem->load('mergedInto:id,internal_number,title');
 
+        $mergedSiblings = [];
+        if ($problem->merged_into_problem_id !== null) {
+            $mergedSiblings = Problem::query()
+                ->where('merged_into_problem_id', $problem->merged_into_problem_id)
+                ->where('id', '!=', $problem->id)
+                ->get(['id', 'internal_number'])
+                ->map(fn ($p) => ['id' => $p->id, 'internal_number' => $p->internal_number])
+                ->values()
+                ->all();
+        }
+
         return Inertia::render('Problems/Show', [
             'problem' => $problem,
+            'mergedSiblings' => $mergedSiblings,
             'statusOptions' => ProblemStatus::selectableOptions(),
             'categories' => $categories,
         ]);
@@ -363,11 +376,15 @@ class ProblemController extends Controller
 
         $isReporterOnly = $user->hasRole(UserRole::ROLE_REPORTER) && ! $user->hasPermission('issues.view');
         if ($isReporterOnly) {
-            if ($problem->reported_by_user_id === null || (int) $problem->reported_by_user_id !== (int) $user->id) {
-                abort(403, 'Neturite teisės peržiūrėti šios problemos nagrinėjimo eigos.');
+            if ($problem->merged_into_problem_id) {
+                $problem->load('mergedInto');
+                $mainProblem = $problem->mergedInto ?? $problem;
+            } else {
+                $mainProblem = $problem;
             }
+            $problem = $mainProblem;
             $problem->load('reviewHistory');
-            return $this->reviewProgressResponse($problem);
+            return $this->reviewProgressResponse($problem, true);
         }
 
         if ($this->isInstitutionScoped($user)) {
@@ -385,10 +402,10 @@ class ProblemController extends Controller
 
         $problem->load('reviewHistory');
 
-        return $this->reviewProgressResponse($problem);
+        return $this->reviewProgressResponse($problem, false);
     }
 
-    private function reviewProgressResponse(Problem $problem): Response
+    private function reviewProgressResponse(Problem $problem, bool $reporterBackToDashboard): Response
     {
         $reviewEntries = $problem->reviewHistory->map(function ($entry) {
             return [
@@ -403,6 +420,7 @@ class ProblemController extends Controller
         return Inertia::render('Problems/ReviewProgress', [
             'problem' => $problem,
             'reviewEntries' => $reviewEntries,
+            'backUrl' => $reporterBackToDashboard ? route('dashboard') : route('problems.show', $problem->id),
         ]);
     }
 
@@ -479,17 +497,10 @@ class ProblemController extends Controller
         return redirect()->back()->with('success', 'Problema priskirta darbuotojui.');
     }
 
-    public function merge(Request $request, Problem $problem): Response
+    public function merge(Request $request, Problem $problem): Response|RedirectResponse
     {
         $user = $request->user();
-        if (! $user->hasRole(UserRole::ROLE_PROBLEM_ADMIN) && ! $user->hasRole(UserRole::ROLE_INSTITUTION_ADMIN) && ! $user->hasRole(UserRole::ROLE_SYSTEM_ADMIN)) {
-            abort(403);
-        }
-        if ($this->isInstitutionScoped($user)) {
-            if ((int) $problem->institution_id !== (int) $user->institution_id) {
-                abort(403);
-            }
-        }
+        $this->authorizeMergeAccess($user, $problem);
         if ($this->isEmployeeScoped($user)) {
             $employeeId = $this->employeeIdForUser($user);
             if (! $employeeId || (int) $problem->assigned_employee_id !== (int) $employeeId) {
@@ -531,18 +542,98 @@ class ProblemController extends Controller
             $query->where('category', $categoryFilter);
         }
 
-        $similarProblems = $query->orderBy('created_at', 'desc')->get();
+        $similarProblems = $query->with('mergedProblems:id,internal_number,title,merged_into_problem_id,lat,lng')
+            ->orderBy('created_at', 'desc')
+            ->get();
 
-        $problem->load('mergedProblems');
-        $mergedProblems = $problem->mergedProblems;
+        $problem->load(['mergedProblems.mergedProblems']);
+        $directMerged = $problem->mergedProblems;
+        $mergedProblems = $directMerged->flatMap(function ($m) {
+            return collect([$m])->merge($m->mergedProblems ?? collect());
+        })->values();
 
+        $mapProblems = $this->buildMapProblemsForMerge($problem, $mergedProblems, $similarProblems);
+
+        return Inertia::render('Problems/Merge', [
+            'problem' => $problem,
+            'mergedProblems' => $mergedProblems,
+            'similarProblems' => $similarProblems,
+            'categories' => $categories,
+            'selectedCategory' => $categoryFilter,
+            'mapProblems' => $mapProblems,
+        ]);
+    }
+
+    public function storeMerge(Request $request, Problem $problem)
+    {
+        $user = $request->user();
+        $this->authorizeMergeAccess($user, $problem);
+
+        $validated = $request->validate([
+            'problem_ids' => 'required|array',
+            'problem_ids.*' => 'required|integer|exists:problems,id',
+        ]);
+
+        $ids = array_unique($validated['problem_ids']);
+        $ids = array_values(array_filter($ids, fn ($id) => (int) $id !== (int) $problem->id));
+
+        $idsToMerge = [];
+        $collectDescendants = function ($problemId) use (&$collectDescendants, &$idsToMerge) {
+            $idsToMerge[(int) $problemId] = true;
+            $sub = Problem::where('id', $problemId)->with('mergedProblems')->first();
+            if ($sub && $sub->mergedProblems->isNotEmpty()) {
+                foreach ($sub->mergedProblems as $m) {
+                    $collectDescendants($m->id);
+                }
+            }
+        };
+        foreach ($ids as $id) {
+            $collectDescendants($id);
+        }
+        $idsToMerge = array_keys($idsToMerge);
+
+        $query = Problem::whereIn('id', $idsToMerge);
+        if ($this->isInstitutionScoped($user)) {
+            $query->where('institution_id', $user->institution_id);
+        }
+        $query->update(['merged_into_problem_id' => $problem->id]);
+
+        return redirect()->route('problems.show', $problem)->with('success', 'Problemos apjungtos.');
+    }
+
+    public function unmerge(Request $request, Problem $problem)
+    {
+        $this->authorizeMergeAccess($request->user(), $problem);
+        if ($problem->merged_into_problem_id === null) {
+            return redirect()->back()->with('info', 'Problema neapjungta.');
+        }
+
+        $problem->update(['merged_into_problem_id' => null]);
+
+        return redirect()->back()->with('success', 'Problema atskirta.');
+    }
+
+    private function authorizeMergeAccess(User $user, Problem $problem): void
+    {
+        if (! $user->hasRole(UserRole::ROLE_PROBLEM_ADMIN) && ! $user->hasRole(UserRole::ROLE_INSTITUTION_ADMIN) && ! $user->hasRole(UserRole::ROLE_SYSTEM_ADMIN)) {
+            abort(403);
+        }
+        if ($this->isInstitutionScoped($user) && (int) $problem->institution_id !== (int) $user->institution_id) {
+            abort(403);
+        }
+    }
+
+    private function buildMapProblemsForMerge(Problem $problem, $mergedProblems, $similarProblems): array
+    {
         $centerLat = 54.8985;
         $centerLng = 23.9036;
+        $problemsForMap = collect([$problem])->concat($mergedProblems);
+        foreach ($similarProblems as $s) {
+            $problemsForMap->push($s);
+            $problemsForMap = $problemsForMap->merge($s->mergedProblems ?? collect());
+        }
         $mapProblems = [];
         $index = 0;
-
-        $problemsForMap = collect([$problem])->concat($mergedProblems)->concat($similarProblems);
-
         foreach ($problemsForMap as $p) {
             $hasCoords = $p->lat !== null && $p->lng !== null;
             $offset = $index * 0.002;
@@ -559,60 +650,7 @@ class ProblemController extends Controller
             ];
             $index++;
         }
-
-        return Inertia::render('Problems/Merge', [
-            'problem' => $problem,
-            'mergedProblems' => $mergedProblems,
-            'similarProblems' => $similarProblems,
-            'categories' => $categories,
-            'selectedCategory' => $categoryFilter,
-            'mapProblems' => $mapProblems,
-        ]);
-    }
-
-    public function storeMerge(Request $request, Problem $problem)
-    {
-        $user = $request->user();
-        if (! $user->hasRole(UserRole::ROLE_PROBLEM_ADMIN) && ! $user->hasRole(UserRole::ROLE_INSTITUTION_ADMIN) && ! $user->hasRole(UserRole::ROLE_SYSTEM_ADMIN)) {
-            abort(403);
-        }
-        if ($this->isInstitutionScoped($user) && (int) $problem->institution_id !== (int) $user->institution_id) {
-            abort(403);
-        }
-
-        $validated = $request->validate([
-            'problem_ids' => 'required|array',
-            'problem_ids.*' => 'required|integer|exists:problems,id',
-        ]);
-
-        $ids = array_unique($validated['problem_ids']);
-        $ids = array_values(array_filter($ids, fn ($id) => (int) $id !== (int) $problem->id));
-
-        $query = Problem::whereIn('id', $ids);
-        if ($this->isInstitutionScoped($user)) {
-            $query->where('institution_id', $user->institution_id);
-        }
-        $query->update(['merged_into_problem_id' => $problem->id]);
-
-        return redirect()->route('problems.show', $problem)->with('success', 'Problemos apjungtos.');
-    }
-
-    public function unmerge(Request $request, Problem $problem)
-    {
-        $user = $request->user();
-        if (! $user->hasRole(UserRole::ROLE_PROBLEM_ADMIN) && ! $user->hasRole(UserRole::ROLE_INSTITUTION_ADMIN) && ! $user->hasRole(UserRole::ROLE_SYSTEM_ADMIN)) {
-            abort(403);
-        }
-        if ($problem->merged_into_problem_id === null) {
-            return redirect()->back()->with('info', 'Problema neapjungta.');
-        }
-        if ($this->isInstitutionScoped($user) && (int) $problem->institution_id !== (int) $user->institution_id) {
-            abort(403);
-        }
-
-        $problem->update(['merged_into_problem_id' => null]);
-
-        return redirect()->back()->with('success', 'Problema atskirta.');
+        return $mapProblems;
     }
 
     public function export(Request $request)
@@ -779,14 +817,48 @@ class ProblemController extends Controller
             'created_at' => $problem->created_at?->toIso8601String(),
         ];
 
+        $mergeTarget = null;
+        $mergedChildren = [];
+        $mergedSiblings = [];
+        $reviewProgressProblemId = $problem->id;
+        if ($problem->merged_into_problem_id) {
+            $problem->load('mergedInto:id,internal_number');
+            if ($problem->mergedInto) {
+                $mergeTarget = [
+                    'id' => $problem->mergedInto->id,
+                    'internal_number' => $problem->mergedInto->internal_number,
+                ];
+                $reviewProgressProblemId = $problem->mergedInto->id;
+            }
+            $mergedSiblings = Problem::query()
+                ->where('merged_into_problem_id', $problem->merged_into_problem_id)
+                ->where('id', '!=', $problem->id)
+                ->get(['id', 'internal_number'])
+                ->map(fn ($p) => ['id' => $p->id, 'internal_number' => $p->internal_number])
+                ->values()
+                ->all();
+        } else {
+            $mergedChildren = $problem->mergedProblems()->get(['id', 'internal_number'])
+                ->map(fn ($p) => ['id' => $p->id, 'internal_number' => $p->internal_number])
+                ->values()
+                ->all();
+        }
+
         if ($isReporterView) {
             return Inertia::render('ReporterProblemShow', [
                 'problem' => $problemData,
+                'mergeTarget' => $mergeTarget,
+                'mergedChildren' => $mergedChildren,
+                'mergedSiblings' => $mergedSiblings,
+                'reviewProgressProblemId' => $reviewProgressProblemId,
             ]);
         }
 
         return Inertia::render('PublicProblemShow', [
             'problem' => $problemData,
+            'mergeTarget' => $mergeTarget,
+            'mergedChildren' => $mergedChildren,
+            'mergedSiblings' => $mergedSiblings,
         ]);
     }
 
@@ -796,6 +868,7 @@ class ProblemController extends Controller
         $centerLng = 23.9036;
 
         $query = Problem::query()
+            ->whereIn('status', ['nauja', 'nagrinejama', 'isspresta'])
             ->when(
                 $user && $this->isInstitutionScoped($user),
                 fn ($q) => $q->where('institution_id', $user->institution_id)
@@ -839,29 +912,38 @@ class ProblemController extends Controller
     {
         $centerLat = 54.8985;
         $centerLng = 23.9036;
+        $allowedStatuses = ['nauja', 'nagrinejama', 'isspresta'];
 
-        return Problem::query()
-            ->when($reportedByUserId !== null, fn ($q) => $q->where('reported_by_user_id', $reportedByUserId))
+        $query = Problem::query()
+            ->whereIn('status', $allowedStatuses)
+            ->when($reportedByUserId !== null, function ($q) use ($reportedByUserId) {
+                $q->where(function ($q2) use ($reportedByUserId) {
+                    $q2->where('reported_by_user_id', $reportedByUserId)
+                        ->orWhereHas('mergedInto', fn ($q3) => $q3->where('reported_by_user_id', $reportedByUserId));
+                });
+            })
             ->orderBy('address')
             ->orderBy('created_at', 'desc')
-            ->get(['id', 'internal_number', 'title', 'status', 'category', 'address', 'lat', 'lng', 'created_at'])
-            ->map(function ($problem, $index) use ($centerLat, $centerLng) {
-                $hasCoords = $problem->lat !== null && $problem->lng !== null;
-                $offset = $index * 0.002;
-                return [
-                    'id' => $problem->id,
-                    'internal_number' => $problem->internal_number,
-                    'title' => $problem->title,
-                    'status' => $problem->status,
-                    'category' => $problem->category,
-                    'address' => $problem->address,
-                    'created_at' => $problem->created_at?->toIso8601String(),
-                    'lat' => $hasCoords ? (float) $problem->lat : $centerLat + ($offset * 0.1),
-                    'lng' => $hasCoords ? (float) $problem->lng : $centerLng + ($offset * 0.1),
-                ];
-            })
-            ->values()
-            ->all();
+            ->get(['id', 'internal_number', 'title', 'status', 'category', 'address', 'lat', 'lng', 'created_at', 'merged_into_problem_id']);
+
+        $index = 0;
+        return $query->map(function ($problem) use ($centerLat, $centerLng, &$index) {
+            $hasCoords = $problem->lat !== null && $problem->lng !== null;
+            $offset = $index * 0.002;
+            $index++;
+            return [
+                'id' => $problem->id,
+                'internal_number' => $problem->internal_number,
+                'title' => $problem->title,
+                'status' => $problem->status,
+                'category' => $problem->category,
+                'address' => $problem->address,
+                'created_at' => $problem->created_at?->toIso8601String(),
+                'lat' => $hasCoords ? (float) $problem->lat : $centerLat + ($offset * 0.1),
+                'lng' => $hasCoords ? (float) $problem->lng : $centerLng + ($offset * 0.1),
+                'merged_into_problem_id' => $problem->merged_into_problem_id,
+            ];
+        })->values()->all();
     }
 
     public function statistics(Request $request): Response

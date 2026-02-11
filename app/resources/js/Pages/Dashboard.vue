@@ -72,6 +72,41 @@ const {
     clearFilters: reporterClearFilters,
 } = useProblemsMapFilter(reporterProblems)
 
+function buildReporterDisplayRows(flatList) {
+    const list = flatList || []
+    const mains = list.filter((p) => !p.merged_into_problem_id)
+    const rows = []
+    mains.forEach((main) => {
+        const merged = list.filter((p) => p.merged_into_problem_id === main.id)
+        const groupIds = [main.id, ...merged.map((m) => m.id)]
+        rows.push({
+            problem: main,
+            isGroupMain: true,
+            isLastInGroup: merged.length === 0,
+            groupIds,
+        })
+        merged.forEach((m, idx) => {
+            rows.push({
+                problem: m,
+                isGroupMain: false,
+                isLastInGroup: idx === merged.length - 1,
+                groupIds,
+            })
+        })
+    })
+    return rows
+}
+
+const reporterDisplayRows = computed(() => buildReporterDisplayRows(reporterFilteredProblems.value))
+
+function reporterToggleGroup(groupIds) {
+    const next = new Set(reporterSelectedIds.value)
+    const allSelected = groupIds.length > 0 && groupIds.every((id) => next.has(id))
+    if (allSelected) groupIds.forEach((id) => next.delete(id))
+    else groupIds.forEach((id) => next.add(id))
+    reporterSelectedIds.value = next
+}
+
 const reporterShowFilterModal = ref(false)
 function reporterOpenFilterModal() { reporterShowFilterModal.value = true }
 function reporterHandleFilterApply(filters) {
@@ -83,9 +118,14 @@ function reporterHandleFilterClear() { reporterClearFilters() }
 function reporterOpenProblemView(problemId) {
     router.visit(route('reports.show', problemId))
 }
-const reporterSelectedProblemId = computed(() =>
-    reporterSelectedIds.value.size === 1 ? [...reporterSelectedIds.value][0] : null
-)
+const reporterSelectedProblemId = computed(() => {
+    const ids = reporterSelectedIds.value
+    if (ids.size === 0) return null
+    if (ids.size === 1) return [...ids][0]
+    const rows = reporterDisplayRows.value
+    const fullGroups = rows.filter((r) => r.isGroupMain && r.groupIds?.length && r.groupIds.every((id) => ids.has(id)))
+    return fullGroups.length === 1 ? fullGroups[0].problem.id : null
+})
 function reporterHandleStebeti() {
     if (!reporterSelectedProblemId.value) return
     router.visit(route('problems.reviewProgress', reporterSelectedProblemId.value))
@@ -440,10 +480,10 @@ onUnmounted(() => {
                 </div>
                 <aside class="reporter-dashboard-list">
                     <ProblemsMapList
-                        :problems="reporterFilteredProblems"
+                        :display-rows="reporterDisplayRows"
                         :all-count="reporterProblems.length"
                         :selected-ids="reporterSelectedIds"
-                        @select="reporterToggle"
+                        @select-group="reporterToggleGroup"
                         @open="reporterOpenProblemView"
                     />
                     <div class="reporter-dashboard-actions">

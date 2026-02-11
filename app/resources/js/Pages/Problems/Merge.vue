@@ -44,18 +44,38 @@ const problemsForMap = computed(() => {
     })
 })
 
+const mainMatchesCategory = computed(() => {
+    if (!selectedCategory.value || selectedCategory.value === '') return true
+    return (props.problem?.category || '') === selectedCategory.value
+})
+
 const selectedProblemIds = computed(() => {
     const selected = selectedProblems.value
-    const mergedIdList = (props.mergedProblems || []).map((p) => p.id)
-    const alwaysShow = [mainProblemId.value, ...mergedIdList]
+    const alwaysShow = mainMatchesCategory.value
+        ? [Number(mainProblemId.value), ...(mergedProblemIdsForMap.value || []).map(Number)]
+        : []
     if (selected.length === 0) {
-        return new Set(problemsForMap.value.map((p) => p.id))
+        if (!mainMatchesCategory.value) {
+            const ids = new Set()
+            similarOnly.value.forEach((s) => {
+                ids.add(Number(s.id))
+                ;(s.merged_problems || s.mergedProblems || []).forEach((m) => ids.add(Number(m.id)))
+            })
+            return ids
+        }
+        return new Set(problemsForMap.value.map((p) => Number(p.id)))
     }
-    return new Set([...alwaysShow, ...selected])
+    const expanded = new Set(selected.map(Number))
+    for (const s of similarOnly.value) {
+        if (expanded.has(Number(s.id))) {
+            (s.merged_problems || s.mergedProblems || []).forEach((m) => expanded.add(Number(m.id)))
+        }
+    }
+    return new Set([...alwaysShow, ...expanded])
 })
 
 const problemsToShowOnMap = computed(() =>
-    problemsForMap.value.filter((p) => selectedProblemIds.value.has(p.id))
+    problemsForMap.value.filter((p) => selectedProblemIds.value.has(Number(p.id)))
 )
 
 const allProblems = computed(() => {
@@ -91,19 +111,55 @@ const singleListRows = computed(() => {
         ...p,
         isInMergedGroup: true,
         isLastInMergedGroup: idx === merged.length - 1,
+        isCurrentGroupEnd: idx === merged.length - 1,
     }))
-    const similar = similarOnly.value.map((p) => ({
-        type: 'similar',
-        problem: p,
-        isInMergedGroup: false,
-        isLastInMergedGroup: false,
-    }))
-    return [main, ...mergedRows, ...similar]
+    const mainWithEnd = { ...main, isCurrentGroupEnd: merged.length === 0 }
+    const similarRows = []
+    for (const s of similarOnly.value) {
+        const children = s.merged_problems || []
+        similarRows.push({
+            type: 'similar',
+            problem: s,
+            isInMergedGroup: children.length > 0,
+            isLastInMergedGroup: children.length === 0,
+        })
+        children.forEach((m, idx) => {
+            similarRows.push({
+                type: 'similar_merged',
+                problem: m,
+                isInMergedGroup: true,
+                isLastInMergedGroup: idx === children.length - 1,
+            })
+        })
+    }
+    if (!mainMatchesCategory.value) {
+        return similarRows
+    }
+    return [mainWithEnd, ...mergedRows, ...similarRows]
 })
 
 const mergedProblemIdsForMap = computed(() =>
     (props.mergedProblems || []).map((p) => p.id)
 )
+
+const navigableGroupsForMap = computed(() => {
+    const fromMap = problemsForMap.value
+    const mainId = Number(mainProblemId.value)
+    const mergedSet = new Set((mergedProblemIdsForMap.value || []).map((id) => Number(id)))
+    const groups = []
+    const main = fromMap.find((p) => Number(p.id) === mainId)
+    const mainMerged = fromMap.filter((p) => mergedSet.has(Number(p.id)))
+    if (main) groups.push([...mainMerged, main])
+    for (const s of similarOnly.value) {
+        const children = s.merged_problems || s.mergedProblems || []
+        if (children.length === 0) continue
+        const childIds = new Set(children.map((m) => Number(m.id)))
+        const groupMerged = fromMap.filter((p) => childIds.has(Number(p.id)))
+        const parent = fromMap.find((p) => Number(p.id) === Number(s.id))
+        if (parent) groups.push([...groupMerged, parent])
+    }
+    return groups
+})
 
 const handleBack = () => {
     router.visit(route('problems.show', props.problem.id))
@@ -161,7 +217,6 @@ const handleMerge = () => {
         problem_ids: selectedProblems.value,
     }, {
         preserveScroll: false,
-        onSuccess: () => {},
         onError: (errors) => {
             alert(errors?.message || 'Nepavyko apjungti')
         },
@@ -234,6 +289,7 @@ onUnmounted(() => {
                             :problems="problemsToShowOnMap"
                             :highlighted-problem-id="mainProblemId"
                             :merged-problem-ids="mergedProblemIdsForMap"
+                            :navigable-groups="navigableGroupsForMap"
                             marker-class="merge-map-marker"
                             :show-legend="false"
                             @open-problem="openProblemView"
@@ -242,7 +298,6 @@ onUnmounted(() => {
                 </div>
 
                 <div class="merge-problems-section">
-                    <p class="merge-list-title">Panašūs netoliese:</p>
                     <div class="merge-problems-list merge-problems-list-single">
                         <div
                             v-for="row in singleListRows"
@@ -250,10 +305,13 @@ onUnmounted(() => {
                             class="merge-problem-item"
                             :class="{
                                 'merge-problem-item-main': row.type === 'main',
-                                'merge-problem-item-merged': row.type === 'merged',
+                                'merge-problem-item-merged': row.type === 'merged' || row.type === 'similar_merged',
+                                'merge-problem-item-current-group': row.type === 'main' || row.type === 'merged',
                                 'merge-problem-item-similar': row.type === 'similar',
+                                'merge-problem-item-similar-with-children': row.type === 'similar' && row.isInMergedGroup,
                                 'merge-group-inner': row.isInMergedGroup && !row.isLastInMergedGroup,
                                 'merge-group-end': row.isLastInMergedGroup,
+                                'merge-group-end-current': row.isCurrentGroupEnd,
                             }"
                         >
                             <template v-if="row.type === 'main'">
@@ -261,7 +319,7 @@ onUnmounted(() => {
                                     {{ row.problem.title }} (Nr. {{ row.problem.internal_number }}) — ši problema
                                 </span>
                             </template>
-                            <template v-else-if="row.type === 'merged'">
+                            <template v-else-if="row.type === 'merged' || row.type === 'similar_merged'">
                                 <span class="merge-problem-text merge-problem-text-merged">
                                     {{ row.problem.title }} (Nr. {{ row.problem.internal_number }})
                                 </span>
@@ -463,7 +521,7 @@ onUnmounted(() => {
 }
 
 .merge-problem-text-merged {
-    color: #1946A0;
+    color: #333;
 }
 
 .merge-merged-list {
@@ -517,20 +575,29 @@ onUnmounted(() => {
     border-bottom: none;
 }
 
-.merge-group-inner {
+.merge-problem-item.merge-group-inner {
     border-bottom: none !important;
 }
 
-.merge-group-end {
+.merge-problem-item.merge-group-end {
     border-bottom: 2px solid #e0e0e0 !important;
+}
+
+.merge-problem-item.merge-group-end-current {
+    border-bottom: 2px solid #1946A0 !important;
 }
 
 .merge-problem-item:hover {
     background-color: #f9f9f9;
 }
 
-.merge-problem-item-main {
-    background-color: #f0f7ff;
+.merge-problem-item-current-group {
+    background-color: #e8eef7;
+    border-left: 4px solid #1946A0;
+}
+
+.merge-problem-item-current-group:hover {
+    background-color: #dce5f5;
 }
 
 .merge-problem-label {
@@ -540,7 +607,6 @@ onUnmounted(() => {
     cursor: pointer;
     width: 100%;
 }
-
 
 .merge-problem-text {
     font-size: 16px;
