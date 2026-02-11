@@ -67,6 +67,26 @@ const handleConfirmDelete = () => {
 }
 
 const handleGrazintiAdmin = () => {}
+
+const isMergedIntoOther = computed(
+    () => Boolean(props.problem?.merged_into_problem_id && props.problem?.merged_into_problem)
+)
+
+const mainProblem = computed(() => props.problem?.merged_into_problem || null)
+
+const mergedWithText = computed(() => {
+    if (isMergedIntoOther.value && mainProblem.value) return null
+    const list = props.problem?.merged_problems || []
+    if (list.length === 0) return ''
+    const parts = list.map((p) => 'Nr ' + (p.internal_number || ''))
+    if (parts.length === 1) return parts[0]
+    if (parts.length === 2) return parts[0] + ' ir ' + parts[1]
+    return parts.slice(0, -1).join(', ') + ' ir ' + parts[parts.length - 1]
+})
+
+const mergeTargetId = computed(() =>
+    isMergedIntoOther.value && mainProblem.value ? mainProblem.value.id : props.problem?.id
+)
 </script>
 
 <template>
@@ -90,6 +110,18 @@ const handleGrazintiAdmin = () => {}
             <div class="problem-status-section">
                 <StatusBadge :status="problem?.status" />
             </div>
+
+            <div v-if="isMergedIntoOther && mainProblem" class="problem-merged-with">
+                Ši problema apjungta su:
+                <button
+                    type="button"
+                    class="problem-merged-with-link"
+                    @click="router.visit(route('problems.show', mainProblem.id))"
+                >
+                    {{ mainProblem.title }} (Nr. {{ mainProblem.internal_number }})
+                </button>
+            </div>
+            <div v-else-if="mergedWithText" class="problem-merged-with">Apjungta su: {{ mergedWithText }}</div>
 
             <div class="problem-content">
                 <div class="problem-fields-top">
@@ -166,7 +198,7 @@ const handleGrazintiAdmin = () => {}
                         text="Apjungti"
                         variant="secondary"
                         as-button
-                        @click="() => router.visit(route('problems.merge', problem.id))"
+                        @click="() => router.visit(route('problems.merge', mergeTargetId))"
                         class="action-btn"
                     />
                 </div>
@@ -194,7 +226,7 @@ const handleGrazintiAdmin = () => {}
                         text="Apjungti"
                         variant="secondary"
                         as-button
-                        @click="() => router.visit(route('problems.merge', problem.id))"
+                        @click="() => router.visit(route('problems.merge', mergeTargetId))"
                         class="action-btn"
                     />
                 </div>
@@ -299,6 +331,33 @@ const handleGrazintiAdmin = () => {}
 
 .problem-status-section {
     margin-bottom: 20px;
+}
+
+.problem-merged-with {
+    font-weight: 600;
+    font-size: 1rem;
+    color: #1946A0;
+    background: #e8eef7;
+    border: 1px solid #1946A0;
+    border-radius: 6px;
+    padding: 12px 16px;
+    margin: 0 0 20px 0;
+}
+
+.problem-merged-with-link {
+    margin-left: 0.25rem;
+    padding: 0;
+    background: none;
+    border: none;
+    font: inherit;
+    font-weight: 600;
+    color: #1946A0;
+    text-decoration: underline;
+    cursor: pointer;
+}
+
+.problem-merged-with-link:hover {
+    color: #0f2d66;
 }
 
 .problem-content {

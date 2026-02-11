@@ -6,14 +6,15 @@ import AppSelect from '@/Components/App/AppSelect.vue'
 import AppButton from '@/Components/App/AppButton.vue'
 import AppBackButton from '@/Components/App/AppBackButton.vue'
 import AppCheckbox from '@/Components/App/AppCheckbox.vue'
+import KaunasProblemsMap from '@/Components/Map/KaunasProblemsMap.vue'
 
 const props = defineProps({
     problem: Object,
+    mergedProblems: { type: Array, default: () => [] },
     similarProblems: Array,
     categories: Array,
     selectedCategory: String,
-    mapCenter: Object,
-    mapMarkers: Array,
+    mapProblems: { type: Array, default: () => [] },
 })
 
 const selectedCategory = ref(props.selectedCategory || null)
@@ -22,6 +23,40 @@ const showCategoryDropdown = ref(false)
 const categoryDropdownRef = ref(null)
 
 const mainProblemId = computed(() => props.problem.id)
+
+const problemsForMap = computed(() => {
+    const fromBackend = props.mapProblems || []
+    if (fromBackend.length > 0) return fromBackend
+    const list = [props.problem, ...(props.mergedProblems || []), ...(props.similarProblems || [])].filter(Boolean)
+    const centerLat = 54.8985
+    const centerLng = 23.9036
+    return list.map((p, i) => {
+        const hasCoords = p.lat != null && p.lng != null
+        const offset = i * 0.002
+        return {
+            id: p.id,
+            internal_number: p.internal_number,
+            title: p.title,
+            status: p.status || 'nauja',
+            lat: hasCoords ? Number(p.lat) : centerLat + (offset * 0.1),
+            lng: hasCoords ? Number(p.lng) : centerLng + (offset * 0.1),
+        }
+    })
+})
+
+const selectedProblemIds = computed(() => {
+    const selected = selectedProblems.value
+    const mergedIdList = (props.mergedProblems || []).map((p) => p.id)
+    const alwaysShow = [mainProblemId.value, ...mergedIdList]
+    if (selected.length === 0) {
+        return new Set(problemsForMap.value.map((p) => p.id))
+    }
+    return new Set([...alwaysShow, ...selected])
+})
+
+const problemsToShowOnMap = computed(() =>
+    problemsForMap.value.filter((p) => selectedProblemIds.value.has(p.id))
+)
 
 const allProblems = computed(() => {
     const problems = [props.problem, ...props.similarProblems]
@@ -34,6 +69,41 @@ const filteredProblems = computed(() => {
     }
     return allProblems.value.filter(p => p.category === selectedCategory.value)
 })
+
+const mergedIds = computed(() => new Set((props.mergedProblems || []).map(p => p.id)))
+
+const similarOnly = computed(() =>
+    filteredProblems.value.filter(
+        (p) => p.id !== props.problem.id && !mergedIds.value.has(p.id)
+    )
+)
+
+const singleListRows = computed(() => {
+    const merged = (props.mergedProblems || []).map((p) => ({ type: 'merged', problem: p }))
+    const lastInMergedGroup = merged.length === 0
+    const main = {
+        type: 'main',
+        problem: props.problem,
+        isInMergedGroup: true,
+        isLastInMergedGroup: lastInMergedGroup,
+    }
+    const mergedRows = merged.map((p, idx) => ({
+        ...p,
+        isInMergedGroup: true,
+        isLastInMergedGroup: idx === merged.length - 1,
+    }))
+    const similar = similarOnly.value.map((p) => ({
+        type: 'similar',
+        problem: p,
+        isInMergedGroup: false,
+        isLastInMergedGroup: false,
+    }))
+    return [main, ...mergedRows, ...similar]
+})
+
+const mergedProblemIdsForMap = computed(() =>
+    (props.mergedProblems || []).map((p) => p.id)
+)
 
 const handleBack = () => {
     router.visit(route('problems.show', props.problem.id))
@@ -54,9 +124,7 @@ const handleCategoryChange = (category) => {
 
 const handleSelectAll = (checked) => {
     if (checked) {
-        selectedProblems.value = filteredProblems.value
-            .filter(p => p.id !== props.problem.id)
-            .map(p => p.id)
+        selectedProblems.value = similarOnly.value.map((p) => p.id)
     } else {
         selectedProblems.value = []
     }
@@ -75,15 +143,29 @@ const handleSelectItem = (problemId) => {
     }
 }
 
-const handleMerge = () => {
-    const allSelectedProblems = [mainProblemId.value, ...selectedProblems.value]
+function openProblemView(problemId) {
+    router.visit(route('problems.show', problemId))
+}
 
-    if (allSelectedProblems.length < 2) {
+function handleUnmerge(problemId) {
+    router.patch(route('problems.unmerge', problemId), {}, { preserveScroll: false })
+}
+
+const handleMerge = () => {
+    if (selectedProblems.value.length === 0) {
         alert('Pasirinkite bent vieną problemą apjungimui')
         return
     }
 
-    alert('Apjungimo funkcionalumas bus suderintas vykdant sutartį')
+    router.post(route('problems.merge.store', props.problem.id), {
+        problem_ids: selectedProblems.value,
+    }, {
+        preserveScroll: false,
+        onSuccess: () => {},
+        onError: (errors) => {
+            alert(errors?.message || 'Nepavyko apjungti')
+        },
+    })
 }
 
 const handleClickOutside = (event) => {
@@ -141,65 +223,78 @@ onUnmounted(() => {
                             </button>
                         </div>
                     </div>
-                    <p class="merge-similar-text">Panašūs netoliese</p>
+                    <p class="merge-similar-text">Panašūs netoliese:</p>
                 </div>
             </div>
 
             <div class="merge-content">
                 <div class="merge-map-section">
                     <div class="merge-map-container">
-                        <div class="merge-map-placeholder">
-                            <div class="merge-map-label">Žemėlapis</div>
-                            <div class="merge-map-dummy">
-                                <div class="merge-map-grid"></div>
-                                <div class="merge-map-markers">
-                                    <div
-                                        v-for="(marker, index) in mapMarkers"
-                                        :key="marker.id"
-                                        class="merge-map-marker"
-                                        :class="{ 'merge-map-marker-main': marker.isMain }"
-                                        :style="{
-                                            left: (50 + (index * 7.5)) + '%',
-                                            top: (50 + (index % 2 === 0 ? -13 : 13)) + '%'
-                                        }"
-                                    >
-                                        <span class="merge-map-marker-number">{{ marker.internal_number }}</span>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
+                        <KaunasProblemsMap
+                            :problems="problemsToShowOnMap"
+                            :highlighted-problem-id="mainProblemId"
+                            :merged-problem-ids="mergedProblemIdsForMap"
+                            marker-class="merge-map-marker"
+                            :show-legend="false"
+                            @open-problem="openProblemView"
+                        />
                     </div>
                 </div>
 
                 <div class="merge-problems-section">
-                    <div class="merge-problems-list">
+                    <p class="merge-list-title">Panašūs netoliese:</p>
+                    <div class="merge-problems-list merge-problems-list-single">
                         <div
-                            v-for="problemItem in filteredProblems"
-                            :key="problemItem.id"
+                            v-for="row in singleListRows"
+                            :key="row.problem.id"
                             class="merge-problem-item"
-                            :class="{ 'merge-problem-item-main': problemItem.id === problem.id }"
+                            :class="{
+                                'merge-problem-item-main': row.type === 'main',
+                                'merge-problem-item-merged': row.type === 'merged',
+                                'merge-problem-item-similar': row.type === 'similar',
+                                'merge-group-inner': row.isInMergedGroup && !row.isLastInMergedGroup,
+                                'merge-group-end': row.isLastInMergedGroup,
+                            }"
                         >
-                            <label class="merge-problem-label">
-                                <AppCheckbox
-                                    :model-value="problemItem.id === problem.id || selectedProblems.includes(problemItem.id)"
-                                    :value="problemItem.id"
-                                    :disabled="problemItem.id === problem.id"
-                                    @change="handleSelectItem(problemItem.id)"
-                                />
+                            <template v-if="row.type === 'main'">
                                 <span class="merge-problem-text">
-                                    {{ problemItem.title }} (Nr. {{ problemItem.internal_number }})
+                                    {{ row.problem.title }} (Nr. {{ row.problem.internal_number }}) — ši problema
                                 </span>
-                            </label>
+                            </template>
+                            <template v-else-if="row.type === 'merged'">
+                                <span class="merge-problem-text merge-problem-text-merged">
+                                    {{ row.problem.title }} (Nr. {{ row.problem.internal_number }})
+                                </span>
+                                <button
+                                    type="button"
+                                    class="merge-unmerge-btn"
+                                    @click.stop="handleUnmerge(row.problem.id)"
+                                >
+                                    Atskirti
+                                </button>
+                            </template>
+                            <template v-else>
+                                <label class="merge-problem-label">
+                                    <AppCheckbox
+                                        :model-value="selectedProblems.includes(row.problem.id)"
+                                        :value="row.problem.id"
+                                        @change="handleSelectItem(row.problem.id)"
+                                    />
+                                    <span class="merge-problem-text">
+                                        {{ row.problem.title }} (Nr. {{ row.problem.internal_number }})
+                                    </span>
+                                </label>
+                            </template>
                         </div>
                     </div>
 
                     <div class="merge-actions">
                         <label class="merge-select-all-label">
                             <AppCheckbox
-                                :model-value="selectedProblems.length > 0 && selectedProblems.length === filteredProblems.filter(p => p.id !== problem.id).length"
+                                :model-value="similarOnly.length > 0 && selectedProblems.length === similarOnly.length"
                                 @change="handleSelectAll"
                             />
-                            <span class="merge-select-all-text">Pasirinkti visus</span>
+                            <span class="merge-select-all-text">Pasirinkti visus panašius</span>
                         </label>
                         <AppButton
                             text="Apjungti"
@@ -241,6 +336,7 @@ onUnmounted(() => {
 .merge-category-wrapper {
     position: relative;
     display: inline-block;
+    z-index: 1100;
 }
 
 .merge-category-btn {
@@ -285,7 +381,7 @@ onUnmounted(() => {
     border-radius: 5px;
     min-width: 200px;
     box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-    z-index: 100;
+    z-index: 1100;
     overflow: hidden;
 }
 
@@ -330,86 +426,75 @@ onUnmounted(() => {
 
 .merge-map-container {
     width: 100%;
+    height: 320px;
+    min-height: 320px;
     border: 1px solid #e0e0e0;
     border-radius: 5px;
     overflow: hidden;
 }
 
-.merge-map-placeholder {
-    position: relative;
-    width: 100%;
-    min-height: 150px;
-    background: #f9f9f9;
-}
-
-.merge-map-label {
-    position: absolute;
-    top: 8px;
-    left: 8px;
-    font-size: 14px;
-    font-weight: 600;
-    color: #333;
-    font-family: 'Inter', sans-serif;
-    z-index: 10;
-}
-
-.merge-map-dummy {
-    width: 100%;
+.merge-map-container :deep(.kaunas-map-wrap) {
     height: 100%;
-    min-height: 150px;
-    position: relative;
 }
 
-.merge-map-grid {
-    width: 100%;
+.merge-map-container :deep(.kaunas-map-container) {
     height: 100%;
-    min-height: 150px;
-    background-image:
-        linear-gradient(to right, #e0e0e0 0.5px, transparent 0.5px),
-        linear-gradient(to bottom, #e0e0e0 0.5px, transparent 0.5px);
-    background-size: 20px 20px;
-    background-color: #f5f5f5;
-    position: absolute;
-    top: 0;
-    left: 0;
-}
-
-.merge-map-markers {
-    position: relative;
-    width: 100%;
-    height: 100%;
-    min-height: 150px;
-}
-
-.merge-map-marker {
-    position: absolute;
-    width: 12px;
-    height: 12px;
-    border-radius: 50%;
-    background-color: #F41616;
-    border: 2px solid #fff;
-    transform: translate(-50%, -50%);
-}
-
-.merge-map-marker-main {
-    background-color: #1946A0;
-}
-
-.merge-map-marker-number {
-    position: absolute;
-    top: -20px;
-    left: 50%;
-    transform: translateX(-50%);
-    font-size: 9px;
-    color: #333;
-    white-space: nowrap;
-    font-family: 'Inter', sans-serif;
+    min-height: 320px;
 }
 
 .merge-problems-section {
     display: flex;
     flex-direction: column;
     gap: 20px;
+}
+
+.merge-list-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: #333;
+    margin: 0 0 8px 0;
+}
+
+.merge-problems-list-single .merge-problem-item-merged {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.merge-problem-text-merged {
+    color: #1946A0;
+}
+
+.merge-merged-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    border: 1px solid #e0e0e0;
+    border-radius: 5px;
+    overflow: hidden;
+}
+
+.merge-problem-item-merged {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.merge-unmerge-btn {
+    font-size: 12px;
+    color: #1946A0;
+    background: none;
+    border: 1px solid #1946A0;
+    border-radius: 4px;
+    padding: 6px 12px;
+    cursor: pointer;
+    flex-shrink: 0;
+}
+
+.merge-unmerge-btn:hover {
+    background: #e8eef7;
 }
 
 .merge-problems-list {
@@ -430,6 +515,14 @@ onUnmounted(() => {
 
 .merge-problem-item:last-child {
     border-bottom: none;
+}
+
+.merge-group-inner {
+    border-bottom: none !important;
+}
+
+.merge-group-end {
+    border-bottom: 2px solid #e0e0e0 !important;
 }
 
 .merge-problem-item:hover {

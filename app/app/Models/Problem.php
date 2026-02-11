@@ -24,6 +24,7 @@ class Problem extends Model
         'institution_id',
         'assigned_employee_id',
         'reported_by_user_id',
+        'merged_into_problem_id',
     ];
 
     protected $casts = [
@@ -128,5 +129,15 @@ class Problem extends Model
     public function reportedByUser(): BelongsTo
     {
         return $this->belongsTo(User::class, 'reported_by_user_id');
+    }
+
+    public function mergedInto(): BelongsTo
+    {
+        return $this->belongsTo(Problem::class, 'merged_into_problem_id');
+    }
+
+    public function mergedProblems(): HasMany
+    {
+        return $this->hasMany(Problem::class, 'merged_into_problem_id');
     }
 }

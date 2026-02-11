@@ -2,11 +2,16 @@
 import { computed } from 'vue'
 import { router } from '@inertiajs/vue3'
 import EntityTable from '@/Components/App/Tables/EntityTable.vue'
+import ProblemTableUnmergeCell from '@/Components/Problems/ProblemTableUnmergeCell.vue'
 
 const props = defineProps({
     problems: {
         type: Array,
-        required: true
+        default: null
+    },
+    displayRows: {
+        type: Array,
+        default: null
     },
     selectedProblems: {
         type: Array,
@@ -28,65 +33,114 @@ const props = defineProps({
 
 const emit = defineEmits(['sort', 'select-all', 'select-item'])
 
-const columns = computed(() => [
+const items = computed(() => {
+    if (props.displayRows && props.displayRows.length > 0) return props.displayRows
+    return props.problems || []
+})
+
+const useRowProblem = computed(() => Boolean(props.displayRows && props.displayRows.length > 0))
+
+const getRowData = (row) => (useRowProblem.value && row.problem ? row.problem : row)
+
+const columns = computed(() => {
+    const base = [
     {
         key: 'internal_number',
         label: 'Nr.',
         sortable: true,
-        value: (p) => p.internal_number
+        value: (row) => getRowData(row).internal_number
     },
     {
         key: 'status',
         label: 'Būsena',
         sortable: true,
-        value: (p) => props.statusLabels[p.status] || p.status
+        value: (row) => props.statusLabels[getRowData(row).status] || getRowData(row).status
     },
     {
         key: 'created_at',
         label: 'Data',
         sortable: true,
-        value: (p) => new Date(p.created_at).toLocaleDateString('lt-LT')
+        value: (row) => new Date(getRowData(row).created_at).toLocaleDateString('lt-LT')
     },
     {
         key: 'title',
         label: 'Pavadinimas',
         sortable: true,
-        value: (p) => p.title
+        value: (row) => getRowData(row).title
     },
     {
         key: 'category',
         label: 'Kategorija',
         sortable: false,
-        value: (p) => p.category
+        value: (row) => getRowData(row).category
     },
     {
         key: 'address',
         label: 'Adresas',
         sortable: false,
-        value: (p) => p.address
+        value: (row) => getRowData(row).address
     },
     {
         key: 'description',
         label: 'Aprašymas',
         sortable: false,
-        value: (p) => p.description
-    }
-])
+        value: (row) => getRowData(row).description
+    },
+    ...(useRowProblem.value
+        ? [{
+            key: 'actions',
+            label: 'Veiksmai',
+            sortable: false,
+            cellComponent: ProblemTableUnmergeCell,
+            cellProps: (row) => ({
+                problemId: getRowData(row).id,
+                isMerged: !row.isGroupMain
+            })
+        }]
+        : [])
+    ]
+    return base
+})
 
-const handleRowDblClick = (problem) => {
+const getRowKey = (row) => (row.problem ? row.problem.id : row.id)
+
+const showRowCheckbox = (row) => {
+    if (!useRowProblem.value) return true
+    return row.isGroupMain === true
+}
+
+const getSelectValue = (row) => {
+    if (!useRowProblem.value) return getRowKey(row)
+    return row.groupIds || [row.problem.id]
+}
+
+const handleRowDblClick = (row) => {
+    const problem = row.problem || row
     router.visit(route('problems.show', problem.id))
+}
+
+function problemTableRowClass(row) {
+    const classes = []
+    if (!row.isGroupMain) classes.push('problem-table-merged-row')
+    const inGroup = row.groupIds && row.groupIds.length > 1
+    if (inGroup && !row.isLastInGroup) classes.push('problem-table-group-inner')
+    if (row.isLastInGroup) classes.push('problem-table-group-end')
+    return classes.join(' ')
 }
 </script>
 
 <template>
     <EntityTable
-        :items="problems"
+        :items="items"
         :columns="columns"
-        row-key="id"
+        :row-key="getRowKey"
         :sort-by="sortBy"
         :sort-direction="sortDirection"
         selectable
         :selected-keys="selectedProblems"
+        :show-checkbox="useRowProblem ? showRowCheckbox : true"
+        :get-select-value="useRowProblem ? getSelectValue : null"
+        :row-class="useRowProblem ? (row) => problemTableRowClass(row) : null"
         row-clickable
         @sort="emit('sort', $event)"
         @select-all="emit('select-all', $event)"
@@ -94,3 +148,21 @@ const handleRowDblClick = (problem) => {
         @row-dblclick="handleRowDblClick"
     />
 </template>
+
+<style scoped>
+:deep(.problem-table-merged-row) {
+    background-color: #f5f7fa;
+}
+
+:deep(.problem-table-merged-row td:first-of-type) {
+    padding-left: 1.25rem;
+}
+
+:deep(.problem-table-group-inner td) {
+    border-bottom: none;
+}
+
+:deep(.problem-table-group-end td) {
+    border-bottom: 2px solid #e0e0e0;
+}
+</style>

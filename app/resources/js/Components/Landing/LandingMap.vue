@@ -20,7 +20,7 @@
 
 <script setup>
 import { ref, watch, onMounted, onUnmounted, nextTick } from 'vue'
-import { loadLeaflet, createBaseMap } from '@/composables/leafletKaunas'
+import { loadLeaflet, createBaseMap, MAP_MAX_ZOOM } from '@/composables/leafletKaunas'
 import { getMarkerColorForStatus } from '@/constants/problemStatus'
 
 const props = defineProps({
@@ -52,7 +52,7 @@ function updateMarkers() {
 
 function initMap() {
     if (mapInitialized || !mapContainer.value || typeof L === 'undefined') return
-    map = createBaseMap(mapContainer.value, { maxZoom: 14 })
+    map = createBaseMap(mapContainer.value, { maxZoom: MAP_MAX_ZOOM })
     if (!map) return
     markersLayer = L.layerGroup().addTo(map)
     mapInitialized = true

@@ -49,6 +49,7 @@ class ProblemController extends Controller
         $employeeId = $this->employeeIdForUser($user);
 
         $problems = Problem::query()
+            ->whereNull('merged_into_problem_id')
             ->when(
                 $user && $this->isInstitutionScoped($user),
                 fn ($query) => $query->where('institution_id', $user->institution_id)
@@ -65,6 +66,7 @@ class ProblemController extends Controller
             )
             ->filtered($filters)
             ->sorted($sortBy, $sortDirection)
+            ->with('mergedProblems')
             ->paginate(6)
             ->withQueryString();
 
@@ -161,6 +163,9 @@ class ProblemController extends Controller
         }
 
         $categories = Problem::distinct()->pluck('category')->sort()->values();
+
+        $problem->load('mergedProblems:id,internal_number,merged_into_problem_id');
+        $problem->load('mergedInto:id,internal_number,title');
 
         return Inertia::render('Problems/Show', [
             'problem' => $problem,
@@ -492,6 +497,13 @@ class ProblemController extends Controller
             }
         }
 
+        if ($problem->merged_into_problem_id !== null) {
+            $problem->load('mergedInto:id');
+            if ($problem->mergedInto) {
+                return redirect()->route('problems.merge', $problem->mergedInto->id);
+            }
+        }
+
         $categoryFilter = $request->get('category');
 
         if ($categoryFilter === null || $categoryFilter === '') {
@@ -501,7 +513,8 @@ class ProblemController extends Controller
         $categories = Problem::distinct()->pluck('category')->sort()->values();
 
         $query = Problem::where('id', '!=', $problem->id)
-            ->where('status', '!=', 'neuzregistruota');
+            ->where('status', '!=', 'neuzregistruota')
+            ->whereNull('merged_into_problem_id');
         if ($this->isInstitutionScoped($user)) {
             $query->where('institution_id', $user->institution_id);
         }
@@ -520,45 +533,86 @@ class ProblemController extends Controller
 
         $similarProblems = $query->orderBy('created_at', 'desc')->get();
 
-        $mapCenter = [
-            'lat' => 54.8985,
-            'lng' => 23.9036,
-        ];
+        $problem->load('mergedProblems');
+        $mergedProblems = $problem->mergedProblems;
 
-        $mapMarkers = [];
+        $centerLat = 54.8985;
+        $centerLng = 23.9036;
+        $mapProblems = [];
+        $index = 0;
 
-        if ($problem->status !== 'neuzregistruota') {
-            $mapMarkers[] = [
-                'id' => $problem->id,
-                'lat' => $mapCenter['lat'],
-                'lng' => $mapCenter['lng'],
-                'title' => $problem->title,
-                'internal_number' => $problem->internal_number,
-                'isMain' => true,
+        $problemsForMap = collect([$problem])->concat($mergedProblems)->concat($similarProblems);
+
+        foreach ($problemsForMap as $p) {
+            $hasCoords = $p->lat !== null && $p->lng !== null;
+            $offset = $index * 0.002;
+            $mapProblems[] = [
+                'id' => $p->id,
+                'internal_number' => $p->internal_number,
+                'title' => $p->title,
+                'status' => $p->status ?? 'nauja',
+                'category' => $p->category,
+                'address' => $p->address,
+                'created_at' => $p->created_at?->toIso8601String(),
+                'lat' => $hasCoords ? (float) $p->lat : $centerLat + ($offset * 0.1),
+                'lng' => $hasCoords ? (float) $p->lng : $centerLng + ($offset * 0.1),
             ];
-        }
-
-        foreach ($similarProblems as $index => $p) {
-            if ($p->status !== 'neuzregistruota') {
-                $offset = (count($mapMarkers)) * 0.01;
-                $mapMarkers[] = [
-                    'id' => $p->id,
-                    'lat' => $mapCenter['lat'] + ($offset * 0.001),
-                    'lng' => $mapCenter['lng'] + ($offset * 0.001),
-                    'title' => $p->title,
-                    'internal_number' => $p->internal_number,
-                ];
-            }
+            $index++;
         }
 
         return Inertia::render('Problems/Merge', [
             'problem' => $problem,
+            'mergedProblems' => $mergedProblems,
             'similarProblems' => $similarProblems,
             'categories' => $categories,
             'selectedCategory' => $categoryFilter,
-            'mapCenter' => $mapCenter,
-            'mapMarkers' => $mapMarkers,
+            'mapProblems' => $mapProblems,
         ]);
+    }
+
+    public function storeMerge(Request $request, Problem $problem)
+    {
+        $user = $request->user();
+        if (! $user->hasRole(UserRole::ROLE_PROBLEM_ADMIN) && ! $user->hasRole(UserRole::ROLE_INSTITUTION_ADMIN) && ! $user->hasRole(UserRole::ROLE_SYSTEM_ADMIN)) {
+            abort(403);
+        }
+        if ($this->isInstitutionScoped($user) && (int) $problem->institution_id !== (int) $user->institution_id) {
+            abort(403);
+        }
+
+        $validated = $request->validate([
+            'problem_ids' => 'required|array',
+            'problem_ids.*' => 'required|integer|exists:problems,id',
+        ]);
+
+        $ids = array_unique($validated['problem_ids']);
+        $ids = array_values(array_filter($ids, fn ($id) => (int) $id !== (int) $problem->id));
+
+        $query = Problem::whereIn('id', $ids);
+        if ($this->isInstitutionScoped($user)) {
+            $query->where('institution_id', $user->institution_id);
+        }
+        $query->update(['merged_into_problem_id' => $problem->id]);
+
+        return redirect()->route('problems.show', $problem)->with('success', 'Problemos apjungtos.');
+    }
+
+    public function unmerge(Request $request, Problem $problem)
+    {
+        $user = $request->user();
+        if (! $user->hasRole(UserRole::ROLE_PROBLEM_ADMIN) && ! $user->hasRole(UserRole::ROLE_INSTITUTION_ADMIN) && ! $user->hasRole(UserRole::ROLE_SYSTEM_ADMIN)) {
+            abort(403);
+        }
+        if ($problem->merged_into_problem_id === null) {
+            return redirect()->back()->with('info', 'Problema neapjungta.');
+        }
+        if ($this->isInstitutionScoped($user) && (int) $problem->institution_id !== (int) $user->institution_id) {
+            abort(403);
+        }
+
+        $problem->update(['merged_into_problem_id' => null]);
+
+        return redirect()->back()->with('success', 'Problema atskirta.');
     }
 
     public function export(Request $request)
@@ -629,6 +683,7 @@ class ProblemController extends Controller
         return Inertia::render('Map', [
             'categories' => $categories,
             'statusOptions' => ProblemStatus::selectableOptions(),
+            'problems' => $this->getProblemsForMapForUser($user),
         ]);
     }
 
@@ -733,6 +788,51 @@ class ProblemController extends Controller
         return Inertia::render('PublicProblemShow', [
             'problem' => $problemData,
         ]);
+    }
+
+    private function getProblemsForMapForUser(?User $user): array
+    {
+        $centerLat = 54.8985;
+        $centerLng = 23.9036;
+
+        $query = Problem::query()
+            ->when(
+                $user && $this->isInstitutionScoped($user),
+                fn ($q) => $q->where('institution_id', $user->institution_id)
+            )
+            ->when(
+                $user && $this->isEmployeeScoped($user),
+                function ($q) use ($user) {
+                    $employeeId = $this->employeeIdForUser($user);
+                    if ($employeeId) {
+                        $q->where('assigned_employee_id', $employeeId);
+                    } else {
+                        $q->whereRaw('1 = 0');
+                    }
+                }
+            );
+
+        return $query
+            ->orderBy('address')
+            ->orderBy('created_at', 'desc')
+            ->get(['id', 'internal_number', 'title', 'status', 'category', 'address', 'lat', 'lng', 'created_at'])
+            ->map(function ($problem, $index) use ($centerLat, $centerLng) {
+                $hasCoords = $problem->lat !== null && $problem->lng !== null;
+                $offset = $index * 0.002;
+                return [
+                    'id' => $problem->id,
+                    'internal_number' => $problem->internal_number,
+                    'title' => $problem->title,
+                    'status' => $problem->status,
+                    'category' => $problem->category,
+                    'address' => $problem->address,
+                    'created_at' => $problem->created_at?->toIso8601String(),
+                    'lat' => $hasCoords ? (float) $problem->lat : $centerLat + ($offset * 0.1),
+                    'lng' => $hasCoords ? (float) $problem->lng : $centerLng + ($offset * 0.1),
+                ];
+            })
+            ->values()
+            ->all();
     }
 
     private function getPublicProblemsForMap(?int $reportedByUserId = null): array

@@ -30,6 +30,14 @@ const props = defineProps({
         type: Array,
         default: () => []
     },
+    showCheckbox: {
+        type: [Function, Boolean],
+        default: null
+    },
+    getSelectValue: {
+        type: Function,
+        default: null
+    },
     singleSelect: {
         type: Boolean,
         default: false
@@ -37,6 +45,10 @@ const props = defineProps({
     rowClickable: {
         type: Boolean,
         default: false
+    },
+    rowClass: {
+        type: Function,
+        default: null
     }
 })
 
@@ -95,9 +107,23 @@ watch(
     { immediate: true }
 )
 
+const showRowCheckbox = (row) => {
+    if (props.showCheckbox === null || props.showCheckbox === undefined) return true
+    if (typeof props.showCheckbox === 'function') return props.showCheckbox(row)
+    return !!props.showCheckbox
+}
+
+const getSelectValueForRow = (row) => {
+    if (typeof props.getSelectValue === 'function') return props.getSelectValue(row)
+    return getRowKey(row)
+}
+
 const isSelected = (row) => {
-    const key = getRowKey(row)
-    return props.selectedKeys.includes(key)
+    const value = getSelectValueForRow(row)
+    if (Array.isArray(value)) {
+        return value.length > 0 && value.every((id) => props.selectedKeys.includes(id))
+    }
+    return props.selectedKeys.includes(value)
 }
 
 const handleSelectAll = () => {
@@ -105,7 +131,7 @@ const handleSelectAll = () => {
 }
 
 const handleSelectItem = (row) => {
-    emit('select-item', getRowKey(row))
+    emit('select-item', getSelectValueForRow(row))
 }
 
 const handleSort = (column) => {
@@ -153,7 +179,7 @@ const sortArrow = (key) => {
             <tr
                 v-for="row in items"
                 :key="getRowKey(row)"
-                :class="[{ 'row-clickable': rowClickable }, 'data-row']"
+                :class="[{ 'row-clickable': rowClickable }, 'data-row', rowClass ? rowClass(row) : '']"
                 @dblclick="handleRowDoubleClick(row)"
             >
                 <td
@@ -173,6 +199,7 @@ const sortArrow = (key) => {
 
                 <td v-if="selectable">
                     <input
+                        v-if="showRowCheckbox(row)"
                         type="checkbox"
                         :checked="isSelected(row)"
                         @change="handleSelectItem(row)"
