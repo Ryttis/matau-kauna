@@ -201,6 +201,32 @@ class RbacController extends Controller
         return response()->noContent();
     }
 
+    public function deleteRole(UserRole $role)
+    {
+        $role->users()->detach();
+        $role->permissionGroups()->detach();
+        $role->delete();
+
+        return response()->noContent();
+    }
+
+    public function deleteGroup(UserRolePermissionGroup $group)
+    {
+        $group->roles()->detach();
+        $group->permissions()->detach();
+        $group->delete();
+
+        return response()->noContent();
+    }
+
+    public function deletePermission(UserRolePermission $permission)
+    {
+        $permission->groups()->detach();
+        $permission->delete();
+
+        return response()->noContent();
+    }
+
     private function ensureEmployeeForInstitution(User $user): void
     {
         if (! $user->institution_id) {

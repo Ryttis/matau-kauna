@@ -73,6 +73,7 @@ watch([periodFilter, institutionFilter, categoryFilter], () => {
     applyFilters()
 })
 
+// TODO: Atsisiųsti ataskaitą – dar neįgyvendinta
 const downloadReport = () => {}
 </script>
 

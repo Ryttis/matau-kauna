@@ -8,9 +8,12 @@ use App\Models\Employee;
 use App\Models\Institution;
 use App\Models\Problem;
 use App\Models\UserRole;
+use App\Services\ProblemAssignmentNotifier;
+use App\Services\ProblemMergeContextService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Str;
 use App\Models\User;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -18,6 +21,11 @@ use Maatwebsite\Excel\Facades\Excel;
 
 class ProblemController extends Controller
 {
+    public function __construct(
+        private ProblemMergeContextService $mergeContextService,
+        private ProblemAssignmentNotifier $assignmentNotifier
+    ) {}
+
     public function index(Request $request): Response
     {
         $user = $request->user();
@@ -168,20 +176,13 @@ class ProblemController extends Controller
         $problem->load('mergedProblems:id,internal_number,merged_into_problem_id');
         $problem->load('mergedInto:id,internal_number,title');
 
-        $mergedSiblings = [];
-        if ($problem->merged_into_problem_id !== null) {
-            $mergedSiblings = Problem::query()
-                ->where('merged_into_problem_id', $problem->merged_into_problem_id)
-                ->where('id', '!=', $problem->id)
-                ->get(['id', 'internal_number'])
-                ->map(fn ($p) => ['id' => $p->id, 'internal_number' => $p->internal_number])
-                ->values()
-                ->all();
-        }
+        $mergeContext = $this->mergeContextService->forProblem($problem);
 
         return Inertia::render('Problems/Show', [
             'problem' => $problem,
-            'mergedSiblings' => $mergedSiblings,
+            'mergeTarget' => $mergeContext['mergeTarget'],
+            'mergedChildren' => $mergeContext['mergedChildren'],
+            'mergedSiblings' => $mergeContext['mergedSiblings'],
             'statusOptions' => ProblemStatus::selectableOptions(),
             'categories' => $categories,
         ]);
@@ -288,8 +289,8 @@ class ProblemController extends Controller
         Problem::whereIn('id', $validated['problem_ids'])->update($update);
 
         if (! empty($validated['institution_id'])) {
-            $this->notifyInstitutionAdminsOfAssignment($validated['problem_ids'], $validated['institution_id']);
-            $this->notifyInstitutionEmailOfAssignment($validated['problem_ids'], $validated['institution_id']);
+            $this->assignmentNotifier->notifyInstitutionAdminsOfAssignment($validated['problem_ids'], $validated['institution_id']);
+            $this->assignmentNotifier->notifyInstitutionEmailOfAssignment($validated['problem_ids'], $validated['institution_id']);
         }
 
         $message = empty($validated['institution_id'])
@@ -492,7 +493,7 @@ class ProblemController extends Controller
             'assigned_employee_id' => $employee->id,
         ]);
 
-        $this->notifyEmployeeOfAssignment($problem, $employee);
+        $this->assignmentNotifier->notifyEmployeeOfAssignment($problem, $employee);
 
         return redirect()->back()->with('success', 'Problema priskirta darbuotojui.');
     }
@@ -625,8 +626,9 @@ class ProblemController extends Controller
 
     private function buildMapProblemsForMerge(Problem $problem, $mergedProblems, $similarProblems): array
     {
-        $centerLat = 54.8985;
-        $centerLng = 23.9036;
+        $center = config('kaunas.map_center');
+        $centerLat = $center['lat'];
+        $centerLng = $center['lng'];
         $problemsForMap = collect([$problem])->concat($mergedProblems);
         foreach ($similarProblems as $s) {
             $problemsForMap->push($s);
@@ -727,14 +729,14 @@ class ProblemController extends Controller
 
     public function landing(): Response
     {
-        return Inertia::render('Landing', [
+        return Inertia::render('Guest/Landing', [
             'problems' => $this->getPublicProblemsForMap(),
         ]);
     }
 
     public function publicMap(): Response
     {
-        return Inertia::render('PublicMap', [
+        return Inertia::render('Guest/PublicMap', [
             'problems' => $this->getPublicProblemsForMap(),
         ]);
     }
@@ -748,7 +750,7 @@ class ProblemController extends Controller
             ->sort()
             ->values();
 
-        return Inertia::render('ReporterReport', [
+        return Inertia::render('Reporter/Report', [
             'categories' => $categories,
             'showReporterWizard' => $user && ! $user->reporter_wizard_completed_at,
             'hasAcceptedReportTerms' => $user && $user->reporter_report_terms_accepted_at !== null,
@@ -787,7 +789,7 @@ class ProblemController extends Controller
         $user->update(['reporter_report_terms_accepted_at' => now()]);
 
         $problem = Problem::create([
-            'title' => \Str::limit($validated['description'], 255),
+            'title' => Str::limit($validated['description'], 255),
             'category' => $validated['category'],
             'address' => $validated['address'],
             'lat' => $validated['lat'] ?? null,
@@ -817,55 +819,34 @@ class ProblemController extends Controller
             'created_at' => $problem->created_at?->toIso8601String(),
         ];
 
-        $mergeTarget = null;
-        $mergedChildren = [];
-        $mergedSiblings = [];
-        $reviewProgressProblemId = $problem->id;
-        if ($problem->merged_into_problem_id) {
-            $problem->load('mergedInto:id,internal_number');
-            if ($problem->mergedInto) {
-                $mergeTarget = [
-                    'id' => $problem->mergedInto->id,
-                    'internal_number' => $problem->mergedInto->internal_number,
-                ];
-                $reviewProgressProblemId = $problem->mergedInto->id;
-            }
-            $mergedSiblings = Problem::query()
-                ->where('merged_into_problem_id', $problem->merged_into_problem_id)
-                ->where('id', '!=', $problem->id)
-                ->get(['id', 'internal_number'])
-                ->map(fn ($p) => ['id' => $p->id, 'internal_number' => $p->internal_number])
-                ->values()
-                ->all();
-        } else {
-            $mergedChildren = $problem->mergedProblems()->get(['id', 'internal_number'])
-                ->map(fn ($p) => ['id' => $p->id, 'internal_number' => $p->internal_number])
-                ->values()
-                ->all();
-        }
+        $mergeContext = $this->mergeContextService->forProblem($problem);
+        $reviewProgressProblemId = $problem->merged_into_problem_id && $problem->mergedInto
+            ? $problem->mergedInto->id
+            : $problem->id;
 
         if ($isReporterView) {
-            return Inertia::render('ReporterProblemShow', [
+            return Inertia::render('Reporter/ProblemShow', [
                 'problem' => $problemData,
-                'mergeTarget' => $mergeTarget,
-                'mergedChildren' => $mergedChildren,
-                'mergedSiblings' => $mergedSiblings,
+                'mergeTarget' => $mergeContext['mergeTarget'],
+                'mergedChildren' => $mergeContext['mergedChildren'],
+                'mergedSiblings' => $mergeContext['mergedSiblings'],
                 'reviewProgressProblemId' => $reviewProgressProblemId,
             ]);
         }
 
-        return Inertia::render('PublicProblemShow', [
+        return Inertia::render('Guest/PublicProblemShow', [
             'problem' => $problemData,
-            'mergeTarget' => $mergeTarget,
-            'mergedChildren' => $mergedChildren,
-            'mergedSiblings' => $mergedSiblings,
+            'mergeTarget' => $mergeContext['mergeTarget'],
+            'mergedChildren' => $mergeContext['mergedChildren'],
+            'mergedSiblings' => $mergeContext['mergedSiblings'],
         ]);
     }
 
     private function getProblemsForMapForUser(?User $user): array
     {
-        $centerLat = 54.8985;
-        $centerLng = 23.9036;
+        $center = config('kaunas.map_center');
+        $centerLat = $center['lat'];
+        $centerLng = $center['lng'];
 
         $query = Problem::query()
             ->whereIn('status', ['nauja', 'nagrinejama', 'isspresta'])
@@ -910,8 +891,9 @@ class ProblemController extends Controller
 
     private function getPublicProblemsForMap(?int $reportedByUserId = null): array
     {
-        $centerLat = 54.8985;
-        $centerLng = 23.9036;
+        $center = config('kaunas.map_center');
+        $centerLat = $center['lat'];
+        $centerLng = $center['lng'];
         $allowedStatuses = ['nauja', 'nagrinejama', 'isspresta'];
 
         $query = Problem::query()
@@ -949,9 +931,6 @@ class ProblemController extends Controller
     public function statistics(Request $request): Response
     {
         $user = $request->user();
-        $period = $request->get('period', 'all');
-        $institution = $request->get('institution', 'all');
-        $category = $request->get('category', 'all');
 
         $categories = Problem::query()
             ->when(
@@ -1029,116 +1008,4 @@ class ProblemController extends Controller
         return null;
     }
 
-    private function notifyInstitutionAdminsOfAssignment(array $problemIds, int $institutionId): void
-    {
-        $problems = Problem::whereIn('id', $problemIds)
-            ->orderBy('created_at', 'desc')
-            ->get(['id', 'internal_number', 'title', 'created_at']);
-
-        if ($problems->isEmpty()) {
-            return;
-        }
-
-        $institution = Institution::find($institutionId);
-
-        $admins = User::query()
-            ->where('institution_id', $institutionId)
-            ->where('email_updates_institution_admin', true)
-            ->whereHas('roles', fn ($q) => $q->where('role', UserRole::ROLE_INSTITUTION_ADMIN))
-            ->get(['email', 'name']);
-
-        if ($admins->isEmpty()) {
-            return;
-        }
-
-        $lines = [];
-        $lines[] = 'Jums priskirtos naujos problemos:';
-        foreach ($problems as $problem) {
-            $lines[] = sprintf(
-                '- %s | %s | %s | %s',
-                $problem->internal_number,
-                $problem->title,
-                $problem->created_at?->format('Y-m-d'),
-                route('problems.show', $problem->id)
-            );
-        }
-        if ($institution) {
-            $lines[] = '';
-            $lines[] = 'Įstaiga: ' . $institution->name;
-        }
-
-        $subject = 'Naujos priskirtos problemos';
-        $body = implode("\n", $lines);
-
-        foreach ($admins as $admin) {
-            Mail::raw($body, function ($message) use ($admin, $subject) {
-                $message->to($admin->email)->subject($subject);
-            });
-        }
-    }
-
-    private function notifyInstitutionEmailOfAssignment(array $problemIds, int $institutionId): void
-    {
-        $institution = Institution::find($institutionId);
-
-        if (! $institution) {
-            return;
-        }
-
-        $email = $institution->integration_email ?: $institution->contact_email;
-        if (! $email) {
-            return;
-        }
-
-        $problems = Problem::whereIn('id', $problemIds)
-            ->orderBy('created_at', 'desc')
-            ->get(['id', 'internal_number', 'title', 'created_at']);
-
-        if ($problems->isEmpty()) {
-            return;
-        }
-
-        $lines = [];
-        $lines[] = 'Priskirtų problemų sąrašas:';
-        foreach ($problems as $problem) {
-            $lines[] = sprintf(
-                '- %s | %s | %s | %s',
-                $problem->internal_number,
-                $problem->title,
-                $problem->created_at?->format('Y-m-d'),
-                route('problems.show', $problem->id)
-            );
-        }
-        $lines[] = '';
-        $lines[] = 'Įstaiga: ' . $institution->name;
-
-        $subject = 'Naujos priskirtos problemos';
-        $body = implode("\n", $lines);
-
-        Mail::raw($body, function ($message) use ($email, $subject) {
-            $message->to($email)->subject($subject);
-        });
-    }
-
-    private function notifyEmployeeOfAssignment(Problem $problem, Employee $employee): void
-    {
-        $user = User::where('email', $employee->email)
-            ->where('institution_id', $employee->institution_id)
-            ->where('email_notifications_enabled', true)
-            ->first(['email']);
-
-        if (! $user) {
-            return;
-        }
-
-        $subject = 'Jums priskirta nauja problema';
-        $body = implode("\n", [
-            'Jums priskirta nauja problema:',
-            sprintf('%s | %s | %s', $problem->internal_number, $problem->title, route('problems.show', $problem->id)),
-        ]);
-
-        Mail::raw($body, function ($message) use ($user, $subject) {
-            $message->to($user->email)->subject($subject);
-        });
-    }
 }

@@ -74,6 +74,18 @@ export function useProblemsMapFilter(problemsSource) {
         selectedIds.value = next
     }
 
+    function toggleGroup(groupIds) {
+        if (!Array.isArray(groupIds) || groupIds.length === 0) return
+        const next = new Set(selectedIds.value)
+        const allSelected = groupIds.every((id) => next.has(id))
+        if (allSelected) {
+            groupIds.forEach((id) => next.delete(id))
+        } else {
+            groupIds.forEach((id) => next.add(id))
+        }
+        selectedIds.value = next
+    }
+
     function applyFilters(filters) {
         filterState.value = { ...filters }
     }
@@ -90,6 +102,7 @@ export function useProblemsMapFilter(problemsSource) {
         filteredProblems,
         problemsToShowOnMap,
         toggle,
+        toggleGroup,
         applyFilters,
         clearFilters,
     }

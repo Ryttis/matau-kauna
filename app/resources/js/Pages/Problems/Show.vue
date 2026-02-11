@@ -8,11 +8,14 @@ import EditModal from '@/Components/App/Modals/EditModal.vue'
 import AppButton from '@/Components/App/AppButton.vue'
 import AppInput from '@/Components/App/AppInput.vue'
 import AppBackButton from '@/Components/App/AppBackButton.vue'
+import ProblemMergeLinks from '@/Components/Problems/ProblemMergeLinks.vue'
 import StatusBadge from '@/Components/Problems/StatusBadge.vue'
 import { useAuth } from '@/composables/useAuth'
 
 const props = defineProps({
     problem: Object,
+    mergeTarget: { type: Object, default: null },
+    mergedChildren: { type: Array, default: () => [] },
     mergedSiblings: { type: Array, default: () => [] },
     statusOptions: Array,
     categories: Array,
@@ -67,14 +70,13 @@ const handleConfirmDelete = () => {
     })
 }
 
+// TODO: Grąžinti problemos administratoriui – dar neįgyvendinta
 const handleGrazintiAdmin = () => {}
 
 const mainProblem = computed(() => props.problem?.merged_into || props.problem?.merged_into_problem || null)
 const isMergedIntoOther = computed(
     () => Boolean(props.problem?.merged_into_problem_id && mainProblem.value)
 )
-
-const mergedChildren = computed(() => props.problem?.merged_problems || [])
 
 const mergeTargetId = computed(() =>
     isMergedIntoOther.value && mainProblem.value ? mainProblem.value.id : props.problem?.id
@@ -103,40 +105,12 @@ const mergeTargetId = computed(() =>
                 <StatusBadge :status="problem?.status" />
             </div>
 
-            <div v-if="(isMergedIntoOther && mainProblem) || mergedChildren.length" class="problem-merged-with">
-                <span class="problem-merged-with-label">Apjungta su:</span>
-                <span class="problem-merged-with-links">
-                    <template v-if="isMergedIntoOther && mainProblem">
-                        <button
-                            type="button"
-                            class="problem-merged-with-link"
-                            @click="router.visit(route('problems.show', mainProblem.id))"
-                        >
-                            {{ mainProblem.internal_number }}
-                        </button>
-                        <button
-                            v-for="sib in mergedSiblings"
-                            :key="sib.id"
-                            type="button"
-                            class="problem-merged-with-link"
-                            @click="router.visit(route('problems.show', sib.id))"
-                        >
-                            {{ sib.internal_number }}
-                        </button>
-                    </template>
-                    <template v-else>
-                        <button
-                            v-for="child in mergedChildren"
-                            :key="child.id"
-                            type="button"
-                            class="problem-merged-with-link"
-                            @click="router.visit(route('problems.show', child.id))"
-                        >
-                            {{ child.internal_number }}
-                        </button>
-                    </template>
-                </span>
-            </div>
+            <ProblemMergeLinks
+                :merge-target="mergeTarget"
+                :merged-siblings="mergedSiblings"
+                :merged-children="mergedChildren"
+                link-route="problems.show"
+            />
 
             <div class="problem-content">
                 <div class="problem-fields-top">
@@ -346,48 +320,6 @@ const mergeTargetId = computed(() =>
 
 .problem-status-section {
     margin-bottom: 20px;
-}
-
-.problem-merged-with {
-    display: flex;
-    align-items: center;
-    flex-wrap: wrap;
-    gap: 4px 8px;
-    font-weight: 600;
-    font-size: 1rem;
-    color: #1946A0;
-    background: #e8eef7;
-    border: 1px solid #1946A0;
-    border-radius: 6px;
-    padding: 12px 16px;
-    margin: 0 0 20px 0;
-}
-
-.problem-merged-with-label {
-    margin-right: 4px;
-}
-
-.problem-merged-with-links {
-    display: inline-flex;
-    flex-wrap: wrap;
-    gap: 4px 8px;
-    align-items: center;
-}
-
-.problem-merged-with-link {
-    margin-left: 0.25rem;
-    padding: 0;
-    background: none;
-    border: none;
-    font: inherit;
-    font-weight: 600;
-    color: #1946A0;
-    text-decoration: none;
-    cursor: pointer;
-}
-
-.problem-merged-with-link:hover {
-    color: #0f2d66;
 }
 
 .problem-content {
