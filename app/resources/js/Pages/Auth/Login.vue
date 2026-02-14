@@ -1,7 +1,6 @@
 <script setup>
 import AuthInput from '@/Components/Auth/AuthInput.vue';
 import AppButton from '@/Components/App/AppButton.vue';
-import LoginActions from '@/Components/Auth/Login/LoginActions.vue';
 import LoginNavigation from '@/Components/Auth/Login/LoginNavigation.vue';
 import LandingHeader from '@/Components/Landing/LandingHeader.vue';
 import LandingFooter from '@/Components/Landing/LandingFooter.vue';
@@ -43,75 +42,56 @@ const submit = () => {
     <div class="login-page">
         <Head title="Prisijungti" />
 
-        <LandingHeader />
+        <LandingHeader variant="dark" />
 
         <main class="login-page-main">
             <div v-if="status" class="login-status">
                 {{ status }}
             </div>
 
-            <form @submit.prevent="submit" class="login-form">
-                <LoginNavigation
-                    :active-tab="activeRole"
-                    @select="activeRole = $event"
-                />
+            <div class="login-form-card">
+                <form @submit.prevent="submit" class="login-form">
+                    <LoginNavigation
+                        :active-tab="activeRole"
+                        @select="activeRole = $event"
+                    />
 
-                <template v-if="activeRole === 'darbuotojas'">
                     <AuthInput
-                        id="email"
+                        :id="activeRole === 'darbuotojas' ? 'email' : 'email-pareiskejas'"
                         type="email"
-                        placeholder="Paštas"
+                        placeholder="Vardas arba el. paštas"
                         v-model="form.email"
                         :error="form.errors.email"
                     />
 
                     <AuthInput
-                        id="password"
+                        :id="activeRole === 'darbuotojas' ? 'password' : 'password-pareiskejas'"
                         type="password"
                         placeholder="Slaptažodis"
                         v-model="form.password"
                         :error="form.errors.password"
                     />
 
-                    <LoginActions :can-reset-password="canResetPassword" />
-                </template>
-
-                <template v-else>
-                    <AuthInput
-                        id="email-pareiskejas"
-                        type="email"
-                        placeholder="Paštas"
-                        v-model="form.email"
-                        :error="form.errors.email"
-                    />
-
-                    <AuthInput
-                        id="password-pareiskejas"
-                        type="password"
-                        placeholder="Slaptažodis"
-                        v-model="form.password"
-                        :error="form.errors.password"
-                    />
-
-                    <div class="login-form-actions login-form-actions--pareiskejas">
+                    <div class="login-form-actions">
                         <AppButton text="Prisijungti" :as-button="false" />
                         <Link
                             v-if="canResetPassword"
                             :href="route('password.request')"
                             class="login-form-forgot"
                         >
-                            Priminti slaptažodį
+                            *Priminti slaptažodį
                         </Link>
                         <button
+                            v-if="activeRole === 'pareiskejas'"
                             type="button"
                             class="login-form-el-vartai"
                             @click.prevent
                         >
-                            Prisijungti el. vartais
+                            Jungtis per el. valdžios vartus
                         </button>
                     </div>
-                </template>
-            </form>
+                </form>
+            </div>
         </main>
 
         <LandingFooter />
@@ -123,7 +103,7 @@ const submit = () => {
     min-height: 100vh;
     display: flex;
     flex-direction: column;
-    background: #fff;
+    background: #f5f6f8;
     font-family: 'Open Sans', sans-serif;
 }
 
@@ -138,42 +118,51 @@ const submit = () => {
 
 .login-status {
     margin-bottom: 1rem;
+    color: #1946A0;
+    font-size: 0.95rem;
+}
+
+.login-form-card {
+    width: 100%;
+    max-width: 440px;
+    background: #fff;
+    border-radius: 12px;
+    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08);
+    padding: 2rem 0;
 }
 
 .login-form {
-    width: 400px;
     margin: 0 auto;
     font-size: 18px;
 }
 
 .login-form-actions {
     margin: 0 40px;
-}
-
-.login-form-actions--pareiskejas {
     display: flex;
     flex-direction: column;
     gap: 0;
 }
 
-.login-form-actions--pareiskejas :deep(.app-button) {
+.login-form-actions :deep(.app-button) {
     width: 100%;
-    height: 45px;
-    min-height: 45px;
-    margin-bottom: 10px;
+    height: 48px;
+    min-height: 48px;
+    margin-bottom: 12px;
     padding: 0;
     display: flex;
     align-items: center;
     justify-content: center;
+    border-radius: 8px;
+    font-size: 1rem;
 }
 
 .login-form-forgot {
     display: block;
-    text-align: center;
+    text-align: left;
     text-decoration: none;
-    color: #333;
+    color: #666;
     font-size: 14px;
-    margin-bottom: 10px;
+    margin-bottom: 16px;
 }
 
 .login-form-forgot:hover {
@@ -185,12 +174,11 @@ const submit = () => {
     align-items: center;
     justify-content: center;
     width: 100%;
-    height: 45px;
-    min-height: 45px;
-    margin-bottom: 10px;
+    height: 48px;
+    min-height: 48px;
     padding: 0;
-    border-radius: 5px;
-    font-size: 18px;
+    border-radius: 8px;
+    font-size: 1rem;
     text-align: center;
     color: #666;
     background: #fff;
@@ -201,29 +189,6 @@ const submit = () => {
 }
 
 .login-form-el-vartai:hover {
-    background: #f5f5f5;
-    color: #333;
-}
-
-.login-form-register {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 100%;
-    height: 45px;
-    min-height: 45px;
-    padding: 0;
-    border-radius: 5px;
-    font-size: 18px;
-    text-align: center;
-    text-decoration: none;
-    color: #666;
-    background: #fff;
-    border: 1px solid #ccc;
-    box-sizing: border-box;
-}
-
-.login-form-register:hover {
     background: #f5f5f5;
     color: #333;
 }

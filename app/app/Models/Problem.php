@@ -23,12 +23,14 @@ class Problem extends Model
         'status_updated_at',
         'institution_id',
         'assigned_employee_id',
+        'completion_deadline',
         'reported_by_user_id',
         'merged_into_problem_id',
     ];
 
     protected $casts = [
         'status_updated_at' => 'datetime',
+        'completion_deadline' => 'date',
     ];
 
     protected static function boot()
@@ -139,5 +141,18 @@ class Problem extends Model
     public function mergedProblems(): HasMany
     {
         return $this->hasMany(Problem::class, 'merged_into_problem_id');
+    }
+
+    public function getMergeGroupIds(): array
+    {
+        $mainId = $this->merged_into_problem_id ?? $this->id;
+        $ids = static::where('id', $mainId)
+            ->orWhere('merged_into_problem_id', $mainId)
+            ->pluck('id')
+            ->map(fn ($id) => (int) $id)
+            ->unique()
+            ->values()
+            ->all();
+        return $ids;
     }
 }

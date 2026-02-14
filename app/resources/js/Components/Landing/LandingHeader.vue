@@ -1,14 +1,14 @@
 <template>
-    <header class="landing-header">
+    <header class="landing-header" :class="{ 'landing-header--dark': variant === 'dark' }">
         <div class="landing-header-inner">
             <Link :href="route('landing')" class="landing-logo">Kauno problemos</Link>
             <nav class="landing-nav">
                 <Link :href="route('reports')" class="landing-link" :class="{ 'landing-link--active': activeLink === 'reports' }">Pranešimai</Link>
                 <Link :href="route('public.statistics')" class="landing-link" :class="{ 'landing-link--active': activeLink === 'statistics' }">Statistika</Link>
-                <a :href="route('login')" class="landing-link">Prisijungti</a>
+                <a :href="route('login')" class="landing-link landing-link--btn">Prisijungti</a>
             </nav>
         </div>
-        <div class="landing-header-line" />
+        <div v-if="variant !== 'dark'" class="landing-header-line" />
     </header>
 </template>
 
@@ -17,6 +17,7 @@ import { Link } from '@inertiajs/vue3'
 
 defineProps({
     activeLink: { type: String, default: '' },
+    variant: { type: String, default: '' },
 })
 </script>
 
@@ -25,6 +26,14 @@ defineProps({
     background: #fff;
     flex-shrink: 0;
     box-sizing: border-box;
+}
+
+.landing-header--dark {
+    background: #1946A0;
+}
+
+.landing-header--dark .landing-header-line {
+    display: none;
 }
 
 .landing-header-inner {
@@ -53,6 +62,10 @@ defineProps({
     text-decoration: none;
 }
 
+.landing-header--dark .landing-logo {
+    color: #fff;
+}
+
 .landing-nav {
     display: flex;
     align-items: center;
@@ -65,11 +78,37 @@ defineProps({
     font-size: 1rem;
 }
 
+.landing-header--dark .landing-link:not(.landing-link--btn) {
+    color: #fff;
+}
+
 .landing-link--active {
     font-weight: 600;
     color: #333;
     border-bottom: 2px solid #1946A0;
     padding-bottom: 2px;
+}
+
+.landing-header--dark .landing-link--active {
+    color: #fff;
+    border-bottom-color: #fff;
+}
+
+.landing-link--btn {
+    padding: 0.5rem 1.25rem;
+    border-radius: 8px;
+    background: #1946A0;
+    color: #fff !important;
+    font-weight: 500;
+}
+
+.landing-header--dark .landing-link--btn {
+    background: #fff;
+    color: #1946A0 !important;
+}
+
+.landing-link--btn:hover {
+    opacity: 0.9;
 }
 
 .landing-header-line {

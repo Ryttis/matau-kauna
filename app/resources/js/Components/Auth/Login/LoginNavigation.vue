@@ -1,35 +1,27 @@
 <script setup>
+const TABS = [
+    { id: 'pareiskejas', label: 'Pareiškėjas' },
+    { id: 'darbuotojas', label: 'Darbuotojas' },
+]
+
 defineProps({
-    activeTab: {
-        type: String,
-        default: 'darbuotojas',
-    },
+    activeTab: { type: String, default: 'darbuotojas' },
 })
 
 const emit = defineEmits(['select'])
-
-function select(tab) {
-    emit('select', tab)
-}
 </script>
 
 <template>
     <div class="login-form-navigation">
         <button
+            v-for="tab in TABS"
+            :key="tab.id"
             type="button"
             class="login-nav-item"
-            :class="{ active: activeTab === 'pareiskejas' }"
-            @click="select('pareiskejas')"
+            :class="{ active: activeTab === tab.id }"
+            @click="emit('select', tab.id)"
         >
-            Pareiškėjas
-        </button>
-        <button
-            type="button"
-            class="login-nav-item"
-            :class="{ active: activeTab === 'darbuotojas' }"
-            @click="select('darbuotojas')"
-        >
-            Darbuotojas
+            {{ tab.label }}
         </button>
     </div>
 </template>
@@ -38,25 +30,31 @@ function select(tab) {
 .login-form-navigation {
     display: flex;
     justify-content: space-between;
-    margin-bottom: 20px;
-    gap: 1rem;
+    margin-bottom: 24px;
+    padding: 0 40px;
 }
 
 .login-nav-item {
-    flex: 1;
     padding: 0.5rem 0;
     border: none;
     background: none;
-    font-size: inherit;
+    font-size: 1rem;
     font-family: inherit;
-    color: inherit;
+    color: #6b7280;
     cursor: pointer;
     text-decoration: none;
-    border-bottom: 3px solid transparent;
-    transition: border-color 0.2s;
+    font-weight: 400;
+    transition: color 0.2s, border-color 0.2s, font-weight 0.2s;
+}
+
+.login-nav-item:hover {
+    color: #374151;
 }
 
 .login-nav-item.active {
-    border-bottom-color: #1946A0;
+    color: #1946A0;
+    font-weight: 600;
+    border-bottom: 2px solid #1946A0;
+    padding-bottom: 0.5rem;
 }
 </style>
