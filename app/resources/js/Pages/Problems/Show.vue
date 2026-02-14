@@ -70,8 +70,9 @@ const handleConfirmDelete = () => {
     })
 }
 
-// TODO: Grąžinti problemos administratoriui – dar neįgyvendinta
-const handleGrazintiAdmin = () => {}
+const handleGrazintiAdmin = () => {
+    router.patch(route('problems.return', props.problem.id), {}, { preserveScroll: true })
+}
 
 const mainProblem = computed(() => props.problem?.merged_into || props.problem?.merged_into_problem || null)
 const isMergedIntoOther = computed(
@@ -209,6 +210,14 @@ const mergeTargetId = computed(() =>
                         @click="openStatusModal"
                         class="action-btn"
                     />
+                    <AppButton
+                        v-if="problem.institution_id"
+                        text="Grąžinti problemos administratoriui"
+                        variant="secondary"
+                        as-button
+                        @click="handleGrazintiAdmin"
+                        class="action-btn"
+                    />
                 </div>
                 <div class="actions-row">
                     <AppButton
@@ -233,7 +242,7 @@ const mergeTargetId = computed(() =>
                     <AppButton
                         v-if="isEmployee"
                         text="Grąžinti problemos administratoriui"
-                        variant="primary"
+                        variant="secondary"
                         as-button
                         @click="handleGrazintiAdmin"
                         class="action-btn"

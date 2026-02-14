@@ -1,5 +1,5 @@
 <script setup>
-import { ref, watch } from 'vue'
+import { ref, watch, onMounted, onUnmounted } from 'vue'
 import { KAUNAS_CENTER } from '@/composables/leafletKaunas'
 import { useKaunasMapLocationPicker } from '@/composables/useKaunasMapLocationPicker'
 
@@ -12,8 +12,14 @@ const emit = defineEmits(['update:address', 'update:lat', 'update:lng'])
 
 const mapContainer = ref(null)
 const addressInput = ref('')
+const suggestions = ref([])
+const showSuggestions = ref(false)
+const loadingSuggestions = ref(false)
+const addressDropdownRef = ref(null)
+let suggestDebounceTimer = null
+let lastSuggestQuery = ''
 
-const { lat, lng, address, isGeocoding, searchAddress, centerMap } = useKaunasMapLocationPicker(
+const { lat, lng, address, isGeocoding, searchAddress, fetchAddressSuggestions, centerMap } = useKaunasMapLocationPicker(
     mapContainer,
     { initialLat: props.initialLat, initialLng: props.initialLng }
 )
@@ -23,9 +29,68 @@ watch(addressInput, (v) => emit('update:address', v ?? ''), { immediate: true })
 watch(lat, (v) => emit('update:lat', v ?? null), { immediate: true })
 watch(lng, (v) => emit('update:lng', v ?? null), { immediate: true })
 
+watch(addressInput, (query) => {
+    if (suggestDebounceTimer) clearTimeout(suggestDebounceTimer)
+    const q = (query || '').trim()
+    if (q.length < 2) {
+        suggestions.value = []
+        showSuggestions.value = false
+        return
+    }
+    suggestDebounceTimer = setTimeout(async () => {
+        lastSuggestQuery = q
+        loadingSuggestions.value = true
+        showSuggestions.value = true
+        try {
+            const list = await fetchAddressSuggestions(q)
+            if (lastSuggestQuery === q) {
+                suggestions.value = list
+            }
+        } catch (_) {
+            if (lastSuggestQuery === q) suggestions.value = []
+        } finally {
+            loadingSuggestions.value = false
+        }
+    }, 400)
+})
+
 function onAddressSubmit() {
     const q = (addressInput.value || '').trim()
     if (q) searchAddress(q)
+    showSuggestions.value = false
+}
+
+function onSelectSuggestion(item) {
+    addressInput.value = item.display_name
+    searchAddress(item.display_name)
+    suggestions.value = []
+    showSuggestions.value = false
+}
+
+function closeSuggestions() {
+    showSuggestions.value = false
+}
+
+function onInputBlur() {
+    setTimeout(closeSuggestions, 200)
+}
+
+function onKeydown(ev) {
+    if (ev.key === 'Escape') closeSuggestions()
+}
+
+onMounted(() => {
+    document.addEventListener('click', handleClickOutside)
+})
+onUnmounted(() => {
+    document.removeEventListener('click', handleClickOutside)
+    if (suggestDebounceTimer) clearTimeout(suggestDebounceTimer)
+})
+
+function handleClickOutside(e) {
+    if (addressDropdownRef.value && !addressDropdownRef.value.contains(e.target)) {
+        closeSuggestions()
+    }
 }
 
 function onCenterClick() {
@@ -46,16 +111,19 @@ function onCenterClick() {
                 <span class="reporter-location-map-center-icon" />
             </button>
         </div>
-        <div class="reporter-location-address">
-            <label class="reporter-report-label">Pagal adresą</label>
-            <div class="reporter-location-address-row">
+        <div ref="addressDropdownRef" class="reporter-location-address">
+            <label class="reporter-report-label">Adresas (įveskite arba pasirinkite žemėlapyje)</label>
+            <div class="reporter-location-address-row reporter-location-address-row--with-dropdown">
                 <input
                     v-model="addressInput"
                     type="text"
                     class="reporter-location-input"
-                    placeholder="Adresas"
+                    placeholder="Pradėkite rašyti gatvę ar adresą (Kaunas)"
                     :disabled="isGeocoding"
+                    autocomplete="off"
                     @keydown.enter.prevent="onAddressSubmit"
+                    @blur="onInputBlur"
+                    @keydown="onKeydown"
                 />
                 <button
                     type="button"
@@ -65,6 +133,25 @@ function onCenterClick() {
                 >
                     {{ isGeocoding ? '...' : 'Rasti' }}
                 </button>
+            </div>
+            <div v-if="showSuggestions" class="reporter-location-suggestions">
+                <template v-if="loadingSuggestions">
+                    <div class="reporter-location-suggestions-item reporter-location-suggestions-item--muted">Kraunama...</div>
+                </template>
+                <template v-else-if="suggestions.length">
+                    <button
+                        v-for="(item, idx) in suggestions"
+                        :key="idx"
+                        type="button"
+                        class="reporter-location-suggestions-item"
+                        @mousedown.prevent="onSelectSuggestion(item)"
+                    >
+                        {{ item.display_name }}
+                    </button>
+                </template>
+                <template v-else>
+                    <div class="reporter-location-suggestions-item reporter-location-suggestions-item--muted">Nerasta Kauno adresų</div>
+                </template>
             </div>
         </div>
     </div>
@@ -135,6 +222,53 @@ function onCenterClick() {
 .reporter-location-address-row {
     display: flex;
     gap: 8px;
+}
+
+.reporter-location-address-row--with-dropdown,
+.reporter-location-address {
+    position: relative;
+}
+
+.reporter-location-suggestions {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 100%;
+    margin-top: 4px;
+    background: #fff;
+    border: 1px solid #e0e0e0;
+    border-radius: 6px;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.18);
+    max-height: 320px;
+    overflow-y: auto;
+    z-index: 1000;
+}
+
+.reporter-location-suggestions-item {
+    display: block;
+    width: 100%;
+    padding: 10px 12px;
+    border: none;
+    background: none;
+    text-align: left;
+    font-size: 14px;
+    color: #333;
+    cursor: pointer;
+    font-family: inherit;
+    line-height: 1.35;
+}
+
+.reporter-location-suggestions-item:hover {
+    background: #f0f4fc;
+}
+
+.reporter-location-suggestions-item--muted {
+    color: #666;
+    cursor: default;
+}
+
+.reporter-location-suggestions-item--muted:hover {
+    background: transparent;
 }
 
 .reporter-location-input {

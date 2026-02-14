@@ -17,10 +17,10 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
         $middleware->alias([
             'admin' => \App\Http\Middleware\AdminMiddleware::class,
+            'automation' => \App\Http\Middleware\EnsureAutomationAccess::class,
             'permission' => \App\Http\Middleware\EnsurePermission::class,
             'reporter.terms' => \App\Http\Middleware\EnsureReporterAcceptedTerms::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {
-        //
     })->create();

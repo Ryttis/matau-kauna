@@ -46,6 +46,7 @@ const emit = defineEmits(['close', 'confirm'])
 
 <template>
     <BaseModal
+        class="confirm-modal"
         :open="open"
         :title="title"
         :width="width"
@@ -95,11 +96,16 @@ const emit = defineEmits(['close', 'confirm'])
 <style scoped>
 .confirm-modal-message {
     text-align: center;
-    font-size: 1rem;
+    font-size: 1.25rem;
     font-weight: 600;
     color: #333;
     margin: 0;
     line-height: 1.5;
+}
+
+.confirm-modal :deep(.modal-body) {
+    padding-top: 8px;
+    padding-bottom: 16px;
 }
 
 .confirm-modal-danger-btn {
@@ -109,5 +115,21 @@ const emit = defineEmits(['close', 'confirm'])
 
 .confirm-modal-danger-btn:hover:not(:disabled) {
     background-color: #a01e14 !important;
+}
+
+.confirm-modal :deep(.modal-footer) {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: 12px;
+    padding: 16px 20px;
+}
+
+.confirm-modal :deep(.modal-footer .app-button) {
+    width: auto;
+    min-width: 100px;
+    flex: 0 0 auto;
+    margin-bottom: 0;
 }
 </style>

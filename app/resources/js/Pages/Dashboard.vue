@@ -3,11 +3,12 @@ import AppButton from '@/Components/App/AppButton.vue'
 import ConfirmModal from '@/Components/App/ConfirmModal.vue'
 import StatusChangeModal from '@/Components/App/Modals/StatusChangeModal.vue'
 import FilterModal from '@/Components/App/Modals/FilterModal.vue'
+import SuccessModal from '@/Components/App/SuccessModal.vue'
 import ProblemsTable from '@/Components/Problems/ProblemsTable.vue'
 import KaunasProblemsMap from '@/Components/Map/KaunasProblemsMap.vue'
 import ProblemsMapList from '@/Components/Map/ProblemsMapList.vue'
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue'
-import { Head, router } from '@inertiajs/vue3'
+import { Head, router, usePage } from '@inertiajs/vue3'
 import { ref, watch, computed, onMounted, onUnmounted } from 'vue'
 import { useProblemsMapFilter } from '@/composables/useProblemsMapFilter'
 import { useProblemDisplayRows } from '@/composables/useProblemDisplayRows'
@@ -51,6 +52,9 @@ const problemsList = ref([])
 const showDeleteModal = ref(false)
 
 const { displayRows } = useProblemDisplayRows(problemsList)
+const page = usePage()
+const showSuccessModal = ref(!!page.props.flash?.success)
+watch(() => page.props.flash?.success, (msg) => { if (msg) showSuccessModal.value = true }, { immediate: true })
 
 const reporterProblems = computed(() => {
     if (!props.reporterView) return []
@@ -442,6 +446,11 @@ onUnmounted(() => {
     <Head title="Dashboard" />
 
     <AuthenticatedLayout>
+        <SuccessModal
+            :show="showSuccessModal"
+            :message="page.props.flash?.success ?? ''"
+            @close="showSuccessModal = false"
+        />
         <div v-if="reporterView" class="reporter-dashboard">
             <div class="reporter-dashboard-top">
                 <div class="reporter-dashboard-toolbar">

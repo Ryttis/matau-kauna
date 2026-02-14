@@ -3,6 +3,7 @@
 use App\Http\Controllers\Admin\InstitutionController as AdminInstitutionController;
 use App\Http\Controllers\Admin\InvitationController as AdminInvitationController;
 use App\Http\Controllers\Admin\RbacController;
+use App\Http\Controllers\AutomationController;
 use App\Http\Controllers\ProblemController;
 use App\Http\Controllers\SettingsController;
 use Illuminate\Support\Facades\Route;
@@ -34,6 +35,12 @@ Route::middleware(['auth', 'verified', 'reporter.terms'])->group(function () {
     Route::get('/problems/{problem}/review-progress', [ProblemController::class, 'reviewProgress'])->name('problems.reviewProgress');
 
     Route::middleware(['permission:issues.view'])->group(function () {
+        Route::middleware(['automation'])->group(function () {
+            Route::get('/automation', [AutomationController::class, 'index'])->name('automation.index');
+            Route::post('/automation', [AutomationController::class, 'store'])->name('automation.store');
+            Route::put('/automation/{rule}', [AutomationController::class, 'update'])->name('automation.update');
+            Route::delete('/automation/{rule}', [AutomationController::class, 'destroy'])->name('automation.destroy');
+        });
         Route::get('/map', [ProblemController::class, 'map'])->name('map');
         Route::get('/problems/assign', [ProblemController::class, 'assign'])->name('problems.assign');
         Route::post('/problems/assign', [ProblemController::class, 'storeAssign'])->name('problems.assign.store');
@@ -42,6 +49,9 @@ Route::middleware(['auth', 'verified', 'reporter.terms'])->group(function () {
         Route::get('/problems/{problem}/assign', [ProblemController::class, 'assignSingle'])->name('problems.assign.single');
         Route::get('/problems/{problem}/assign-institution', [ProblemController::class, 'assignInstitution'])->name('problems.assignInstitution');
         Route::post('/problems/{problem}/assign-institution', [ProblemController::class, 'storeAssignInstitution'])->name('problems.assignInstitution.store');
+        Route::post('/problems/{problem}/send-assign-email', [ProblemController::class, 'sendAssignInstitutionEmail'])->name('problems.assignInstitution.sendEmail');
+        Route::patch('/problems/{problem}/return', [ProblemController::class, 'returnToAdmin'])->name('problems.return');
+        Route::post('/problems/{problem}/reassign-institution', [ProblemController::class, 'reassignInstitution'])->name('problems.reassignInstitution');
         Route::get('/problems/{problem}/merge', [ProblemController::class, 'merge'])->name('problems.merge');
         Route::post('/problems/{problem}/merge', [ProblemController::class, 'storeMerge'])->name('problems.merge.store');
         Route::patch('/problems/{problem}/unmerge', [ProblemController::class, 'unmerge'])->name('problems.unmerge');

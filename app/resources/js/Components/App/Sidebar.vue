@@ -13,6 +13,10 @@ const canAccessIssues = computed(() =>
     isSystemAdmin.value || permissions.value.includes('issues.view')
 )
 
+const canAccessAutomation = computed(() =>
+    isSystemAdmin.value || (roles.value || []).some((r) => r.role === 'ROLE_PROBLEM_ADMIN')
+)
+
 const isReporterOnly = computed(() => {
     const r = roles.value || []
     return r.length === 1 && r[0]?.role === 'ROLE_REPORTER'
@@ -90,6 +94,16 @@ const toggleStatistics = () => {
                     >
                         <img src="/icons/map-icon.png" />
                         <span>Žemėlapis</span>
+                    </Link>
+
+                    <Link
+                        v-if="canAccessAutomation"
+                        href="/automation"
+                        class="nav-link"
+                        :class="{ active: isActive('/automation') }"
+                    >
+                        <img src="/icons/list-active-icon.png" />
+                        <span>Automatizacija</span>
                     </Link>
                 </template>
 

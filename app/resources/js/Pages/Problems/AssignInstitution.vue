@@ -1,11 +1,23 @@
 <script setup>
 import { ref, watch } from 'vue'
-import { Head, router } from '@inertiajs/vue3'
+import { Head, router, usePage } from '@inertiajs/vue3'
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue'
 import AppButton from '@/Components/App/AppButton.vue'
 import AppInput from '@/Components/App/AppInput.vue'
+import AppDatePicker from '@/Components/App/AppDatePicker.vue'
 import AppBackButton from '@/Components/App/AppBackButton.vue'
 import AppCheckbox from '@/Components/App/AppCheckbox.vue'
+import SuccessModal from '@/Components/App/SuccessModal.vue'
+import { useAuth } from '@/composables/useAuth'
+
+const { canSeeInstitutionAdminButtons } = useAuth()
+const page = usePage()
+const showSuccessModal = ref(!!page.props.flash?.success)
+watch(
+    () => page.props.flash?.success,
+    (msg) => { if (msg) showSuccessModal.value = true },
+    { immediate: true }
+)
 
 const props = defineProps({
     problem: Object,
@@ -22,7 +34,13 @@ const props = defineProps({
 const gisEnabled = ref(false)
 const dvsEnabled = ref(false)
 const selectedEmployeeIds = ref([])
-const deadline = ref('')
+const deadline = ref(
+    props.problem?.completion_deadline
+        ? (typeof props.problem.completion_deadline === 'string'
+            ? props.problem.completion_deadline.slice(0, 10)
+            : '')
+        : ''
+)
 const emailForInfo = ref('')
 const returnComment = ref('')
 const reassignExpanded = ref(false)
@@ -43,8 +61,11 @@ const toggleEmployee = (id) => {
 
 const toggleReassign = (id) => {
     const i = selectedReassignIds.value.indexOf(id)
-    if (i > -1) selectedReassignIds.value.splice(i, 1)
-    else selectedReassignIds.value.push(id)
+    if (i > -1) {
+        selectedReassignIds.value = []
+    } else {
+        selectedReassignIds.value = [id]
+    }
 }
 
 const handleSendAssign = () => {
@@ -52,16 +73,34 @@ const handleSendAssign = () => {
 
     router.post(route('problems.assignInstitution.store', props.problem.id), {
         employee_id: selectedEmployeeIds.value[0],
+        completion_deadline: deadline.value || null,
     }, {
         preserveScroll: true,
     })
 }
-// TODO: Siųsti informaciją el. paštu – dar neįgyvendinta
-const handleSendEmail = () => {}
-// TODO: Grąžinti problemos administratoriui – dar neįgyvendinta
-const handleReturnToAdmin = () => {}
-// TODO: Peradresuoti – dar neįgyvendinta
-const handleReassign = () => {}
+
+const handleSendEmail = () => {
+    const email = (emailForInfo.value || '').trim()
+    if (!email) {
+        alert('Įveskite el. paštą.')
+        return
+    }
+    router.post(route('problems.assignInstitution.sendEmail', props.problem.id), { email }, { preserveScroll: true })
+}
+
+const handleReturnToAdmin = () => {
+    router.patch(route('problems.return', props.problem.id), {}, { preserveScroll: true })
+}
+
+const handleReassign = () => {
+    if (selectedReassignIds.value.length !== 1) {
+        alert('Pasirinkite vieną įstaigą, kuriai perduoti problemą.')
+        return
+    }
+    router.post(route('problems.reassignInstitution', props.problem.id), {
+        institution_id: selectedReassignIds.value[0],
+    }, { preserveScroll: true })
+}
 
 watch(
     () => props.problem,
@@ -77,6 +116,11 @@ watch(
     <Head :title="`Priskirti problemą – ${problem?.internal_number}`" />
 
     <AuthenticatedLayout>
+        <SuccessModal
+            :show="showSuccessModal"
+            :message="page.props.flash?.success ?? ''"
+            @close="showSuccessModal = false"
+        />
         <div class="assign-institution-page">
             <div class="assign-institution-header">
                 <AppBackButton @click="handleBack" />
@@ -125,12 +169,10 @@ watch(
                     </div>
                 </div>
                 <div class="field-row field-fixed-width">
-                    <AppInput
+                    <AppDatePicker
                         v-model="deadline"
                         label="Atlikimo terminas"
-                        type="date"
-                        :show-icon="true"
-                        icon-src="/icons/pencil-icon.png"
+                        placeholder="Pasirinkite datą"
                     />
                 </div>
                 <div class="btn-row">
@@ -148,7 +190,7 @@ watch(
                 </div>
             </div>
 
-            <div class="assign-institution-section">
+            <div v-if="canSeeInstitutionAdminButtons" class="assign-institution-section">
                 <h2 class="section-title">Grąžinti problemos administratoriui</h2>
                 <div class="field-row field-fixed-width">
                     <AppInput

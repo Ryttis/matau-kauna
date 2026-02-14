@@ -99,6 +99,12 @@ function handleBackToStep1() {
     step.value = 1
 }
 
+const ADDRESS_REQUIRED_MSG = 'Pasirinkite problemos vietą žemėlapyje arba įveskite adresą.'
+
+function getAddressError() {
+    return (addressStep2.value ?? '').trim() ? null : ADDRESS_REQUIRED_MSG
+}
+
 function handlePerziureti() {
     step.value = 1
     wizardHiddenUntilNextStep.value = false
@@ -107,9 +113,9 @@ function handlePerziureti() {
 
 function handlePateikti() {
     submitError.value = ''
-    const address = (addressStep2.value ?? '').trim()
-    if (!address) {
-        submitError.value = 'Pasirinkite problemos vietą žemėlapyje arba įveskite adresą.'
+    const err = getAddressError()
+    if (err) {
+        submitError.value = err
         return
     }
     if (props.hasAcceptedReportTerms || termsAcceptedThisSession.value) {
@@ -129,9 +135,9 @@ function handleReviewContinue() {
 
 function handleReviewConfirm() {
     if (isSubmitting.value) return
-    const address = (addressStep2.value ?? '').trim()
-    if (!address) {
-        submitError.value = 'Pasirinkite problemos vietą žemėlapyje arba įveskite adresą.'
+    const err = getAddressError()
+    if (err) {
+        submitError.value = err
         return
     }
     submitError.value = ''
@@ -139,7 +145,7 @@ function handleReviewConfirm() {
     const payload = {
         category: category.value,
         description: description.value,
-        address,
+        address: (addressStep2.value ?? '').trim(),
         lat: latStep2.value ?? null,
         lng: lngStep2.value ?? null,
     }
@@ -325,7 +331,7 @@ function openCancelModal() {
     background: #f5f5f5;
     border-radius: 8px;
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
-    overflow: hidden;
+    overflow: visible;
 }
 
 .reporter-report-header {
