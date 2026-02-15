@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Admin\ClassifierController as AdminClassifierController;
 use App\Http\Controllers\Admin\InstitutionController as AdminInstitutionController;
 use App\Http\Controllers\Admin\InvitationController as AdminInvitationController;
 use App\Http\Controllers\Admin\RbacController;
@@ -121,11 +122,13 @@ Route::middleware(['auth', 'verified', 'reporter.terms'])->group(function () {
             Route::get('/institutions/list', [AdminInstitutionController::class, 'list']);
             Route::post('/institutions', [AdminInstitutionController::class, 'store']);
             Route::put('/institutions/{institution}', [AdminInstitutionController::class, 'update']);
+            Route::delete('/institutions/{institution}', [AdminInstitutionController::class, 'destroy']);
 
-            Route::get('/classifiers', [\App\Http\Controllers\Admin\ClassifierController::class, 'index']);
-            Route::get('/classifiers/types/{type}/natures', [\App\Http\Controllers\Admin\ClassifierController::class, 'naturesForType']);
-            Route::post('/classifiers/values', [\App\Http\Controllers\Admin\ClassifierController::class, 'storeValue']);
-            Route::put('/classifiers/values/{value}', [\App\Http\Controllers\Admin\ClassifierController::class, 'updateValue']);
+            Route::get('/classifiers', [AdminClassifierController::class, 'index']);
+            Route::get('/classifiers/types/{type}/natures', [AdminClassifierController::class, 'naturesForType']);
+            Route::post('/classifiers/values', [AdminClassifierController::class, 'storeValue']);
+            Route::put('/classifiers/values/{value}', [AdminClassifierController::class, 'updateValue']);
+            Route::delete('/classifiers/values/{value}', [AdminClassifierController::class, 'destroyValue']);
         });
 });
 

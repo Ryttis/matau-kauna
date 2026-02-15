@@ -49,7 +49,9 @@ export function useAuth() {
         () => isEmployee.value || isSystemAdmin.value
     )
     const canEditProblem = computed(
-        () => isProblemAdmin.value || isSystemAdmin.value
+        () =>
+            (isProblemAdmin.value || isSystemAdmin.value) &&
+            hasPermission('classification.edit')
     )
     const canMergeProblem = computed(
         () =>

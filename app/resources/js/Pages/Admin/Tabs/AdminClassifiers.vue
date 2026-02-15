@@ -2,6 +2,7 @@
 import { onMounted, ref } from 'vue'
 import axios from 'axios'
 import BaseModal from '@/Components/App/BaseModal.vue'
+import SuccessModal from '@/Components/App/SuccessModal.vue'
 import AppButton from '@/Components/App/AppButton.vue'
 import AppInput from '@/Components/App/AppInput.vue'
 import AppCheckbox from '@/Components/App/AppCheckbox.vue'
@@ -10,8 +11,6 @@ import ModalFooterActions from '@/Components/App/ModalFooterActions.vue'
 const loading = ref(false)
 const saving = ref(false)
 const types = ref([])
-const rusisCategoryId = ref(null)
-const pobudisCategoryId = ref(null)
 const errorMessage = ref('')
 
 const showAddTypeModal = ref(false)
@@ -29,13 +28,16 @@ const addNatureForm = ref({ name: '', is_active: true })
 const showEditNatureModal = ref(false)
 const editNatureForm = ref({ id: null, name: '', is_active: true })
 
+const showDeleteConfirmModal = ref(false)
+const typeToDelete = ref(null)
+const showSuccessModal = ref(false)
+const successMessage = ref('')
+
 const loadClassifiers = async () => {
     loading.value = true
     try {
         const { data } = await axios.get('/admin/classifiers')
         types.value = data.types ?? []
-        rusisCategoryId.value = data.rusisCategoryId ?? null
-        pobudisCategoryId.value = data.pobudisCategoryId ?? null
     } finally {
         loading.value = false
     }
@@ -69,11 +71,12 @@ async function submitAddType() {
     errorMessage.value = ''
     try {
         await axios.post('/admin/classifiers/values', {
-            classifier_category_id: rusisCategoryId.value,
             name,
         })
         showAddTypeModal.value = false
         await loadClassifiers()
+        successMessage.value = 'Rūšis sėkmingai pridėta.'
+        showSuccessModal.value = true
     } catch (e) {
         errorMessage.value = e.response?.data?.message ?? 'Nepavyko pridėti.'
     } finally {
@@ -111,6 +114,35 @@ async function toggleTypeActive(type) {
         await loadClassifiers()
     } catch (e) {
         errorMessage.value = e.response?.data?.message ?? 'Nepavyko pakeisti.'
+    }
+}
+
+function confirmDeleteType(t) {
+    typeToDelete.value = t
+    showDeleteConfirmModal.value = true
+}
+
+function closeDeleteConfirmModal() {
+    showDeleteConfirmModal.value = false
+    typeToDelete.value = null
+}
+
+async function deleteType() {
+    if (!typeToDelete.value) return
+    const t = typeToDelete.value
+    errorMessage.value = ''
+    successMessage.value = ''
+    saving.value = true
+    try {
+        await axios.delete(`/admin/classifiers/values/${t.id}`)
+        closeDeleteConfirmModal()
+        await loadClassifiers()
+        successMessage.value = 'Rūšis sėkmingai pašalinta.'
+        showSuccessModal.value = true
+    } catch (e) {
+        errorMessage.value = e.response?.data?.message ?? 'Nepavyko pašalinti.'
+    } finally {
+        saving.value = false
     }
 }
 
@@ -218,6 +250,12 @@ async function removeNature(nature) {
         </p>
         <p v-if="errorMessage" class="error-msg">{{ errorMessage }}</p>
 
+        <SuccessModal
+            :show="showSuccessModal"
+            :message="successMessage"
+            @close="showSuccessModal = false; successMessage = ''"
+        />
+
         <div v-if="loading" class="loading">Kraunama…</div>
         <template v-else>
             <div class="classifier-block">
@@ -271,6 +309,14 @@ async function removeNature(nature) {
                                         @click="openEditType(t)"
                                     >
                                         Redaguoti
+                                    </button>
+                                    <span class="link-sep">|</span>
+                                    <button
+                                        type="button"
+                                        class="link-btn link-btn--danger"
+                                        @click="confirmDeleteType(t)"
+                                    >
+                                        Trinti
                                     </button>
                                 </td>
                             </tr>
@@ -435,6 +481,26 @@ async function removeNature(nature) {
                 />
             </template>
         </BaseModal>
+
+        <BaseModal
+            :show="showDeleteConfirmModal"
+            title="Pašalinti rūšį?"
+            max-width="400px"
+            @close="closeDeleteConfirmModal"
+        >
+            <p v-if="typeToDelete" class="delete-confirm-text">
+                Ar tikrai pašalinti rūšį „{{ typeToDelete.name }}"? Bus pašalinti ir visi jos pobūdžiai.
+            </p>
+            <template #footer>
+                <ModalFooterActions
+                    cancel-text="Atšaukti"
+                    primary-text="Trinti"
+                    :primary-disabled="saving"
+                    @cancel="closeDeleteConfirmModal"
+                    @primary="deleteType"
+                />
+            </template>
+        </BaseModal>
     </div>
 </template>
 
@@ -458,6 +524,12 @@ async function removeNature(nature) {
     color: #c00;
     font-size: 14px;
     margin-bottom: 12px;
+}
+.delete-confirm-text {
+    margin: 0;
+    font-size: 14px;
+    line-height: 1.5;
+    color: #333;
 }
 .loading {
     padding: 24px 0;

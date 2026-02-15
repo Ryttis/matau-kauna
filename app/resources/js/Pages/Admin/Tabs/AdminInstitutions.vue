@@ -1,53 +1,15 @@
 <script setup>
-import { onMounted, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import axios from 'axios'
 import BaseModal from '@/Components/App/BaseModal.vue'
+import ConfirmModal from '@/Components/App/ConfirmModal.vue'
+import AppButton from '@/Components/App/AppButton.vue'
+import AppInput from '@/Components/App/AppInput.vue'
+import ModalFooterActions from '@/Components/App/ModalFooterActions.vue'
 import { INSTITUTION_TYPES } from '@/constants/institutionTypes.js'
 
-const loading = ref(false)
-const saving = ref(false)
-const errorMessage = ref('')
-const institutionsPage = ref(null)
-
-const isCreateOpen = ref(false)
-const isEditOpen = ref(false)
-
-const createForm = ref({
-    name: '',
-    code: '',
-    type: '',
-    contact_phone: '',
-    contact_email: '',
-    contact_address: '',
-    integration_email: '',
-    integration_dvs: '',
-    integration_gis: '',
-    is_active: true,
-    is_email_only: false
-})
-
-const editForm = ref({
-    id: null,
-    name: '',
-    code: '',
-    type: '',
-    contact_phone: '',
-    contact_email: '',
-    contact_address: '',
-    integration_email: '',
-    integration_dvs: '',
-    integration_gis: '',
-    is_active: true,
-    is_email_only: false
-})
-
-const loadInstitutions = async () => {
-    const { data } = await axios.get('/admin/institutions')
-    institutionsPage.value = data
-}
-
-const openCreate = () => {
-    createForm.value = {
+function emptyInstitutionForm() {
+    return {
         name: '',
         code: '',
         type: '',
@@ -58,8 +20,34 @@ const openCreate = () => {
         integration_dvs: '',
         integration_gis: '',
         is_active: true,
-        is_email_only: false
+        is_email_only: false,
     }
+}
+
+const loading = ref(false)
+const saving = ref(false)
+const errorMessage = ref('')
+const institutionsPage = ref(null)
+const isCreateOpen = ref(false)
+const isEditOpen = ref(false)
+const createForm = ref(emptyInstitutionForm())
+const editForm = ref(emptyInstitutionForm())
+const showDeleteModal = ref(false)
+const institutionToDelete = ref(null)
+
+const deleteConfirmMessage = computed(() => {
+    const inst = institutionToDelete.value
+    if (!inst) return ''
+    return 'Ar tikrai pašalinti įstaigą „' + inst.name + '"? Naudotojų įstaiga bus atimta, susijusios problemos liks be įstaigos.'
+})
+
+const loadInstitutions = async () => {
+    const { data } = await axios.get('/admin/institutions')
+    institutionsPage.value = data
+}
+
+const openCreate = () => {
+    createForm.value = emptyInstitutionForm()
     isCreateOpen.value = true
 }
 
@@ -76,9 +64,34 @@ const openEdit = (inst) => {
         integration_dvs: inst.integration_dvs ?? '',
         integration_gis: inst.integration_gis ?? '',
         is_active: inst.is_active ?? true,
-        is_email_only: inst.is_email_only ?? false
+        is_email_only: inst.is_email_only ?? false,
     }
     isEditOpen.value = true
+}
+
+const confirmDelete = (inst) => {
+    institutionToDelete.value = inst
+    showDeleteModal.value = true
+}
+
+const closeDeleteModal = () => {
+    showDeleteModal.value = false
+    institutionToDelete.value = null
+}
+
+const deleteInstitution = async () => {
+    if (!institutionToDelete.value) return
+    errorMessage.value = ''
+    saving.value = true
+    try {
+        await axios.delete(`/admin/institutions/${institutionToDelete.value.id}`)
+        closeDeleteModal()
+        await loadInstitutions()
+    } catch (e) {
+        errorMessage.value = e.response?.data?.message ?? 'Nepavyko pašalinti įstaigos.'
+    } finally {
+        saving.value = false
+    }
 }
 
 const createInstitution = async () => {
@@ -88,7 +101,7 @@ const createInstitution = async () => {
         await axios.post('/admin/institutions', {
             ...createForm.value,
             integration_email: createForm.value.contact_email || null,
-            is_email_only: createForm.value.is_email_only ?? false
+            is_email_only: createForm.value.is_email_only ?? false,
         })
         isCreateOpen.value = false
         await loadInstitutions()
@@ -114,7 +127,7 @@ const updateInstitution = async () => {
             integration_dvs: editForm.value.integration_dvs || null,
             integration_gis: editForm.value.integration_gis || null,
             is_active: editForm.value.is_active,
-            is_email_only: editForm.value.is_email_only ?? false
+            is_email_only: editForm.value.is_email_only ?? false,
         })
         isEditOpen.value = false
         await loadInstitutions()
@@ -141,141 +154,162 @@ onMounted(async () => {
     <div>
         <div class="header-row">
             <h3 class="title">Įstaigos</h3>
-            <button type="button" class="primary-btn small" @click="openCreate">
-                + Kurti įstaigą
-            </button>
+            <AppButton text="+ Kurti įstaigą" variant="primary" as-button @click="openCreate" />
         </div>
 
-        <div v-if="errorMessage" class="error">
-            {{ errorMessage }}
-        </div>
+        <p v-if="errorMessage" class="error">{{ errorMessage }}</p>
 
-        <div v-if="loading">Kraunama...</div>
+        <div v-if="loading" class="loading">Kraunama...</div>
 
-        <table v-else-if="institutionsPage?.data?.length" class="table">
-            <thead>
-                <tr>
-                    <th>Pavadinimas</th>
-                    <th>Kodas</th>
-                    <th>Tipas</th>
-                    <th>Kontaktai</th>
-                    <th>Naudotojai</th>
-                    <th>Būsena</th>
-                    <th>Veiksmai</th>
-                </tr>
-            </thead>
-            <tbody>
-                <tr v-for="inst in institutionsPage.data" :key="inst.id">
-                    <td>{{ inst.name }}</td>
-                    <td>{{ inst.code ?? '—' }}</td>
-                    <td>{{ inst.type ?? '—' }}</td>
-                    <td>{{ inst.contact_email ?? inst.contact_phone ?? '—' }}</td>
-                    <td>{{ inst.users_count ?? 0 }}</td>
-                    <td>
-                        <span :class="['pill', inst.is_active ? 'active' : 'inactive']">
-                            {{ inst.is_active ? 'Aktyvi' : 'Neaktyvi' }}
-                        </span>
-                        <span v-if="inst.is_email_only" class="pill email-only">Tik el. paštas</span>
-                    </td>
-                    <td class="actions">
-                        <button type="button" class="link-btn" @click="openEdit(inst)">Redaguoti</button>
-                    </td>
-                </tr>
-            </tbody>
-        </table>
+        <template v-else-if="institutionsPage?.data?.length">
+            <div class="table-wrap">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Pavadinimas</th>
+                            <th>Kodas</th>
+                            <th>Tipas</th>
+                            <th>Kontaktai</th>
+                            <th>Naudotojai</th>
+                            <th>Būsena</th>
+                            <th>Veiksmai</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr v-for="inst in institutionsPage.data" :key="inst.id">
+                            <td>{{ inst.name }}</td>
+                            <td>{{ inst.code ?? '—' }}</td>
+                            <td>{{ inst.type ?? '—' }}</td>
+                            <td>{{ inst.contact_email ?? inst.contact_phone ?? '—' }}</td>
+                            <td>{{ inst.users_count ?? 0 }}</td>
+                            <td>
+                                <span :class="['pill', inst.is_active ? 'active' : 'inactive']">
+                                    {{ inst.is_active ? 'Aktyvi' : 'Neaktyvi' }}
+                                </span>
+                                <span v-if="inst.is_email_only" class="pill email-only">Tik el. paštas</span>
+                            </td>
+                            <td class="actions">
+                                <button type="button" class="link-btn" @click="openEdit(inst)">Redaguoti</button>
+                                <span class="link-sep">|</span>
+                                <button type="button" class="link-btn link-btn--danger" @click="confirmDelete(inst)">
+                                    Trinti
+                                </button>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </template>
 
-        <div v-else>Nėra įstaigų. Sukurkite pirmąją.</div>
+        <p v-else class="empty">Nėra įstaigų. Sukurkite pirmąją.</p>
 
-        <!-- Create -->
-        <BaseModal :open="isCreateOpen" title="Kurti įstaigą" width="640px" @close="isCreateOpen = false">
+        <BaseModal
+            :show="isCreateOpen"
+            title="Kurti įstaigą"
+            max-width="640px"
+            @close="isCreateOpen = false"
+        >
             <div class="form-grid">
-                <label class="field">
-                    <span>Pavadinimas *</span>
-                    <input class="input" v-model="createForm.name" />
-                </label>
-                <label class="field">
-                    <span>Kodas</span>
-                    <input class="input" v-model="createForm.code" />
-                </label>
+                <AppInput v-model="createForm.name" label="Pavadinimas *" />
+                <AppInput v-model="createForm.code" label="Kodas" />
                 <label class="field">
                     <span>Tipas</span>
                     <select class="input" v-model="createForm.type">
-                        <option v-for="opt in INSTITUTION_TYPES" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
+                        <option v-for="opt in INSTITUTION_TYPES" :key="opt.value" :value="opt.value">
+                            {{ opt.label }}
+                        </option>
                     </select>
                 </label>
-                <label class="field full">
-                    <span>Kontaktiniai duomenys</span>
-                    <input class="input" v-model="createForm.contact_phone" placeholder="Tel." />
-                    <input class="input" style="margin-top:6px" v-model="createForm.contact_email" placeholder="El. paštas" />
-                    <input class="input" style="margin-top:6px" v-model="createForm.contact_address" placeholder="Adresas" />
-                </label>
-                <label class="field full">
-                    <span>Integracijos nustatymai (el. paštas naudoja kontaktinį / DVS / GIS)</span>
-                    <input class="input" v-model="createForm.integration_dvs" placeholder="DVS" />
-                    <input class="input" style="margin-top:6px" v-model="createForm.integration_gis" placeholder="GIS" />
-                </label>
-                <label class="field checkbox">
+                <div class="field full">
+                    <span class="field-label">Kontaktiniai duomenys</span>
+                    <AppInput v-model="createForm.contact_phone" placeholder="Tel." />
+                    <AppInput v-model="createForm.contact_email" placeholder="El. paštas" type="email" />
+                    <AppInput v-model="createForm.contact_address" placeholder="Adresas" />
+                </div>
+                <div class="field full">
+                    <span class="field-label">Integracijos (DVS / GIS)</span>
+                    <AppInput v-model="createForm.integration_dvs" placeholder="DVS" />
+                    <AppInput v-model="createForm.integration_gis" placeholder="GIS" />
+                </div>
+                <label class="field checkbox full">
                     <input type="checkbox" v-model="createForm.is_active" />
                     <span>Aktyvi įstaiga</span>
                 </label>
                 <label class="field checkbox full">
                     <input type="checkbox" v-model="createForm.is_email_only" />
-                    <span>Įstaiga be naudotojų sistemoje (tik el. paštu)</span>
+                    <span>Įstaiga be naudotojų (tik el. paštas)</span>
                 </label>
             </div>
             <template #footer>
-                <button type="button" class="secondary-btn" @click="isCreateOpen = false">Atšaukti</button>
-                <button type="button" class="primary-btn fixed" :disabled="saving || !createForm.name" @click="createInstitution">
-                    {{ saving ? 'Kuriama...' : 'Sukurti' }}
-                </button>
+                <ModalFooterActions
+                    cancel-text="Atšaukti"
+                    primary-text="Sukurti"
+                    :primary-disabled="saving || !createForm.name"
+                    @cancel="isCreateOpen = false"
+                    @primary="createInstitution"
+                />
             </template>
         </BaseModal>
 
-        <!-- Edit -->
-        <BaseModal :open="isEditOpen" title="Redaguoti įstaigą" width="640px" @close="isEditOpen = false">
+        <BaseModal
+            :show="isEditOpen"
+            title="Redaguoti įstaigą"
+            max-width="640px"
+            @close="isEditOpen = false"
+        >
             <div class="form-grid">
-                <label class="field">
-                    <span>Pavadinimas *</span>
-                    <input class="input" v-model="editForm.name" />
-                </label>
-                <label class="field">
-                    <span>Kodas</span>
-                    <input class="input" v-model="editForm.code" />
-                </label>
+                <AppInput v-model="editForm.name" label="Pavadinimas *" />
+                <AppInput v-model="editForm.code" label="Kodas" />
                 <label class="field">
                     <span>Tipas</span>
                     <select class="input" v-model="editForm.type">
-                        <option v-for="opt in INSTITUTION_TYPES" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
+                        <option v-for="opt in INSTITUTION_TYPES" :key="opt.value" :value="opt.value">
+                            {{ opt.label }}
+                        </option>
                     </select>
                 </label>
-                <label class="field full">
-                    <span>Kontaktiniai duomenys</span>
-                    <input class="input" v-model="editForm.contact_phone" placeholder="Tel." />
-                    <input class="input" style="margin-top:6px" v-model="editForm.contact_email" placeholder="El. paštas" />
-                    <input class="input" style="margin-top:6px" v-model="editForm.contact_address" placeholder="Adresas" />
-                </label>
-                <label class="field full">
-                    <span>Integracijos nustatymai (DVS / GIS)</span>
-                    <input class="input" v-model="editForm.integration_dvs" placeholder="DVS" />
-                    <input class="input" style="margin-top:6px" v-model="editForm.integration_gis" placeholder="GIS" />
-                </label>
-                <label class="field checkbox">
+                <div class="field full">
+                    <span class="field-label">Kontaktiniai duomenys</span>
+                    <AppInput v-model="editForm.contact_phone" placeholder="Tel." />
+                    <AppInput v-model="editForm.contact_email" placeholder="El. paštas" type="email" />
+                    <AppInput v-model="editForm.contact_address" placeholder="Adresas" />
+                </div>
+                <div class="field full">
+                    <span class="field-label">Integracijos (DVS / GIS)</span>
+                    <AppInput v-model="editForm.integration_dvs" placeholder="DVS" />
+                    <AppInput v-model="editForm.integration_gis" placeholder="GIS" />
+                </div>
+                <label class="field checkbox full">
                     <input type="checkbox" v-model="editForm.is_active" />
                     <span>Aktyvi įstaiga</span>
                 </label>
                 <label class="field checkbox full">
                     <input type="checkbox" v-model="editForm.is_email_only" />
-                    <span>Įstaiga be naudotojų sistemoje (tik el. paštu)</span>
+                    <span>Įstaiga be naudotojų (tik el. paštas)</span>
                 </label>
             </div>
-
             <template #footer>
-                <button type="button" class="secondary-btn" @click="isEditOpen = false">Atšaukti</button>
-                <button type="button" class="primary-btn fixed" :disabled="saving || !editForm.name" @click="updateInstitution">
-                    {{ saving ? 'Saugoma...' : 'Išsaugoti' }}
-                </button>
+                <ModalFooterActions
+                    cancel-text="Atšaukti"
+                    primary-text="Išsaugoti"
+                    :primary-disabled="saving || !editForm.name"
+                    @cancel="isEditOpen = false"
+                    @primary="updateInstitution"
+                />
             </template>
         </BaseModal>
+
+        <ConfirmModal
+            :open="showDeleteModal"
+            title="Pašalinti įstaigą?"
+            :message="deleteConfirmMessage"
+            confirm-text="Trinti"
+            cancel-text="Atšaukti"
+            :loading="saving"
+            confirm-variant="danger"
+            @close="closeDeleteModal"
+            @confirm="deleteInstitution"
+        />
     </div>
 </template>
 
@@ -291,6 +325,10 @@ onMounted(async () => {
 .title {
     font-size: 18px;
     font-weight: 700;
+}
+
+.table-wrap {
+    overflow-x: auto;
 }
 
 .table {
@@ -331,7 +369,7 @@ td {
 }
 
 .actions {
-    width: 120px;
+    white-space: nowrap;
 }
 
 .link-btn {
@@ -347,6 +385,19 @@ td {
     text-decoration: underline;
 }
 
+.link-sep {
+    margin: 0 6px;
+    color: #ccc;
+}
+
+.link-btn--danger {
+    color: #c62828;
+}
+
+.link-btn--danger:hover {
+    color: #b71c1c;
+}
+
 .error {
     background: #fff0f0;
     border: 1px solid #ffd2d2;
@@ -354,6 +405,12 @@ td {
     padding: 10px 12px;
     border-radius: 10px;
     margin-bottom: 12px;
+}
+
+.loading,
+.empty {
+    color: #666;
+    margin: 0;
 }
 
 .form-grid {
@@ -370,6 +427,9 @@ td {
 
 .field.full {
     grid-column: 1 / -1;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
 }
 
 .field.checkbox {
@@ -377,7 +437,8 @@ td {
     align-items: center;
 }
 
-.field span {
+.field span,
+.field-label {
     font-size: 13px;
     font-weight: 500;
 }
@@ -392,40 +453,5 @@ td {
 .input:focus {
     outline: none;
     border-color: #1946a0;
-}
-
-textarea.input {
-    resize: vertical;
-    min-height: 60px;
-}
-
-.primary-btn,
-.secondary-btn {
-    padding: 10px 16px;
-    border-radius: 8px;
-    font-weight: 500;
-    cursor: pointer;
-}
-
-.primary-btn {
-    background: #1946a0;
-    color: #fff;
-    border: none;
-}
-
-.primary-btn:disabled {
-    opacity: 0.6;
-    cursor: not-allowed;
-}
-
-.primary-btn.small {
-    padding: 8px 14px;
-    font-size: 13px;
-}
-
-.secondary-btn {
-    background: #f5f5f5;
-    color: #333;
-    border: 1px solid #ddd;
 }
 </style>

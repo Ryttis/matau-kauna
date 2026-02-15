@@ -53,6 +53,7 @@ class RolesSeeder extends Seeder
             'Roles',
             'Permissions',
             'Issues',
+            'Classification',
             'Statistics',
             'Admin',
         ])->mapWithKeys(function ($name) {
@@ -76,6 +77,7 @@ class RolesSeeder extends Seeder
             'issues.assign',
             'issues.export',
             'issues.publish',
+            'classification.edit',
             'statistics.view',
             'admin.access',
         ])->mapWithKeys(function ($permission) {
@@ -110,6 +112,10 @@ class RolesSeeder extends Seeder
             $permissions['issues.publish']->id,
         ]);
 
+        $groups['Classification']->permissions()->sync([
+            $permissions['classification.edit']->id,
+        ]);
+
         $groups['Statistics']->permissions()->sync([
             $permissions['statistics.view']->id,
         ]);
@@ -122,6 +128,7 @@ class RolesSeeder extends Seeder
 
         $roleProblemAdmin->permissionGroups()->sync([
             $groups['Issues']->id,
+            $groups['Classification']->id,
             $groups['Statistics']->id,
         ]);
 
