@@ -18,12 +18,19 @@ const props = defineProps({
     rules: Array,
     categories: Array,
     institutions: Array,
+    publishRules: Array,
+    statusOptions: Array,
 })
 
 const showFormModal = ref(false)
 const showDeleteModal = ref(false)
 const formRuleId = ref(null)
 const ruleToDelete = ref(null)
+
+const showPublishFormModal = ref(false)
+const showPublishDeleteModal = ref(false)
+const publishFormId = ref(null)
+const publishRuleToDelete = ref(null)
 const defaultInstitutionId = computed(() =>
     props.institutions?.length ? String(props.institutions[0].id) : ''
 )
@@ -32,6 +39,14 @@ const categoryOptions = computed(() => {
     const options = [{ value: '', label: 'Visos kategorijos' }]
     ;(props.categories || []).filter(Boolean).forEach((c) => options.push({ value: c, label: c }))
     return options
+})
+
+const statusOptionsForPublish = computed(() => {
+    const opts = [{ value: '', label: 'Bet kuri būsena' }]
+    ;(props.statusOptions || []).forEach((o) => {
+        opts.push({ value: o.value ?? o, label: o.label ?? o.value ?? o })
+    })
+    return opts
 })
 
 function getDefaultForm(rule = null) {
@@ -97,6 +112,58 @@ function doDelete() {
         },
     })
 }
+
+const publishForm = ref({ category: '', status: '', is_active: true })
+
+function getDefaultPublishForm(rule = null) {
+    return {
+        category: rule?.category ?? '',
+        status: rule?.status ?? '',
+        is_active: rule?.is_active ?? true,
+    }
+}
+
+function openPublishCreate() {
+    publishFormId.value = null
+    publishForm.value = getDefaultPublishForm()
+    showPublishFormModal.value = true
+}
+
+function openPublishEdit(rule) {
+    publishFormId.value = rule.id
+    publishForm.value = getDefaultPublishForm(rule)
+    showPublishFormModal.value = true
+}
+
+function submitPublishForm() {
+    const payload = {
+        category: publishForm.value.category || null,
+        status: publishForm.value.status || null,
+        is_active: publishForm.value.is_active,
+    }
+    const options = { preserveScroll: true, onSuccess: () => { showPublishFormModal.value = false } }
+    if (publishFormId.value) {
+        router.put(route('automation.publishRules.update', publishFormId.value), payload, options)
+    } else {
+        router.post(route('automation.publishRules.store'), payload, options)
+    }
+}
+
+function confirmPublishDelete(rule) {
+    publishRuleToDelete.value = rule
+    showPublishDeleteModal.value = true
+}
+
+function doPublishDelete() {
+    if (!publishRuleToDelete.value) return
+    router.delete(route('automation.publishRules.destroy', publishRuleToDelete.value.id), {
+        preserveScroll: true,
+        onSuccess: () => {
+            showPublishDeleteModal.value = false
+            publishRuleToDelete.value = null
+        },
+    })
+}
 </script>
 
 <template>
@@ -144,6 +211,39 @@ function doDelete() {
                 </table>
                 <p v-else class="automation-empty">Nėra taisyklių. Pridėkite taisyklę, kad problemos būtų automatiškai priskiriamos įstaigoms.</p>
             </div>
+
+            <h2 class="automation-subtitle">Publikavimo taisyklės</h2>
+            <p class="automation-desc">
+                Pagal kategoriją ir būseną nustatykite, kada problemos bus automatiškai paskelbiamos viešai (po būsenos atnaujinimo).
+            </p>
+            <div class="automation-toolbar">
+                <AppButton text="Pridėti publikavimo taisyklę" variant="primary" as-button @click="openPublishCreate" />
+            </div>
+            <div class="automation-table-wrap">
+                <table class="automation-table" v-if="publishRules?.length">
+                    <thead>
+                        <tr>
+                            <th>Kategorija</th>
+                            <th>Būsena</th>
+                            <th>Aktyvi</th>
+                            <th>Veiksmai</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr v-for="r in publishRules" :key="r.id">
+                            <td>{{ r.category || 'Bet kuri' }}</td>
+                            <td>{{ r.status || 'Bet kuri' }}</td>
+                            <td>{{ r.is_active ? 'Taip' : 'Ne' }}</td>
+                            <td>
+                                <button type="button" class="automation-link" @click="openPublishEdit(r)">Redaguoti</button>
+                                <span class="automation-sep">|</span>
+                                <button type="button" class="automation-link" @click="confirmPublishDelete(r)">Trinti</button>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+                <p v-else class="automation-empty">Nėra publikavimo taisyklių.</p>
+            </div>
         </div>
 
         <BaseModal
@@ -182,6 +282,41 @@ function doDelete() {
             @close="showDeleteModal = false"
             @confirm="doDelete"
         />
+
+        <BaseModal
+            :show="showPublishFormModal"
+            title="Publikavimo taisyklė"
+            :max-width="'520px'"
+            class="automation-rule-modal"
+            @close="showPublishFormModal = false"
+        >
+            <div class="automation-form">
+                <AppSelect v-model="publishForm.category" label="Kategorija" :placeholder="''">
+                    <option v-for="opt in categoryOptions" :key="String(opt.value)" :value="opt.value">{{ opt.label }}</option>
+                </AppSelect>
+                <AppSelect v-model="publishForm.status" label="Būsena" :placeholder="''">
+                    <option v-for="opt in statusOptionsForPublish" :key="String(opt.value)" :value="opt.value">{{ opt.label }}</option>
+                </AppSelect>
+                <label class="automation-form-checkbox">
+                    <AppCheckbox v-model="publishForm.is_active" />
+                    <span>Taisyklė aktyvi</span>
+                </label>
+            </div>
+            <template #footer>
+                <AppButton text="Atšaukti" variant="secondary" as-button @click="showPublishFormModal = false" />
+                <AppButton text="Išsaugoti" variant="primary" as-button @click="submitPublishForm" />
+            </template>
+        </BaseModal>
+
+        <ConfirmModal
+            :open="showPublishDeleteModal"
+            message="Ar tikrai norite pašalinti šią publikavimo taisyklę?"
+            confirm-text="Trinti"
+            cancel-text="Atšaukti"
+            confirm-variant="danger"
+            @close="showPublishDeleteModal = false"
+            @confirm="doPublishDelete"
+        />
     </AuthenticatedLayout>
 </template>
 
@@ -203,6 +338,13 @@ function doDelete() {
     color: #666;
     margin: 0 0 24px 0;
     line-height: 1.5;
+}
+.automation-subtitle {
+    font-size: 18px;
+    font-weight: 600;
+    color: #333;
+    margin: 32px 0 8px 0;
+    font-family: 'Inter', sans-serif;
 }
 .automation-toolbar {
     margin-bottom: 20px;

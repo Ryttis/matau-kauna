@@ -60,6 +60,9 @@ export function useAuth() {
     const canSeeAssignInstitutionPage = computed(
         () => isInstitutionAdmin.value || isSystemAdmin.value
     )
+    const canPublish = computed(
+        () => hasPermission('issues.publish') || hasPermission('issues.view')
+    )
 
     return {
         user,
@@ -80,5 +83,6 @@ export function useAuth() {
         canEditProblem,
         canMergeProblem,
         canSeeAssignInstitutionPage,
+        canPublish,
     }
 }

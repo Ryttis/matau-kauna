@@ -25,7 +25,7 @@ const emit = defineEmits(['close'])
         </template>
         <div class="success-modal-body">
             <img src="/icons/baseline-check-icon.png" alt="" class="success-modal-icon" />
-            <p class="success-modal-text">{{ message }}</p>
+            <p class="success-modal-text">{{ message || 'Operacija atlikta sėkmingai.' }}</p>
         </div>
     </BaseModal>
 </template>

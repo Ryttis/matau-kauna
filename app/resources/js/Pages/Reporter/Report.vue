@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { Head, router } from '@inertiajs/vue3'
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue'
 import { useReporterApi } from '@/composables/useReporterApi'
@@ -14,7 +14,7 @@ import { KAUNAS_CENTER } from '@/composables/leafletKaunas'
 import { REPORTER_WIZARD_STEPS } from '@/constants/reporterWizardSteps'
 
 const props = defineProps({
-    categories: {
+    typeValues: {
         type: Array,
         default: () => [],
     },
@@ -29,7 +29,8 @@ const props = defineProps({
 })
 
 const step = ref(1)
-const category = ref('')
+const problemTypeId = ref('')
+const problemNatureId = ref('')
 const description = ref('')
 const fileInput = ref(null)
 const addressStep2 = ref('')
@@ -48,6 +49,16 @@ const isSubmitting = ref(false)
 const submitError = ref('')
 
 const api = useReporterApi()
+
+const natureOptionsForSelectedType = computed(() => {
+    if (!problemTypeId.value) return []
+    const type = props.typeValues.find((t) => String(t.id) === String(problemTypeId.value))
+    return type?.natures ?? []
+})
+
+watch(problemTypeId, () => {
+    problemNatureId.value = ''
+})
 
 const showWizard = computed(() => {
     if (wizardClosed.value || step.value !== 1) return false
@@ -84,8 +95,20 @@ const handleFileChange = (e) => {
     if (file) return
 }
 
+const step1Error = ref('')
+
 function handleNext() {
     if (step.value === 1) {
+        step1Error.value = ''
+        if (!problemTypeId.value) {
+            step1Error.value = 'Pasirinkite problemos rūšį.'
+            return
+        }
+        const natures = natureOptionsForSelectedType.value
+        if (natures.length > 0 && !problemNatureId.value) {
+            step1Error.value = 'Pasirinkite problemos pobūdį.'
+            return
+        }
         step.value = 2
         wizardStep.value = 0
         if (!props.hasAcceptedReportTerms) {
@@ -143,7 +166,8 @@ function handleReviewConfirm() {
     submitError.value = ''
     isSubmitting.value = true
     const payload = {
-        category: category.value,
+        problem_type_id: problemTypeId.value ? Number(problemTypeId.value) : null,
+        problem_nature_id: problemNatureId.value ? Number(problemNatureId.value) : null,
         description: description.value,
         address: (addressStep2.value ?? '').trim(),
         lat: latStep2.value ?? null,
@@ -228,20 +252,40 @@ function openCancelModal() {
                     <template v-if="step === 1">
                     <div class="reporter-report-field">
                         <AppSelect
-                            v-model="category"
-                            label="Pasirinkti kategoriją"
-                            placeholder="Pasirinkti kategoriją"
+                            v-model="problemTypeId"
+                            label="Problemos rūšis"
+                            placeholder="Pasirinkti rūšį"
                             variant="white"
                         >
+                            <option value="">Pasirinkti rūšį</option>
                             <option
-                                v-for="cat in categories"
-                                :key="cat"
-                                :value="cat"
+                                v-for="v in typeValues"
+                                :key="v.id"
+                                :value="v.id"
                             >
-                                {{ cat }}
+                                {{ v.name }}
                             </option>
                         </AppSelect>
                     </div>
+                    <div class="reporter-report-field">
+                        <AppSelect
+                            v-model="problemNatureId"
+                            label="Problemos pobūdis"
+                            placeholder="Pasirinkti pobūdį"
+                            variant="white"
+                            :disabled="!problemTypeId || !natureOptionsForSelectedType.length"
+                        >
+                            <option value="">Pasirinkti pobūdį</option>
+                            <option
+                                v-for="v in natureOptionsForSelectedType"
+                                :key="v.id"
+                                :value="v.id"
+                            >
+                                {{ v.name }}
+                            </option>
+                        </AppSelect>
+                    </div>
+                    <p v-if="step1Error" class="reporter-report-error">{{ step1Error }}</p>
 
                     <div class="reporter-report-field">
                         <label class="reporter-report-label">Aprašykite problemą</label>

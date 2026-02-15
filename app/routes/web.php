@@ -40,6 +40,9 @@ Route::middleware(['auth', 'verified', 'reporter.terms'])->group(function () {
             Route::post('/automation', [AutomationController::class, 'store'])->name('automation.store');
             Route::put('/automation/{rule}', [AutomationController::class, 'update'])->name('automation.update');
             Route::delete('/automation/{rule}', [AutomationController::class, 'destroy'])->name('automation.destroy');
+            Route::post('/automation/publish-rules', [AutomationController::class, 'storePublishRule'])->name('automation.publishRules.store');
+            Route::put('/automation/publish-rules/{publish_rule}', [AutomationController::class, 'updatePublishRule'])->name('automation.publishRules.update');
+            Route::delete('/automation/publish-rules/{publish_rule}', [AutomationController::class, 'destroyPublishRule'])->name('automation.publishRules.destroy');
         });
         Route::get('/map', [ProblemController::class, 'map'])->name('map');
         Route::get('/problems/assign', [ProblemController::class, 'assign'])->name('problems.assign');
@@ -60,6 +63,8 @@ Route::middleware(['auth', 'verified', 'reporter.terms'])->group(function () {
         Route::delete('/problems/{problem}', [ProblemController::class, 'destroy'])->name('problems.destroy');
         Route::patch('/problems/{problem}/status', [ProblemController::class, 'updateStatus'])->name('problems.updateStatus');
         Route::post('/problems/bulk-update-status', [ProblemController::class, 'bulkUpdateStatus'])->name('problems.bulkUpdateStatus');
+        Route::patch('/problems/{problem}/publish', [ProblemController::class, 'updatePublish'])->name('problems.updatePublish');
+        Route::post('/problems/bulk-update-publish', [ProblemController::class, 'bulkUpdatePublish'])->name('problems.bulkUpdatePublish');
     });
 
     Route::middleware(['permission:statistics.view'])->group(function () {
@@ -116,6 +121,11 @@ Route::middleware(['auth', 'verified', 'reporter.terms'])->group(function () {
             Route::get('/institutions/list', [AdminInstitutionController::class, 'list']);
             Route::post('/institutions', [AdminInstitutionController::class, 'store']);
             Route::put('/institutions/{institution}', [AdminInstitutionController::class, 'update']);
+
+            Route::get('/classifiers', [\App\Http\Controllers\Admin\ClassifierController::class, 'index']);
+            Route::get('/classifiers/types/{type}/natures', [\App\Http\Controllers\Admin\ClassifierController::class, 'naturesForType']);
+            Route::post('/classifiers/values', [\App\Http\Controllers\Admin\ClassifierController::class, 'storeValue']);
+            Route::put('/classifiers/values/{value}', [\App\Http\Controllers\Admin\ClassifierController::class, 'updateValue']);
         });
 });
 
