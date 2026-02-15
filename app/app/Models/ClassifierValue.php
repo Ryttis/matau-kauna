@@ -9,7 +9,6 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 class ClassifierValue extends Model
 {
     protected $fillable = [
-        'classifier_category_id',
         'parent_id',
         'name',
         'is_active',
@@ -20,11 +19,6 @@ class ClassifierValue extends Model
         'is_active' => 'boolean',
         'sort_order' => 'integer',
     ];
-
-    public function category(): BelongsTo
-    {
-        return $this->belongsTo(ClassifierCategory::class, 'classifier_category_id');
-    }
 
     public function parent(): BelongsTo
     {
@@ -52,5 +46,14 @@ class ClassifierValue extends Model
     public function problemsAsNature(): HasMany
     {
         return $this->hasMany(Problem::class, 'problem_nature_id');
+    }
+
+    public static function getActiveTypeNames(): \Illuminate\Support\Collection
+    {
+        return static::whereNull('parent_id')
+            ->where('is_active', true)
+            ->orderBy('sort_order')
+            ->orderBy('name')
+            ->pluck('name');
     }
 }

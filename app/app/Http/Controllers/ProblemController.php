@@ -6,7 +6,6 @@ use App\Enums\ProblemStatus;
 use App\Exports\ProblemsExport;
 use App\Models\Employee;
 use App\Models\Institution;
-use App\Models\ClassifierCategory;
 use App\Models\ClassifierValue;
 use App\Models\Problem;
 use App\Models\ProblemAutoAssignmentRule;
@@ -15,6 +14,7 @@ use App\Services\ProblemAssignmentNotifier;
 use App\Services\ProblemAutoAssignmentService;
 use App\Services\ProblemAutoPublishService;
 use App\Services\ProblemMergeContextService;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Mail;
@@ -86,7 +86,7 @@ class ProblemController extends Controller
             ->paginate(6)
             ->withQueryString();
 
-        $categories = Problem::distinct()->pluck('category')->sort()->values();
+        $categories = ClassifierValue::getActiveTypeNames()->values();
 
         return Inertia::render('Dashboard', [
             'reporterView' => false,
@@ -110,19 +110,8 @@ class ProblemController extends Controller
 
         $ids = $problem->getMergeGroupIds();
         $query = Problem::whereIn('id', $ids);
-        if ($user && $this->isInstitutionScoped($user)) {
-            $query->where('institution_id', $user->institution_id);
-        }
-        if ($user && $this->isEmployeeScoped($user)) {
-            $employeeId = $this->employeeIdForUser($user);
-            if (! $employeeId) {
-                abort(403);
-            }
-            $query->where('assigned_employee_id', $employeeId);
-        }
-        if ($query->count() !== count($ids)) {
-            abort(403);
-        }
+        $this->scopeProblemsForUser($query, $user);
+        $this->ensureScopeMatchesCount($query, count($ids));
         $query->update([
             'status' => $validated['status'],
             'status_updated_at' => now(),
@@ -147,25 +136,8 @@ class ProblemController extends Controller
         ]);
 
         $query = Problem::whereIn('id', $validated['problem_ids']);
-        if ($user && $this->isInstitutionScoped($user)) {
-            $query->where('institution_id', $user->institution_id);
-            $matchedCount = (clone $query)->count();
-            if ($matchedCount !== count($validated['problem_ids'])) {
-                abort(403);
-            }
-        }
-        if ($user && $this->isEmployeeScoped($user)) {
-            $employeeId = $this->employeeIdForUser($user);
-            if (! $employeeId) {
-                abort(403);
-            }
-            $query->where('assigned_employee_id', $employeeId);
-            $matchedCount = (clone $query)->count();
-            if ($matchedCount !== count($validated['problem_ids'])) {
-                abort(403);
-            }
-        }
-
+        $this->scopeProblemsForUser($query, $user);
+        $this->ensureScopeMatchesCount($query, count($validated['problem_ids']));
         $query->update([
             'status' => $validated['status'],
             'status_updated_at' => now(),
@@ -190,19 +162,8 @@ class ProblemController extends Controller
 
         $ids = $problem->getMergeGroupIds();
         $query = Problem::whereIn('id', $ids);
-        if ($user && $this->isInstitutionScoped($user)) {
-            $query->where('institution_id', $user->institution_id);
-        }
-        if ($user && $this->isEmployeeScoped($user)) {
-            $employeeId = $this->employeeIdForUser($user);
-            if (! $employeeId) {
-                abort(403);
-            }
-            $query->where('assigned_employee_id', $employeeId);
-        }
-        if ($query->count() !== count($ids)) {
-            abort(403);
-        }
+        $this->scopeProblemsForUser($query, $user);
+        $this->ensureScopeMatchesCount($query, count($ids));
         $query->update(['is_published_publicly' => $validated['is_published_publicly']]);
 
         $label = $validated['is_published_publicly'] ? 'Paskelbta viešai.' : 'Nuimta nuo viešo skelbimo.';
@@ -222,22 +183,8 @@ class ProblemController extends Controller
         ]);
 
         $query = Problem::whereIn('id', $validated['problem_ids']);
-        if ($user && $this->isInstitutionScoped($user)) {
-            $query->where('institution_id', $user->institution_id);
-            if ((clone $query)->count() !== count($validated['problem_ids'])) {
-                abort(403);
-            }
-        }
-        if ($user && $this->isEmployeeScoped($user)) {
-            $employeeId = $this->employeeIdForUser($user);
-            if (! $employeeId) {
-                abort(403);
-            }
-            $query->where('assigned_employee_id', $employeeId);
-            if ((clone $query)->count() !== count($validated['problem_ids'])) {
-                abort(403);
-            }
-        }
+        $this->scopeProblemsForUser($query, $user);
+        $this->ensureScopeMatchesCount($query, count($validated['problem_ids']));
         $query->update(['is_published_publicly' => $validated['is_published_publicly']]);
 
         $label = $validated['is_published_publicly'] ? 'Problemos paskelbtos viešai.' : 'Problemos nuimtos nuo viešo skelbimo.';
@@ -249,7 +196,7 @@ class ProblemController extends Controller
         $user = request()->user();
         $this->authorizeProblemAccess($user, $problem);
 
-        $categories = Problem::distinct()->pluck('category')->sort()->values();
+        $categories = ClassifierValue::getActiveTypeNames()->values();
 
         $problem->load('mergedProblems:id,internal_number,merged_into_problem_id');
         $problem->load('mergedInto:id,internal_number,title');
@@ -269,7 +216,9 @@ class ProblemController extends Controller
     public function update(Request $request, Problem $problem)
     {
         $user = $request->user();
-        if (! $user->hasRole(UserRole::ROLE_PROBLEM_ADMIN) && ! $user->hasRole(UserRole::ROLE_SYSTEM_ADMIN)) {
+        $canEdit = $user->hasRole(UserRole::ROLE_SYSTEM_ADMIN)
+            || ($user->hasRole(UserRole::ROLE_PROBLEM_ADMIN) && $user->hasPermission('classification.edit'));
+        if (! $canEdit) {
             abort(403);
         }
 
@@ -313,24 +262,9 @@ class ProblemController extends Controller
             ->get(['id', 'name'])
             ->map(fn ($i) => ['id' => $i->id, 'name' => $i->name]);
 
-        $problemIds = $request->get('problem_ids', []);
-
-        $problem = null;
-        $problems = [];
-
-        if (!empty($problemIds)) {
-            if (is_array($problemIds)) {
-                $problems = Problem::whereIn('id', $problemIds)->get();
-                if (count($problems) === 1) {
-                    $problem = $problems->first();
-                }
-            } else {
-                $problem = Problem::find($problemIds);
-                if ($problem) {
-                    $problems = [$problem];
-                }
-            }
-        }
+        $problemIds = array_filter((array) $request->get('problem_ids', []));
+        $problems = $problemIds ? Problem::whereIn('id', $problemIds)->get() : collect();
+        $problem = $problems->count() === 1 ? $problems->first() : null;
 
         return Inertia::render('Problems/Assign', [
             'problem' => $problem,
@@ -704,7 +638,7 @@ class ProblemController extends Controller
             $categoryFilter = '';
         }
 
-        $categories = Problem::distinct()->pluck('category')->sort()->values();
+        $categories = ClassifierValue::getActiveTypeNames()->values();
 
         $query = Problem::where('id', '!=', $problem->id)
             ->where('status', '!=', 'neuzregistruota')
@@ -881,26 +815,7 @@ class ProblemController extends Controller
     public function map(): Response
     {
         $user = request()->user();
-        $categories = Problem::query()
-            ->when(
-                $user && $this->isInstitutionScoped($user),
-                fn ($q) => $q->where('institution_id', $user->institution_id)
-            )
-            ->when(
-                $user && $this->isEmployeeScoped($user),
-                function ($q) use ($user) {
-                    $employeeId = $this->employeeIdForUser($user);
-                    if ($employeeId) {
-                        $q->where('assigned_employee_id', $employeeId);
-                    } else {
-                        $q->whereRaw('1 = 0');
-                    }
-                }
-            )
-            ->distinct()
-            ->pluck('category')
-            ->sort()
-            ->values();
+        $categories = ClassifierValue::getActiveTypeNames()->values();
 
         return Inertia::render('Map', [
             'categories' => $categories,
@@ -926,22 +841,17 @@ class ProblemController extends Controller
     public function reporterReport(Request $request): Response
     {
         $user = $request->user();
-        $rusis = ClassifierCategory::where('slug', 'rusis')->first();
-        $typeValues = [];
-        if ($rusis) {
-            $types = ClassifierValue::where('classifier_category_id', $rusis->id)
-                ->whereNull('parent_id')
-                ->where('is_active', true)
-                ->with('activeChildren')
-                ->orderBy('sort_order')
-                ->orderBy('name')
-                ->get();
-            $typeValues = $types->map(fn (ClassifierValue $t) => [
-                'id' => $t->id,
-                'name' => $t->name,
-                'natures' => $t->activeChildren->map(fn (ClassifierValue $n) => ['id' => $n->id, 'name' => $n->name])->values()->all(),
-            ])->values()->all();
-        }
+        $types = ClassifierValue::whereNull('parent_id')
+            ->where('is_active', true)
+            ->with('activeChildren')
+            ->orderBy('sort_order')
+            ->orderBy('name')
+            ->get();
+        $typeValues = $types->map(fn (ClassifierValue $t) => [
+            'id' => $t->id,
+            'name' => $t->name,
+            'natures' => $t->activeChildren->map(fn (ClassifierValue $n) => ['id' => $n->id, 'name' => $n->name])->values()->all(),
+        ])->values()->all();
 
         return Inertia::render('Reporter/Report', [
             'typeValues' => $typeValues,
@@ -982,8 +892,7 @@ class ProblemController extends Controller
 
         $typeId = (int) $validated['problem_type_id'];
         $natureId = isset($validated['problem_nature_id']) ? (int) $validated['problem_nature_id'] : null;
-        $rusisId = ClassifierCategory::where('slug', 'rusis')->value('id');
-        $typeValue = ClassifierValue::where('id', $typeId)->where('classifier_category_id', $rusisId)->whereNull('parent_id')->first();
+        $typeValue = ClassifierValue::where('id', $typeId)->whereNull('parent_id')->first();
         if (! $typeValue) {
             return response()->json(['message' => 'Invalid classifier value.'], 422);
         }
@@ -1154,26 +1063,7 @@ class ProblemController extends Controller
     {
         $user = $request->user();
 
-        $categories = Problem::query()
-            ->when(
-                $user && $this->isInstitutionScoped($user),
-                fn ($q) => $q->where('institution_id', $user->institution_id)
-            )
-            ->when(
-                $user && $this->isEmployeeScoped($user),
-                function ($q) use ($user) {
-                    $employeeId = $this->employeeIdForUser($user);
-                    if ($employeeId) {
-                        $q->where('assigned_employee_id', $employeeId);
-                    } else {
-                        $q->whereRaw('1 = 0');
-                    }
-                }
-            )
-            ->distinct()
-            ->pluck('category')
-            ->sort()
-            ->values();
+        $categories = ClassifierValue::getActiveTypeNames()->values();
 
         $institutions = [];
 
@@ -1195,6 +1085,27 @@ class ProblemController extends Controller
             'categories' => $categories,
             'institutions' => $institutions,
         ]);
+    }
+
+    private function scopeProblemsForUser(Builder $query, $user): void
+    {
+        if ($user && $this->isInstitutionScoped($user)) {
+            $query->where('institution_id', $user->institution_id);
+        }
+        if ($user && $this->isEmployeeScoped($user)) {
+            $employeeId = $this->employeeIdForUser($user);
+            if (! $employeeId) {
+                abort(403);
+            }
+            $query->where('assigned_employee_id', $employeeId);
+        }
+    }
+
+    private function ensureScopeMatchesCount(Builder $query, int $expectedCount): void
+    {
+        if ((clone $query)->count() !== $expectedCount) {
+            abort(403);
+        }
     }
 
     private function authorizeProblemAccess($user, Problem $problem): void
