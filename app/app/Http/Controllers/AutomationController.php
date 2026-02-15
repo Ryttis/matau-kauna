@@ -2,9 +2,11 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\ProblemStatus;
 use App\Models\Institution;
 use App\Models\Problem;
 use App\Models\ProblemAutoAssignmentRule;
+use App\Models\ProblemAutoPublishRule;
 use App\Models\UserRole;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -65,10 +67,22 @@ class AutomationController extends Controller
         $categories = Problem::distinct()->pluck('category')->filter()->sort()->values()->all();
         $institutions = Institution::where('is_active', true)->orderBy('name')->get(['id', 'name']);
 
+        $publishRules = ProblemAutoPublishRule::query()
+            ->orderBy('id')
+            ->get()
+            ->map(fn (ProblemAutoPublishRule $r) => [
+                'id' => $r->id,
+                'category' => $r->category,
+                'status' => $r->status,
+                'is_active' => $r->is_active,
+            ]);
+
         return Inertia::render('Automation/Index', [
             'rules' => $rules,
             'categories' => $categories,
             'institutions' => $institutions,
+            'publishRules' => $publishRules,
+            'statusOptions' => ProblemStatus::options(),
         ]);
     }
 
@@ -95,5 +109,50 @@ class AutomationController extends Controller
         $rule->delete();
 
         return redirect()->route('automation.index')->with('success', 'Taisyklė pašalinta.');
+    }
+
+    public function storePublishRule(Request $request): RedirectResponse
+    {
+        $this->authorizeAutomation();
+        $data = $request->validate([
+            'category' => ['nullable', 'string', 'max:100'],
+            'status' => ['nullable', 'string', 'max:50'],
+            'is_active' => ['boolean'],
+        ]);
+        $data['is_active'] = (bool) ($data['is_active'] ?? true);
+        if (isset($data['category']) && $data['category'] !== null) {
+            $data['category'] = trim($data['category']) ?: null;
+        }
+        if (isset($data['status']) && $data['status'] !== null) {
+            $data['status'] = trim($data['status']) ?: null;
+        }
+        ProblemAutoPublishRule::create($data);
+        return redirect()->route('automation.index')->with('success', 'Publikavimo taisyklė pridėta.');
+    }
+
+    public function updatePublishRule(Request $request, ProblemAutoPublishRule $publish_rule): RedirectResponse
+    {
+        $this->authorizeAutomation();
+        $data = $request->validate([
+            'category' => ['nullable', 'string', 'max:100'],
+            'status' => ['nullable', 'string', 'max:50'],
+            'is_active' => ['boolean'],
+        ]);
+        $data['is_active'] = (bool) ($data['is_active'] ?? true);
+        if (isset($data['category']) && $data['category'] !== null) {
+            $data['category'] = trim($data['category']) ?: null;
+        }
+        if (isset($data['status']) && $data['status'] !== null) {
+            $data['status'] = trim($data['status']) ?: null;
+        }
+        $publish_rule->update($data);
+        return redirect()->route('automation.index')->with('success', 'Publikavimo taisyklė atnaujinta.');
+    }
+
+    public function destroyPublishRule(ProblemAutoPublishRule $publish_rule): RedirectResponse
+    {
+        $this->authorizeAutomation();
+        $publish_rule->delete();
+        return redirect()->route('automation.index')->with('success', 'Publikavimo taisyklė pašalinta.');
     }
 }

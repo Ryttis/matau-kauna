@@ -3,6 +3,7 @@ import { computed } from 'vue'
 import { router } from '@inertiajs/vue3'
 import EntityTable from '@/Components/App/Tables/EntityTable.vue'
 import ProblemTableUnmergeCell from '@/Components/Problems/ProblemTableUnmergeCell.vue'
+import ProblemTablePublishCell from '@/Components/Problems/ProblemTablePublishCell.vue'
 
 const props = defineProps({
     problems: {
@@ -28,6 +29,10 @@ const props = defineProps({
     sortDirection: {
         type: String,
         default: 'desc'
+    },
+    canPublish: {
+        type: Boolean,
+        default: false
     }
 })
 
@@ -41,6 +46,12 @@ const items = computed(() => {
 const useRowProblem = computed(() => Boolean(props.displayRows && props.displayRows.length > 0))
 
 const getRowData = (row) => (useRowProblem.value && row.problem ? row.problem : row)
+
+const truncate = (str, maxLen = 28) => {
+    if (!str) return ''
+    const s = String(str).trim()
+    return s.length <= maxLen ? s : s.slice(0, maxLen) + '…'
+}
 
 const columns = computed(() => {
     const base = [
@@ -66,26 +77,38 @@ const columns = computed(() => {
         key: 'title',
         label: 'Pavadinimas',
         sortable: true,
-        value: (row) => getRowData(row).title
+        value: (row) => truncate(getRowData(row).title, 32)
     },
     {
         key: 'category',
         label: 'Kategorija',
         sortable: false,
-        value: (row) => getRowData(row).category
+        value: (row) => truncate(getRowData(row).category, 18)
     },
     {
         key: 'address',
         label: 'Adresas',
         sortable: false,
-        value: (row) => getRowData(row).address
+        value: (row) => truncate(getRowData(row).address, 28)
     },
     {
         key: 'description',
         label: 'Aprašymas',
         sortable: false,
-        value: (row) => getRowData(row).description
+        value: (row) => truncate(getRowData(row).description, 40)
     },
+    ...(useRowProblem.value && props.canPublish
+        ? [{
+            key: 'publish',
+            label: 'Viešai',
+            sortable: false,
+            cellComponent: ProblemTablePublishCell,
+            cellProps: (row) => ({
+                problem: getRowData(row),
+                canPublish: props.canPublish
+            })
+        }]
+        : []),
     ...(useRowProblem.value
         ? [{
             key: 'actions',

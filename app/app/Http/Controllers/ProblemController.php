@@ -6,11 +6,14 @@ use App\Enums\ProblemStatus;
 use App\Exports\ProblemsExport;
 use App\Models\Employee;
 use App\Models\Institution;
+use App\Models\ClassifierCategory;
+use App\Models\ClassifierValue;
 use App\Models\Problem;
 use App\Models\ProblemAutoAssignmentRule;
 use App\Models\UserRole;
 use App\Services\ProblemAssignmentNotifier;
 use App\Services\ProblemAutoAssignmentService;
+use App\Services\ProblemAutoPublishService;
 use App\Services\ProblemMergeContextService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -26,7 +29,8 @@ class ProblemController extends Controller
     public function __construct(
         private ProblemMergeContextService $mergeContextService,
         private ProblemAssignmentNotifier $assignmentNotifier,
-        private ProblemAutoAssignmentService $autoAssignmentService
+        private ProblemAutoAssignmentService $autoAssignmentService,
+        private ProblemAutoPublishService $autoPublishService
     ) {}
 
     public function index(Request $request): Response
@@ -124,6 +128,8 @@ class ProblemController extends Controller
             'status_updated_at' => now(),
         ]);
 
+        $query->get()->each(fn (Problem $p) => $this->autoPublishService->applyRules($p));
+
         $message = count($ids) > 1
             ? 'Būsena atnaujinta visoms apjungtoms problemoms.'
             : 'Būsena atnaujinta';
@@ -165,7 +171,77 @@ class ProblemController extends Controller
             'status_updated_at' => now(),
         ]);
 
+        $query->get()->each(fn (Problem $p) => $this->autoPublishService->applyRules($p));
+
         return redirect()->back()->with('success', 'Būsenos atnaujintos');
+    }
+
+    public function updatePublish(Request $request, Problem $problem): RedirectResponse
+    {
+        $user = $request->user();
+        if (! $user->hasPermission('issues.publish') && ! $user->hasPermission('issues.view')) {
+            abort(403);
+        }
+        $this->authorizeProblemAccess($user, $problem);
+
+        $validated = $request->validate([
+            'is_published_publicly' => 'required|boolean',
+        ]);
+
+        $ids = $problem->getMergeGroupIds();
+        $query = Problem::whereIn('id', $ids);
+        if ($user && $this->isInstitutionScoped($user)) {
+            $query->where('institution_id', $user->institution_id);
+        }
+        if ($user && $this->isEmployeeScoped($user)) {
+            $employeeId = $this->employeeIdForUser($user);
+            if (! $employeeId) {
+                abort(403);
+            }
+            $query->where('assigned_employee_id', $employeeId);
+        }
+        if ($query->count() !== count($ids)) {
+            abort(403);
+        }
+        $query->update(['is_published_publicly' => $validated['is_published_publicly']]);
+
+        $label = $validated['is_published_publicly'] ? 'Paskelbta viešai.' : 'Nuimta nuo viešo skelbimo.';
+        return redirect()->back()->with('success', $label);
+    }
+
+    public function bulkUpdatePublish(Request $request): RedirectResponse
+    {
+        $user = $request->user();
+        if (! $user->hasPermission('issues.publish') && ! $user->hasPermission('issues.view')) {
+            abort(403);
+        }
+        $validated = $request->validate([
+            'problem_ids' => 'required|array',
+            'problem_ids.*' => 'required|integer|exists:problems,id',
+            'is_published_publicly' => 'required|boolean',
+        ]);
+
+        $query = Problem::whereIn('id', $validated['problem_ids']);
+        if ($user && $this->isInstitutionScoped($user)) {
+            $query->where('institution_id', $user->institution_id);
+            if ((clone $query)->count() !== count($validated['problem_ids'])) {
+                abort(403);
+            }
+        }
+        if ($user && $this->isEmployeeScoped($user)) {
+            $employeeId = $this->employeeIdForUser($user);
+            if (! $employeeId) {
+                abort(403);
+            }
+            $query->where('assigned_employee_id', $employeeId);
+            if ((clone $query)->count() !== count($validated['problem_ids'])) {
+                abort(403);
+            }
+        }
+        $query->update(['is_published_publicly' => $validated['is_published_publicly']]);
+
+        $label = $validated['is_published_publicly'] ? 'Problemos paskelbtos viešai.' : 'Problemos nuimtos nuo viešo skelbimo.';
+        return redirect()->back()->with('success', $label);
     }
 
     public function show(Problem $problem): Response
@@ -206,6 +282,8 @@ class ProblemController extends Controller
         ]);
 
         $problem->update($validated);
+        $problem->refresh();
+        $this->autoPublishService->applyRules($problem);
 
         return redirect()->back()->with('success', 'Problema atnaujinta');
     }
@@ -848,12 +926,25 @@ class ProblemController extends Controller
     public function reporterReport(Request $request): Response
     {
         $user = $request->user();
-        $fromProblems = Problem::query()->distinct()->pluck('category')->filter();
-        $fromRules = ProblemAutoAssignmentRule::query()->distinct()->pluck('category')->filter();
-        $categories = $fromProblems->merge($fromRules)->unique()->sort()->values();
+        $rusis = ClassifierCategory::where('slug', 'rusis')->first();
+        $typeValues = [];
+        if ($rusis) {
+            $types = ClassifierValue::where('classifier_category_id', $rusis->id)
+                ->whereNull('parent_id')
+                ->where('is_active', true)
+                ->with('activeChildren')
+                ->orderBy('sort_order')
+                ->orderBy('name')
+                ->get();
+            $typeValues = $types->map(fn (ClassifierValue $t) => [
+                'id' => $t->id,
+                'name' => $t->name,
+                'natures' => $t->activeChildren->map(fn (ClassifierValue $n) => ['id' => $n->id, 'name' => $n->name])->values()->all(),
+            ])->values()->all();
+        }
 
         return Inertia::render('Reporter/Report', [
-            'categories' => $categories,
+            'typeValues' => $typeValues,
             'showReporterWizard' => $user && ! $user->reporter_wizard_completed_at,
             'hasAcceptedReportTerms' => $user && $user->reporter_report_terms_accepted_at !== null,
         ]);
@@ -881,18 +972,36 @@ class ProblemController extends Controller
         }
 
         $validated = $request->validate([
-            'category' => 'required|string|max:100',
+            'problem_type_id' => 'required|integer|exists:classifier_values,id',
+            'problem_nature_id' => 'nullable|integer|exists:classifier_values,id',
             'description' => 'required|string|max:65535',
             'address' => 'required|string|max:500',
             'lat' => 'nullable|numeric',
             'lng' => 'nullable|numeric',
         ]);
 
+        $typeId = (int) $validated['problem_type_id'];
+        $natureId = isset($validated['problem_nature_id']) ? (int) $validated['problem_nature_id'] : null;
+        $rusisId = ClassifierCategory::where('slug', 'rusis')->value('id');
+        $typeValue = ClassifierValue::where('id', $typeId)->where('classifier_category_id', $rusisId)->whereNull('parent_id')->first();
+        if (! $typeValue) {
+            return response()->json(['message' => 'Invalid classifier value.'], 422);
+        }
+        if ($natureId !== null) {
+            $natureValue = ClassifierValue::where('id', $natureId)->where('parent_id', $typeId)->first();
+            if (! $natureValue) {
+                return response()->json(['message' => 'Invalid classifier value.'], 422);
+            }
+        }
+
         $user->update(['reporter_report_terms_accepted_at' => now()]);
+        $categoryName = $typeValue->name;
 
         $problem = Problem::create([
             'title' => Str::limit($validated['description'], 255),
-            'category' => trim($validated['category']),
+            'category' => $categoryName,
+            'problem_type_id' => $validated['problem_type_id'],
+            'problem_nature_id' => $validated['problem_nature_id'] ?? null,
             'address' => $validated['address'],
             'lat' => $validated['lat'] ?? null,
             'lng' => $validated['lng'] ?? null,
@@ -913,6 +1022,11 @@ class ProblemController extends Controller
         $isReporterView = $user
             && $user->hasRole(UserRole::ROLE_REPORTER)
             && ! $user->hasPermission('issues.view');
+        $isReporterOwnProblem = $isReporterView && (int) $problem->reported_by_user_id === (int) $user->id;
+
+        if (! $isReporterOwnProblem && ! $problem->is_published_publicly) {
+            abort(404);
+        }
 
         $problemData = [
             'id' => $problem->id,
@@ -923,6 +1037,7 @@ class ProblemController extends Controller
             'address' => $problem->address,
             'description' => $problem->description,
             'created_at' => $problem->created_at?->toIso8601String(),
+            'is_published_publicly' => $problem->is_published_publicly,
         ];
 
         $mergeContext = $this->mergeContextService->forProblem($problem);
@@ -1004,6 +1119,7 @@ class ProblemController extends Controller
 
         $query = Problem::query()
             ->whereIn('status', $allowedStatuses)
+            ->when($reportedByUserId === null, fn ($q) => $q->where('is_published_publicly', true))
             ->when($reportedByUserId !== null, function ($q) use ($reportedByUserId) {
                 $q->where(function ($q2) use ($reportedByUserId) {
                     $q2->where('reported_by_user_id', $reportedByUserId)
@@ -1012,7 +1128,7 @@ class ProblemController extends Controller
             })
             ->orderBy('address')
             ->orderBy('created_at', 'desc')
-            ->get(['id', 'internal_number', 'title', 'status', 'category', 'address', 'lat', 'lng', 'created_at', 'merged_into_problem_id']);
+            ->get(['id', 'internal_number', 'title', 'status', 'category', 'address', 'lat', 'lng', 'created_at', 'merged_into_problem_id', 'is_published_publicly']);
 
         $index = 0;
         return $query->map(function ($problem) use ($centerLat, $centerLng, &$index) {

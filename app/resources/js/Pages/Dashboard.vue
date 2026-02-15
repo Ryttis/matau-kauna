@@ -149,6 +149,7 @@ const {
     canExport,
     canAssignProblem,
     canDeleteProblem,
+    canPublish,
 } = useAuth()
 
 const statusLabels = PROBLEM_STATUS_LABELS
@@ -390,6 +391,35 @@ const handleStebeti = () => {
     router.visit(route('problems.reviewProgress', selectedProblemIdForReview.value))
 }
 
+const selectedProblemsAllPublished = computed(() => {
+    if (selectedProblems.value.length === 0) return false
+    const rows = displayRows.value
+    const ids = selectedProblems.value
+    for (const id of ids) {
+        const row = rows.find((r) => r.problem?.id === id)
+        if (!row?.problem?.is_published_publicly) return false
+    }
+    return true
+})
+
+const bulkPublishButtonLabel = computed(() =>
+    selectedProblemsAllPublished.value ? 'Nebepaskelbti viešai' : 'Paskelbti viešai'
+)
+
+const handleBulkPublishToggle = () => {
+    if (selectedProblems.value.length === 0) return
+    router.post(route('problems.bulkUpdatePublish'), {
+        problem_ids: selectedProblems.value,
+        is_published_publicly: !selectedProblemsAllPublished.value,
+    }, {
+        preserveScroll: true,
+        onSuccess: () => {
+            selectedProblems.value = []
+            loadProblems(false)
+        },
+    })
+}
+
 const handleSelectAll = (checked) => {
     if (checked) {
         selectedProblems.value = displayRows.value.map((r) => r.problem.id)
@@ -540,6 +570,7 @@ onUnmounted(() => {
             :status-labels="statusLabels"
             :sort-by="sortBy"
             :sort-direction="sortDirection"
+            :can-publish="canPublish"
             @sort="handleSort"
             @select-all="handleSelectAll"
             @select-item="handleSelectItem"
@@ -567,6 +598,14 @@ onUnmounted(() => {
                     text="Atvaizduoti/keisti būseną"
                     as-button
                     @click="openStatusModal()"
+                />
+                <AppButton
+                    v-if="canPublish"
+                    :text="bulkPublishButtonLabel"
+                    variant="secondary"
+                    as-button
+                    :disabled="selectedProblems.length === 0"
+                    @click="handleBulkPublishToggle"
                 />
                 <div v-if="canExport" class="export-wrapper" ref="exportWrapper">
                     <AppButton
@@ -600,6 +639,14 @@ onUnmounted(() => {
                     @click="openStatusModal()"
                 />
                 <AppButton
+                    v-if="canPublish"
+                    :text="bulkPublishButtonLabel"
+                    variant="secondary"
+                    as-button
+                    :disabled="selectedProblems.length === 0"
+                    @click="handleBulkPublishToggle"
+                />
+                <AppButton
                     text="Stebėti"
                     variant="outline-light"
                     as-button
@@ -613,6 +660,14 @@ onUnmounted(() => {
                     text="Atvaizduoti/keisti būseną"
                     as-button
                     @click="openStatusModal()"
+                />
+                <AppButton
+                    v-if="canPublish"
+                    :text="bulkPublishButtonLabel"
+                    variant="secondary"
+                    as-button
+                    :disabled="selectedProblems.length === 0"
+                    @click="handleBulkPublishToggle"
                 />
                 <AppButton
                     text="Šalinti"

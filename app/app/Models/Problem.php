@@ -16,6 +16,8 @@ class Problem extends Model
         'status',
         'title',
         'category',
+        'problem_type_id',
+        'problem_nature_id',
         'address',
         'lat',
         'lng',
@@ -26,11 +28,13 @@ class Problem extends Model
         'completion_deadline',
         'reported_by_user_id',
         'merged_into_problem_id',
+        'is_published_publicly',
     ];
 
     protected $casts = [
         'status_updated_at' => 'datetime',
         'completion_deadline' => 'date',
+        'is_published_publicly' => 'boolean',
     ];
 
     protected static function boot()
@@ -131,6 +135,16 @@ class Problem extends Model
     public function reportedByUser(): BelongsTo
     {
         return $this->belongsTo(User::class, 'reported_by_user_id');
+    }
+
+    public function problemType(): BelongsTo
+    {
+        return $this->belongsTo(ClassifierValue::class, 'problem_type_id');
+    }
+
+    public function problemNature(): BelongsTo
+    {
+        return $this->belongsTo(ClassifierValue::class, 'problem_nature_id');
     }
 
     public function mergedInto(): BelongsTo

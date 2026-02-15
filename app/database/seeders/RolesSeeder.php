@@ -75,6 +75,7 @@ class RolesSeeder extends Seeder
             'issues.edit',
             'issues.assign',
             'issues.export',
+            'issues.publish',
             'statistics.view',
             'admin.access',
         ])->mapWithKeys(function ($permission) {
@@ -106,6 +107,7 @@ class RolesSeeder extends Seeder
             $permissions['issues.edit']->id,
             $permissions['issues.assign']->id,
             $permissions['issues.export']->id,
+            $permissions['issues.publish']->id,
         ]);
 
         $groups['Statistics']->permissions()->sync([

@@ -27,6 +27,7 @@ const {
     canEditProblem,
     canMergeProblem,
     canDeleteProblem,
+    canPublish,
     isEmployee,
 } = useAuth()
 
@@ -72,6 +73,13 @@ const handleConfirmDelete = () => {
 
 const handleGrazintiAdmin = () => {
     router.patch(route('problems.return', props.problem.id), {}, { preserveScroll: true })
+}
+
+const handleTogglePublish = () => {
+    const next = !props.problem.is_published_publicly
+    router.patch(route('problems.updatePublish', props.problem.id), {
+        is_published_publicly: next
+    }, { preserveScroll: true })
 }
 
 const mainProblem = computed(() => props.problem?.merged_into || props.problem?.merged_into_problem || null)
@@ -176,6 +184,14 @@ const mergeTargetId = computed(() =>
                 </div>
                 <div class="actions-row">
                     <AppButton
+                        v-if="canPublish"
+                        :text="problem.is_published_publicly ? 'Nebepaskelbti viešai' : 'Paskelbti viešai'"
+                        variant="secondary"
+                        as-button
+                        @click="handleTogglePublish"
+                        class="action-btn"
+                    />
+                    <AppButton
                         v-if="canEditProblem"
                         text="Koreguoti"
                         variant="secondary"
@@ -211,6 +227,14 @@ const mergeTargetId = computed(() =>
                         class="action-btn"
                     />
                     <AppButton
+                        v-if="canPublish"
+                        :text="problem.is_published_publicly ? 'Nebepaskelbti viešai' : 'Paskelbti viešai'"
+                        variant="secondary"
+                        as-button
+                        @click="handleTogglePublish"
+                        class="action-btn"
+                    />
+                    <AppButton
                         v-if="problem.institution_id"
                         text="Grąžinti problemos administratoriui"
                         variant="secondary"
@@ -237,6 +261,14 @@ const mergeTargetId = computed(() =>
                         variant="primary"
                         as-button
                         @click="openStatusModal"
+                        class="action-btn"
+                    />
+                    <AppButton
+                        v-if="canPublish"
+                        :text="problem.is_published_publicly ? 'Nebepaskelbti viešai' : 'Paskelbti viešai'"
+                        variant="secondary"
+                        as-button
+                        @click="handleTogglePublish"
                         class="action-btn"
                     />
                     <AppButton
