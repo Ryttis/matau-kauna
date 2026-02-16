@@ -26,6 +26,8 @@ class Problem extends Model
         'institution_id',
         'assigned_employee_id',
         'completion_deadline',
+        'deadline_status',
+        'deadline_reminder_sent_at',
         'reported_by_user_id',
         'merged_into_problem_id',
         'is_published_publicly',
@@ -34,6 +36,7 @@ class Problem extends Model
     protected $casts = [
         'status_updated_at' => 'datetime',
         'completion_deadline' => 'date',
+        'deadline_reminder_sent_at' => 'datetime',
         'is_published_publicly' => 'boolean',
     ];
 
@@ -73,6 +76,13 @@ class Problem extends Model
         static::updating(function ($problem) {
             if ($problem->isDirty('status')) {
                 $problem->status_updated_at = now();
+                if ($problem->status === 'isspresta') {
+                    $problem->deadline_status = null;
+                }
+            }
+            if ($problem->isDirty('completion_deadline') && $problem->completion_deadline === null) {
+                $problem->deadline_status = null;
+                $problem->deadline_reminder_sent_at = null;
             }
         });
     }
