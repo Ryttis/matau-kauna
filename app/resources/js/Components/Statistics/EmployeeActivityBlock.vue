@@ -14,11 +14,11 @@ const props = defineProps({
             <p>Nėra duomenų</p>
         </div>
         <div v-else class="activity-list">
-            <div v-for="employee in employees" :key="employee.id" class="activity-item">
+            <div v-for="(employee, idx) in employees" :key="employee.name || idx" class="activity-item">
                 <div class="avatar-placeholder"></div>
                 <div class="activity-info">
                     <span class="employee-name">{{ employee.name }}</span>
-                    <span class="problem-count">{{ employee.problems || 0 }} problemos</span>
+                    <span class="problem-count">{{ employee.count ?? employee.problems ?? 0 }} problemos</span>
                 </div>
             </div>
         </div>

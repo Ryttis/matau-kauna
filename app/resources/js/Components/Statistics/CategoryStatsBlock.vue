@@ -1,4 +1,6 @@
 <script setup>
+import { computed } from 'vue'
+
 const props = defineProps({
     title: {
         type: String,
@@ -9,6 +11,17 @@ const props = defineProps({
         default: () => []
     }
 })
+
+const maxCount = computed(() => {
+    const counts = props.categories.map(c => c.count ?? c.resolved ?? 0).filter(v => typeof v === 'number')
+    return Math.max(1, ...counts)
+})
+
+function barWidth(category) {
+    if (category.resolved !== undefined && category.count === undefined) return category.resolved || 0
+    const c = category.count ?? 0
+    return maxCount.value ? Math.round((c / maxCount.value) * 100) : 0
+}
 </script>
 
 <template>
@@ -21,10 +34,10 @@ const props = defineProps({
             <div v-for="category in categories" :key="category.name" class="category-item">
                 <div class="category-info">
                     <span class="category-name">{{ category.name }}</span>
-                    <span class="category-percentage">{{ category.resolved || 0 }}% Išspręsta</span>
+                    <span class="category-percentage">{{ category.count ?? category.resolved ?? 0 }}{{ category.count !== undefined ? ' problemų' : '% Išspręsta' }}</span>
                 </div>
                 <div class="progress-bar">
-                    <div class="progress-fill" :style="{ width: (category.resolved || 0) + '%' }"></div>
+                    <div class="progress-fill" :style="{ width: barWidth(category) + '%' }"></div>
                 </div>
             </div>
         </div>

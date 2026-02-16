@@ -9,26 +9,25 @@ import EmployeeActivityBlock from '@/Components/Statistics/EmployeeActivityBlock
 import InstitutionResultsBlock from '@/Components/Statistics/InstitutionResultsBlock.vue'
 
 const props = defineProps({
-    categories: Array,
-    institutions: Array,
+    categories: { type: Array, default: () => [] },
+    institutions: { type: Array, default: () => [] },
+    filters: { type: Object, default: () => ({ period: 'all', institution: 'all', category: 'all' }) },
+    activeUsers: { type: Object, default: () => ({ current: 0, total: 0 }) },
+    receivedReports: { type: Number, default: 0 },
+    averageResolutionTime: { type: Number, default: 0 },
+    resolvedProblems: { type: Number, default: 0 },
+    resolvedOnTime: { type: Number, default: 0 },
+    improvement: { type: Number, default: 0 },
+    monthlyReports: { type: Array, default: () => [] },
+    problematicCategories: { type: Array, default: () => [] },
+    effectivelyResolved: { type: Array, default: () => [] },
+    employeeActivity: { type: Array, default: () => [] },
+    institutionResults: { type: Array, default: () => [] },
 })
 
-const periodFilter = ref('all')
-const institutionFilter = ref('all')
-const categoryFilter = ref('all')
-
-const activeUsers = ref({ current: 0, total: 0 })
-const receivedReports = ref(0)
-const averageResolutionTime = ref(0)
-const resolvedProblems = ref(0)
-const resolvedOnTime = ref(0)
-const improvement = ref(0)
-
-const monthlyReports = ref([])
-const problematicCategories = ref([])
-const effectivelyResolved = ref([])
-const employeeActivity = ref([])
-const institutionResults = ref([])
+const periodFilter = ref(props.filters.period || 'all')
+const institutionFilter = ref(props.filters.institution ?? 'all')
+const categoryFilter = ref(props.filters.category ?? 'all')
 
 const periodOptions = computed(() => [
     { value: 'all', label: 'Laikotarpis: Visas laikotarpis' },
@@ -40,22 +39,23 @@ const periodOptions = computed(() => [
 
 const institutionOptions = computed(() => {
     const options = [{ value: 'all', label: 'Įstaigos: Visos' }]
-    if (props.institutions) {
-        props.institutions.forEach(inst => {
-            options.push({ value: inst.id, label: `Įstaigos: ${inst.name}` })
-        })
-    }
+    ;(props.institutions || []).forEach(inst => {
+        options.push({ value: String(inst.id), label: `Įstaigos: ${inst.name}` })
+    })
     return options
 })
 
 const categoryOptions = computed(() => {
     const options = [{ value: 'all', label: 'Kategorija: Visos' }]
-    if (props.categories) {
-        props.categories.forEach(cat => {
-            options.push({ value: cat, label: `Kategorija: ${cat}` })
-        })
-    }
+    ;(props.categories || []).forEach(cat => {
+        options.push({ value: cat, label: `Kategorija: ${cat}` })
+    })
     return options
+})
+
+const chartMax = computed(() => {
+    const vals = (props.monthlyReports || []).map(r => r.value)
+    return Math.max(1, ...vals)
 })
 
 const applyFilters = () => {
@@ -73,8 +73,18 @@ watch([periodFilter, institutionFilter, categoryFilter], () => {
     applyFilters()
 })
 
-// TODO: Atsisiųsti ataskaitą – dar neįgyvendinta
-const downloadReport = () => {}
+const exportQueryParams = computed(() => {
+    const p = new URLSearchParams()
+    if (periodFilter.value && periodFilter.value !== 'all') p.set('period', periodFilter.value)
+    if (institutionFilter.value && institutionFilter.value !== 'all') p.set('institution', institutionFilter.value)
+    if (categoryFilter.value && categoryFilter.value !== 'all') p.set('category', categoryFilter.value)
+    return p.toString()
+})
+
+const downloadReport = () => {
+    const url = route('statistics.export') + (exportQueryParams.value ? '?' + exportQueryParams.value : '')
+    window.location.href = url
+}
 </script>
 
 <template>
@@ -123,7 +133,7 @@ const downloadReport = () => {}
                 <div class="kpi-grid">
                     <div class="kpi-card">
                         <h3 class="kpi-title">Aktyvūs naudotojai</h3>
-                        <p class="kpi-value">{{ activeUsers.current }}/{{ activeUsers.total }}</p>
+                        <p class="kpi-value">{{ props.activeUsers.current }}/{{ props.activeUsers.total }}</p>
                         <div class="kpi-mini-chart">
                             <svg width="100" height="20" viewBox="0 0 100 20">
                                 <polyline points="0,15 20,12 40,10 60,8 80,5 100,3"
@@ -136,7 +146,7 @@ const downloadReport = () => {}
 
                     <div class="kpi-card">
                         <h3 class="kpi-title">Gauti pranešimai</h3>
-                        <p class="kpi-value">{{ receivedReports.toLocaleString() }}</p>
+                        <p class="kpi-value">{{ props.receivedReports.toLocaleString() }}</p>
                         <div class="kpi-mini-chart">
                             <svg width="100" height="20" viewBox="0 0 100 20">
                                 <polyline points="0,15 20,12 40,10 60,8 80,5 100,3"
@@ -149,7 +159,7 @@ const downloadReport = () => {}
 
                     <div class="kpi-card">
                         <h3 class="kpi-title">Vidutinis sprendimo laikas</h3>
-                        <p class="kpi-value">{{ averageResolutionTime || 0 }} d.</p>
+                        <p class="kpi-value">{{ props.averageResolutionTime || 0 }} d.</p>
                         <div class="kpi-mini-chart">
                             <svg width="100" height="20" viewBox="0 0 100 20">
                                 <polyline points="0,15 20,12 40,10 60,8 80,5 100,3"
@@ -162,7 +172,7 @@ const downloadReport = () => {}
 
                     <div class="kpi-card">
                         <h3 class="kpi-title">Išspręstos problemos</h3>
-                        <p class="kpi-value">{{ resolvedProblems || 0 }}%</p>
+                        <p class="kpi-value">{{ props.resolvedProblems || 0 }}%</p>
                         <div class="kpi-mini-chart">
                             <svg width="100" height="20" viewBox="0 0 100 20">
                                 <polyline points="0,15 20,12 40,10 60,8 80,5 100,3"
@@ -175,7 +185,7 @@ const downloadReport = () => {}
 
                     <div class="kpi-card">
                         <h3 class="kpi-title">Laiku išspręstos</h3>
-                        <p class="kpi-value">{{ resolvedOnTime || 0 }}%</p>
+                        <p class="kpi-value">{{ props.resolvedOnTime || 0 }}%</p>
                         <div class="kpi-mini-chart">
                             <svg width="100" height="20" viewBox="0 0 100 20">
                                 <polyline points="0,15 20,12 40,10 60,8 80,5 100,3"
@@ -188,7 +198,7 @@ const downloadReport = () => {}
 
                     <div class="kpi-card">
                         <h3 class="kpi-title">Pagerėjimas</h3>
-                        <p class="kpi-value">{{ improvement >= 0 ? '+' : '' }}{{ improvement || 0 }}%</p>
+                        <p class="kpi-value">{{ props.improvement >= 0 ? '+' : '' }}{{ props.improvement || 0 }}%</p>
                         <div class="kpi-mini-chart">
                             <svg width="100" height="20" viewBox="0 0 100 20">
                                 <polyline points="0,15 20,12 40,10 60,8 80,5 100,3"
@@ -220,9 +230,9 @@ const downloadReport = () => {}
                                 <span>0</span>
                             </div>
                             <div class="chart-bars">
-                                <div v-for="i in 12" :key="i" class="bar-wrapper">
-                                    <div class="bar" :style="{ height: '0%' }"></div>
-                                    <span class="bar-label">{{ String(i).padStart(2, '0') }}</span>
+                                <div v-for="(month, i) in (props.monthlyReports || [])" :key="i" class="bar-wrapper">
+                                    <div class="bar" :style="{ height: chartMax ? (month.value / chartMax * 100) + '%' : '0%' }"></div>
+                                    <span class="bar-label">{{ month.label }}</span>
                                 </div>
                             </div>
                         </div>
@@ -233,17 +243,17 @@ const downloadReport = () => {}
             <div class="category-stats-grid">
                 <CategoryStatsBlock
                     title="Probleminės kategorijos"
-                    :categories="problematicCategories"
+                    :categories="props.problematicCategories"
                 />
                 <CategoryStatsBlock
                     title="Efektyviausiai sprendžiamos problemos"
-                    :categories="effectivelyResolved"
+                    :categories="props.effectivelyResolved"
                 />
             </div>
 
             <div class="bottom-stats-grid">
-                <EmployeeActivityBlock :employees="employeeActivity" />
-                <InstitutionResultsBlock :institutions="institutionResults" />
+                <EmployeeActivityBlock :employees="props.employeeActivity" />
+                <InstitutionResultsBlock :institutions="props.institutionResults" />
             </div>
         </div>
     </AuthenticatedLayout>

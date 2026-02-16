@@ -1,50 +1,103 @@
 <script setup>
-import { ref, computed } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
+import axios from 'axios'
 import { Head } from '@inertiajs/vue3'
 import LandingHeader from '@/Components/Landing/LandingHeader.vue'
 import LandingFooter from '@/Components/Landing/LandingFooter.vue'
 import CategoryStatsBlock from '@/Components/Statistics/CategoryStatsBlock.vue'
 
-const periodFilter = ref('all')
+const PERIOD_LABELS = {
+    week: 'Paskutinė savaitė',
+    month: 'Paskutinis mėnuo',
+    quarter: 'Paskutinis ketvirtis',
+    year: 'Paskutiniai metai',
+    all: 'Visas laikotarpis',
+}
+
+const config = ref(null)
+const data = ref(null)
+const categories = ref([])
+const loading = ref(true)
+const errorMessage = ref('')
+
+const periodFilter = ref('year')
 const categoryFilter = ref('all')
 
-const PERIOD_OPTIONS = [
-    { value: 'all', label: 'Laikotarpis: Visas laikotarpis' },
-    { value: 'week', label: 'Laikotarpis: Paskutinė savaitė' },
-    { value: 'month', label: 'Laikotarpis: Paskutinis mėnuo' },
-    { value: 'year', label: 'Laikotarpis: Paskutiniai metai' },
-]
+const periodOptions = computed(() => {
+    const opts = config.value?.period_options ?? ['year', 'all']
+    return opts.map(v => ({ value: v, label: PERIOD_LABELS[v] ?? v }))
+})
 
-const CATEGORY_OPTIONS = [
-    { value: 'all', label: 'Kategorija: Visos' },
-    { value: 'roads', label: 'Kategorija: Keliai' },
-    { value: 'environment', label: 'Kategorija: Aplinka' },
-]
+const categoryOptions = computed(() => {
+    const list = [{ value: 'all', label: 'Kategorija: Visos' }]
+    ;(categories.value || []).forEach(c => {
+        list.push({ value: c, label: `Kategorija: ${c}` })
+    })
+    return list
+})
 
-const CHART_Y_MAX = 300
-const MONTH_COUNT = 12
+const showCategoryFilter = computed(() => config.value?.show_category_filter !== false)
 
-const receivedReports = ref(0)
-const avgResolutionDays = ref(0)
-const problematicCategories = ref([])
-const effectiveCategories = ref([])
-const monthlyData = ref(Array(MONTH_COUNT).fill(0))
+const kpiCards = computed(() => {
+    const kpis = config.value?.kpis ?? []
+    const d = data.value || {}
+    const items = []
+    if (kpis.includes('received_reports')) {
+        items.push({ title: 'Gauti pranešimai', value: (d.receivedReports ?? 0).toLocaleString() })
+    }
+    if (kpis.includes('avg_resolution_days')) {
+        items.push({ title: 'Vidutinis sprendimo laikas', value: `${d.averageResolutionTime ?? 0} d.` })
+    }
+    if (kpis.includes('resolved_problems')) {
+        items.push({ title: 'Išspręstos problemos', value: `${d.resolvedProblems ?? 0}%` })
+    }
+    if (kpis.includes('resolved_on_time')) {
+        items.push({ title: 'Laiku išspręstos', value: `${d.resolvedOnTime ?? 0}%` })
+    }
+    return items
+})
 
-const kpiCards = computed(() => [
-    {
-        title: 'Gauti pranešimai',
-        value: receivedReports.value.toLocaleString(),
-    },
-    {
-        title: 'Vidutinis sprendimo laikas',
-        value: `${avgResolutionDays.value} d.`,
-    },
-])
+const monthlyReports = computed(() => data.value?.monthlyReports ?? [])
+const chartMax = computed(() => {
+    const vals = monthlyReports.value.map(r => r.value)
+    return Math.max(1, ...vals)
+})
+
+const showMonthlyChart = computed(() => (config.value?.kpis ?? []).includes('monthly_reports'))
+const showProblematicCategories = computed(() => (config.value?.kpis ?? []).includes('problematic_categories'))
+const showEffectivelyResolved = computed(() => (config.value?.kpis ?? []).includes('effectively_resolved'))
+
+async function fetchData() {
+    loading.value = true
+    errorMessage.value = ''
+    try {
+        const params = new URLSearchParams()
+        if (periodFilter.value && periodFilter.value !== 'all') params.set('period', periodFilter.value)
+        if (categoryFilter.value && categoryFilter.value !== 'all') params.set('category', categoryFilter.value)
+        const url = route('public.statistics.data') + (params.toString() ? '?' + params.toString() : '')
+        const { data: res } = await axios.get(url)
+        config.value = res.config
+        data.value = res.data
+        categories.value = res.categories ?? []
+        const defaultPeriod = res.config?.default_period ?? 'year'
+        const allowedPeriods = res.config?.period_options ?? ['year', 'all']
+        if (!allowedPeriods.includes(periodFilter.value)) {
+            periodFilter.value = defaultPeriod
+        }
+    } catch (e) {
+        errorMessage.value = 'Nepavyko užkrauti statistikos.'
+    } finally {
+        loading.value = false
+    }
+}
 
 function barHeight(value) {
-    if (CHART_Y_MAX <= 0) return 0
-    return (value / CHART_Y_MAX) * 100
+    if (!chartMax.value) return 0
+    return (value / chartMax.value) * 100
 }
+
+onMounted(fetchData)
+watch([periodFilter, categoryFilter], fetchData)
 </script>
 
 <template>
@@ -56,16 +109,20 @@ function barHeight(value) {
                 <div class="filters-section">
                     <select v-model="periodFilter" class="filter-select">
                         <option
-                            v-for="opt in PERIOD_OPTIONS"
+                            v-for="opt in periodOptions"
                             :key="opt.value"
                             :value="opt.value"
                         >
                             {{ opt.label }}
                         </option>
                     </select>
-                    <select v-model="categoryFilter" class="filter-select">
+                    <select
+                        v-if="showCategoryFilter"
+                        v-model="categoryFilter"
+                        class="filter-select"
+                    >
                         <option
-                            v-for="opt in CATEGORY_OPTIONS"
+                            v-for="opt in categoryOptions"
                             :key="opt.value"
                             :value="opt.value"
                         >
@@ -74,68 +131,68 @@ function barHeight(value) {
                     </select>
                 </div>
 
-                <div class="stats-grid">
-                    <div class="stats-card kpi-block">
-                        <div class="kpi-row">
-                            <div
-                                v-for="(kpi, index) in kpiCards"
-                                :key="index"
-                                class="kpi-card"
-                            >
-                                <h3 class="kpi-title">{{ kpi.title }}</h3>
-                                <p class="kpi-value">{{ kpi.value }}</p>
+                <p v-if="errorMessage" class="error">{{ errorMessage }}</p>
+                <div v-if="loading" class="loading">Kraunama...</div>
+
+                <template v-else>
+                    <div class="stats-grid">
+                        <div v-if="kpiCards.length" class="stats-card kpi-block">
+                            <div class="kpi-row">
+                                <div
+                                    v-for="(kpi, index) in kpiCards"
+                                    :key="index"
+                                    class="kpi-card"
+                                >
+                                    <h3 class="kpi-title">{{ kpi.title }}</h3>
+                                    <p class="kpi-value">{{ kpi.value }}</p>
+                                </div>
                             </div>
                         </div>
-                    </div>
 
-                    <div class="stats-card chart-card">
-                        <div class="chart-header">
-                            <h3 class="chart-title">Pranešimų skaičius</h3>
-                            <select class="chart-filter-select">
-                                <option>Mėnesiai</option>
-                            </select>
-                        </div>
-                        <div class="chart-container">
-                            <div class="bar-chart">
-                                <div class="chart-y-axis">
-                                    <span>{{ CHART_Y_MAX }}</span>
-                                    <span>200</span>
-                                    <span>100</span>
-                                    <span>0</span>
-                                </div>
-                                <div class="chart-bars">
-                                    <div
-                                        v-for="(val, i) in monthlyData"
-                                        :key="i"
-                                        class="bar-wrapper"
-                                    >
+                        <div v-if="showMonthlyChart" class="stats-card chart-card">
+                            <div class="chart-header">
+                                <h3 class="chart-title">Pranešimų skaičius</h3>
+                            </div>
+                            <div class="chart-container">
+                                <div class="bar-chart">
+                                    <div class="chart-y-axis">
+                                        <span>{{ chartMax }}</span>
+                                        <span>{{ Math.round(chartMax * 0.66) }}</span>
+                                        <span>{{ Math.round(chartMax * 0.33) }}</span>
+                                        <span>0</span>
+                                    </div>
+                                    <div class="chart-bars">
                                         <div
-                                            class="bar"
-                                            :style="{ height: barHeight(val) + '%' }"
-                                        />
-                                        <span class="bar-label">
-                                            {{ String(i + 1).padStart(2, '0') }}
-                                        </span>
+                                            v-for="(month, i) in monthlyReports"
+                                            :key="i"
+                                            class="bar-wrapper"
+                                        >
+                                            <div
+                                                class="bar"
+                                                :style="{ height: barHeight(month.value) + '%' }"
+                                            />
+                                            <span class="bar-label">{{ month.label }}</span>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
                         </div>
-                    </div>
 
-                    <div class="stats-card category-card">
-                        <CategoryStatsBlock
-                            title="Probleminės kategorijos"
-                            :categories="problematicCategories"
-                        />
-                    </div>
+                        <div v-if="showProblematicCategories" class="stats-card category-card">
+                            <CategoryStatsBlock
+                                title="Probleminės kategorijos"
+                                :categories="(data && data.problematicCategories) ? data.problematicCategories : []"
+                            />
+                        </div>
 
-                    <div class="stats-card category-card">
-                        <CategoryStatsBlock
-                            title="Efektyviausiai sprendžiamos problemos"
-                            :categories="effectiveCategories"
-                        />
+                        <div v-if="showEffectivelyResolved" class="stats-card category-card">
+                            <CategoryStatsBlock
+                                title="Efektyviausiai sprendžiamos problemos"
+                                :categories="(data && data.effectivelyResolved) ? data.effectivelyResolved : []"
+                            />
+                        </div>
                     </div>
-                </div>
+                </template>
             </div>
         </main>
         <LandingFooter />
@@ -180,6 +237,16 @@ function barHeight(value) {
     min-width: 220px;
     cursor: pointer;
     appearance: auto;
+}
+
+.error {
+    color: #b91c1c;
+    margin: 0 0 1rem 0;
+}
+
+.loading {
+    color: #666;
+    margin: 0 0 1rem 0;
 }
 
 .stats-grid {
@@ -267,16 +334,6 @@ function barHeight(value) {
     font-weight: 600;
     margin: 0;
     color: #333;
-}
-
-.chart-filter-select {
-    padding: 0.4rem 1.75rem 0.4rem 0.6rem;
-    border: 1px solid #ddd;
-    border-radius: 6px;
-    background: #fff;
-    font-size: 0.875rem;
-    color: #333;
-    cursor: pointer;
 }
 
 .chart-container {
