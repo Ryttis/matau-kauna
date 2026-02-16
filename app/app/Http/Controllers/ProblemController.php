@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Enums\ProblemStatus;
 use App\Exports\ProblemsExport;
+use App\Exports\StatisticsReportExport;
 use App\Models\Employee;
 use App\Models\Institution;
 use App\Models\ClassifierValue;
@@ -15,6 +16,7 @@ use App\Services\ProblemAutoAssignmentService;
 use App\Services\ProblemAutoPublishService;
 use App\Services\ProblemMergeContextService;
 use App\Services\ProblemResolutionTermService;
+use App\Services\StatisticsService;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -1123,10 +1125,61 @@ class ProblemController extends Controller
             return Inertia::render('Statistics/Institutions');
         }
 
+        $service = app(StatisticsService::class);
+        $period = $request->input('period', 'all');
+        $institution = $request->input('institution', 'all');
+        $category = $request->input('category', 'all');
+
+        $institutions = $service->institutionsForUser($user)->map(fn ($i) => ['id' => $i->id, 'name' => $i->name])->values()->all();
+        $categories = ClassifierValue::getActiveTypeNames()->values()->all();
+
+        $query = $service->buildProblemQuery($user, $period, $institution, $category);
+        $analytics = $service->getAnalytics($query);
+
         return Inertia::render('Statistics', [
             'categories' => $categories,
             'institutions' => $institutions,
+            'filters' => [
+                'period' => $period,
+                'institution' => $institution,
+                'category' => $category,
+            ],
+            'activeUsers' => $analytics['activeUsers'],
+            'receivedReports' => $analytics['receivedReports'],
+            'averageResolutionTime' => $analytics['averageResolutionTime'],
+            'resolvedProblems' => $analytics['resolvedProblems'],
+            'resolvedOnTime' => $analytics['resolvedOnTime'],
+            'improvement' => $analytics['improvement'],
+            'monthlyReports' => $analytics['monthlyReports'],
+            'problematicCategories' => $analytics['problematicCategories'],
+            'effectivelyResolved' => $analytics['effectivelyResolved'],
+            'employeeActivity' => $analytics['employeeActivity'],
+            'institutionResults' => $analytics['institutionResults'],
         ]);
+    }
+
+    public function statisticsExport(Request $request)
+    {
+        $user = $request->user();
+        $service = app(StatisticsService::class);
+        $period = $request->input('period', 'all');
+        $institution = $request->input('institution', 'all');
+        $category = $request->input('category', 'all');
+
+        $query = $service->buildProblemQuery($user, $period, $institution, $category);
+        $analytics = $service->getAnalytics($query);
+
+        $institutionLabel = $institution && $institution !== 'all'
+            ? (Institution::find($institution)?->name ?? $institution)
+            : null;
+        $categoryLabel = $category && $category !== 'all' ? $category : null;
+
+        $filename = 'statistikos_ataskaita_' . date('Y-m-d_His') . '.xlsx';
+
+        return Excel::download(
+            new StatisticsReportExport($analytics, $period, $institutionLabel, $categoryLabel),
+            $filename
+        );
     }
 
     private function scopeProblemsForUser(Builder $query, $user): void

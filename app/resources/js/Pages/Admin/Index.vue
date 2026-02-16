@@ -11,6 +11,7 @@ import AdminNotifications from '@/Pages/Admin/Tabs/AdminNotifications.vue'
 import AdminClassifiers from '@/Pages/Admin/Tabs/AdminClassifiers.vue'
 import AdminAudits from '@/Pages/Admin/Tabs/AdminAudits.vue'
 import AdminArchive from '@/Pages/Admin/Tabs/AdminArchive.vue'
+import AdminPublicStatistics from '@/Pages/Admin/Tabs/AdminPublicStatistics.vue'
 import AppTabNavigation from '@/Components/App/AppTabNavigation.vue'
 
 const page = usePage()
@@ -23,6 +24,7 @@ const tabs = [
     { key: 'notifications', label: 'Pranešimai', component: AdminNotifications },
     { key: 'classifiers', label: 'Klasifikatoriai ir terminai', component: AdminClassifiers },
     { key: 'archive', label: 'Archyvavimas', component: AdminArchive },
+    { key: 'public-statistics', label: 'Vieša statistika', component: AdminPublicStatistics },
     { key: 'audits', label: 'Auditai', component: AdminAudits }
 ]
 

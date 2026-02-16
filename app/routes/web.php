@@ -19,6 +19,7 @@ Route::get('/contacts', fn () => Inertia::render('Guest/Contacts'))->name('conta
 Route::get('/help', fn () => Inertia::render('Guest/Help'))->name('help');
 
 Route::get('/statistika', fn () => Inertia::render('Guest/PublicStatistics'))->name('public.statistics');
+Route::get('/statistika/duomenys', [\App\Http\Controllers\PublicStatisticsController::class, 'data'])->name('public.statistics.data');
 
 Route::get('/reports', [ProblemController::class, 'publicMap'])->name('reports');
 Route::get('/reports/{problem}', [ProblemController::class, 'publicShow'])->name('reports.show');
@@ -74,6 +75,7 @@ Route::middleware(['auth', 'verified', 'reporter.terms'])->group(function () {
 
     Route::middleware(['permission:statistics.view'])->group(function () {
         Route::get('/statistics', [ProblemController::class, 'statistics'])->name('statistics');
+        Route::get('/statistics/export', [ProblemController::class, 'statisticsExport'])->name('statistics.export');
         Route::get('/statistics/resolution-terms', [ProblemController::class, 'statistics'])->name('statistics.resolution-terms');
         Route::get('/statistics/categories', [ProblemController::class, 'statistics'])->name('statistics.categories');
         Route::get('/statistics/institutions', [ProblemController::class, 'statistics'])->name('statistics.institutions');
@@ -135,6 +137,8 @@ Route::middleware(['auth', 'verified', 'reporter.terms'])->group(function () {
             Route::delete('/classifiers/values/{value}', [AdminClassifierController::class, 'destroyValue']);
 
             Route::get('/archive', [AdminArchiveController::class, 'index']);
+            Route::get('/public-statistics-config', [\App\Http\Controllers\Admin\PublicStatisticsConfigController::class, 'show']);
+            Route::put('/public-statistics-config', [\App\Http\Controllers\Admin\PublicStatisticsConfigController::class, 'update']);
             Route::put('/archive/retention-rule', [AdminArchiveController::class, 'updateRetentionRule']);
             Route::post('/archive/users/{user}/restore', [AdminArchiveController::class, 'restoreUser']);
             Route::post('/archive/institutions/{institution}/restore', [AdminArchiveController::class, 'restoreInstitution']);

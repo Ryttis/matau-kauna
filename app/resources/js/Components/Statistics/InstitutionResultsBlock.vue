@@ -14,8 +14,9 @@ const props = defineProps({
             <p>Nėra duomenų</p>
         </div>
         <div v-else class="institution-list">
-            <div v-for="institution in institutions" :key="institution.id" class="institution-item">
+            <div v-for="(institution, idx) in institutions" :key="institution.name || idx" class="institution-item">
                 <span>{{ institution.name }}</span>
+                <span class="institution-stats">{{ institution.resolved ?? 0 }} / {{ institution.total ?? 0 }} išspręsta</span>
             </div>
         </div>
     </div>
@@ -50,9 +51,17 @@ const props = defineProps({
 }
 
 .institution-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
     padding: 10px;
     font-size: 14px;
     color: #333;
     font-family: 'Open Sans', sans-serif;
+}
+
+.institution-stats {
+    font-size: 13px;
+    color: #666;
 }
 </style>
