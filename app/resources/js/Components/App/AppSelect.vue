@@ -23,6 +23,10 @@ const props = defineProps({
         type: String,
         default: 'blue',
         validator: (value) => ['blue', 'white'].includes(value)
+    },
+    disabled: {
+        type: Boolean,
+        default: false
     }
 })
 
@@ -39,7 +43,7 @@ const value = computed({
         <label v-if="label" class="app-select-label">{{ label }}</label>
 
         <div class="app-select-wrapper">
-            <select v-model="value" class="app-select" :class="`app-select--${variant}`">
+            <select v-model="value" class="app-select" :class="`app-select--${variant}`" :disabled="disabled">
                 <option v-if="placeholder && (modelValue === '' || modelValue === null || modelValue === undefined)" value="">{{ placeholder }}</option>
                 <slot>
                 </slot>
@@ -159,5 +163,10 @@ const value = computed({
 .app-select--white option {
     background-color: #ffffff;
     color: #333333;
+}
+
+.app-select:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
 }
 </style>

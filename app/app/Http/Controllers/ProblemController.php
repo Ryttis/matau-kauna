@@ -14,6 +14,7 @@ use App\Services\ProblemAssignmentNotifier;
 use App\Services\ProblemAutoAssignmentService;
 use App\Services\ProblemAutoPublishService;
 use App\Services\ProblemMergeContextService;
+use App\Services\ProblemResolutionTermService;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -30,7 +31,8 @@ class ProblemController extends Controller
         private ProblemMergeContextService $mergeContextService,
         private ProblemAssignmentNotifier $assignmentNotifier,
         private ProblemAutoAssignmentService $autoAssignmentService,
-        private ProblemAutoPublishService $autoPublishService
+        private ProblemAutoPublishService $autoPublishService,
+        private ProblemResolutionTermService $resolutionTermService
     ) {}
 
     public function index(Request $request): Response
@@ -303,6 +305,9 @@ class ProblemController extends Controller
         Problem::whereIn('id', $validated['problem_ids'])->update($update);
 
         if (! empty($validated['institution_id'])) {
+            foreach (Problem::whereIn('id', $validated['problem_ids'])->get() as $p) {
+                $this->resolutionTermService->applyRules($p);
+            }
             $this->assignmentNotifier->notifyInstitutionAdminsOfAssignment($validated['problem_ids'], $validated['institution_id']);
             $this->assignmentNotifier->notifyInstitutionEmailOfAssignment($validated['problem_ids'], $validated['institution_id']);
         }
@@ -1070,7 +1075,36 @@ class ProblemController extends Controller
         $route = $request->route()->getName();
 
         if ($route === 'statistics.resolution-terms') {
-            return Inertia::render('Statistics/ResolutionTerms');
+            $query = Problem::query()
+                ->whereNotNull('completion_deadline')
+                ->whereNull('merged_into_problem_id')
+                ->with(['institution:id,name', 'assignedEmployee:id,name,surname,email']);
+            $this->scopeProblemsForUser($query, $user);
+            $all = $query->orderBy('completion_deadline')->get();
+            $today = now()->startOfDay();
+            $approachingEnd = $today->copy()->addDays(2);
+            $approaching = $all->filter(fn ($p) => $p->completion_deadline && $p->completion_deadline->gte($today) && $p->completion_deadline->lte($approachingEnd) && $p->status !== 'isspresta');
+            $overdue = $all->filter(fn ($p) => $p->completion_deadline && $p->completion_deadline->lt($today) && $p->status !== 'isspresta');
+            return Inertia::render('Statistics/ResolutionTerms', [
+                'approaching' => $approaching->values()->map(fn ($p) => [
+                    'id' => $p->id,
+                    'internal_number' => $p->internal_number,
+                    'title' => $p->title,
+                    'status' => $p->status,
+                    'completion_deadline' => $p->completion_deadline?->format('Y-m-d'),
+                    'institution_name' => $p->institution?->name,
+                    'assigned_to' => $p->assignedEmployee ? trim($p->assignedEmployee->name . ' ' . $p->assignedEmployee->surname) : null,
+                ])->all(),
+                'overdue' => $overdue->values()->map(fn ($p) => [
+                    'id' => $p->id,
+                    'internal_number' => $p->internal_number,
+                    'title' => $p->title,
+                    'status' => $p->status,
+                    'completion_deadline' => $p->completion_deadline?->format('Y-m-d'),
+                    'institution_name' => $p->institution?->name,
+                    'assigned_to' => $p->assignedEmployee ? trim($p->assignedEmployee->name . ' ' . $p->assignedEmployee->surname) : null,
+                ])->all(),
+            ]);
         }
 
         if ($route === 'statistics.categories') {

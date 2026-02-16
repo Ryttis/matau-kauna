@@ -8,6 +8,10 @@ use Illuminate\Support\Facades\Log;
 
 class ProblemAutoAssignmentService
 {
+    public function __construct(
+        private ProblemResolutionTermService $resolutionTermService
+    ) {}
+
     public function applyRules(Problem $problem): bool
     {
         if ($problem->institution_id !== null) {
@@ -45,6 +49,8 @@ class ProblemAutoAssignmentService
 
         $problem->institution_id = $rule->institution_id;
         $problem->save();
+
+        $this->resolutionTermService->applyRules($problem);
 
         Log::info('ProblemAutoAssignment: assigned', [
             'problem_id' => $problem->id,

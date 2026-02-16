@@ -478,10 +478,19 @@ const mergeTargetId = computed(() =>
 
 .actions-row {
     display: flex;
-    gap: 16px;
+    flex-wrap: wrap;
+    gap: 12px;
 }
 
-.action-btn {
-    flex: 1;
+.problem-actions :deep(.action-btn) {
+    flex: 1 1 auto;
+    min-width: 200px;
+    width: auto;
+    min-height: 48px;
+    height: auto;
+    padding: 12px 20px;
+    white-space: normal;
+    line-height: 1.35;
+    word-break: break-word;
 }
 </style>

@@ -123,4 +123,46 @@ class ProblemAssignmentNotifier
             $message->to($user->email)->subject($subject);
         });
     }
+
+    public function notifyDeadlineReminder(Problem $problem, string $type): void
+    {
+        $deadlineStr = $problem->completion_deadline?->format('Y-m-d') ?? '-';
+        $subject = $type === 'overdue'
+            ? "Problema {$problem->internal_number} – terminas praėjo"
+            : "Problema {$problem->internal_number} – artėja terminas";
+        $body = implode("\n", [
+            $type === 'overdue' ? 'Ši problema turėjo būti išspręsta iki ' . $deadlineStr . '.' : 'Terminas išspręsti problemą: ' . $deadlineStr . '.',
+            '',
+            sprintf('%s | %s', $problem->internal_number, $problem->title),
+            route('problems.show', $problem->id),
+        ]);
+
+        $recipients = [];
+        if ($problem->assigned_employee_id) {
+            $employee = $problem->assignedEmployee;
+            if ($employee) {
+                $user = User::where('email', $employee->email)
+                    ->where('institution_id', $employee->institution_id)
+                    ->where('email_notifications_enabled', true)
+                    ->first(['email']);
+                if ($user) {
+                    $recipients[] = $user->email;
+                }
+            }
+        }
+        if ($problem->institution_id) {
+            $admins = User::query()
+                ->where('institution_id', $problem->institution_id)
+                ->where('email_updates_institution_admin', true)
+                ->whereHas('roles', fn ($q) => $q->where('role', UserRole::ROLE_INSTITUTION_ADMIN))
+                ->pluck('email')
+                ->all();
+            $recipients = array_unique(array_merge($recipients, $admins));
+        }
+        foreach ($recipients as $email) {
+            Mail::raw($body, function ($message) use ($email, $subject) {
+                $message->to($email)->subject($subject);
+            });
+        }
+    }
 }

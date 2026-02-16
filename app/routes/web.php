@@ -44,6 +44,9 @@ Route::middleware(['auth', 'verified', 'reporter.terms'])->group(function () {
             Route::post('/automation/publish-rules', [AutomationController::class, 'storePublishRule'])->name('automation.publishRules.store');
             Route::put('/automation/publish-rules/{publish_rule}', [AutomationController::class, 'updatePublishRule'])->name('automation.publishRules.update');
             Route::delete('/automation/publish-rules/{publish_rule}', [AutomationController::class, 'destroyPublishRule'])->name('automation.publishRules.destroy');
+            Route::post('/automation/resolution-term-rules', [AutomationController::class, 'storeResolutionTermRule'])->name('automation.resolutionTermRules.store');
+            Route::put('/automation/resolution-term-rules/{resolution_term_rule}', [AutomationController::class, 'updateResolutionTermRule'])->name('automation.resolutionTermRules.update');
+            Route::delete('/automation/resolution-term-rules/{resolution_term_rule}', [AutomationController::class, 'destroyResolutionTermRule'])->name('automation.resolutionTermRules.destroy');
         });
         Route::get('/map', [ProblemController::class, 'map'])->name('map');
         Route::get('/problems/assign', [ProblemController::class, 'assign'])->name('problems.assign');
