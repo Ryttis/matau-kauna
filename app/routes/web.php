@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Admin\ArchiveController as AdminArchiveController;
 use App\Http\Controllers\Admin\ClassifierController as AdminClassifierController;
 use App\Http\Controllers\Admin\InstitutionController as AdminInstitutionController;
 use App\Http\Controllers\Admin\InvitationController as AdminInvitationController;
@@ -132,6 +133,13 @@ Route::middleware(['auth', 'verified', 'reporter.terms'])->group(function () {
             Route::post('/classifiers/values', [AdminClassifierController::class, 'storeValue']);
             Route::put('/classifiers/values/{value}', [AdminClassifierController::class, 'updateValue']);
             Route::delete('/classifiers/values/{value}', [AdminClassifierController::class, 'destroyValue']);
+
+            Route::get('/archive', [AdminArchiveController::class, 'index']);
+            Route::put('/archive/retention-rule', [AdminArchiveController::class, 'updateRetentionRule']);
+            Route::post('/archive/users/{user}/restore', [AdminArchiveController::class, 'restoreUser']);
+            Route::post('/archive/institutions/{institution}/restore', [AdminArchiveController::class, 'restoreInstitution']);
+            Route::post('/archive/problems/{problem}/restore', [AdminArchiveController::class, 'restoreProblem']);
+            Route::post('/archive/classifier-values/{classifier_value}/restore', [AdminArchiveController::class, 'restoreClassifierValue']);
         });
 });
 

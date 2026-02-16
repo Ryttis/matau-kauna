@@ -24,6 +24,7 @@ class ProblemAssignmentNotifier
         $institution = Institution::find($institutionId);
 
         $admins = User::query()
+            ->notArchived()
             ->where('institution_id', $institutionId)
             ->where('email_updates_institution_admin', true)
             ->whereHas('roles', fn ($q) => $q->where('role', UserRole::ROLE_INSTITUTION_ADMIN))
@@ -152,6 +153,7 @@ class ProblemAssignmentNotifier
         }
         if ($problem->institution_id) {
             $admins = User::query()
+                ->notArchived()
                 ->where('institution_id', $problem->institution_id)
                 ->where('email_updates_institution_admin', true)
                 ->whereHas('roles', fn ($q) => $q->where('role', UserRole::ROLE_INSTITUTION_ADMIN))

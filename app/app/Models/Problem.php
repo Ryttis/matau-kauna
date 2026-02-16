@@ -31,6 +31,8 @@ class Problem extends Model
         'reported_by_user_id',
         'merged_into_problem_id',
         'is_published_publicly',
+        'is_archived',
+        'archived_at',
     ];
 
     protected $casts = [
@@ -38,6 +40,8 @@ class Problem extends Model
         'completion_deadline' => 'date',
         'deadline_reminder_sent_at' => 'datetime',
         'is_published_publicly' => 'boolean',
+        'is_archived' => 'boolean',
+        'archived_at' => 'datetime',
     ];
 
     protected static function boot()
@@ -125,6 +129,11 @@ class Problem extends Model
     public function scopeSorted($query, $sortBy = 'created_at', $sortDirection = 'desc')
     {
         return $query->orderBy($sortBy, $sortDirection);
+    }
+
+    public function scopeNotArchived($query)
+    {
+        return $query->where('is_archived', false);
     }
 
     public function reviewHistory(): HasMany
