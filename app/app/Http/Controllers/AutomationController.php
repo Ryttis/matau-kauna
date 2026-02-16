@@ -87,7 +87,7 @@ class AutomationController extends Controller
             ]);
 
         $categories = ClassifierValue::getActiveTypeNames()->values()->all();
-        $institutions = Institution::where('is_active', true)->orderBy('name')->get(['id', 'name']);
+        $institutions = Institution::query()->notArchived()->where('is_active', true)->orderBy('name')->get(['id', 'name']);
 
         $publishRules = ProblemAutoPublishRule::query()
             ->orderBy('id')
@@ -116,7 +116,8 @@ class AutomationController extends Controller
                 'is_active' => $r->is_active,
             ]);
 
-        $classifierTypesWithNatures = ClassifierValue::whereNull('parent_id')
+        $classifierTypesWithNatures = ClassifierValue::notArchived()
+            ->whereNull('parent_id')
             ->where('is_active', true)
             ->with(['activeChildren:id,parent_id,name'])
             ->orderBy('sort_order')

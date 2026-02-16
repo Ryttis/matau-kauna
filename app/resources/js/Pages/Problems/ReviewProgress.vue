@@ -21,6 +21,7 @@ const props = defineProps({
     problem: Object,
     reviewEntries: { type: Array, default: () => [] },
     backUrl: { type: String, default: '' },
+    canAddEntry: { type: Boolean, default: true },
 })
 
 const handleBack = () => {
@@ -88,7 +89,7 @@ const handleBack = () => {
                 </div>
             </div>
 
-            <div class="review-progress-actions">
+            <div v-if="canAddEntry" class="review-progress-actions">
                 <button type="button" class="review-progress-add-btn" @click="openAddEntry">
                     Pridėti įrašą
                 </button>
@@ -96,6 +97,7 @@ const handleBack = () => {
         </div>
 
         <AddEntryModal
+            v-if="canAddEntry"
             :open="showAddEntryModal"
             @close="closeAddEntry"
         />

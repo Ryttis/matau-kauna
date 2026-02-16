@@ -80,6 +80,7 @@ class RolesSeeder extends Seeder
             'classification.edit',
             'statistics.view',
             'admin.access',
+            'archive.manage',
         ])->mapWithKeys(function ($permission) {
             return [
                 $permission => UserRolePermission::updateOrCreate(
@@ -122,6 +123,7 @@ class RolesSeeder extends Seeder
 
         $groups['Admin']->permissions()->sync([
             $permissions['admin.access']->id,
+            $permissions['archive.manage']->id,
         ]);
 
         $roleSystemAdmin->permissionGroups()->sync($groups->pluck('id')->toArray());

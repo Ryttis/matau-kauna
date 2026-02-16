@@ -23,12 +23,19 @@ class Institution extends Model
         'created_by',
         'updated_by',
         'is_email_only',
+        'archived_at',
     ];
 
     protected $casts = [
+        'archived_at' => 'datetime',
         'is_active' => 'boolean',
         'is_email_only' => 'boolean',
     ];
+
+    public function scopeNotArchived($query)
+    {
+        return $query->whereNull('archived_at');
+    }
 
     public function users()
     {

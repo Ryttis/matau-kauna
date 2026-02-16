@@ -24,6 +24,7 @@ class User extends Authenticatable implements MustVerifyEmail
         'terms_accepted_at',
         'reporter_wizard_completed_at',
         'reporter_report_terms_accepted_at',
+        'archived_at',
     ];
 
     protected $hidden = [
@@ -42,7 +43,13 @@ class User extends Authenticatable implements MustVerifyEmail
             'two_factor_enabled' => 'boolean',
             'email_notifications_enabled' => 'boolean',
             'email_updates_institution_admin' => 'boolean',
+            'archived_at' => 'datetime',
         ];
+    }
+
+    public function scopeNotArchived($query)
+    {
+        return $query->whereNull('archived_at');
     }
 
     public function institution()

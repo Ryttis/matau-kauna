@@ -11,7 +11,8 @@ class ClassifierController extends Controller
 {
     public function index(): JsonResponse
     {
-        $types = ClassifierValue::whereNull('parent_id')
+        $types = ClassifierValue::notArchived()
+            ->whereNull('parent_id')
             ->orderBy('sort_order')
             ->orderBy('name')
             ->get(['id', 'name', 'is_active', 'sort_order']);
@@ -27,7 +28,7 @@ class ClassifierController extends Controller
             return response()->json(['natures' => []], 404);
         }
 
-        $natures = $type->children()->orderBy('sort_order')->orderBy('name')->get();
+        $natures = $type->children()->notArchived()->orderBy('sort_order')->orderBy('name')->get();
 
         return response()->json([
             'typeName' => $type->name,
@@ -88,10 +89,11 @@ class ClassifierController extends Controller
 
     public function destroyValue(ClassifierValue $value): JsonResponse
     {
+        $now = now();
         if ($value->parent_id === null) {
-            $value->children()->delete();
+            $value->children()->update(['archived_at' => $now]);
         }
-        $value->delete();
+        $value->update(['archived_at' => $now]);
         return response()->json(['ok' => true]);
     }
 }

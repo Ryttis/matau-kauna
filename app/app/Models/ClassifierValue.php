@@ -13,12 +13,19 @@ class ClassifierValue extends Model
         'name',
         'is_active',
         'sort_order',
+        'archived_at',
     ];
 
     protected $casts = [
         'is_active' => 'boolean',
         'sort_order' => 'integer',
+        'archived_at' => 'datetime',
     ];
+
+    public function scopeNotArchived($query)
+    {
+        return $query->whereNull('archived_at');
+    }
 
     public function parent(): BelongsTo
     {
@@ -33,6 +40,7 @@ class ClassifierValue extends Model
     public function activeChildren(): HasMany
     {
         return $this->hasMany(ClassifierValue::class, 'parent_id')
+            ->whereNull('archived_at')
             ->where('is_active', true)
             ->orderBy('sort_order')
             ->orderBy('name');
@@ -50,7 +58,8 @@ class ClassifierValue extends Model
 
     public static function getActiveTypeNames(): \Illuminate\Support\Collection
     {
-        return static::whereNull('parent_id')
+        return static::notArchived()
+            ->whereNull('parent_id')
             ->where('is_active', true)
             ->orderBy('sort_order')
             ->orderBy('name')

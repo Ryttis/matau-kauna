@@ -68,6 +68,7 @@ class ProblemController extends Controller
 
         $problems = Problem::query()
             ->whereNull('merged_into_problem_id')
+            ->notArchived()
             ->when(
                 $user && $this->isInstitutionScoped($user),
                 fn ($query) => $query->where('institution_id', $user->institution_id)
@@ -246,9 +247,9 @@ class ProblemController extends Controller
             abort(403);
         }
 
-        $problem->delete();
+        $problem->update(['is_archived' => true, 'archived_at' => now()]);
 
-        return redirect()->route('dashboard')->with('success', 'Problema pašalinta');
+        return redirect()->route('dashboard')->with('success', 'Problema perkelta į archyvą');
     }
 
     public function assign(Request $request): Response
@@ -259,6 +260,7 @@ class ProblemController extends Controller
         }
 
         $institutions = Institution::query()
+            ->notArchived()
             ->where('is_active', true)
             ->orderBy('name')
             ->get(['id', 'name'])
@@ -375,6 +377,7 @@ class ProblemController extends Controller
         }
 
         $institutions = Institution::query()
+            ->notArchived()
             ->where('is_active', true)
             ->orderBy('name')
             ->get(['id', 'name'])
@@ -429,10 +432,13 @@ class ProblemController extends Controller
             ];
         })->toArray();
 
+        $canAddEntry = ! $reporterBackToDashboard;
+
         return Inertia::render('Problems/ReviewProgress', [
             'problem' => $problem,
             'reviewEntries' => $reviewEntries,
             'backUrl' => $reporterBackToDashboard ? route('dashboard') : route('problems.show', $problem->id),
+            'canAddEntry' => $canAddEntry,
         ]);
     }
 
@@ -477,7 +483,7 @@ class ProblemController extends Controller
                 ->all();
         }
 
-        $institutionsQuery = Institution::query()->orderBy('name');
+        $institutionsQuery = Institution::query()->notArchived()->orderBy('name');
         if ($this->isInstitutionScoped($user)) {
             $institutionsQuery->where('id', '!=', $user->institution_id);
         }
@@ -797,6 +803,7 @@ class ProblemController extends Controller
         $scope = $request->get('scope', 'current_page');
 
         $query = Problem::query()
+            ->notArchived()
             ->when(
                 $user->hasRole(UserRole::ROLE_INSTITUTION_ADMIN),
                 fn ($q) => $q->where('institution_id', $user->institution_id)
@@ -846,7 +853,8 @@ class ProblemController extends Controller
     public function reporterReport(Request $request): Response
     {
         $user = $request->user();
-        $types = ClassifierValue::whereNull('parent_id')
+        $types = ClassifierValue::notArchived()
+            ->whereNull('parent_id')
             ->where('is_active', true)
             ->with('activeChildren')
             ->orderBy('sort_order')

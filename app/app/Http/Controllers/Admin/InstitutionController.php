@@ -14,6 +14,7 @@ class InstitutionController extends Controller
     public function index(): LengthAwarePaginator
     {
         return Institution::query()
+            ->notArchived()
             ->withCount('users')
             ->orderBy('name')
             ->paginate(20);
@@ -22,6 +23,7 @@ class InstitutionController extends Controller
     public function list(): Collection
     {
         return Institution::query()
+            ->notArchived()
             ->orderBy('name')
             ->get(['id', 'name', 'is_email_only']);
     }
@@ -66,7 +68,7 @@ class InstitutionController extends Controller
     public function destroy(Institution $institution): JsonResponse
     {
         try {
-            $institution->delete();
+            $institution->update(['archived_at' => now()]);
             return response()->json(['ok' => true]);
         } catch (\Throwable $e) {
             return response()->json(

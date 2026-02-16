@@ -18,6 +18,7 @@ class RbacController extends Controller
     public function users()
     {
         return User::query()
+            ->notArchived()
             ->select(['id', 'name', 'email', 'institution_id'])
             ->with(['roles:id,role,name', 'institution:id,name'])
             ->orderBy('id', 'desc')
@@ -196,7 +197,7 @@ class RbacController extends Controller
             abort(422, 'Negalima ištrinti savo naudotojo.');
         }
 
-        $user->delete();
+        $user->update(['archived_at' => now()]);
 
         return response()->noContent();
     }
