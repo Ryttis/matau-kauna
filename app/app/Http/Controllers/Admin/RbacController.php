@@ -9,6 +9,7 @@ use App\Models\User;
 use App\Models\UserRole;
 use App\Models\Employee;
 use App\Models\Invitation;
+use App\Models\PasswordPolicy;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rule;
@@ -143,12 +144,20 @@ class RbacController extends Controller
 
     public function createUser(Request $request)
     {
+        $policy = PasswordPolicy::get();
         $data = $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'email', 'max:255', 'unique:users,email'],
-            'password' => ['required', 'string', 'min:8'],
+            'password' => $policy->rules(),
+            'password_confirmation' => ['required_with:password', 'same:password'],
             'institution_id' => ['nullable', 'integer', 'exists:institutions,id'],
         ]);
+
+        if (! $policy->validateProhibitNameEmail($data['password'], $data['name'] ?? null, $data['email'] ?? null)) {
+            return response()->json([
+                'message' => 'Slaptažodyje negalima naudoti vardo, pavardės ar el. pašto adreso.',
+            ], 422);
+        }
 
         $user = User::create([
             'name' => $data['name'],
@@ -164,7 +173,8 @@ class RbacController extends Controller
 
     public function updateUser(Request $request, User $user)
     {
-        $data = $request->validate([
+        $policy = PasswordPolicy::get();
+        $rules = [
             'name' => ['required', 'string', 'max:255'],
             'email' => [
                 'required',
@@ -172,15 +182,23 @@ class RbacController extends Controller
                 'max:255',
                 Rule::unique('users', 'email')->ignore($user->id),
             ],
-            'password' => ['nullable', 'string', 'min:8'],
             'institution_id' => ['nullable', 'integer', 'exists:institutions,id'],
-        ]);
+        ];
+        $rules['password'] = array_merge(['nullable'], array_diff($policy->rules(), ['required']));
+        $rules['password_confirmation'] = ['nullable', 'same:password'];
+
+        $data = $request->validate($rules);
 
         $user->name = $data['name'];
         $user->email = $data['email'];
         $user->institution_id = array_key_exists('institution_id', $data) ? $data['institution_id'] : $user->institution_id;
 
         if (! empty($data['password'])) {
+            if (! $policy->validateProhibitNameEmail($data['password'], $data['name'] ?? null, $data['email'] ?? null)) {
+                return response()->json([
+                    'message' => 'Slaptažodyje negalima naudoti vardo, pavardės ar el. pašto adreso.',
+                ], 422);
+            }
             $user->password = Hash::make($data['password']);
         }
 

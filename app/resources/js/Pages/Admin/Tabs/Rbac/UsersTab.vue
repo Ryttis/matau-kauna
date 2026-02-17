@@ -22,7 +22,7 @@ const isInviteOpen = ref(false)
 const inviteError = ref('')
 const assignRolesError = ref('')
 
-const createForm = ref({ name: '', email: '', password: '', institution_id: '' })
+const createForm = ref({ name: '', email: '', password: '', password_confirmation: '', institution_id: '' })
 const inviteForm = ref({ email: '', institution_id: '', role_id: '' })
 const editForm = ref({ id: null, name: '', email: '', password: '', institution_id: '' })
 const deleteTarget = ref({ id: null, name: '', email: '' })
@@ -31,12 +31,12 @@ const selectedUser = ref(null)
 const selectedRoleIds = ref([])
 
 const openCreate = () => {
-    createForm.value = { name: '', email: '', password: '', institution_id: '' }
+    createForm.value = { name: '', email: '', password: '', password_confirmation: '', institution_id: '' }
     isCreateOpen.value = true
 }
 
 const openEdit = (u) => {
-    editForm.value = { id: u.id, name: u.name, email: u.email, password: '', institution_id: u.institution_id ?? '' }
+    editForm.value = { id: u.id, name: u.name, email: u.email, password: '', password_confirmation: '', institution_id: u.institution_id ?? '' }
     isEditOpen.value = true
 }
 
@@ -109,7 +109,10 @@ const createUser = async () => {
     emit('set-saving', true)
     try {
         await axios.post('/admin/rbac/users', {
-            ...createForm.value,
+            name: createForm.value.name,
+            email: createForm.value.email,
+            password: createForm.value.password,
+            password_confirmation: createForm.value.password_confirmation,
             institution_id: createForm.value.institution_id || null
         })
         isCreateOpen.value = false
@@ -122,12 +125,16 @@ const createUser = async () => {
 const updateUser = async () => {
     emit('set-saving', true)
     try {
-        await axios.put(`/admin/rbac/users/${editForm.value.id}`, {
+        const payload = {
             name: editForm.value.name,
             email: editForm.value.email,
-            password: editForm.value.password || null,
             institution_id: editForm.value.institution_id || null
-        })
+        }
+        if (editForm.value.password) {
+            payload.password = editForm.value.password
+            payload.password_confirmation = editForm.value.password_confirmation
+        }
+        await axios.put(`/admin/rbac/users/${editForm.value.id}`, payload)
         isEditOpen.value = false
         emit('refresh')
     } finally {
@@ -241,7 +248,11 @@ const saveUserRoles = async () => {
 
             <label class="field">
                 <span>Slaptažodis</span>
-                <input class="input" type="password" v-model="createForm.password" />
+                <input class="input" type="password" v-model="createForm.password" placeholder="Min. 8 simb., didž./maž. raidė, specialus" />
+            </label>
+            <label class="field">
+                <span>Pakartokite slaptažodį</span>
+                <input class="input" type="password" v-model="createForm.password_confirmation" />
             </label>
 
             <label class="field">
@@ -321,7 +332,11 @@ const saveUserRoles = async () => {
 
             <label class="field">
                 <span>Naujas slaptažodis (nebūtina)</span>
-                <input class="input" type="password" v-model="editForm.password" />
+                <input class="input" type="password" v-model="editForm.password" placeholder="Palikite tuščią, jei nekeičiate" />
+            </label>
+            <label class="field" v-if="editForm.password">
+                <span>Pakartokite slaptažodį</span>
+                <input class="input" type="password" v-model="editForm.password_confirmation" />
             </label>
 
             <template #footer>

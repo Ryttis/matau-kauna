@@ -5,6 +5,11 @@ import LandingFooter from '@/Components/Landing/LandingFooter.vue';
 import { Head, Link, useForm } from '@inertiajs/vue3';
 import { computed } from 'vue';
 
+const props = defineProps({
+    terms_title: { type: String, default: 'Sistemos taisyklės ir asmens duomenų tvarkymas' },
+    terms_body: { type: String, default: '' }
+});
+
 const form = useForm({
     accepted: false,
 });
@@ -28,13 +33,15 @@ const submit = () => {
         <main class="reporter-terms-main">
             <div class="reporter-terms-card">
                 <h1 class="reporter-terms-title">
-                    Susipažinimas su asmens duomenų<br />naudojimu ir tvarkymu
+                    {{ terms_title }}
                 </h1>
 
                 <p class="reporter-terms-text">
                     Prieš naudodamiesi sistema, susipažinkite su asmens duomenų naudojimo ir tvarkymo
                     taisyklėmis.
                 </p>
+
+                <div v-if="terms_body" class="reporter-terms-content content-html" v-html="terms_body"></div>
 
                 <div class="reporter-terms-links">
                     <Link :href="route('privacy')" class="reporter-terms-link">Privatumo politika</Link>
@@ -113,6 +120,21 @@ const submit = () => {
     line-height: 1.5;
     font-size: 14px;
 }
+
+.reporter-terms-content {
+    margin: 0 0 1rem 0;
+    padding: 1rem;
+    background: #f5f5f5;
+    border-radius: 8px;
+    font-size: 14px;
+    line-height: 1.5;
+    color: #333;
+    max-height: 40vh;
+    overflow-y: auto;
+}
+
+.reporter-terms-content :deep(p) { margin: 0 0 0.5rem 0; }
+.reporter-terms-content :deep(ul), .reporter-terms-content :deep(ol) { margin: 0 0 0.5rem 1rem; }
 
 .reporter-terms-links {
     display: flex;

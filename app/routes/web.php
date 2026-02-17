@@ -13,8 +13,8 @@ use Inertia\Inertia;
 
 Route::get('/', [ProblemController::class, 'landing'])->name('landing');
 
-Route::get('/faq', fn () => Inertia::render('Guest/Faq'))->name('faq');
-Route::get('/privacy', fn () => Inertia::render('Guest/PrivacyPolicy'))->name('privacy');
+Route::get('/faq', [\App\Http\Controllers\GuestContentController::class, 'faq'])->name('faq');
+Route::get('/privacy', [\App\Http\Controllers\GuestContentController::class, 'privacy'])->name('privacy');
 Route::get('/contacts', fn () => Inertia::render('Guest/Contacts'))->name('contacts');
 Route::get('/help', fn () => Inertia::render('Guest/Help'))->name('help');
 
@@ -124,6 +124,10 @@ Route::middleware(['auth', 'verified', 'reporter.terms'])->group(function () {
             Route::get('/invitations', [AdminInvitationController::class, 'index']);
             Route::post('/invitations/{invitation}/resend', [AdminInvitationController::class, 'resend']);
 
+            Route::get('/password-policy', [\App\Http\Controllers\Admin\PasswordPolicyController::class, 'show']);
+            Route::put('/password-policy', [\App\Http\Controllers\Admin\PasswordPolicyController::class, 'update']);
+            Route::get('/login-history', [\App\Http\Controllers\Admin\LoginHistoryController::class, 'index']);
+
             Route::get('/institutions', [AdminInstitutionController::class, 'index']);
             Route::get('/institutions/list', [AdminInstitutionController::class, 'list']);
             Route::post('/institutions', [AdminInstitutionController::class, 'store']);
@@ -137,6 +141,13 @@ Route::middleware(['auth', 'verified', 'reporter.terms'])->group(function () {
             Route::delete('/classifiers/values/{value}', [AdminClassifierController::class, 'destroyValue']);
 
             Route::get('/archive', [AdminArchiveController::class, 'index']);
+            Route::get('/content-versions', [\App\Http\Controllers\Admin\ContentVersionController::class, 'index']);
+            Route::post('/content-versions', [\App\Http\Controllers\Admin\ContentVersionController::class, 'store']);
+            Route::put('/content-versions/{contentVersion}', [\App\Http\Controllers\Admin\ContentVersionController::class, 'update']);
+            Route::delete('/content-versions/{contentVersion}', [\App\Http\Controllers\Admin\ContentVersionController::class, 'destroy']);
+            Route::post('/content-versions/{contentVersion}/publish', [\App\Http\Controllers\Admin\ContentVersionController::class, 'publish']);
+            Route::post('/content-versions/{contentVersion}/unpublish', [\App\Http\Controllers\Admin\ContentVersionController::class, 'unpublish']);
+
             Route::get('/public-statistics-config', [\App\Http\Controllers\Admin\PublicStatisticsConfigController::class, 'show']);
             Route::put('/public-statistics-config', [\App\Http\Controllers\Admin\PublicStatisticsConfigController::class, 'update']);
             Route::put('/archive/retention-rule', [AdminArchiveController::class, 'updateRetentionRule']);
