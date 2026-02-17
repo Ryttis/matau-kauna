@@ -19,7 +19,7 @@ function goToProblem(id) {
         <div class="resolution-terms-page">
             <h1 class="page-title">Sprendimo terminai</h1>
             <p class="page-desc">
-                Problemos, kurių atlikimo terminas artėja arba jau praėjo. Priminimai siunčiami automatiškai kasdien (per <code>php artisan problems:check-deadlines</code> arba planuotoją).
+                Problemos, kurių atlikimo terminas artėja arba jau praėjo. Priminimai siunčiami automatiškai kasdien.
             </p>
 
             <section class="section">
@@ -108,13 +108,6 @@ function goToProblem(id) {
     color: #555;
     margin: 0 0 28px 0;
     line-height: 1.5;
-}
-
-.page-desc code {
-    background: #f0f0f0;
-    padding: 2px 6px;
-    border-radius: 4px;
-    font-size: 13px;
 }
 
 .section {
