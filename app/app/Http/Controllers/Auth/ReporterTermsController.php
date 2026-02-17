@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
+use App\Models\ContentVersion;
 use App\Models\UserRole;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -23,7 +24,12 @@ class ReporterTermsController extends Controller
             return redirect()->route('dashboard');
         }
 
-        return Inertia::render('Auth/ReporterTerms');
+        $termsContent = ContentVersion::getLatestPublished(ContentVersion::TYPE_TERMS);
+
+        return Inertia::render('Auth/ReporterTerms', [
+            'terms_title' => (string) ($termsContent?->title ?? 'Sistemos taisyklės ir asmens duomenų tvarkymas'),
+            'terms_body' => (string) ($termsContent?->body ?? ''),
+        ]);
     }
 
     public function store(Request $request): RedirectResponse

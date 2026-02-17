@@ -29,7 +29,6 @@ class AutomationController extends Controller
         return [
             'name' => ['nullable', 'string', 'max:255'],
             'category' => ['nullable', 'string', 'max:255'],
-            'keyword' => ['nullable', 'string', 'max:500'],
             'institution_id' => ['required', 'integer', 'exists:institutions,id'],
             'is_active' => ['boolean'],
         ];
@@ -49,9 +48,6 @@ class AutomationController extends Controller
         $data['is_active'] = (bool) ($data['is_active'] ?? true);
         if (isset($data['category']) && $data['category'] !== null) {
             $data['category'] = trim($data['category']) ?: null;
-        }
-        if (isset($data['keyword']) && $data['keyword'] !== null) {
-            $data['keyword'] = trim($data['keyword']) ?: null;
         }
         return $data;
     }
@@ -80,7 +76,6 @@ class AutomationController extends Controller
                 'id' => $r->id,
                 'name' => $r->name,
                 'category' => $r->category,
-                'keyword' => $r->keyword,
                 'institution_id' => $r->institution_id,
                 'institution_name' => $r->institution?->name,
                 'is_active' => $r->is_active,

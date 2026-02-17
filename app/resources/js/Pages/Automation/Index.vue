@@ -61,7 +61,6 @@ function getDefaultForm(rule = null) {
     return {
         name: rule?.name ?? '',
         category: rule?.category ?? '',
-        keyword: rule?.keyword ?? '',
         institution_id: rule?.institution_id ? String(rule.institution_id) : defaultId,
         is_active: rule?.is_active ?? true,
     }
@@ -85,7 +84,6 @@ function buildPayload() {
     return {
         name: form.value.name || null,
         category: form.value.category || null,
-        keyword: form.value.keyword || null,
         institution_id: Number(form.value.institution_id),
         is_active: form.value.is_active,
     }
@@ -287,7 +285,7 @@ watch(
         <div class="automation-page">
             <h1 class="automation-title">Automatizacija</h1>
             <p class="automation-desc">
-                Nustatykite taisykles, pagal kurias naujai užregistruotos problemos bus automatiškai priskiriamos įstaigoms pagal kategoriją.
+                Problemos pagal kategoriją automatiškai priskiriamos įstaigoms.
             </p>
             <div class="automation-toolbar">
                 <AppButton text="Pridėti taisyklę" variant="primary" as-button @click="openCreate" />
@@ -298,7 +296,6 @@ watch(
                         <tr>
                             <th>Pavadinimas</th>
                             <th>Kategorija</th>
-                            <th>Raktažodis</th>
                             <th>Įstaiga</th>
                             <th>Aktyvi</th>
                             <th>Veiksmai</th>
@@ -308,7 +305,6 @@ watch(
                         <tr v-for="r in rules" :key="r.id">
                             <td>{{ r.name || '—' }}</td>
                             <td>{{ r.category || '—' }}</td>
-                            <td>{{ r.keyword || '—' }}</td>
                             <td>{{ r.institution_name || '—' }}</td>
                             <td>{{ r.is_active ? 'Taip' : 'Ne' }}</td>
                             <td>
@@ -324,7 +320,7 @@ watch(
 
             <h2 class="automation-subtitle">Publikavimo taisyklės</h2>
             <p class="automation-desc">
-                Pagal kategoriją ir būseną nustatykite, kada problemos bus automatiškai paskelbiamos viešai (po būsenos atnaujinimo).
+                Nustatykite, kada problemos bus paskelbiamos viešai.
             </p>
             <div class="automation-toolbar">
                 <AppButton text="Pridėti publikavimo taisyklę" variant="primary" as-button @click="openPublishCreate" />
@@ -357,7 +353,7 @@ watch(
 
             <h2 class="automation-subtitle">Sprendimo terminų taisyklės</h2>
             <p class="automation-desc">
-                Nustatykite terminus dienomis pagal įstaigą ir (arba) klasifikatoriaus reikšmę. Kai problema priskiriama įstaigai (automatiškai ar rankiniu būdu), jai bus priskirtas atitinkamas atlikimo terminas, jei taisyklė atitinka.
+                Nustatykite, kiek dienų įstaiga turi išspręsti problemą. Terminas priskiriamas pagal įstaigą ir kategoriją.
             </p>
             <div class="automation-toolbar">
                 <AppButton text="Pridėti termino taisyklę" variant="primary" as-button @click="openTermRuleCreate" />
@@ -405,7 +401,6 @@ watch(
                 <AppSelect v-model="form.category" label="Kategorija" :placeholder="''">
                     <option v-for="opt in categoryOptions" :key="String(opt.value)" :value="opt.value">{{ opt.label }}</option>
                 </AppSelect>
-                <AppInput v-model="form.keyword" label="Raktažodis aprašyme (nebūtina)" placeholder="pvz. apšvietimas" />
                 <AppSelect v-model="form.institution_id" label="Įstaiga" placeholder="Pasirinkite įstaigą">
                     <option v-for="i in institutions" :key="i.id" :value="String(i.id)">{{ i.name }}</option>
                 </AppSelect>

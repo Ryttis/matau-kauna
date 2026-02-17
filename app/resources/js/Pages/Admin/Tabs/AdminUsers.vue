@@ -6,6 +6,9 @@ import UsersTab from '@/Pages/Admin/Tabs/Rbac/UsersTab.vue'
 import RolesTab from '@/Pages/Admin/Tabs/Rbac/RolesTab.vue'
 import GroupsTab from '@/Pages/Admin/Tabs/Rbac/GroupsTab.vue'
 import PermissionsTab from '@/Pages/Admin/Tabs/Rbac/PermissionsTab.vue'
+import PasswordPolicyTab from '@/Pages/Admin/Tabs/Rbac/PasswordPolicyTab.vue'
+import HistoryTab from '@/Pages/Admin/Tabs/Rbac/HistoryTab.vue'
+import AdminInvitations from '@/Pages/Admin/Tabs/AdminInvitations.vue'
 
 const activeSubTab = ref('users')
 
@@ -51,8 +54,13 @@ const loadPermissions = async () => {
 const setTab = async (tab) => {
     activeSubTab.value = tab
     clearError()
-    loading.value = true
 
+    if (tab === 'invitations' || tab === 'password-policy' || tab === 'history') {
+        loading.value = false
+        return
+    }
+
+    loading.value = true
     try {
         if (tab === 'users') {
             await Promise.all([loadUsers(), loadRoles(), loadInstitutions()])
@@ -96,6 +104,15 @@ onMounted(async () => {
             <button type="button" class="subtab" :class="{ active: activeSubTab === 'permissions' }" @click="setTab('permissions')">
                 Teisės
             </button>
+            <button type="button" class="subtab" :class="{ active: activeSubTab === 'invitations' }" @click="setTab('invitations')">
+                Pakvietimai
+            </button>
+            <button type="button" class="subtab" :class="{ active: activeSubTab === 'password-policy' }" @click="setTab('password-policy')">
+                Slaptažodžio reikalavimai
+            </button>
+            <button type="button" class="subtab" :class="{ active: activeSubTab === 'history' }" @click="setTab('history')">
+                Istorija
+            </button>
         </div>
 
         <div class="panel">
@@ -134,12 +151,16 @@ onMounted(async () => {
             />
 
             <PermissionsTab
-                v-else
+                v-else-if="activeSubTab === 'permissions'"
                 :saving="saving"
                 :permissions="permissions"
                 @set-saving="saving = $event"
                 @refresh="setTab('permissions')"
             />
+
+            <AdminInvitations v-else-if="activeSubTab === 'invitations'" />
+            <PasswordPolicyTab v-else-if="activeSubTab === 'password-policy'" />
+            <HistoryTab v-else-if="activeSubTab === 'history'" />
         </div>
     </div>
 </template>

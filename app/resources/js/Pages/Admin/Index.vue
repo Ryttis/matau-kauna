@@ -4,10 +4,8 @@ import { Head, usePage } from '@inertiajs/vue3'
 import { computed, ref } from 'vue'
 
 import AdminUsers from '@/Pages/Admin/Tabs/AdminUsers.vue'
-import AdminInvitations from '@/Pages/Admin/Tabs/AdminInvitations.vue'
 import AdminInstitutions from '@/Pages/Admin/Tabs/AdminInstitutions.vue'
 import AdminRules from '@/Pages/Admin/Tabs/AdminRules.vue'
-import AdminNotifications from '@/Pages/Admin/Tabs/AdminNotifications.vue'
 import AdminClassifiers from '@/Pages/Admin/Tabs/AdminClassifiers.vue'
 import AdminAudits from '@/Pages/Admin/Tabs/AdminAudits.vue'
 import AdminArchive from '@/Pages/Admin/Tabs/AdminArchive.vue'
@@ -18,10 +16,8 @@ const page = usePage()
 
 const tabs = [
     { key: 'users', label: 'Naudotojai', component: AdminUsers },
-    { key: 'invitations', label: 'Pakvietimai', component: AdminInvitations },
     { key: 'institutions', label: 'Įstaigos', component: AdminInstitutions },
     { key: 'rules', label: 'Taisyklės ir turinys', component: AdminRules },
-    { key: 'notifications', label: 'Pranešimai', component: AdminNotifications },
     { key: 'classifiers', label: 'Klasifikatoriai ir terminai', component: AdminClassifiers },
     { key: 'archive', label: 'Archyvavimas', component: AdminArchive },
     { key: 'public-statistics', label: 'Vieša statistika', component: AdminPublicStatistics },

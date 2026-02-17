@@ -10,7 +10,6 @@ class ProblemAutoAssignmentRule extends Model
     protected $fillable = [
         'name',
         'category',
-        'keyword',
         'institution_id',
         'is_active',
     ];
