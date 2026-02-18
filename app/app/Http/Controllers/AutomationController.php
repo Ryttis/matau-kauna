@@ -9,6 +9,7 @@ use App\Models\ProblemAutoAssignmentRule;
 use App\Models\ProblemAutoPublishRule;
 use App\Models\ProblemResolutionTermRule;
 use App\Models\UserRole;
+use App\Services\AuditLogService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -141,7 +142,8 @@ class AutomationController extends Controller
     {
         $this->authorizeAutomation();
         $data = $this->normalizeRuleData($request->validate($this->ruleValidationRules()));
-        ProblemAutoAssignmentRule::create($data);
+        $rule = ProblemAutoAssignmentRule::create($data);
+        $this->audit()->logUserAction($request->user(), 'automation.assignment_rule.create', 'ProblemAutoAssignmentRule', $rule->id, 'success');
         return redirect()->route('automation.index')->with('success', 'Taisyklė pridėta.');
     }
 
@@ -150,6 +152,7 @@ class AutomationController extends Controller
         $this->authorizeAutomation();
         $data = $this->normalizeRuleData($request->validate($this->ruleValidationRules()));
         $rule->update($data);
+        $this->audit()->logUserAction($request->user(), 'automation.assignment_rule.update', 'ProblemAutoAssignmentRule', $rule->id, 'success');
         return redirect()->route('automation.index')->with('success', 'Taisyklė atnaujinta.');
     }
 
@@ -157,16 +160,24 @@ class AutomationController extends Controller
     {
         $this->authorizeAutomation();
 
+        $id = $rule->id;
         $rule->delete();
+        $this->audit()->logUserAction(request()->user(), 'automation.assignment_rule.destroy', 'ProblemAutoAssignmentRule', $id, 'success');
 
         return redirect()->route('automation.index')->with('success', 'Taisyklė pašalinta.');
+    }
+
+    private function audit(): AuditLogService
+    {
+        return app(AuditLogService::class);
     }
 
     public function storePublishRule(Request $request): RedirectResponse
     {
         $this->authorizeAutomation();
         $data = $this->normalizePublishRuleData($request->validate($this->publishRuleValidationRules()));
-        ProblemAutoPublishRule::create($data);
+        $publishRule = ProblemAutoPublishRule::create($data);
+        $this->audit()->logUserAction($request->user(), 'automation.publish_rule.create', 'ProblemAutoPublishRule', $publishRule->id, 'success');
         return redirect()->route('automation.index')->with('success', 'Publikavimo taisyklė pridėta.');
     }
 
@@ -175,13 +186,16 @@ class AutomationController extends Controller
         $this->authorizeAutomation();
         $data = $this->normalizePublishRuleData($request->validate($this->publishRuleValidationRules()));
         $publish_rule->update($data);
+        $this->audit()->logUserAction($request->user(), 'automation.publish_rule.update', 'ProblemAutoPublishRule', $publish_rule->id, 'success');
         return redirect()->route('automation.index')->with('success', 'Publikavimo taisyklė atnaujinta.');
     }
 
     public function destroyPublishRule(ProblemAutoPublishRule $publish_rule): RedirectResponse
     {
         $this->authorizeAutomation();
+        $id = $publish_rule->id;
         $publish_rule->delete();
+        $this->audit()->logUserAction(request()->user(), 'automation.publish_rule.destroy', 'ProblemAutoPublishRule', $id, 'success');
         return redirect()->route('automation.index')->with('success', 'Publikavimo taisyklė pašalinta.');
     }
 
@@ -214,7 +228,8 @@ class AutomationController extends Controller
     {
         $this->authorizeAutomation();
         $data = $this->normalizeResolutionTermRuleData($request->validate($this->resolutionTermRuleValidationRules()));
-        ProblemResolutionTermRule::create($data);
+        $termRule = ProblemResolutionTermRule::create($data);
+        $this->audit()->logUserAction($request->user(), 'automation.resolution_term_rule.create', 'ProblemResolutionTermRule', $termRule->id, 'success');
         return redirect()->route('automation.index')->with('success', 'Sprendimo termino taisyklė pridėta.');
     }
 
@@ -223,13 +238,16 @@ class AutomationController extends Controller
         $this->authorizeAutomation();
         $data = $this->normalizeResolutionTermRuleData($request->validate($this->resolutionTermRuleValidationRules()));
         $resolution_term_rule->update($data);
+        $this->audit()->logUserAction($request->user(), 'automation.resolution_term_rule.update', 'ProblemResolutionTermRule', $resolution_term_rule->id, 'success');
         return redirect()->route('automation.index')->with('success', 'Sprendimo termino taisyklė atnaujinta.');
     }
 
     public function destroyResolutionTermRule(ProblemResolutionTermRule $resolution_term_rule): RedirectResponse
     {
         $this->authorizeAutomation();
+        $id = $resolution_term_rule->id;
         $resolution_term_rule->delete();
+        $this->audit()->logUserAction(request()->user(), 'automation.resolution_term_rule.destroy', 'ProblemResolutionTermRule', $id, 'success');
         return redirect()->route('automation.index')->with('success', 'Sprendimo termino taisyklė pašalinta.');
     }
 }

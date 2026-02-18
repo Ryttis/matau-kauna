@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Auth;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Auth\LoginRequest;
 use App\Models\LoginLog;
+use App\Services\AuditLogService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -41,6 +42,7 @@ class AuthenticatedSessionController extends Controller
             'ip' => $request->ip(),
             'user_agent' => $request->userAgent(),
         ]);
+        app(AuditLogService::class)->logLogin($user, $request);
         $roles = $user->roles()->get();
 
         if ($roles->count() > 1) {
@@ -59,6 +61,10 @@ class AuthenticatedSessionController extends Controller
      */
     public function destroy(Request $request): RedirectResponse
     {
+        $user = $request->user();
+        if ($user) {
+            app(AuditLogService::class)->logLogout($user, $request);
+        }
         Auth::guard('web')->logout();
 
         $request->session()->invalidate();

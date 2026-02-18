@@ -20,4 +20,5 @@ class DataRetentionRule extends Model
     ];
 
     public const ENTITY_PROBLEM = 'problem';
+    public const ENTITY_AUDIT_LOG = 'audit_log';
 }

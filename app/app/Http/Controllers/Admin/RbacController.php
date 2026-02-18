@@ -3,13 +3,14 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
-use App\Models\UserRolePermission;
-use App\Models\UserRolePermissionGroup;
-use App\Models\User;
-use App\Models\UserRole;
 use App\Models\Employee;
 use App\Models\Invitation;
 use App\Models\PasswordPolicy;
+use App\Models\User;
+use App\Models\UserRole;
+use App\Models\UserRolePermission;
+use App\Models\UserRolePermissionGroup;
+use App\Services\AuditLogService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rule;
@@ -63,6 +64,7 @@ class RbacController extends Controller
         }
 
         $user->roles()->sync($data['role_ids'] ?? []);
+        $this->audit()->logUserAction($request->user(), 'rbac.user.sync_roles', 'User', $user->id, 'success', null, ['user_id' => $user->id]);
 
         return $user->load('roles:id,role,name');
     }
@@ -82,7 +84,10 @@ class RbacController extends Controller
             'name' => ['required', 'string', 'max:255'],
         ]);
 
-        return UserRole::create($data);
+        $role = UserRole::create($data);
+        $this->audit()->logUserAction($request->user(), 'rbac.role.create', 'UserRole', $role->id, 'success');
+
+        return $role;
     }
 
     public function groups()
@@ -99,7 +104,10 @@ class RbacController extends Controller
             'name' => ['required', 'string', 'max:255'],
         ]);
 
-        return UserRolePermissionGroup::create($data);
+        $group = UserRolePermissionGroup::create($data);
+        $this->audit()->logUserAction($request->user(), 'rbac.group.create', 'UserRolePermissionGroup', $group->id, 'success');
+
+        return $group;
     }
 
     public function permissions()
@@ -115,7 +123,10 @@ class RbacController extends Controller
             'permission' => ['required', 'string', 'max:255', 'unique:user_role_permission,permission'],
         ]);
 
-        return UserRolePermission::create($data);
+        $permission = UserRolePermission::create($data);
+        $this->audit()->logUserAction($request->user(), 'rbac.permission.create', 'UserRolePermission', $permission->id, 'success');
+
+        return $permission;
     }
 
     public function syncRoleGroups(Request $request, UserRole $role)
@@ -126,6 +137,7 @@ class RbacController extends Controller
         ]);
 
         $role->permissionGroups()->sync($data['group_ids'] ?? []);
+        $this->audit()->logUserAction($request->user(), 'rbac.role.sync_groups', 'UserRole', $role->id, 'success');
 
         return $role->load('permissionGroups:id,name');
     }
@@ -138,6 +150,7 @@ class RbacController extends Controller
         ]);
 
         $group->permissions()->sync($data['permission_ids'] ?? []);
+        $this->audit()->logUserAction($request->user(), 'rbac.group.sync_permissions', 'UserRolePermissionGroup', $group->id, 'success');
 
         return $group->load('permissions:id,permission');
     }
@@ -167,6 +180,7 @@ class RbacController extends Controller
         ]);
 
         $this->ensureEmployeeForInstitution($user);
+        $this->audit()->logUserAction($request->user(), 'rbac.user.create', 'User', $user->id, 'success');
 
         return $user->load(['roles:id,role,name', 'institution:id,name']);
     }
@@ -205,45 +219,58 @@ class RbacController extends Controller
         $user->save();
 
         $this->ensureEmployeeForInstitution($user);
+        $this->audit()->logUserAction($request->user(), 'rbac.user.update', 'User', $user->id, 'success');
 
         return $user->load(['roles:id,role,name', 'institution:id,name']);
     }
 
-    public function deleteUser(User $user)
+    public function deleteUser(Request $request, User $user)
     {
         if (auth()->id() === $user->id) {
             abort(422, 'Negalima ištrinti savo naudotojo.');
         }
 
         $user->update(['archived_at' => now()]);
+        $this->audit()->logUserAction($request->user(), 'rbac.user.archive', 'User', $user->id, 'success');
 
         return response()->noContent();
     }
 
-    public function deleteRole(UserRole $role)
+    public function deleteRole(Request $request, UserRole $role)
     {
+        $roleId = $role->id;
         $role->users()->detach();
         $role->permissionGroups()->detach();
         $role->delete();
+        $this->audit()->logUserAction($request->user(), 'rbac.role.delete', 'UserRole', $roleId, 'success');
 
         return response()->noContent();
     }
 
-    public function deleteGroup(UserRolePermissionGroup $group)
+    public function deleteGroup(Request $request, UserRolePermissionGroup $group)
     {
+        $groupId = $group->id;
         $group->roles()->detach();
         $group->permissions()->detach();
         $group->delete();
+        $this->audit()->logUserAction($request->user(), 'rbac.group.delete', 'UserRolePermissionGroup', $groupId, 'success');
 
         return response()->noContent();
     }
 
-    public function deletePermission(UserRolePermission $permission)
+    public function deletePermission(Request $request, UserRolePermission $permission)
     {
+        $permissionId = $permission->id;
         $permission->groups()->detach();
         $permission->delete();
+        $this->audit()->logUserAction($request->user(), 'rbac.permission.delete', 'UserRolePermission', $permissionId, 'success');
 
         return response()->noContent();
+    }
+
+    private function audit(): AuditLogService
+    {
+        return app(AuditLogService::class);
     }
 
     private function ensureEmployeeForInstitution(User $user): void
