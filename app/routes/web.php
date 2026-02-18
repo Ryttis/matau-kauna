@@ -128,6 +128,11 @@ Route::middleware(['auth', 'verified', 'reporter.terms'])->group(function () {
             Route::put('/password-policy', [\App\Http\Controllers\Admin\PasswordPolicyController::class, 'update']);
             Route::get('/login-history', [\App\Http\Controllers\Admin\LoginHistoryController::class, 'index']);
 
+            Route::get('/audit-logs', [\App\Http\Controllers\Admin\AuditController::class, 'index']);
+            Route::get('/audit-logs/export', [\App\Http\Controllers\Admin\AuditController::class, 'export']);
+            Route::get('/audit-settings', [\App\Http\Controllers\Admin\AuditController::class, 'settings']);
+            Route::put('/audit-settings', [\App\Http\Controllers\Admin\AuditController::class, 'updateSettings']);
+
             Route::get('/institutions', [AdminInstitutionController::class, 'index']);
             Route::get('/institutions/list', [AdminInstitutionController::class, 'list']);
             Route::post('/institutions', [AdminInstitutionController::class, 'store']);

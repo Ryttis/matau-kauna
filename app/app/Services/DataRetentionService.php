@@ -2,8 +2,10 @@
 
 namespace App\Services;
 
+use App\Models\AuditLog;
 use App\Models\DataRetentionRule;
 use App\Models\Problem;
+use App\Services\AuditLogService;
 use Carbon\Carbon;
 
 class DataRetentionService
@@ -56,6 +58,34 @@ class DataRetentionService
 
         $count = $query->count();
         $query->delete();
+
+        return $count;
+    }
+
+    public function runAuditLogPurge(): int
+    {
+        $rule = DataRetentionRule::query()
+            ->where('entity_type', DataRetentionRule::ENTITY_AUDIT_LOG)
+            ->where('is_active', true)
+            ->first();
+
+        if (! $rule) {
+            return 0;
+        }
+
+        $days = $rule->delete_after_days ?? $rule->archive_after_days ?? 0;
+        if (! $days || $days < 1) {
+            return 0;
+        }
+
+        $threshold = Carbon::now()->subDays($days);
+        $query = AuditLog::query()->where('occurred_at', '<', $threshold);
+        $count = $query->count();
+        $query->delete();
+
+        if ($count > 0) {
+            app(AuditLogService::class)->logSystem('audit_retention.purge', AuditLog::RESULT_SUCCESS, null, ['deleted_count' => $count]);
+        }
 
         return $count;
     }

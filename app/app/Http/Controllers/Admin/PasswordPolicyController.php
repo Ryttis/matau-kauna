@@ -38,9 +38,10 @@ class PasswordPolicyController extends Controller
         if ($row) {
             $row->update($validated);
         } else {
-            PasswordPolicy::create($validated);
+            $row = PasswordPolicy::create($validated);
         }
         PasswordPolicy::clearCache();
+        app(\App\Services\AuditLogService::class)->logUserAction($request->user(), 'password_policy.update', 'PasswordPolicy', $row->id, 'success');
 
         return response()->json(['ok' => true]);
     }

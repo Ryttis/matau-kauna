@@ -10,3 +10,4 @@ Artisan::command('inspire', function () {
 
 Schedule::command('problems:check-deadlines')->daily();
 Schedule::command('archive:process')->daily();
+Schedule::command('audit:purge')->daily();

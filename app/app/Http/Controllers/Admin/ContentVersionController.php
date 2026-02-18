@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\ContentVersion;
 use App\Models\User;
 use App\Models\UserRole;
+use App\Services\AuditLogService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -53,6 +54,7 @@ class ContentVersionController extends Controller
             'body' => $data['body'] ?? '',
             'created_by' => $request->user()?->id,
         ]);
+        app(AuditLogService::class)->logUserAction($request->user(), 'content_version.create', 'ContentVersion', $content->id, 'success', null, ['type' => $type]);
 
         return response()->json(['id' => $content->id, 'version' => $content->version], 201);
     }
@@ -72,6 +74,7 @@ class ContentVersionController extends Controller
             'title' => $data['title'] ?? $contentVersion->title,
             'body' => $data['body'] ?? $contentVersion->body,
         ]);
+        app(AuditLogService::class)->logUserAction($request->user(), 'content_version.update', 'ContentVersion', $contentVersion->id, 'success');
 
         return response()->json(['ok' => true]);
     }
@@ -100,28 +103,32 @@ class ContentVersionController extends Controller
                 ->whereHas('roles', fn ($q) => $q->where('role', UserRole::ROLE_REPORTER))
                 ->update(['terms_accepted_at' => null]);
         }
+        app(AuditLogService::class)->logUserAction($request->user(), 'content_version.publish', 'ContentVersion', $contentVersion->id, 'success', null, ['type' => $contentVersion->type]);
 
         return response()->json(['ok' => true]);
     }
 
-    public function unpublish(ContentVersion $contentVersion): JsonResponse
+    public function unpublish(Request $request, ContentVersion $contentVersion): JsonResponse
     {
         if (! $contentVersion->is_published) {
             return response()->json(['message' => 'Versija nėra paskelbta.'], 422);
         }
 
         $contentVersion->update(['is_published' => false]);
+        app(AuditLogService::class)->logUserAction($request->user(), 'content_version.unpublish', 'ContentVersion', $contentVersion->id, 'success');
 
         return response()->json(['ok' => true]);
     }
 
-    public function destroy(ContentVersion $contentVersion): JsonResponse
+    public function destroy(Request $request, ContentVersion $contentVersion): JsonResponse
     {
         if ($contentVersion->is_published) {
             return response()->json(['message' => 'Publikuotos versijos pašalinti negalima.'], 422);
         }
 
+        $id = $contentVersion->id;
         $contentVersion->delete();
+        app(AuditLogService::class)->logUserAction($request->user(), 'content_version.destroy', 'ContentVersion', $id, 'success');
 
         return response()->json(['ok' => true]);
     }
