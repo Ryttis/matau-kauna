@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\ClassifierValue;
+use App\Support\ClassifierValueMapper;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -18,7 +19,7 @@ class ClassifierController extends Controller
             ->get(['id', 'name', 'is_active', 'sort_order']);
 
         return response()->json([
-            'types' => $types->map(fn (ClassifierValue $v) => $this->valueToArray($v))->values()->all(),
+            'types' => $types->map(fn (ClassifierValue $v) => ClassifierValueMapper::toArray($v))->values()->all(),
         ]);
     }
 
@@ -32,7 +33,7 @@ class ClassifierController extends Controller
 
         return response()->json([
             'typeName' => $type->name,
-            'natures' => $natures->map(fn (ClassifierValue $v) => $this->valueToArray($v))->values()->all(),
+            'natures' => $natures->map(fn (ClassifierValue $v) => ClassifierValueMapper::toArray($v))->values()->all(),
         ]);
     }
 
@@ -59,17 +60,7 @@ class ClassifierController extends Controller
             'sort_order' => $validated['sort_order'] ?? 0,
         ]);
 
-        return response()->json(['value' => $this->valueToArray($value)]);
-    }
-
-    private function valueToArray(ClassifierValue $value): array
-    {
-        return [
-            'id' => $value->id,
-            'name' => $value->name,
-            'is_active' => $value->is_active,
-            'sort_order' => $value->sort_order,
-        ];
+        return response()->json(['value' => ClassifierValueMapper::toArray($value)]);
     }
 
     public function updateValue(Request $request, ClassifierValue $value): JsonResponse
@@ -84,7 +75,7 @@ class ClassifierController extends Controller
         }
         $value->update($validated);
 
-        return response()->json(['value' => $this->valueToArray($value)]);
+        return response()->json(['value' => ClassifierValueMapper::toArray($value)]);
     }
 
     public function destroyValue(ClassifierValue $value): JsonResponse

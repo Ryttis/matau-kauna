@@ -1,6 +1,6 @@
 <script setup>
 import { ref, watch, computed } from 'vue'
-import { Head, router, usePage } from '@inertiajs/vue3'
+import { Head, router } from '@inertiajs/vue3'
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue'
 import AppButton from '@/Components/App/AppButton.vue'
 import AppInput from '@/Components/App/AppInput.vue'
@@ -9,10 +9,9 @@ import AppSelect from '@/Components/App/AppSelect.vue'
 import SuccessModal from '@/Components/App/SuccessModal.vue'
 import BaseModal from '@/Components/App/BaseModal.vue'
 import ConfirmModal from '@/Components/App/ConfirmModal.vue'
+import { useSuccessModal } from '@/composables/useSuccessModal.js'
 
-const page = usePage()
-const showSuccessModal = ref(!!page.props.flash?.success)
-watch(() => page.props.flash?.success, (msg) => { if (msg) showSuccessModal.value = true }, { immediate: true })
+const { showSuccessModal, successMessage, closeSuccessModal } = useSuccessModal()
 
 const props = defineProps({
     rules: Array,
@@ -279,8 +278,8 @@ watch(
     <AuthenticatedLayout>
         <SuccessModal
             :show="showSuccessModal"
-            :message="page.props.flash?.success ?? ''"
-            @close="showSuccessModal = false"
+            :message="successMessage"
+            @close="closeSuccessModal"
         />
         <div class="automation-page">
             <h1 class="automation-title">Automatizacija</h1>

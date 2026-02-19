@@ -3,6 +3,9 @@ import { ref } from 'vue'
 import axios from 'axios'
 import BaseModal from '@/Components/App/BaseModal.vue'
 import ConfirmModal from '@/Components/App/ConfirmModal.vue'
+import AppInput from '@/Components/App/AppInput.vue'
+import AppButton from '@/Components/App/AppButton.vue'
+import AppCheckbox from '@/Components/App/AppCheckbox.vue'
 
 const props = defineProps({
     groups: {
@@ -19,7 +22,7 @@ const props = defineProps({
     }
 })
 
-const emit = defineEmits(['refresh', 'set-saving'])
+const emit = defineEmits(['refresh', 'set-saving', 'show-success'])
 
 const isCreateOpen = ref(false)
 const isDeleteOpen = ref(false)
@@ -47,12 +50,21 @@ const openAssignPermissions = (g) => {
     isAssignPermissionsOpen.value = true
 }
 
+const togglePermission = (id, checked) => {
+    if (checked) {
+        selectedPermissionIds.value = [...selectedPermissionIds.value, id]
+    } else {
+        selectedPermissionIds.value = selectedPermissionIds.value.filter((i) => i !== id)
+    }
+}
+
 const createGroup = async () => {
     emit('set-saving', true)
 
     try {
         await axios.post('/admin/rbac/groups', createForm.value)
         isCreateOpen.value = false
+        emit('show-success', 'Grupė sukurta.')
         emit('refresh')
     } finally {
         emit('set-saving', false)
@@ -65,6 +77,7 @@ const deleteGroup = async () => {
     try {
         await axios.delete(`/admin/rbac/groups/${deleteTarget.value.id}`)
         isDeleteOpen.value = false
+        emit('show-success', 'Grupė pašalinta.')
         emit('refresh')
     } finally {
         emit('set-saving', false)
@@ -82,6 +95,7 @@ const saveGroupPermissions = async () => {
         })
 
         isAssignPermissionsOpen.value = false
+        emit('show-success', 'Grupės teisės atnaujintos.')
         emit('refresh')
     } finally {
         emit('set-saving', false)
@@ -137,19 +151,17 @@ const saveGroupPermissions = async () => {
 
         <!-- Create Group -->
         <BaseModal :open="isCreateOpen" title="Sukurti grupę" @close="isCreateOpen = false">
-            <label class="field">
-                <span>Pavadinimas</span>
-                <input class="input" placeholder="Users" v-model="createForm.name" />
-            </label>
+            <AppInput v-model="createForm.name" placeholder="Pavadinimas (pvz. Users)" />
 
             <template #footer>
-                <button type="button" class="secondary-btn" @click="isCreateOpen = false">
-                    Atšaukti
-                </button>
-
-                <button type="button" class="primary-btn fixed" :disabled="saving" @click="createGroup">
-                    {{ saving ? 'Kuriama...' : 'Sukurti' }}
-                </button>
+                <AppButton text="Atšaukti" variant="secondary" as-button @click="isCreateOpen = false" />
+                <AppButton
+                    :text="saving ? 'Kuriama...' : 'Sukurti'"
+                    variant="primary"
+                    as-button
+                    :disabled="saving"
+                    @click="createGroup"
+                />
             </template>
         </BaseModal>
 
@@ -166,19 +178,23 @@ const saveGroupPermissions = async () => {
 
             <div class="checklist">
                 <label v-for="p in permissions" :key="p.id" class="check">
-                    <input type="checkbox" :value="p.id" v-model="selectedPermissionIds" />
+                    <AppCheckbox
+                        :model-value="selectedPermissionIds.includes(p.id)"
+                        @update:model-value="(checked) => togglePermission(p.id, checked)"
+                    />
                     <span>{{ p.permission }}</span>
                 </label>
             </div>
 
             <template #footer>
-                <button type="button" class="secondary-btn" @click="isAssignPermissionsOpen = false">
-                    Atšaukti
-                </button>
-
-                <button type="button" class="primary-btn fixed" :disabled="saving" @click="saveGroupPermissions">
-                    {{ saving ? 'Saugoma...' : 'Išsaugoti' }}
-                </button>
+                <AppButton text="Atšaukti" variant="secondary" as-button @click="isAssignPermissionsOpen = false" />
+                <AppButton
+                    :text="saving ? 'Saugoma...' : 'Išsaugoti'"
+                    variant="primary"
+                    as-button
+                    :disabled="saving"
+                    @click="saveGroupPermissions"
+                />
             </template>
         </BaseModal>
 

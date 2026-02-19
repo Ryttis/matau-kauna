@@ -3,16 +3,15 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Auth\ResetPasswordRequest;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Password;
 use Illuminate\Support\Str;
-use Illuminate\Validation\Rules\Password as PasswordRule;
 use Inertia\Inertia;
 
 class PasswordResetController extends Controller
 {
-    // Show reset form from email link
     public function create(Request $request, string $token)
     {
         return Inertia::render('Auth/ResetPassword', [
@@ -21,15 +20,8 @@ class PasswordResetController extends Controller
         ]);
     }
 
-    // Handle password reset submit
-    public function store(Request $request)
+    public function store(ResetPasswordRequest $request)
     {
-        $request->validate([
-            'token' => ['required'],
-            'email' => ['required', 'email'],
-            'password' => ['required', 'confirmed', PasswordRule::defaults()],
-        ]);
-
         $status = Password::reset(
             $request->only('email', 'password', 'password_confirmation', 'token'),
             function ($user) use ($request) {
@@ -41,7 +33,7 @@ class PasswordResetController extends Controller
         );
 
         return $status === Password::PASSWORD_RESET
-            ? redirect()->route('login')->with('status', __($status))
-            : back()->withErrors(['email' => __($status)]);
+            ? redirect()->route('login')->with('status', 'Slaptažodis pakeistas. Galite prisijungti.')
+            : back()->withErrors(['email' => 'Nuoroda nebegalioja arba jau panaudota. Užsakykite naują.']);
     }
 }

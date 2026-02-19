@@ -14,10 +14,11 @@ use App\Models\UserRole;
 use App\Services\ProblemAssignmentNotifier;
 use App\Services\ProblemAutoAssignmentService;
 use App\Services\ProblemAutoPublishService;
+use App\Services\ProblemMapService;
 use App\Services\ProblemMergeContextService;
 use App\Services\ProblemResolutionTermService;
+use App\Services\ProblemScopeService;
 use App\Services\StatisticsService;
-use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Mail;
@@ -31,6 +32,8 @@ class ProblemController extends Controller
 {
     public function __construct(
         private ProblemMergeContextService $mergeContextService,
+        private ProblemMapService $mapService,
+        private ProblemScopeService $scopeService,
         private ProblemAssignmentNotifier $assignmentNotifier,
         private ProblemAutoAssignmentService $autoAssignmentService,
         private ProblemAutoPublishService $autoPublishService,
@@ -46,7 +49,7 @@ class ProblemController extends Controller
             return Inertia::render('Dashboard', [
                 'reporterView' => true,
                 'onlyMine' => $onlyMine,
-                'problems' => $this->getPublicProblemsForMap($onlyMine ? $user->id : null),
+                'problems' => $this->mapService->getPublicProblemsForMap($onlyMine ? $user->id : null),
             ]);
         }
 
@@ -66,17 +69,17 @@ class ProblemController extends Controller
         $sortBy = $request->get('sort_by', 'created_at');
         $sortDirection = $request->get('sort_direction', 'desc');
 
-        $employeeId = $this->employeeIdForUser($user);
+        $employeeId = $this->scopeService->employeeIdForUser($user);
 
         $problems = Problem::query()
             ->whereNull('merged_into_problem_id')
             ->notArchived()
             ->when(
-                $user && $this->isInstitutionScoped($user),
+                $user && $this->scopeService->isInstitutionScoped($user),
                 fn ($query) => $query->where('institution_id', $user->institution_id)
             )
             ->when(
-                $user && $this->isEmployeeScoped($user),
+                $user && $this->scopeService->isEmployeeScoped($user),
                 function ($query) use ($employeeId) {
                     if ($employeeId) {
                         $query->where('assigned_employee_id', $employeeId);
@@ -107,7 +110,7 @@ class ProblemController extends Controller
     public function updateStatus(Request $request, Problem $problem)
     {
         $user = $request->user();
-        $this->authorizeProblemAccess($user, $problem);
+        $this->scopeService->authorizeProblemAccess($user, $problem);
 
         $validated = $request->validate([
             'status' => 'required|string|in:' . implode(',', ProblemStatus::values()),
@@ -115,8 +118,8 @@ class ProblemController extends Controller
 
         $ids = $problem->getMergeGroupIds();
         $query = Problem::whereIn('id', $ids);
-        $this->scopeProblemsForUser($query, $user);
-        $this->ensureScopeMatchesCount($query, count($ids));
+        $this->scopeService->scopeProblemsForUser($query, $user);
+        $this->scopeService->ensureScopeMatchesCount($query, count($ids));
         $query->update([
             'status' => $validated['status'],
             'status_updated_at' => now(),
@@ -141,8 +144,8 @@ class ProblemController extends Controller
         ]);
 
         $query = Problem::whereIn('id', $validated['problem_ids']);
-        $this->scopeProblemsForUser($query, $user);
-        $this->ensureScopeMatchesCount($query, count($validated['problem_ids']));
+        $this->scopeService->scopeProblemsForUser($query, $user);
+        $this->scopeService->ensureScopeMatchesCount($query, count($validated['problem_ids']));
         $query->update([
             'status' => $validated['status'],
             'status_updated_at' => now(),
@@ -159,7 +162,7 @@ class ProblemController extends Controller
         if (! $user->hasPermission('issues.publish') && ! $user->hasPermission('issues.view')) {
             abort(403);
         }
-        $this->authorizeProblemAccess($user, $problem);
+        $this->scopeService->authorizeProblemAccess($user, $problem);
 
         $validated = $request->validate([
             'is_published_publicly' => 'required|boolean',
@@ -167,8 +170,8 @@ class ProblemController extends Controller
 
         $ids = $problem->getMergeGroupIds();
         $query = Problem::whereIn('id', $ids);
-        $this->scopeProblemsForUser($query, $user);
-        $this->ensureScopeMatchesCount($query, count($ids));
+        $this->scopeService->scopeProblemsForUser($query, $user);
+        $this->scopeService->ensureScopeMatchesCount($query, count($ids));
         $query->update(['is_published_publicly' => $validated['is_published_publicly']]);
 
         $label = $validated['is_published_publicly'] ? 'Paskelbta viešai.' : 'Nuimta nuo viešo skelbimo.';
@@ -188,8 +191,8 @@ class ProblemController extends Controller
         ]);
 
         $query = Problem::whereIn('id', $validated['problem_ids']);
-        $this->scopeProblemsForUser($query, $user);
-        $this->ensureScopeMatchesCount($query, count($validated['problem_ids']));
+        $this->scopeService->scopeProblemsForUser($query, $user);
+        $this->scopeService->ensureScopeMatchesCount($query, count($validated['problem_ids']));
         $query->update(['is_published_publicly' => $validated['is_published_publicly']]);
 
         $label = $validated['is_published_publicly'] ? 'Problemos paskelbtos viešai.' : 'Problemos nuimtos nuo viešo skelbimo.';
@@ -199,7 +202,7 @@ class ProblemController extends Controller
     public function show(Problem $problem): Response
     {
         $user = request()->user();
-        $this->authorizeProblemAccess($user, $problem);
+        $this->scopeService->authorizeProblemAccess($user, $problem);
 
         $categories = ClassifierValue::getActiveTypeNames()->values();
 
@@ -412,7 +415,7 @@ class ProblemController extends Controller
             return $this->reviewProgressResponse($problem, true);
         }
 
-        $this->authorizeProblemAccess($user, $problem);
+        $this->scopeService->authorizeProblemAccess($user, $problem);
         if (! $user->hasPermission('issues.view')) {
             abort(403);
         }
@@ -450,7 +453,7 @@ class ProblemController extends Controller
         if (! $user->hasRole(UserRole::ROLE_INSTITUTION_ADMIN) && ! $user->hasRole(UserRole::ROLE_SYSTEM_ADMIN)) {
             abort(403);
         }
-        $this->authorizeProblemAccess($user, $problem);
+        $this->scopeService->authorizeProblemAccess($user, $problem);
 
         $employees = [];
         if ($user->institution_id) {
@@ -486,7 +489,7 @@ class ProblemController extends Controller
         }
 
         $institutionsQuery = Institution::query()->notArchived()->orderBy('name');
-        if ($this->isInstitutionScoped($user)) {
+        if ($this->scopeService->isInstitutionScoped($user)) {
             $institutionsQuery->where('id', '!=', $user->institution_id);
         }
         $institutions = $institutionsQuery->get(['id', 'name'])->map(fn ($i) => ['id' => $i->id, 'name' => $i->name]);
@@ -504,7 +507,7 @@ class ProblemController extends Controller
         if (! $user->hasRole(UserRole::ROLE_INSTITUTION_ADMIN) && ! $user->hasRole(UserRole::ROLE_SYSTEM_ADMIN)) {
             abort(403);
         }
-        $this->authorizeProblemAccess($user, $problem);
+        $this->scopeService->authorizeProblemAccess($user, $problem);
 
         $validated = $request->validate([
             'employee_id' => ['required', 'integer', 'exists:employees,id'],
@@ -539,7 +542,7 @@ class ProblemController extends Controller
         if (! $user->hasRole(UserRole::ROLE_INSTITUTION_ADMIN) && ! $user->hasRole(UserRole::ROLE_SYSTEM_ADMIN)) {
             abort(403);
         }
-        $this->authorizeProblemAccess($user, $problem);
+        $this->scopeService->authorizeProblemAccess($user, $problem);
 
         $validated = $request->validate([
             'email' => ['required', 'email'],
@@ -579,7 +582,7 @@ class ProblemController extends Controller
                 abort(403);
             }
         } elseif ($user->hasRole(UserRole::ROLE_EMPLOYEE)) {
-            $employeeId = $this->employeeIdForUser($user);
+            $employeeId = $this->scopeService->employeeIdForUser($user);
             if (! $employeeId || (int) $problem->assigned_employee_id !== (int) $employeeId) {
                 abort(403);
             }
@@ -630,9 +633,9 @@ class ProblemController extends Controller
     public function merge(Request $request, Problem $problem): Response|RedirectResponse
     {
         $user = $request->user();
-        $this->authorizeMergeAccess($user, $problem);
-        if ($this->isEmployeeScoped($user)) {
-            $employeeId = $this->employeeIdForUser($user);
+        $this->scopeService->authorizeMergeAccess($user, $problem);
+        if ($this->scopeService->isEmployeeScoped($user)) {
+            $employeeId = $this->scopeService->employeeIdForUser($user);
             if (! $employeeId || (int) $problem->assigned_employee_id !== (int) $employeeId) {
                 abort(403);
             }
@@ -656,11 +659,11 @@ class ProblemController extends Controller
         $query = Problem::where('id', '!=', $problem->id)
             ->where('status', '!=', 'neuzregistruota')
             ->whereNull('merged_into_problem_id');
-        if ($this->isInstitutionScoped($user)) {
+        if ($this->scopeService->isInstitutionScoped($user)) {
             $query->where('institution_id', $user->institution_id);
         }
-        if ($this->isEmployeeScoped($user)) {
-            $employeeId = $this->employeeIdForUser($user);
+        if ($this->scopeService->isEmployeeScoped($user)) {
+            $employeeId = $this->scopeService->employeeIdForUser($user);
             if ($employeeId) {
                 $query->where('assigned_employee_id', $employeeId);
             } else {
@@ -682,7 +685,7 @@ class ProblemController extends Controller
             return collect([$m])->merge($m->mergedProblems ?? collect());
         })->values();
 
-        $mapProblems = $this->buildMapProblemsForMerge($problem, $mergedProblems, $similarProblems);
+        $mapProblems = $this->mapService->buildMapProblemsForMerge($problem, $mergedProblems, $similarProblems);
 
         return Inertia::render('Problems/Merge', [
             'problem' => $problem,
@@ -697,7 +700,7 @@ class ProblemController extends Controller
     public function storeMerge(Request $request, Problem $problem)
     {
         $user = $request->user();
-        $this->authorizeMergeAccess($user, $problem);
+        $this->scopeService->authorizeMergeAccess($user, $problem);
 
         $validated = $request->validate([
             'problem_ids' => 'required|array',
@@ -723,7 +726,7 @@ class ProblemController extends Controller
         $idsToMerge = array_keys($idsToMerge);
 
         $query = Problem::whereIn('id', $idsToMerge);
-        if ($this->isInstitutionScoped($user)) {
+        if ($this->scopeService->isInstitutionScoped($user)) {
             $query->where('institution_id', $user->institution_id);
         }
         $query->update(['merged_into_problem_id' => $problem->id]);
@@ -733,7 +736,7 @@ class ProblemController extends Controller
 
     public function unmerge(Request $request, Problem $problem)
     {
-        $this->authorizeMergeAccess($request->user(), $problem);
+        $this->scopeService->authorizeMergeAccess($request->user(), $problem);
         if ($problem->merged_into_problem_id === null) {
             return redirect()->back()->with('info', 'Problema neapjungta.');
         }
@@ -741,47 +744,6 @@ class ProblemController extends Controller
         $problem->update(['merged_into_problem_id' => null]);
 
         return redirect()->back()->with('success', 'Problema atskirta.');
-    }
-
-    private function authorizeMergeAccess(User $user, Problem $problem): void
-    {
-        if (! $user->hasRole(UserRole::ROLE_PROBLEM_ADMIN) && ! $user->hasRole(UserRole::ROLE_INSTITUTION_ADMIN) && ! $user->hasRole(UserRole::ROLE_SYSTEM_ADMIN)) {
-            abort(403);
-        }
-        if ($this->isInstitutionScoped($user) && (int) $problem->institution_id !== (int) $user->institution_id) {
-            abort(403);
-        }
-    }
-
-    private function buildMapProblemsForMerge(Problem $problem, $mergedProblems, $similarProblems): array
-    {
-        $center = config('kaunas.map_center');
-        $centerLat = $center['lat'];
-        $centerLng = $center['lng'];
-        $problemsForMap = collect([$problem])->concat($mergedProblems);
-        foreach ($similarProblems as $s) {
-            $problemsForMap->push($s);
-            $problemsForMap = $problemsForMap->merge($s->mergedProblems ?? collect());
-        }
-        $mapProblems = [];
-        $index = 0;
-        foreach ($problemsForMap as $p) {
-            $hasCoords = $p->lat !== null && $p->lng !== null;
-            $offset = $index * 0.002;
-            $mapProblems[] = [
-                'id' => $p->id,
-                'internal_number' => $p->internal_number,
-                'title' => $p->title,
-                'status' => $p->status ?? 'nauja',
-                'category' => $p->category,
-                'address' => $p->address,
-                'created_at' => $p->created_at?->toIso8601String(),
-                'lat' => $hasCoords ? (float) $p->lat : $centerLat + ($offset * 0.1),
-                'lng' => $hasCoords ? (float) $p->lng : $centerLng + ($offset * 0.1),
-            ];
-            $index++;
-        }
-        return $mapProblems;
     }
 
     public function export(Request $request)
@@ -834,21 +796,21 @@ class ProblemController extends Controller
         return Inertia::render('Map', [
             'categories' => $categories,
             'statusOptions' => ProblemStatus::selectableOptions(),
-            'problems' => $this->getProblemsForMapForUser($user),
+            'problems' => $this->mapService->getProblemsForMapForUser($user),
         ]);
     }
 
     public function landing(): Response
     {
         return Inertia::render('Guest/Landing', [
-            'problems' => $this->getPublicProblemsForMap(),
+            'problems' => $this->mapService->getPublicProblemsForMap(),
         ]);
     }
 
     public function publicMap(): Response
     {
         return Inertia::render('Guest/PublicMap', [
-            'problems' => $this->getPublicProblemsForMap(),
+            'problems' => $this->mapService->getPublicProblemsForMap(),
         ]);
     }
 
@@ -987,93 +949,6 @@ class ProblemController extends Controller
         ]);
     }
 
-    private function getProblemsForMapForUser(?User $user): array
-    {
-        $center = config('kaunas.map_center');
-        $centerLat = $center['lat'];
-        $centerLng = $center['lng'];
-
-        $query = Problem::query()
-            ->whereIn('status', ['nauja', 'nagrinejama', 'isspresta'])
-            ->when(
-                $user && $this->isInstitutionScoped($user),
-                fn ($q) => $q->where('institution_id', $user->institution_id)
-            )
-            ->when(
-                $user && $this->isEmployeeScoped($user),
-                function ($q) use ($user) {
-                    $employeeId = $this->employeeIdForUser($user);
-                    if ($employeeId) {
-                        $q->where('assigned_employee_id', $employeeId);
-                    } else {
-                        $q->whereRaw('1 = 0');
-                    }
-                }
-            );
-
-        return $query
-            ->orderBy('address')
-            ->orderBy('created_at', 'desc')
-            ->get(['id', 'internal_number', 'title', 'status', 'category', 'address', 'lat', 'lng', 'created_at'])
-            ->map(function ($problem, $index) use ($centerLat, $centerLng) {
-                $hasCoords = $problem->lat !== null && $problem->lng !== null;
-                $offset = $index * 0.002;
-                return [
-                    'id' => $problem->id,
-                    'internal_number' => $problem->internal_number,
-                    'title' => $problem->title,
-                    'status' => $problem->status,
-                    'category' => $problem->category,
-                    'address' => $problem->address,
-                    'created_at' => $problem->created_at?->toIso8601String(),
-                    'lat' => $hasCoords ? (float) $problem->lat : $centerLat + ($offset * 0.1),
-                    'lng' => $hasCoords ? (float) $problem->lng : $centerLng + ($offset * 0.1),
-                ];
-            })
-            ->values()
-            ->all();
-    }
-
-    private function getPublicProblemsForMap(?int $reportedByUserId = null): array
-    {
-        $center = config('kaunas.map_center');
-        $centerLat = $center['lat'];
-        $centerLng = $center['lng'];
-        $allowedStatuses = ['nauja', 'nagrinejama', 'isspresta'];
-
-        $query = Problem::query()
-            ->whereIn('status', $allowedStatuses)
-            ->when($reportedByUserId === null, fn ($q) => $q->where('is_published_publicly', true))
-            ->when($reportedByUserId !== null, function ($q) use ($reportedByUserId) {
-                $q->where(function ($q2) use ($reportedByUserId) {
-                    $q2->where('reported_by_user_id', $reportedByUserId)
-                        ->orWhereHas('mergedInto', fn ($q3) => $q3->where('reported_by_user_id', $reportedByUserId));
-                });
-            })
-            ->orderBy('address')
-            ->orderBy('created_at', 'desc')
-            ->get(['id', 'internal_number', 'title', 'status', 'category', 'address', 'lat', 'lng', 'created_at', 'merged_into_problem_id', 'is_published_publicly']);
-
-        $index = 0;
-        return $query->map(function ($problem) use ($centerLat, $centerLng, &$index) {
-            $hasCoords = $problem->lat !== null && $problem->lng !== null;
-            $offset = $index * 0.002;
-            $index++;
-            return [
-                'id' => $problem->id,
-                'internal_number' => $problem->internal_number,
-                'title' => $problem->title,
-                'status' => $problem->status,
-                'category' => $problem->category,
-                'address' => $problem->address,
-                'created_at' => $problem->created_at?->toIso8601String(),
-                'lat' => $hasCoords ? (float) $problem->lat : $centerLat + ($offset * 0.1),
-                'lng' => $hasCoords ? (float) $problem->lng : $centerLng + ($offset * 0.1),
-                'merged_into_problem_id' => $problem->merged_into_problem_id,
-            ];
-        })->values()->all();
-    }
-
     public function statistics(Request $request): Response
     {
         $user = $request->user();
@@ -1089,7 +964,7 @@ class ProblemController extends Controller
                 ->whereNotNull('completion_deadline')
                 ->whereNull('merged_into_problem_id')
                 ->with(['institution:id,name', 'assignedEmployee:id,name,surname,email']);
-            $this->scopeProblemsForUser($query, $user);
+            $this->scopeService->scopeProblemsForUser($query, $user);
             $all = $query->orderBy('completion_deadline')->get();
             $today = now()->startOfDay();
             $approachingEnd = $today->copy()->addDays(2);
@@ -1181,78 +1056,4 @@ class ProblemController extends Controller
             $filename
         );
     }
-
-    private function scopeProblemsForUser(Builder $query, $user): void
-    {
-        if ($user && $this->isInstitutionScoped($user)) {
-            $query->where('institution_id', $user->institution_id);
-        }
-        if ($user && $this->isEmployeeScoped($user)) {
-            $employeeId = $this->employeeIdForUser($user);
-            if (! $employeeId) {
-                abort(403);
-            }
-            $query->where('assigned_employee_id', $employeeId);
-        }
-    }
-
-    private function ensureScopeMatchesCount(Builder $query, int $expectedCount): void
-    {
-        if ((clone $query)->count() !== $expectedCount) {
-            abort(403);
-        }
-    }
-
-    private function authorizeProblemAccess($user, Problem $problem): void
-    {
-        if (! $user) {
-            return;
-        }
-        if ($this->isInstitutionScoped($user)) {
-            if ((int) $problem->institution_id !== (int) $user->institution_id) {
-                abort(403);
-            }
-            return;
-        }
-        if ($this->isEmployeeScoped($user)) {
-            $employeeId = $this->employeeIdForUser($user);
-            if (! $employeeId || (int) $problem->assigned_employee_id !== (int) $employeeId) {
-                abort(403);
-            }
-        }
-    }
-
-    private function isInstitutionScoped($user): bool
-    {
-        return $user
-            && (
-                $user->hasRole(UserRole::ROLE_INSTITUTION_ADMIN)
-                || $user->hasRole(UserRole::ROLE_EMPLOYEE)
-                || $user->hasRole(UserRole::ROLE_MUNICIPALITY_REP)
-            );
-    }
-
-    private function isEmployeeScoped($user): bool
-    {
-        return $user && $user->hasRole(UserRole::ROLE_EMPLOYEE);
-    }
-
-    private function employeeIdForUser($user): ?int
-    {
-        if (! $user) {
-            return null;
-        }
-
-        $query = Employee::where('email', $user->email);
-        if ($user->institution_id !== null) {
-            $query->where('institution_id', $user->institution_id);
-            return $query->value('id');
-        }
-        $employees = $query->get(['id', 'institution_id']);
-        if ($employees->count() === 1) {
-            return $employees->first()->id;
-        }
-        return null;
-    }
-
 }

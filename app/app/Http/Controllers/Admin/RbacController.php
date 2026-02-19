@@ -3,20 +3,24 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
-use App\Models\Employee;
-use App\Models\Invitation;
-use App\Models\PasswordPolicy;
+use App\Http\Requests\Admin\CreateUserRequest;
+use App\Http\Requests\Admin\SyncUserRolesRequest;
+use App\Http\Requests\Admin\UpdateUserRequest;
 use App\Models\User;
 use App\Models\UserRole;
 use App\Models\UserRolePermission;
 use App\Models\UserRolePermissionGroup;
 use App\Services\AuditLogService;
+use App\Services\RbacService;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Hash;
-use Illuminate\Validation\Rule;
 
 class RbacController extends Controller
 {
+    public function __construct(
+        private AuditLogService $auditLogService,
+        private RbacService $rbacService
+    ) {}
+
     public function users()
     {
         return User::query()
@@ -27,44 +31,17 @@ class RbacController extends Controller
             ->paginate(20);
     }
 
-    public function syncUserRoles(Request $request, User $user)
+    public function syncUserRoles(SyncUserRolesRequest $request, User $user)
     {
-        $data = $request->validate([
-            'role_ids' => ['array'],
-            'role_ids.*' => ['uuid', 'exists:user_role,id'],
-        ]);
+        $roleIds = $request->validated('role_ids') ?? [];
 
-        $roleIds = $data['role_ids'] ?? [];
-        $currentRoleIds = $user->roles()->pluck('id')->toArray();
-        $addedRoleIds = array_values(array_diff($roleIds, $currentRoleIds));
-
-        if (! empty($addedRoleIds)) {
-            $restrictedRoleIds = UserRole::query()
-                ->whereIn('role', [UserRole::ROLE_INSTITUTION_ADMIN, UserRole::ROLE_EMPLOYEE])
-                ->pluck('id')
-                ->toArray();
-
-            $addedRestricted = array_values(array_intersect($addedRoleIds, $restrictedRoleIds));
-            if (! empty($addedRestricted)) {
-                $missingInvite = collect($addedRestricted)->first(function ($roleId) use ($user) {
-                    return ! Invitation::query()
-                        ->where('email', $user->email)
-                        ->where('institution_id', $user->institution_id)
-                        ->where('role_id', $roleId)
-                        ->whereNotNull('used_at')
-                        ->exists();
-                });
-
-                if ($missingInvite) {
-                    return response()->json([
-                        'message' => 'Įstaigos administratorių ar darbuotojų paskyros turi būti kuriamos per pakvietimą.',
-                    ], 422);
-                }
-            }
+        $error = $this->rbacService->validateSyncUserRoles($user, $roleIds);
+        if ($error !== null) {
+            return response()->json($error, 422);
         }
 
-        $user->roles()->sync($data['role_ids'] ?? []);
-        $this->audit()->logUserAction($request->user(), 'rbac.user.sync_roles', 'User', $user->id, 'success', null, ['user_id' => $user->id]);
+        $user->roles()->sync($roleIds);
+        $this->auditLogService->logUserAction($request->user(), 'rbac.user.sync_roles', 'User', $user->id, 'success', null, ['user_id' => $user->id]);
 
         return $user->load('roles:id,role,name');
     }
@@ -85,7 +62,7 @@ class RbacController extends Controller
         ]);
 
         $role = UserRole::create($data);
-        $this->audit()->logUserAction($request->user(), 'rbac.role.create', 'UserRole', $role->id, 'success');
+        $this->auditLogService->logUserAction($request->user(), 'rbac.role.create', 'UserRole', $role->id, 'success');
 
         return $role;
     }
@@ -105,7 +82,7 @@ class RbacController extends Controller
         ]);
 
         $group = UserRolePermissionGroup::create($data);
-        $this->audit()->logUserAction($request->user(), 'rbac.group.create', 'UserRolePermissionGroup', $group->id, 'success');
+        $this->auditLogService->logUserAction($request->user(), 'rbac.group.create', 'UserRolePermissionGroup', $group->id, 'success');
 
         return $group;
     }
@@ -124,7 +101,7 @@ class RbacController extends Controller
         ]);
 
         $permission = UserRolePermission::create($data);
-        $this->audit()->logUserAction($request->user(), 'rbac.permission.create', 'UserRolePermission', $permission->id, 'success');
+        $this->auditLogService->logUserAction($request->user(), 'rbac.permission.create', 'UserRolePermission', $permission->id, 'success');
 
         return $permission;
     }
@@ -137,7 +114,7 @@ class RbacController extends Controller
         ]);
 
         $role->permissionGroups()->sync($data['group_ids'] ?? []);
-        $this->audit()->logUserAction($request->user(), 'rbac.role.sync_groups', 'UserRole', $role->id, 'success');
+        $this->auditLogService->logUserAction($request->user(), 'rbac.role.sync_groups', 'UserRole', $role->id, 'success');
 
         return $role->load('permissionGroups:id,name');
     }
@@ -150,76 +127,24 @@ class RbacController extends Controller
         ]);
 
         $group->permissions()->sync($data['permission_ids'] ?? []);
-        $this->audit()->logUserAction($request->user(), 'rbac.group.sync_permissions', 'UserRolePermissionGroup', $group->id, 'success');
+        $this->auditLogService->logUserAction($request->user(), 'rbac.group.sync_permissions', 'UserRolePermissionGroup', $group->id, 'success');
 
         return $group->load('permissions:id,permission');
     }
 
-    public function createUser(Request $request)
+    public function createUser(CreateUserRequest $request)
     {
-        $policy = PasswordPolicy::get();
-        $data = $request->validate([
-            'name' => ['required', 'string', 'max:255'],
-            'email' => ['required', 'email', 'max:255', 'unique:users,email'],
-            'password' => $policy->rules(),
-            'password_confirmation' => ['required_with:password', 'same:password'],
-            'institution_id' => ['nullable', 'integer', 'exists:institutions,id'],
-        ]);
-
-        if (! $policy->validateProhibitNameEmail($data['password'], $data['name'] ?? null, $data['email'] ?? null)) {
-            return response()->json([
-                'message' => 'Slaptažodyje negalima naudoti vardo, pavardės ar el. pašto adreso.',
-            ], 422);
-        }
-
-        $user = User::create([
-            'name' => $data['name'],
-            'email' => $data['email'],
-            'password' => Hash::make($data['password']),
-            'institution_id' => $data['institution_id'] ?? null,
-        ]);
-
-        $this->ensureEmployeeForInstitution($user);
-        $this->audit()->logUserAction($request->user(), 'rbac.user.create', 'User', $user->id, 'success');
+        $data = $request->validated();
+        $user = $this->rbacService->createUser($data);
+        $this->auditLogService->logUserAction($request->user(), 'rbac.user.create', 'User', $user->id, 'success');
 
         return $user->load(['roles:id,role,name', 'institution:id,name']);
     }
 
-    public function updateUser(Request $request, User $user)
+    public function updateUser(UpdateUserRequest $request, User $user)
     {
-        $policy = PasswordPolicy::get();
-        $rules = [
-            'name' => ['required', 'string', 'max:255'],
-            'email' => [
-                'required',
-                'email',
-                'max:255',
-                Rule::unique('users', 'email')->ignore($user->id),
-            ],
-            'institution_id' => ['nullable', 'integer', 'exists:institutions,id'],
-        ];
-        $rules['password'] = array_merge(['nullable'], array_diff($policy->rules(), ['required']));
-        $rules['password_confirmation'] = ['nullable', 'same:password'];
-
-        $data = $request->validate($rules);
-
-        $user->name = $data['name'];
-        $user->email = $data['email'];
-        $user->institution_id = array_key_exists('institution_id', $data) ? $data['institution_id'] : $user->institution_id;
-
-        if (! empty($data['password'])) {
-            if (! $policy->validateProhibitNameEmail($data['password'], $data['name'] ?? null, $data['email'] ?? null)) {
-                return response()->json([
-                    'message' => 'Slaptažodyje negalima naudoti vardo, pavardės ar el. pašto adreso.',
-                ], 422);
-            }
-            $user->password = Hash::make($data['password']);
-        }
-
-        $user->save();
-
-        $this->ensureEmployeeForInstitution($user);
-        $this->audit()->logUserAction($request->user(), 'rbac.user.update', 'User', $user->id, 'success');
+        $this->rbacService->updateUser($user, $request->validated());
+        $this->auditLogService->logUserAction($request->user(), 'rbac.user.update', 'User', $user->id, 'success');
 
         return $user->load(['roles:id,role,name', 'institution:id,name']);
     }
@@ -231,7 +156,7 @@ class RbacController extends Controller
         }
 
         $user->update(['archived_at' => now()]);
-        $this->audit()->logUserAction($request->user(), 'rbac.user.archive', 'User', $user->id, 'success');
+        $this->auditLogService->logUserAction($request->user(), 'rbac.user.archive', 'User', $user->id, 'success');
 
         return response()->noContent();
     }
@@ -242,7 +167,7 @@ class RbacController extends Controller
         $role->users()->detach();
         $role->permissionGroups()->detach();
         $role->delete();
-        $this->audit()->logUserAction($request->user(), 'rbac.role.delete', 'UserRole', $roleId, 'success');
+        $this->auditLogService->logUserAction($request->user(), 'rbac.role.delete', 'UserRole', $roleId, 'success');
 
         return response()->noContent();
     }
@@ -253,7 +178,7 @@ class RbacController extends Controller
         $group->roles()->detach();
         $group->permissions()->detach();
         $group->delete();
-        $this->audit()->logUserAction($request->user(), 'rbac.group.delete', 'UserRolePermissionGroup', $groupId, 'success');
+        $this->auditLogService->logUserAction($request->user(), 'rbac.group.delete', 'UserRolePermissionGroup', $groupId, 'success');
 
         return response()->noContent();
     }
@@ -263,39 +188,9 @@ class RbacController extends Controller
         $permissionId = $permission->id;
         $permission->groups()->detach();
         $permission->delete();
-        $this->audit()->logUserAction($request->user(), 'rbac.permission.delete', 'UserRolePermission', $permissionId, 'success');
+        $this->auditLogService->logUserAction($request->user(), 'rbac.permission.delete', 'UserRolePermission', $permissionId, 'success');
 
         return response()->noContent();
     }
 
-    private function audit(): AuditLogService
-    {
-        return app(AuditLogService::class);
-    }
-
-    private function ensureEmployeeForInstitution(User $user): void
-    {
-        if (! $user->institution_id) {
-            Employee::where('email', $user->email)->delete();
-            return;
-        }
-
-        $employee = Employee::firstOrCreate(
-            [
-                'email' => $user->email,
-                'institution_id' => $user->institution_id,
-            ],
-            [
-                'name' => $user->name ?? '',
-                'surname' => '',
-            ]
-        );
-
-        if ($employee->wasRecentlyCreated) {
-            return;
-        }
-
-        $employee->name = $user->name ?? $employee->name;
-        $employee->save();
-    }
 }

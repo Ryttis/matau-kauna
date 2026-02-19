@@ -99,6 +99,8 @@ async function submitEditType() {
         })
         showEditTypeModal.value = false
         await loadClassifiers()
+        successMessage.value = 'Rūšis atnaujinta.'
+        showSuccessModal.value = true
     } catch (e) {
         errorMessage.value = e.response?.data?.message ?? 'Nepavyko atnaujinti.'
     } finally {
@@ -112,6 +114,8 @@ async function toggleTypeActive(type) {
             is_active: !type.is_active,
         })
         await loadClassifiers()
+        successMessage.value = 'Rūšies būsena pakeista.'
+        showSuccessModal.value = true
     } catch (e) {
         errorMessage.value = e.response?.data?.message ?? 'Nepavyko pakeisti.'
     }
@@ -185,6 +189,8 @@ async function submitAddNature() {
         })
         showAddNatureForm.value = false
         await loadNaturesForType(selectedTypeForNatures.value.id)
+        successMessage.value = 'Pobūdis pridėtas.'
+        showSuccessModal.value = true
     } catch (e) {
         errorMessage.value = e.response?.data?.message ?? 'Nepavyko pridėti pobūdžio.'
     } finally {
@@ -212,6 +218,8 @@ async function submitEditNature() {
         })
         showEditNatureModal.value = false
         await loadNaturesForType(selectedTypeForNatures.value.id)
+        successMessage.value = 'Pobūdis atnaujintas.'
+        showSuccessModal.value = true
     } catch (e) {
         errorMessage.value = e.response?.data?.message ?? 'Nepavyko atnaujinti.'
     } finally {
@@ -225,6 +233,8 @@ async function toggleNatureActive(nature) {
             is_active: !nature.is_active,
         })
         await loadNaturesForType(selectedTypeForNatures.value.id)
+        successMessage.value = 'Pobūdžio būsena pakeista.'
+        showSuccessModal.value = true
     } catch (e) {
         errorMessage.value = e.response?.data?.message ?? 'Nepavyko pakeisti.'
     }
@@ -236,6 +246,8 @@ async function removeNature(nature) {
             is_active: false,
         })
         await loadNaturesForType(selectedTypeForNatures.value.id)
+        successMessage.value = 'Pobūdis pašalintas.'
+        showSuccessModal.value = true
     } catch (e) {
         errorMessage.value = e.response?.data?.message ?? 'Nepavyko pašalinti.'
     }

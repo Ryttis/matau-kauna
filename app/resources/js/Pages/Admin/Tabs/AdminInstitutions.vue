@@ -3,7 +3,9 @@ import { computed, onMounted, ref } from 'vue'
 import axios from 'axios'
 import BaseModal from '@/Components/App/BaseModal.vue'
 import ConfirmModal from '@/Components/App/ConfirmModal.vue'
+import SuccessModal from '@/Components/App/SuccessModal.vue'
 import AppButton from '@/Components/App/AppButton.vue'
+import { useSuccessModal } from '@/composables/useSuccessModal.js'
 import AppInput from '@/Components/App/AppInput.vue'
 import ModalFooterActions from '@/Components/App/ModalFooterActions.vue'
 import { INSTITUTION_TYPES } from '@/constants/institutionTypes.js'
@@ -34,6 +36,7 @@ const createForm = ref(emptyInstitutionForm())
 const editForm = ref(emptyInstitutionForm())
 const showDeleteModal = ref(false)
 const institutionToDelete = ref(null)
+const { showSuccessModal, successMessage, closeSuccessModal, showWithMessage } = useSuccessModal()
 
 const deleteConfirmMessage = computed(() => {
     const inst = institutionToDelete.value
@@ -105,6 +108,7 @@ const createInstitution = async () => {
         })
         isCreateOpen.value = false
         await loadInstitutions()
+        showWithMessage('Įstaiga sukurta.')
     } catch (e) {
         errorMessage.value = e.response?.data?.message ?? 'Nepavyko sukurti įstaigos.'
     } finally {
@@ -131,6 +135,7 @@ const updateInstitution = async () => {
         })
         isEditOpen.value = false
         await loadInstitutions()
+        showWithMessage('Įstaigos duomenys atnaujinti.')
     } catch (e) {
         errorMessage.value = e.response?.data?.message ?? 'Nepavyko išsaugoti įstaigos.'
     } finally {
@@ -152,6 +157,11 @@ onMounted(async () => {
 
 <template>
     <div>
+        <SuccessModal
+            :show="showSuccessModal"
+            :message="successMessage"
+            @close="closeSuccessModal"
+        />
         <div class="header-row">
             <h3 class="title">Įstaigos</h3>
             <AppButton text="+ Kurti įstaigą" variant="primary" as-button @click="openCreate" />

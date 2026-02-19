@@ -1,12 +1,15 @@
 <script setup>
 import { onMounted, ref } from 'vue'
 import axios from 'axios'
+import SuccessModal from '@/Components/App/SuccessModal.vue'
+import AppDataTable from '@/Components/App/AppDataTable.vue'
+import { useSuccessModal } from '@/composables/useSuccessModal.js'
 
 const invitationsPage = ref(null)
 const loading = ref(false)
 const errorMessage = ref('')
 const resendError = ref('')
-const resendSuccess = ref('')
+const { showSuccessModal, successMessage, closeSuccessModal, showWithMessage } = useSuccessModal()
 
 const loadInvitations = async () => {
     loading.value = true
@@ -23,11 +26,9 @@ const loadInvitations = async () => {
 
 const resendInvite = async (invite) => {
     resendError.value = ''
-    resendSuccess.value = ''
-
     try {
         await axios.post(`/admin/invitations/${invite.id}/resend`)
-        resendSuccess.value = 'Pakvietimas išsiųstas iš naujo.'
+        showWithMessage('Pakvietimas išsiųstas iš naujo.')
         await loadInvitations()
     } catch (e) {
         resendError.value = e.response?.data?.message ?? 'Nepavyko išsiųsti pakvietimo.'
@@ -52,13 +53,21 @@ onMounted(loadInvitations)
             </button>
         </div>
 
+        <SuccessModal
+            :show="showSuccessModal"
+            :message="successMessage"
+            @close="closeSuccessModal"
+        />
         <div v-if="errorMessage" class="error">{{ errorMessage }}</div>
         <div v-if="resendError" class="error">{{ resendError }}</div>
-        <div v-if="resendSuccess" class="success">{{ resendSuccess }}</div>
 
         <div v-if="loading">Kraunama...</div>
 
-        <table class="table" v-else-if="invitationsPage?.data?.length">
+        <AppDataTable
+            v-else
+            :has-rows="!!(invitationsPage?.data?.length)"
+            empty-text="Nėra pakvietimų."
+        >
             <thead>
                 <tr>
                     <th>El. paštas</th>
@@ -90,9 +99,7 @@ onMounted(loadInvitations)
                     </td>
                 </tr>
             </tbody>
-        </table>
-
-        <div v-else>Nėra pakvietimų.</div>
+        </AppDataTable>
     </div>
 </template>
 
@@ -128,19 +135,6 @@ onMounted(loadInvitations)
     border-radius: 10px;
     margin-bottom: 12px;
     font-size: 13px;
-}
-
-.table {
-    width: 100%;
-    border-collapse: collapse;
-}
-
-th, td {
-    text-align: left;
-    padding: 10px;
-    border-bottom: 1px solid #eef0f3;
-    font-size: 13px;
-    vertical-align: top;
 }
 
 .link-btn {

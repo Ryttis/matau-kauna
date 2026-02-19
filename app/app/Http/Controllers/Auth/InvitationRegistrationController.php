@@ -3,13 +3,13 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Auth\RegisterFromInvitationRequest;
 use App\Models\Employee;
 use App\Models\Invitation;
 use App\Models\User;
 use Illuminate\Http\RedirectResponse;
-use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Validation\Rules\Password;
+use Illuminate\Support\Facades\Hash;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -30,7 +30,7 @@ class InvitationRegistrationController extends Controller
         ]);
     }
 
-    public function store(Request $request, string $token): RedirectResponse
+    public function store(RegisterFromInvitationRequest $request, string $token): RedirectResponse
     {
         $invitation = Invitation::with('institution')->where('token', $token)->firstOrFail();
 
@@ -38,11 +38,7 @@ class InvitationRegistrationController extends Controller
             return redirect()->route('login')->with('error', 'Pakvietimas nebegalioja arba jau panaudotas.');
         }
 
-        $data = $request->validate([
-            'name' => ['required', 'string', 'max:255'],
-            'email' => ['required', 'string', 'email', 'max:255'],
-            'password' => ['required', 'confirmed', Password::defaults()],
-        ]);
+        $data = $request->validated();
 
         if (strtolower($data['email']) !== strtolower($invitation->email)) {
             return back()->withErrors(['email' => 'El. paštas turi atitikti pakvietime nurodytą.']);
@@ -55,7 +51,7 @@ class InvitationRegistrationController extends Controller
         $user = User::create([
             'name' => $data['name'],
             'email' => $data['email'],
-            'password' => bcrypt($data['password']),
+            'password' => Hash::make($data['password']),
             'institution_id' => $invitation->institution_id,
         ]);
 

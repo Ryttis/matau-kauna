@@ -19,7 +19,7 @@ const props = defineProps({
     }
 })
 
-const emit = defineEmits(['refresh', 'set-saving'])
+const emit = defineEmits(['refresh', 'set-saving', 'show-success'])
 
 const isCreateOpen = ref(false)
 const isDeleteOpen = ref(false)
@@ -53,6 +53,7 @@ const createRole = async () => {
     try {
         await axios.post('/admin/rbac/roles', createForm.value)
         isCreateOpen.value = false
+        emit('show-success', 'Rolė sukurta.')
         emit('refresh')
     } finally {
         emit('set-saving', false)
@@ -65,6 +66,7 @@ const deleteRole = async () => {
     try {
         await axios.delete(`/admin/rbac/roles/${deleteTarget.value.id}`)
         isDeleteOpen.value = false
+        emit('show-success', 'Rolė pašalinta.')
         emit('refresh')
     } finally {
         emit('set-saving', false)
@@ -82,6 +84,7 @@ const saveRoleGroups = async () => {
         })
 
         isAssignGroupsOpen.value = false
+        emit('show-success', 'Rolės grupės atnaujintos.')
         emit('refresh')
     } finally {
         emit('set-saving', false)

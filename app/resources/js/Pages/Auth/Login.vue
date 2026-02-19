@@ -1,21 +1,25 @@
 <script setup>
 import AuthInput from '@/Components/Auth/AuthInput.vue';
 import AppButton from '@/Components/App/AppButton.vue';
+import SuccessModal from '@/Components/App/SuccessModal.vue';
 import LoginNavigation from '@/Components/Auth/Login/LoginNavigation.vue';
 import LandingHeader from '@/Components/Landing/LandingHeader.vue';
 import LandingFooter from '@/Components/Landing/LandingFooter.vue';
 import { Head, Link, useForm } from '@inertiajs/vue3';
 import { ref, watch } from 'vue';
 
-defineProps({
+const props = defineProps({
     canResetPassword: {
         type: Boolean,
     },
     status: {
         type: String,
+        default: '',
     },
 });
 
+const showSuccessModal = ref(!!props.status);
+watch(() => props.status, (v) => { if (v) showSuccessModal.value = true }, { immediate: true });
 const activeRole = ref('darbuotojas');
 
 const form = useForm({
@@ -45,10 +49,11 @@ const submit = () => {
         <LandingHeader variant="dark" />
 
         <main class="login-page-main">
-            <div v-if="status" class="login-status">
-                {{ status }}
-            </div>
-
+            <SuccessModal
+                :show="showSuccessModal"
+                :message="props.status || ''"
+                @close="showSuccessModal = false"
+            />
             <div class="login-form-card">
                 <form @submit.prevent="submit" class="login-form">
                     <LoginNavigation

@@ -1,6 +1,8 @@
 <script setup>
 import { ref, watch } from 'vue'
 import axios from 'axios'
+import AppDataTable from '@/Components/App/AppDataTable.vue'
+import AppInput from '@/Components/App/AppInput.vue'
 
 const activeType = ref('internal')
 const search = ref('')
@@ -25,7 +27,8 @@ async function load() {
         lastPage.value = res.last_page ?? 1
         total.value = res.total ?? 0
     } catch (e) {
-        errorMessage.value = 'Nepavyko užkrauti istorijos.'
+        const msg = e?.response?.data?.message
+        errorMessage.value = typeof msg === 'string' ? msg : 'Nepavyko užkrauti istorijos.'
     } finally {
         loading.value = false
     }
@@ -69,19 +72,19 @@ load()
                     Pareiškėjai
                 </button>
             </div>
-            <input
+            <AppInput
                 v-model="search"
                 type="text"
-                class="search-input"
                 placeholder="Ieškoti (vardas, el. paštas)"
+                class="search-input"
             />
         </div>
 
         <p v-if="errorMessage" class="error">{{ errorMessage }}</p>
         <div v-if="loading" class="loading">Kraunama...</div>
 
-        <div v-else class="table-wrap">
-            <table v-if="data.length" class="data-table">
+        <div v-else>
+            <AppDataTable :has-rows="data.length > 0" empty-text="Nėra įrašų.">
                 <thead>
                     <tr>
                         <th>Naudotojas</th>
@@ -100,8 +103,7 @@ load()
                         <td>{{ formatDate(row.created_at) }}</td>
                     </tr>
                 </tbody>
-            </table>
-            <p v-else class="empty">Nėra įrašų.</p>
+            </AppDataTable>
             <div v-if="lastPage > 1" class="pagination">
                 <button
                     type="button"
@@ -165,10 +167,6 @@ load()
     border-color: #1946a0;
 }
 .search-input {
-    padding: 8px 12px;
-    border: 1px solid #e5e7eb;
-    border-radius: 6px;
-    font-size: 14px;
     min-width: 220px;
 }
 .error {
@@ -179,29 +177,6 @@ load()
 .loading {
     color: #666;
     font-size: 14px;
-}
-.table-wrap {
-    overflow-x: auto;
-}
-.data-table {
-    width: 100%;
-    border-collapse: collapse;
-    font-size: 14px;
-}
-.data-table th,
-.data-table td {
-    padding: 10px 12px;
-    text-align: left;
-    border-bottom: 1px solid #e8e8e8;
-}
-.data-table th {
-    font-weight: 600;
-    background: #f5f5f5;
-}
-.empty {
-    color: #666;
-    padding: 24px 0;
-    margin: 0;
 }
 .pagination {
     display: flex;
