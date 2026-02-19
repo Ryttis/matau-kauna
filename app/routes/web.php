@@ -83,6 +83,7 @@ Route::middleware(['auth', 'verified', 'reporter.terms'])->group(function () {
 
     Route::get('/settings', [SettingsController::class, 'index'])->name('settings');
     Route::get('/settings/change-password', [SettingsController::class, 'changePassword'])->name('settings.change-password');
+    Route::put('/settings/password', [SettingsController::class, 'updatePassword'])->name('settings.password');
     Route::patch('/settings/profile', [SettingsController::class, 'updateProfile'])->name('settings.profile');
     Route::post('/settings/employees', [SettingsController::class, 'storeEmployee'])->name('settings.employees');
     Route::post('/settings/teams', [SettingsController::class, 'storeTeam'])->name('settings.teams');

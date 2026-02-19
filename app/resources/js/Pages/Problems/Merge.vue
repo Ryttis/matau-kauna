@@ -6,7 +6,9 @@ import AppSelect from '@/Components/App/AppSelect.vue'
 import AppButton from '@/Components/App/AppButton.vue'
 import AppBackButton from '@/Components/App/AppBackButton.vue'
 import AppCheckbox from '@/Components/App/AppCheckbox.vue'
+import SuccessModal from '@/Components/App/SuccessModal.vue'
 import KaunasProblemsMap from '@/Components/Map/KaunasProblemsMap.vue'
+import { useSuccessModal } from '@/composables/useSuccessModal.js'
 import { KAUNAS_CENTER } from '@/composables/leafletKaunas'
 
 const props = defineProps({
@@ -18,6 +20,7 @@ const props = defineProps({
     mapProblems: { type: Array, default: () => [] },
 })
 
+const { showSuccessModal, successMessage, closeSuccessModal } = useSuccessModal()
 const selectedCategory = ref(props.selectedCategory || null)
 const selectedProblems = ref([])
 const showCategoryDropdown = ref(false)
@@ -242,6 +245,11 @@ onUnmounted(() => {
     <Head :title="`Apjungti problemas - ${problem.internal_number}`" />
 
     <AuthenticatedLayout>
+        <SuccessModal
+            :show="showSuccessModal"
+            :message="successMessage"
+            @close="closeSuccessModal"
+        />
         <div class="merge-page">
             <div class="merge-header">
                 <AppBackButton @click="handleBack" />

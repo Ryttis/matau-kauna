@@ -2,8 +2,11 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue'
 import AppInput from '@/Components/App/AppInput.vue'
 import AppButton from '@/Components/App/AppButton.vue'
+import SuccessModal from '@/Components/App/SuccessModal.vue'
 import { Head, useForm } from '@inertiajs/vue3'
+import { useSuccessModal } from '@/composables/useSuccessModal.js'
 
+const { showSuccessModal, successMessage, closeSuccessModal } = useSuccessModal()
 const passwordForm = useForm({
     current_password: '',
     password: '',
@@ -23,6 +26,12 @@ const updatePassword = () => {
 
     <AuthenticatedLayout>
         <div class="change-password-page">
+            <SuccessModal
+                :show="showSuccessModal"
+                :message="successMessage"
+                @close="closeSuccessModal"
+            />
+            <div v-if="passwordForm.errors.password" class="error-message">{{ passwordForm.errors.password }}</div>
             <form @submit.prevent="updatePassword" class="change-password-form">
                 <AppInput
                     v-model="passwordForm.current_password"
@@ -66,5 +75,9 @@ const updatePassword = () => {
     width: 100%;
     max-width: 400px;
     box-sizing: border-box;
+}
+.error-message {
+    color: #b91c1c;
+    margin-bottom: 12px;
 }
 </style>

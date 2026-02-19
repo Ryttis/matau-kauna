@@ -12,6 +12,7 @@ import { Head, router, usePage } from '@inertiajs/vue3'
 import { ref, watch, computed, onMounted, onUnmounted } from 'vue'
 import { useProblemsMapFilter } from '@/composables/useProblemsMapFilter'
 import { useProblemDisplayRows } from '@/composables/useProblemDisplayRows'
+import { useSuccessModal } from '@/composables/useSuccessModal.js'
 import { debounce } from 'lodash-es'
 import { PROBLEM_STATUS_LABELS, PROBLEM_STATUS_OPTIONS } from '@/constants/problemStatus'
 import { useAuth } from '@/composables/useAuth'
@@ -52,9 +53,7 @@ const problemsList = ref([])
 const showDeleteModal = ref(false)
 
 const { displayRows } = useProblemDisplayRows(problemsList)
-const page = usePage()
-const showSuccessModal = ref(!!page.props.flash?.success)
-watch(() => page.props.flash?.success, (msg) => { if (msg) showSuccessModal.value = true }, { immediate: true })
+const { showSuccessModal, successMessage, closeSuccessModal } = useSuccessModal()
 
 const reporterProblems = computed(() => {
     if (!props.reporterView) return []
@@ -478,8 +477,8 @@ onUnmounted(() => {
     <AuthenticatedLayout>
         <SuccessModal
             :show="showSuccessModal"
-            :message="page.props.flash?.success ?? ''"
-            @close="showSuccessModal = false"
+            :message="successMessage"
+            @close="closeSuccessModal"
         />
         <div v-if="reporterView" class="reporter-dashboard">
             <div class="reporter-dashboard-top">

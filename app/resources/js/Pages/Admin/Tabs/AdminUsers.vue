@@ -2,6 +2,8 @@
 import { onMounted, ref } from 'vue'
 import axios from 'axios'
 
+import SuccessModal from '@/Components/App/SuccessModal.vue'
+import { useSuccessModal } from '@/composables/useSuccessModal.js'
 import UsersTab from '@/Pages/Admin/Tabs/Rbac/UsersTab.vue'
 import RolesTab from '@/Pages/Admin/Tabs/Rbac/RolesTab.vue'
 import GroupsTab from '@/Pages/Admin/Tabs/Rbac/GroupsTab.vue'
@@ -9,6 +11,8 @@ import PermissionsTab from '@/Pages/Admin/Tabs/Rbac/PermissionsTab.vue'
 import PasswordPolicyTab from '@/Pages/Admin/Tabs/Rbac/PasswordPolicyTab.vue'
 import HistoryTab from '@/Pages/Admin/Tabs/Rbac/HistoryTab.vue'
 import AdminInvitations from '@/Pages/Admin/Tabs/AdminInvitations.vue'
+
+const { showSuccessModal, successMessage, closeSuccessModal, showWithMessage } = useSuccessModal()
 
 const activeSubTab = ref('users')
 
@@ -130,6 +134,7 @@ onMounted(async () => {
                 :institutions="institutions"
                 @set-saving="saving = $event"
                 @refresh="setTab('users')"
+                @show-success="showWithMessage($event)"
             />
 
             <RolesTab
@@ -139,6 +144,7 @@ onMounted(async () => {
                 :groups="groups"
                 @set-saving="saving = $event"
                 @refresh="setTab('roles')"
+                @show-success="showWithMessage($event)"
             />
 
             <GroupsTab
@@ -148,6 +154,7 @@ onMounted(async () => {
                 :permissions="permissions"
                 @set-saving="saving = $event"
                 @refresh="setTab('groups')"
+                @show-success="showWithMessage($event)"
             />
 
             <PermissionsTab
@@ -156,12 +163,19 @@ onMounted(async () => {
                 :permissions="permissions"
                 @set-saving="saving = $event"
                 @refresh="setTab('permissions')"
+                @show-success="showWithMessage($event)"
             />
 
             <AdminInvitations v-else-if="activeSubTab === 'invitations'" />
             <PasswordPolicyTab v-else-if="activeSubTab === 'password-policy'" />
             <HistoryTab v-else-if="activeSubTab === 'history'" />
         </div>
+
+        <SuccessModal
+            :show="showSuccessModal"
+            :message="successMessage"
+            @close="closeSuccessModal"
+        />
     </div>
 </template>
 

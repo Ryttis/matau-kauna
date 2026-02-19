@@ -15,7 +15,7 @@ const props = defineProps({
     }
 })
 
-const emit = defineEmits(['refresh', 'set-saving'])
+const emit = defineEmits(['refresh', 'set-saving', 'show-success'])
 
 const isCreateOpen = ref(false)
 const isDeleteOpen = ref(false)
@@ -39,6 +39,7 @@ const createPermission = async () => {
     try {
         await axios.post('/admin/rbac/permissions', createForm.value)
         isCreateOpen.value = false
+        emit('show-success', 'Teisė sukurta.')
         emit('refresh')
     } finally {
         emit('set-saving', false)
@@ -51,6 +52,7 @@ const deletePermission = async () => {
     try {
         await axios.delete(`/admin/rbac/permissions/${deleteTarget.value.id}`)
         isDeleteOpen.value = false
+        emit('show-success', 'Teisė pašalinta.')
         emit('refresh')
     } finally {
         emit('set-saving', false)

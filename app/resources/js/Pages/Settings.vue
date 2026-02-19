@@ -3,12 +3,15 @@ import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue'
 import SettingsSection from '@/Components/App/SettingsSection.vue'
 import AppInput from '@/Components/App/AppInput.vue'
 import AppButton from '@/Components/App/AppButton.vue'
+import AppSelect from '@/Components/App/AppSelect.vue'
 import DeleteAccountModal from '@/Components/App/DeleteAccountModal.vue'
 import BaseModal from '@/Components/App/BaseModal.vue'
+import SuccessModal from '@/Components/App/SuccessModal.vue'
 import axios from 'axios'
 import { Head, Link, router, useForm, usePage } from '@inertiajs/vue3'
 import { ref, computed } from 'vue'
 import { ROLE_INSTITUTION_ADMIN, ROLE_EMPLOYEE } from '@/constants/roles.js'
+import { useSuccessModal } from '@/composables/useSuccessModal.js'
 
 const props = defineProps({
     employees: Array,
@@ -54,6 +57,7 @@ const deleteAccountForm = useForm({
 })
 
 const showDeleteModal = ref(false)
+const { showSuccessModal, successMessage, closeSuccessModal, showWithMessage } = useSuccessModal()
 const twoFactorEnabled = ref(!!user.two_factor_enabled)
 const emailUpdatesInstitutionAdmin = ref(!!user.email_updates_institution_admin)
 const emailNotificationsEnabled = ref(!!user.email_notifications_enabled)
@@ -134,8 +138,6 @@ const saveEmailNotificationsEnabled = () => {
 const inviteForm = ref({ email: '', role_id: '' })
 const inviteError = ref('')
 const inviteSending = ref(false)
-const inviteSuccess = ref(false)
-
 const teams = ref(props.teams ? [...props.teams] : [])
 const teamForm = ref({ name: '' })
 const teamError = ref('')
@@ -151,7 +153,6 @@ const teamEditSaving = ref(false)
 const sendInvite = async () => {
     if (!user?.institution_id || !inviteForm.value.email || !inviteForm.value.role_id) return
     inviteError.value = ''
-    inviteSuccess.value = false
     inviteSending.value = true
     try {
         await axios.post('/invitations', {
@@ -159,7 +160,7 @@ const sendInvite = async () => {
             institution_id: user.institution_id,
             role_id: inviteForm.value.role_id,
         })
-        inviteSuccess.value = true
+        showWithMessage('Pakvietimas išsiųstas.')
         inviteForm.value = { email: '', role_id: '' }
     } catch (e) {
         inviteError.value = e.response?.data?.message ?? 'Nepavyko išsiųsti pakvietimo.'
@@ -178,6 +179,7 @@ const createTeam = async () => {
         })
         teams.value = [...teams.value, data].sort((a, b) => a.name.localeCompare(b.name))
         teamForm.value.name = ''
+        showWithMessage('Grupė sukurta.')
     } catch (e) {
         teamError.value = e.response?.data?.message ?? 'Nepavyko sukurti grupės.'
     } finally {
@@ -209,6 +211,7 @@ const saveTeamEdit = async () => {
             .map((t) => (t.id === data.id ? data : t))
             .sort((a, b) => a.name.localeCompare(b.name))
         teamEditOpen.value = false
+        showWithMessage('Grupė pervadinta.')
     } catch (e) {
         teamError.value = e.response?.data?.message ?? 'Nepavyko pervadinti grupės.'
     } finally {
@@ -226,6 +229,7 @@ const saveTeamMembers = async () => {
         })
         teams.value = teams.value.map((t) => (t.id === data.id ? data : t))
         teamMembersOpen.value = false
+        showWithMessage('Grupės nariai atnaujinti.')
     } catch (e) {
         teamError.value = e.response?.data?.message ?? 'Nepavyko atnaujinti narių.'
     } finally {
@@ -340,14 +344,12 @@ const deleteTeam = async (team) => {
                     :open="sections.invite"
                     @toggle="toggleSection('invite')"
                 >
-                    <div v-if="inviteSuccess" class="invite-success">Pkvietimas išsiųstas.</div>
                     <div v-if="inviteError" class="invite-error">{{ inviteError }}</div>
                     <form @submit.prevent="sendInvite" class="form-grid">
                         <AppInput v-model="inviteForm.email" type="email" placeholder="El. paštas" :showIcon="true" />
-                        <select v-model="inviteForm.role_id" class="settings-select" required>
-                            <option value="">— Rolė</option>
+                        <AppSelect v-model="inviteForm.role_id" placeholder="Rolė" variant="white" class="settings-select">
                             <option v-for="r in inviteRoles" :key="r.id" :value="r.id">{{ r.name }}</option>
-                        </select>
+                        </AppSelect>
                         <AppButton
                             text="Siųsti pakvietimą"
                             variant="primary"
@@ -425,6 +427,12 @@ const deleteTeam = async (team) => {
                         </div>
                     </div>
 
+                    <Link
+                        :href="route('settings.change-password')"
+                        class="privacy-link"
+                    >
+                        Keisti slaptažodį
+                    </Link>
                     <AppButton
                         text="Gauti slaptažodžio keitimo nuorodą el. paštu"
                         variant="link"
@@ -537,9 +545,11 @@ const deleteTeam = async (team) => {
             </template>
         </BaseModal>
 
-        <div v-if="$page.props.flash?.status" style="margin-top: 8px; color: #065F46;">
-            {{ $page.props.flash.status }}
-        </div>
+        <SuccessModal
+            :show="showSuccessModal"
+            :message="successMessage"
+            @close="closeSuccessModal"
+        />
     </AuthenticatedLayout>
 </template>
 

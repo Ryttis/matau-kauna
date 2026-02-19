@@ -9,15 +9,10 @@ import AppBackButton from '@/Components/App/AppBackButton.vue'
 import AppCheckbox from '@/Components/App/AppCheckbox.vue'
 import SuccessModal from '@/Components/App/SuccessModal.vue'
 import { useAuth } from '@/composables/useAuth'
+import { useSuccessModal } from '@/composables/useSuccessModal.js'
 
 const { canSeeInstitutionAdminButtons } = useAuth()
-const page = usePage()
-const showSuccessModal = ref(!!page.props.flash?.success)
-watch(
-    () => page.props.flash?.success,
-    (msg) => { if (msg) showSuccessModal.value = true },
-    { immediate: true }
-)
+const { showSuccessModal, successMessage, closeSuccessModal } = useSuccessModal()
 
 const props = defineProps({
     problem: Object,
@@ -118,8 +113,8 @@ watch(
     <AuthenticatedLayout>
         <SuccessModal
             :show="showSuccessModal"
-            :message="page.props.flash?.success ?? ''"
-            @close="showSuccessModal = false"
+            :message="successMessage"
+            @close="closeSuccessModal"
         />
         <div class="assign-institution-page">
             <div class="assign-institution-header">

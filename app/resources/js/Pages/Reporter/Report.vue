@@ -257,7 +257,6 @@ function openCancelModal() {
                             placeholder="Pasirinkti rūšį"
                             variant="white"
                         >
-                            <option value="">Pasirinkti rūšį</option>
                             <option
                                 v-for="v in typeValues"
                                 :key="v.id"
@@ -275,7 +274,6 @@ function openCancelModal() {
                             variant="white"
                             :disabled="!problemTypeId || !natureOptionsForSelectedType.length"
                         >
-                            <option value="">Pasirinkti pobūdį</option>
                             <option
                                 v-for="v in natureOptionsForSelectedType"
                                 :key="v.id"

@@ -5,7 +5,9 @@ import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue'
 import ConfirmModal from '@/Components/App/ConfirmModal.vue'
 import StatusChangeModal from '@/Components/App/Modals/StatusChangeModal.vue'
 import EditModal from '@/Components/App/Modals/EditModal.vue'
+import SuccessModal from '@/Components/App/SuccessModal.vue'
 import AppButton from '@/Components/App/AppButton.vue'
+import { useSuccessModal } from '@/composables/useSuccessModal.js'
 import AppInput from '@/Components/App/AppInput.vue'
 import AppBackButton from '@/Components/App/AppBackButton.vue'
 import ProblemMergeLinks from '@/Components/Problems/ProblemMergeLinks.vue'
@@ -31,6 +33,7 @@ const {
     isEmployee,
 } = useAuth()
 
+const { showSuccessModal, successMessage, closeSuccessModal } = useSuccessModal()
 const showStatusModal = ref(false)
 const showEditModal = ref(false)
 const showDeleteModal = ref(false)
@@ -96,6 +99,11 @@ const mergeTargetId = computed(() =>
     <Head :title="`Problema ${problem.internal_number}`" />
 
     <AuthenticatedLayout>
+        <SuccessModal
+            :show="showSuccessModal"
+            :message="successMessage"
+            @close="closeSuccessModal"
+        />
         <div class="problem-detail">
             <div class="problem-header">
                 <AppBackButton @click="handleBack" />

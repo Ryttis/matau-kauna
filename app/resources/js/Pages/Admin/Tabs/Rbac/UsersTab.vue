@@ -12,7 +12,7 @@ const props = defineProps({
     saving: Boolean
 })
 
-const emit = defineEmits(['refresh', 'set-saving'])
+const emit = defineEmits(['refresh', 'set-saving', 'show-success'])
 
 const isCreateOpen = ref(false)
 const isEditOpen = ref(false)
@@ -97,6 +97,7 @@ const inviteUser = async () => {
     try {
         await axios.post('/invitations', inviteForm.value)
         isInviteOpen.value = false
+        emit('show-success', 'Pakvietimas išsiųstas.')
         emit('refresh')
     } catch (e) {
         inviteError.value = e.response?.data?.message ?? 'Nepavyko išsiųsti pakvietimo.'
@@ -116,6 +117,7 @@ const createUser = async () => {
             institution_id: createForm.value.institution_id || null
         })
         isCreateOpen.value = false
+        emit('show-success', 'Naudotojas sukurtas.')
         emit('refresh')
     } finally {
         emit('set-saving', false)
@@ -136,6 +138,7 @@ const updateUser = async () => {
         }
         await axios.put(`/admin/rbac/users/${editForm.value.id}`, payload)
         isEditOpen.value = false
+        emit('show-success', 'Naudotojas atnaujintas.')
         emit('refresh')
     } finally {
         emit('set-saving', false)
@@ -147,6 +150,7 @@ const deleteUser = async () => {
     try {
         await axios.delete(`/admin/rbac/users/${deleteTarget.value.id}`)
         isDeleteOpen.value = false
+        emit('show-success', 'Naudotojas pašalintas.')
         emit('refresh')
     } finally {
         emit('set-saving', false)
@@ -174,6 +178,7 @@ const saveUserRoles = async () => {
             role_ids: selectedRoleIds.value
         })
         isAssignRolesOpen.value = false
+        emit('show-success', 'Naudotojo rolės atnaujintos.')
         emit('refresh')
     } catch (e) {
         assignRolesError.value = e.response?.data?.message ?? 'Nepavyko išsaugoti rolių.'

@@ -5,9 +5,12 @@ namespace App\Http\Controllers;
 use App\Models\Employee;
 use App\Models\Institution;
 use App\Models\InstitutionTeam;
+use App\Models\PasswordPolicy;
 use App\Models\UserRole;
+use App\Services\SettingsService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Password;
 use Illuminate\Validation\Rule;
 use Inertia\Inertia;
@@ -15,33 +18,42 @@ use Inertia\Response;
 
 class SettingsController extends Controller
 {
+    public function __construct(
+        private SettingsService $settingsService
+    ) {}
+
     public function index(): Response
     {
-        $user = Auth::user()->load('institution');
-        $employees = Employee::query()
-            ->where('institution_id', $user->institution_id)
-            ->get();
+        $data = $this->settingsService->getSettingsPageData(Auth::user());
 
-        $teams = InstitutionTeam::query()
-            ->where('institution_id', $user->institution_id)
-            ->with(['employees:id,name,surname,email'])
-            ->orderBy('name')
-            ->get();
-
-        $inviteRoles = UserRole::query()
-            ->whereIn('role', [UserRole::ROLE_INSTITUTION_ADMIN, UserRole::ROLE_EMPLOYEE])
-            ->get(['id', 'role', 'name']);
-
-        return Inertia::render('Settings', [
-            'employees' => $employees,
-            'teams' => $teams,
-            'inviteRoles' => $inviteRoles,
-        ]);
+        return Inertia::render('Settings', $data);
     }
 
     public function changePassword(): Response
     {
         return Inertia::render('Settings/ChangePassword');
+    }
+
+    public function updatePassword(Request $request)
+    {
+        $policy = PasswordPolicy::get();
+        $user = $request->user();
+        $rules = [
+            'current_password' => ['required', 'current_password'],
+            'password' => array_merge(['required'], $policy->rules($user->name, $user->email)),
+            'password_confirmation' => ['required', 'same:password'],
+        ];
+        $validated = $request->validate($rules);
+
+        if (! $policy->validateProhibitNameEmail($validated['password'], $user->name, $user->email)) {
+            return back()->withErrors([
+                'password' => 'Slaptažodyje negalima naudoti vardo, pavardės ar el. pašto adreso.',
+            ]);
+        }
+
+        $user->update(['password' => Hash::make($validated['password'])]);
+
+        return back()->with('status', 'Slaptažodis pakeistas.');
     }
 
     public function updateProfile(Request $request)
@@ -54,7 +66,7 @@ class SettingsController extends Controller
 
         Auth::user()->update($validated);
 
-        return back();
+        return back()->with('success', 'Profilis atnaujintas.');
     }
 
     public function storeEmployee(Request $request)
@@ -68,7 +80,7 @@ class SettingsController extends Controller
         $validated['institution_id'] = Auth::user()->institution_id;
         Employee::create($validated);
 
-        return back();
+        return back()->with('success', 'Darbuotojas pridėtas.');
     }
 
     public function storeTeam(Request $request)
@@ -148,7 +160,7 @@ class SettingsController extends Controller
             $user->update(['institution_id' => $institution->id]);
         }
 
-        return back();
+        return back()->with('success', 'Įstaigos duomenys atnaujinti.');
     }
 
     public function updatePrivacy(Request $request)
@@ -161,7 +173,7 @@ class SettingsController extends Controller
 
         Auth::user()->update($validated);
 
-        return back();
+        return back()->with('success', 'Privatumo nustatymai atnaujinti.');
     }
 
     public function sendPasswordResetLink(Request $request)
@@ -171,14 +183,14 @@ class SettingsController extends Controller
         $status = Password::sendResetLink(['email' => $email]);
 
         if ($status === Password::RESET_LINK_SENT) {
-            return back()->with('status', 'Išsiuntėme slaptažodžio keitimo nuorodą į jūsų el. paštą.');
+            return back()->with('status', 'Nuoroda išsiųsta į jūsų el. paštą. Patikrinkite paštą.');
         }
 
         if ($status === Password::RESET_THROTTLED) {
-            return back()->with('status', 'Nuoroda jau buvo siųsta neseniai. Palaukite minutę ir bandykite dar kartą.');
+            return back()->with('status', 'Pabandykite vėliau – nuoroda jau siųsta neseniai.');
         }
 
-        return back()->withErrors(['email' => __($status)]);
+        return back()->withErrors(['email' => 'Nepavyko išsiųsti. Pabandykite vėliau.']);
     }
 
     public function destroy(Request $request)

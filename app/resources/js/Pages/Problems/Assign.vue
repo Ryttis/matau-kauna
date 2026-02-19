@@ -5,7 +5,9 @@ import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue'
 import AppButton from '@/Components/App/AppButton.vue'
 import AppInput from '@/Components/App/AppInput.vue'
 import AppBackButton from '@/Components/App/AppBackButton.vue'
+import SuccessModal from '@/Components/App/SuccessModal.vue'
 import EntityTable from '@/Components/App/Tables/EntityTable.vue'
+import { useSuccessModal } from '@/composables/useSuccessModal.js'
 import { PROBLEM_STATUS } from '@/constants/problemStatus'
 
 const institutionColumns = [{ key: 'name', label: 'Įstaiga' }]
@@ -25,6 +27,7 @@ const props = defineProps({
     }
 })
 
+const { showSuccessModal, successMessage, closeSuccessModal } = useSuccessModal()
 const selectedInstitutionIds = ref([])
 const selectedStatus = ref(props.problem?.status || PROBLEM_STATUS.NEW)
 const email = ref('')
@@ -158,6 +161,11 @@ const toggleStatus = () => {
     <Head title="Priskirti problemą" />
 
     <AuthenticatedLayout>
+        <SuccessModal
+            :show="showSuccessModal"
+            :message="successMessage"
+            @close="closeSuccessModal"
+        />
         <div class="assign-page">
             <div class="assign-header">
                 <AppBackButton @click="handleBack" />

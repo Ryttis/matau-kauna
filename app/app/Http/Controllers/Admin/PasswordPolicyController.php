@@ -3,12 +3,17 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Admin\UpdatePasswordPolicyRequest;
 use App\Models\PasswordPolicy;
+use App\Services\AuditLogService;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Http\Request;
 
 class PasswordPolicyController extends Controller
 {
+    public function __construct(
+        private AuditLogService $auditLogService
+    ) {}
+
     public function show(): JsonResponse
     {
         $policy = PasswordPolicy::get();
@@ -23,17 +28,9 @@ class PasswordPolicyController extends Controller
         ]);
     }
 
-    public function update(Request $request): JsonResponse
+    public function update(UpdatePasswordPolicyRequest $request): JsonResponse
     {
-        $validated = $request->validate([
-            'min_length' => ['required', 'integer', 'min:6', 'max:128'],
-            'require_lowercase' => ['boolean'],
-            'require_uppercase' => ['boolean'],
-            'require_special' => ['boolean'],
-            'two_factor_can_enable' => ['boolean'],
-            'prohibit_name_email' => ['boolean'],
-        ]);
-
+        $validated = $request->validated();
         $row = PasswordPolicy::query()->first();
         if ($row) {
             $row->update($validated);
@@ -41,7 +38,7 @@ class PasswordPolicyController extends Controller
             $row = PasswordPolicy::create($validated);
         }
         PasswordPolicy::clearCache();
-        app(\App\Services\AuditLogService::class)->logUserAction($request->user(), 'password_policy.update', 'PasswordPolicy', $row->id, 'success');
+        $this->auditLogService->logUserAction($request->user(), 'password_policy.update', 'PasswordPolicy', $row->id, 'success');
 
         return response()->json(['ok' => true]);
     }
