@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 class ClassifierValue extends Model
 {
     protected $fillable = [
+        'classifier_category_id',
         'parent_id',
         'name',
         'is_active',
