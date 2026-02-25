@@ -8,6 +8,7 @@ const subTabs = [
     { key: 'terms', label: 'Taisyklės', type: 'terms' },
     { key: 'faq', label: 'DUK', type: 'faq' },
     { key: 'privacy', label: 'Privatumo', type: 'privacy' },
+    { key: 'cookies', label: 'Slapukai', type: 'cookies' },
     { key: 'notifications', label: 'Pranešimai' },
 ]
 </script>
@@ -41,6 +42,11 @@ const subTabs = [
                 v-else-if="activeSubTab === 'privacy'"
                 type="privacy"
                 label="Privatumo"
+            />
+            <ContentEditorTab
+                v-else-if="activeSubTab === 'cookies'"
+                type="cookies"
+                label="Slapukų informacija"
             />
             <p v-else class="placeholder">Automatinių el. pašto pranešimų turinio valdymas – valdoma skiltyje „Pranešimai“ (viršutinis meniu).</p>
         </div>

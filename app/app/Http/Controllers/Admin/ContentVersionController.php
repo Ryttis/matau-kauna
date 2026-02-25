@@ -21,7 +21,7 @@ class ContentVersionController extends Controller
 
     public function index(Request $request): JsonResponse
     {
-        $type = $request->validate(['type' => ['required', 'string', 'in:terms,privacy,faq']])['type'];
+        $type = $request->validate(['type' => ['required', 'string', 'in:terms,privacy,faq,cookies']])['type'];
         $versions = $this->contentVersionService->getVersionsByType($type);
 
         return response()->json(['versions' => $versions]);

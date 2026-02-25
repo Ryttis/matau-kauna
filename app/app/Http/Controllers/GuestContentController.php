@@ -27,4 +27,14 @@ class GuestContentController extends Controller
             'body' => (string) ($content?->body ?? ''),
         ]);
     }
+
+    public function cookies(): Response
+    {
+        $content = ContentVersion::getLatestPublished(ContentVersion::TYPE_COOKIES);
+
+        return Inertia::render('Guest/CookiePolicy', [
+            'title' => (string) ($content?->title ?? 'Slapukų informacija'),
+            'body' => (string) ($content?->body ?? ''),
+        ]);
+    }
 }
