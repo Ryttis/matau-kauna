@@ -21,6 +21,8 @@ const isAssignRolesOpen = ref(false)
 const isInviteOpen = ref(false)
 const inviteError = ref('')
 const assignRolesError = ref('')
+const createError = ref('')
+const createErrors = ref([])
 
 const createForm = ref({ name: '', email: '', password: '', password_confirmation: '', institution_id: '' })
 const inviteForm = ref({ email: '', institution_id: '', role_id: '' })
@@ -32,6 +34,8 @@ const selectedRoleIds = ref([])
 
 const openCreate = () => {
     createForm.value = { name: '', email: '', password: '', password_confirmation: '', institution_id: '' }
+    createError.value = ''
+    createErrors.value = []
     isCreateOpen.value = true
 }
 
@@ -107,6 +111,7 @@ const inviteUser = async () => {
 }
 
 const createUser = async () => {
+    createError.value = ''
     emit('set-saving', true)
     try {
         await axios.post('/admin/rbac/users', {
@@ -119,6 +124,16 @@ const createUser = async () => {
         isCreateOpen.value = false
         emit('show-success', 'Naudotojas sukurtas.')
         emit('refresh')
+    } catch (e) {
+        const errors = e.response?.data?.errors
+        if (errors && typeof errors === 'object') {
+            const list = [...new Set(Object.values(errors).flat().filter(Boolean))]
+            createErrors.value = list.length ? list : [e.response?.data?.message || 'Nepavyko sukurti naudotojo.']
+            createError.value = createErrors.value.length === 1 ? createErrors.value[0] : ''
+        } else {
+            createError.value = e.response?.data?.message || 'Nepavyko sukurti naudotojo.'
+            createErrors.value = createError.value ? [createError.value] : []
+        }
     } finally {
         emit('set-saving', false)
     }
@@ -240,6 +255,12 @@ const saveUserRoles = async () => {
         <BaseModal :open="isCreateOpen" title="Sukurti naudotoją" @close="isCreateOpen = false">
             <div class="hint">
                 Įstaigos administratorių ir darbuotojų paskyros kuriamos tik per pakvietimą.
+            </div>
+            <div v-if="createErrors.length" class="error">
+                <ul v-if="createErrors.length > 1" class="error-list">
+                    <li v-for="(err, i) in createErrors" :key="i">{{ err }}</li>
+                </ul>
+                <span v-else>{{ createErrors[0] }}</span>
             </div>
             <label class="field">
                 <span>Vardas</span>
@@ -427,6 +448,15 @@ const saveUserRoles = async () => {
     border-radius: 10px;
     margin-bottom: 12px;
     font-size: 13px;
+}
+
+.error-list {
+    margin: 0;
+    padding-left: 1.2em;
+}
+
+.error-list li + li {
+    margin-top: 0.25em;
 }
 
 .title {
