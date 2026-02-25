@@ -1,4 +1,5 @@
 <template>
+    <CookieConsentBanner />
     <footer class="landing-footer">
         <div class="landing-footer-inner">
             <Link :href="route('landing')" class="landing-footer-logo">Kauno problemos</Link>
@@ -6,6 +7,7 @@
                 <nav class="landing-footer-nav">
                     <Link :href="route('faq')" class="landing-footer-link">DUK</Link>
                     <Link :href="route('privacy')" class="landing-footer-link">Privatumo taisyklės</Link>
+                    <Link :href="route('cookies')" class="landing-footer-link">Slapukai</Link>
                     <Link :href="route('contacts')" class="landing-footer-link">Kontaktai</Link>
                     <Link :href="route('help')" class="landing-footer-link">
                         <img src="/icons/question-icon.png" alt="" class="landing-footer-icon" width="18" height="18" />
@@ -20,6 +22,7 @@
 
 <script setup>
 import { Link } from '@inertiajs/vue3'
+import CookieConsentBanner from '@/Components/Landing/CookieConsentBanner.vue'
 </script>
 
 <style scoped>

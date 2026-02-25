@@ -15,6 +15,7 @@ Route::get('/', [ProblemController::class, 'landing'])->name('landing');
 
 Route::get('/faq', [\App\Http\Controllers\GuestContentController::class, 'faq'])->name('faq');
 Route::get('/privacy', [\App\Http\Controllers\GuestContentController::class, 'privacy'])->name('privacy');
+Route::get('/slapukai', [\App\Http\Controllers\GuestContentController::class, 'cookies'])->name('cookies');
 Route::get('/contacts', fn () => Inertia::render('Guest/Contacts'))->name('contacts');
 Route::get('/help', fn () => Inertia::render('Guest/Help'))->name('help');
 

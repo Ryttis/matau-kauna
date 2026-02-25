@@ -14,7 +14,7 @@ class ContentVersionStoreRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'type' => ['required', 'string', 'in:terms,privacy,faq'],
+            'type' => ['required', 'string', 'in:terms,privacy,faq,cookies'],
             'title' => ['nullable', 'string', 'max:500'],
             'body' => ['nullable', 'string'],
         ];
