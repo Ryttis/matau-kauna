@@ -55,11 +55,15 @@ function onPraleisti() {
 }
 
 :deep(.modal-footer) {
-    align-items: stretch;
+    align-items: center;
     gap: 10px;
 }
 
 :deep(.modal-footer) .app-button {
     width: 100%;
+    max-width: 200px;
+    height: 40px;
+    border-radius: 12px;
+    padding: 0 20px;
 }
 </style>

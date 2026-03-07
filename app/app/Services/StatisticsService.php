@@ -47,7 +47,7 @@ class StatisticsService
         $this->applyPeriodFilter($query, $period);
 
         if ($institutionId && $institutionId !== 'all') {
-            $query->where('institution_id', (int) $institutionId);
+            $query->where('problems.institution_id', (int) $institutionId);
         }
 
         if ($categoryName && $categoryName !== 'all') {
@@ -130,7 +130,7 @@ class StatisticsService
             return;
         }
         if ($this->isInstitutionScoped($user)) {
-            $query->where('institution_id', $user->institution_id);
+            $query->where('problems.institution_id', $user->institution_id);
             return;
         }
         if ($this->isEmployeeScoped($user)) {

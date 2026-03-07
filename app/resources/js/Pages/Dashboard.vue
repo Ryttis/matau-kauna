@@ -591,26 +591,23 @@ onUnmounted(() => {
                 <AppButton
                     text="Priskirti problemą"
                     as-button
+                    class="list-nav-btn"
+                    :disabled="selectedProblems.length === 0"
                     @click="handleAssignProblems"
                 />
                 <AppButton
                     text="Atvaizduoti/keisti būseną"
                     as-button
-                    @click="openStatusModal()"
-                />
-                <AppButton
-                    v-if="canPublish"
-                    :text="bulkPublishButtonLabel"
-                    variant="secondary"
-                    as-button
+                    class="list-nav-btn"
                     :disabled="selectedProblems.length === 0"
-                    @click="handleBulkPublishToggle"
+                    @click="openStatusModal()"
                 />
                 <div v-if="canExport" class="export-wrapper" ref="exportWrapper">
                     <AppButton
                         text="Eksportuoti į .xlsx"
                         variant="secondary"
                         as-button
+                        class="list-nav-btn"
                         @click="showExportDropdown = !showExportDropdown"
                     />
                     <div v-if="showExportDropdown" class="export-dropdown" ref="exportDropdown">
@@ -622,33 +619,38 @@ onUnmounted(() => {
                         </button>
                     </div>
                 </div>
+                <AppButton
+                    v-if="canPublish"
+                    :text="bulkPublishButtonLabel"
+                    variant="secondary"
+                    as-button
+                    class="list-nav-btn"
+                    :disabled="selectedProblems.length === 0"
+                    @click="handleBulkPublishToggle"
+                />
             </template>
 
             <template v-else-if="canSeeInstitutionAdminButtons">
                 <AppButton
                     text="Priskirti/Peradresuoti problemą"
-                    variant="light"
+                    variant="primary"
                     as-button
+                    class="list-nav-btn"
                     :disabled="selectedProblems.length !== 1"
                     @click="handleAssignInstitution"
                 />
                 <AppButton
                     text="Atvaizduoti/keisti būseną"
                     as-button
+                    class="list-nav-btn"
+                    :disabled="selectedProblems.length === 0"
                     @click="openStatusModal()"
                 />
                 <AppButton
-                    v-if="canPublish"
-                    :text="bulkPublishButtonLabel"
+                    text="Stebėti"
                     variant="secondary"
                     as-button
-                    :disabled="selectedProblems.length === 0"
-                    @click="handleBulkPublishToggle"
-                />
-                <AppButton
-                    text="Stebėti"
-                    variant="outline-light"
-                    as-button
+                    class="list-nav-btn"
                     :disabled="!selectedProblemIdForReview"
                     @click="handleStebeti"
                 />
@@ -658,6 +660,7 @@ onUnmounted(() => {
                 <AppButton
                     text="Atvaizduoti/keisti būseną"
                     as-button
+                    class="list-nav-btn"
                     @click="openStatusModal()"
                 />
                 <AppButton
@@ -665,6 +668,7 @@ onUnmounted(() => {
                     :text="bulkPublishButtonLabel"
                     variant="secondary"
                     as-button
+                    class="list-nav-btn"
                     :disabled="selectedProblems.length === 0"
                     @click="handleBulkPublishToggle"
                 />
@@ -672,6 +676,7 @@ onUnmounted(() => {
                     text="Šalinti"
                     variant="secondary"
                     as-button
+                    class="list-nav-btn"
                     :disabled="selectedProblems.length !== 1"
                     @click="handleDeleteProblems"
                 />
@@ -679,6 +684,7 @@ onUnmounted(() => {
                     text="Stebėti"
                     variant="secondary"
                     as-button
+                    class="list-nav-btn"
                     :disabled="!selectedProblemIdForReview"
                     @click="handleStebeti"
                 />
@@ -688,6 +694,7 @@ onUnmounted(() => {
                 <AppButton
                     text="Stebėti"
                     as-button
+                    class="list-nav-btn"
                     :disabled="!selectedProblemIdForReview"
                     @click="handleStebeti"
                 />
@@ -858,10 +865,16 @@ onUnmounted(() => {
 
 .reporter-dashboard-actions {
     flex-shrink: 0;
+    display: flex;
+    justify-content: center;
 }
 
 .reporter-dashboard-actions .app-button {
     width: 100%;
+    max-width: 200px;
+    height: 40px;
+    border-radius: 12px;
+    padding: 0 20px;
 }
 
 @media (max-width: 900px) {
@@ -924,18 +937,76 @@ onUnmounted(() => {
 }
 
 .list-navigation {
-    margin: 40px auto;
-    width: 400px;
-    max-width: 100%;
-    display: flex;
-    flex-direction: column;
+    margin: 40px 0;
+    width: 100%;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
     align-items: center;
     position: relative;
-    gap: 10px;
+    gap: var(--button-grid-gap, 16px);
+    overflow: visible;
 }
 
 .list-navigation > * {
     margin-bottom: 0 !important;
+}
+
+.list-navigation .list-nav-btn,
+.list-navigation .export-wrapper .app-button {
+    width: var(--button-width);
+    max-width: 100%;
+    height: var(--button-height);
+    min-height: var(--button-height);
+    box-sizing: border-box;
+    border-radius: var(--button-border-radius);
+    padding: 9px 24px;
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Open Sans', sans-serif;
+    font-weight: 400;
+    font-size: 16px;
+    line-height: 150%;
+    letter-spacing: -0.011em;
+    text-align: center;
+}
+
+.list-navigation :deep(.app-button--primary),
+.list-navigation .export-wrapper :deep(.app-button--primary) {
+    background-color: #1946A0 !important;
+    color: #fff !important;
+}
+
+.list-navigation :deep(.app-button--primary:hover),
+.list-navigation :deep(.app-button--primary:focus-visible),
+.list-navigation .export-wrapper :deep(.app-button--primary:hover),
+.list-navigation .export-wrapper :deep(.app-button--primary:focus-visible) {
+    background-color: #153a8a !important;
+    color: #fff !important;
+}
+
+.list-navigation :deep(.app-button--secondary),
+.list-navigation .export-wrapper :deep(.app-button--secondary) {
+    background-color: #fff !important;
+    color: #333 !important;
+    border: 1px solid #1946A0 !important;
+}
+
+.list-navigation :deep(.app-button--secondary:hover),
+.list-navigation :deep(.app-button--secondary:focus-visible),
+.list-navigation .export-wrapper :deep(.app-button--secondary:hover),
+.list-navigation .export-wrapper :deep(.app-button--secondary:focus-visible) {
+    background-color: #f5f5f5 !important;
+    color: #333 !important;
+    border: 1px solid #1946A0 !important;
+}
+
+.list-navigation :deep(.app-button--disabled),
+.list-navigation :deep(.app-button--disabled:hover),
+.list-navigation .export-wrapper :deep(.app-button--disabled),
+.list-navigation .export-wrapper :deep(.app-button--disabled:hover) {
+    opacity: 0.5 !important;
 }
 
 .export-wrapper {
@@ -945,7 +1016,8 @@ onUnmounted(() => {
 .export-dropdown {
     position: absolute;
     top: 100%;
-    left: 0;
+    right: 0;
+    left: auto;
     margin-top: 5px;
     background: white;
     border: 1px solid #e0e0e0;

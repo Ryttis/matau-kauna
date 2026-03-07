@@ -595,10 +595,14 @@ watch(
 .automation-rule-modal :deep(.modal-footer) {
     flex-direction: row;
     flex-wrap: nowrap;
-    gap: 12px;
+    gap: var(--button-grid-gap, 12px);
 }
+
 .automation-rule-modal :deep(.modal-footer .app-button) {
-    width: auto;
+    width: var(--button-width);
+    height: var(--button-height);
+    min-width: var(--button-min-width);
+    border-radius: var(--button-border-radius);
     flex: 0 0 auto;
 }
 </style>

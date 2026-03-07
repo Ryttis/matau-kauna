@@ -33,12 +33,6 @@ const emit = defineEmits(['toggle', 'header-click'])
             :class="{ 'no-cursor': !showChevron }"
         >
             <h2>{{ title }}</h2>
-            <img
-                v-if="showChevron"
-                src="/icons/arrow-icon.png"
-                alt="Išskleisti / suskleisti"
-                class="section-chevron"
-            />
         </div>
         <div v-if="($slots.default && (!showChevron || open))" class="section-content">
             <slot />
@@ -75,15 +69,9 @@ const emit = defineEmits(['toggle', 'header-click'])
 .section-header h2 {
     font-size: 18px;
     font-weight: 600;
-    color: #000;
+    color: var(--color-text);
     flex: 1;
     min-width: 0;
-}
-
-.section-chevron {
-    width: 16px;
-    height: 16px;
-    flex-shrink: 0;
 }
 
 .section-content {

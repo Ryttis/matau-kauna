@@ -38,16 +38,20 @@ function onPrimary() {
     <BaseModal
         :show="show"
         :z-index="1001"
-        title="Peržiūrėti"
         :max-width="'480px'"
         :footer-layout="'column'"
+        :show-close-button="true"
         @close="emit('close')"
     >
+        <template #header>
+            <h2 class="reporter-review-title">Peržiūrėti</h2>
+        </template>
+
         <div class="reporter-review-body">
             <label class="reporter-review-checkbox">
                 <input v-model="agreeTerms" type="checkbox" class="reporter-review-input" />
                 <span>
-                    Registruodamasi sutinku su prašymo nagrinėjimo tvarka
+                    Registruodamasi sutinku su prašymo nagrinėjimo taisyklėmis
                     <Link :href="route('help')" class="reporter-review-link" target="_blank">skaityti</Link>
                 </span>
             </label>
@@ -56,12 +60,14 @@ function onPrimary() {
                 <span>Sutinku gauti informaciją apie prašymo nagrinėjimo eigą</span>
             </label>
         </div>
+
         <template #footer>
             <AppButton
                 :text="primaryButtonText"
                 variant="primary"
                 as-button
                 :disabled="!canContinue"
+                class="reporter-review-submit-btn"
                 @click="onPrimary"
             />
         </template>
@@ -69,41 +75,54 @@ function onPrimary() {
 </template>
 
 <style scoped>
+.reporter-review-title {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 700;
+    color: #333;
+    font-family: 'Open Sans', sans-serif;
+}
+
 .reporter-review-body {
     display: flex;
     flex-direction: column;
-    gap: 16px;
+    gap: 20px;
 }
 
 .reporter-review-checkbox {
     display: flex;
     align-items: flex-start;
-    gap: 10px;
+    gap: 12px;
     cursor: pointer;
     font-size: 16px;
     color: #333;
-    line-height: 1.4;
+    line-height: 1.5;
+    font-family: 'Open Sans', sans-serif;
 }
 
 .reporter-review-input {
     flex-shrink: 0;
-    margin-top: 4px;
+    margin-top: 3px;
+    width: 18px;
+    height: 18px;
+    accent-color: var(--color-primary);
 }
 
 .reporter-review-link {
-    color: #1946a0;
+    color: var(--color-primary);
     text-decoration: underline;
 }
 
 .reporter-review-link:hover {
-    color: #153a8a;
+    color: var(--color-primary-hover);
 }
 
 :deep(.modal-footer) {
     align-items: stretch;
 }
 
-:deep(.modal-footer) .app-button {
+:deep(.modal-footer) .reporter-review-submit-btn {
     width: 100%;
+    border-radius: 20px;
 }
 </style>

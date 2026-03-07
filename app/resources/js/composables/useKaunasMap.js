@@ -1,14 +1,13 @@
 import { watch, onMounted, onUnmounted, nextTick } from 'vue'
 import { getMarkerColorForStatus } from '@/constants/problemStatus'
 import { loadLeaflet, createBaseMap, KAUNAS_CENTER, MAP_MAX_ZOOM } from '@/composables/leafletKaunas'
+import { ICON_LEFT_ARROW, ICON_RIGHT_ARROW } from '@/constants/icons'
+import { MAP_HIGHLIGHT_COLOR, MAP_MERGED_MARKER_COLOR } from '@/constants/theme'
 
-const HIGHLIGHTED_MARKER_COLOR = '#1946A0'
+const HIGHLIGHTED_MARKER_COLOR = MAP_HIGHLIGHT_COLOR
 const HIGHLIGHTED_MARKER_SIZE = 18
-const MERGED_MARKER_COLOR = '#1946A0'
+const MERGED_MARKER_COLOR = MAP_MERGED_MARKER_COLOR
 const MERGED_MARKER_SIZE = 14
-
-const ARROW_LEFT_ICON = '/icons/left-back-arrow.png'
-const ARROW_RIGHT_ICON = '/icons/right-next-arrow.png'
 
 function unwrapRef(maybeRef) {
     if (maybeRef != null && typeof maybeRef === 'object' && 'value' in maybeRef) return maybeRef.value
@@ -22,7 +21,7 @@ function escapeHtml(s) {
 function navButton(problemId, icon, title, disabled) {
     const cls = 'kaunas-map-popup-nav-btn'
     const iconCls = 'kaunas-map-popup-nav-icon'
-    const src = icon === 'prev' ? ARROW_LEFT_ICON : ARROW_RIGHT_ICON
+    const src = icon === 'prev' ? ICON_LEFT_ARROW : ICON_RIGHT_ARROW
     if (disabled) {
         return `<span class="${cls} ${cls}--disabled" title="${title}"><img src="${src}" alt="" class="${iconCls}" /></span>`
     }

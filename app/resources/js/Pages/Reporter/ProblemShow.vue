@@ -3,6 +3,7 @@ import { computed } from 'vue'
 import { Head, Link, router } from '@inertiajs/vue3'
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue'
 import AppInput from '@/Components/App/AppInput.vue'
+import { ICON_LEFT_ARROW } from '@/constants/icons'
 import ProblemDetailBlocks from '@/Components/Problems/ProblemDetailBlocks.vue'
 import ProblemMergeLinks from '@/Components/Problems/ProblemMergeLinks.vue'
 import StatusBadge from '@/Components/Problems/StatusBadge.vue'
@@ -37,7 +38,7 @@ function goToReviewProgress() {
             <div class="reporter-problem-detail">
                 <div class="reporter-problem-header">
                     <Link :href="route('dashboard')" class="reporter-problem-back" aria-label="Atgal">
-                        <img src="/icons/left-back-arrow.png" alt="" class="reporter-problem-back-icon" />
+                        <img :src="ICON_LEFT_ARROW" alt="" class="reporter-problem-back-icon" />
                     </Link>
                     <div class="header-info">
                         <span class="header-label">Nr</span>
@@ -179,18 +180,21 @@ function goToReviewProgress() {
 }
 
 .reporter-problem-stebeti-btn {
-    display: block;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     width: 100%;
-    max-width: 400px;
+    max-width: 290px;
+    height: 45px;
     margin: 0 auto;
-    padding: 14px 24px;
+    padding: 9px 96px;
     font-size: 16px;
     font-weight: 600;
     font-family: inherit;
     color: #fff;
     background: #1946a0;
     border: none;
-    border-radius: 5px;
+    border-radius: 15px;
     cursor: pointer;
 }
 

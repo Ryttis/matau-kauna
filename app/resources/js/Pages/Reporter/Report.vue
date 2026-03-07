@@ -56,13 +56,17 @@ const natureOptionsForSelectedType = computed(() => {
     return type?.natures ?? []
 })
 
-watch(problemTypeId, () => {
-    problemNatureId.value = ''
+const isStep1 = computed(() => step.value === 1)
+const isWizardVisible = computed(() => {
+    if (wizardClosed.value) return false
+    if (!isStep1.value) return false
+    if (!props.showReporterWizard) return false
+
+    return !wizardHiddenUntilNextStep.value
 })
 
-const showWizard = computed(() => {
-    if (wizardClosed.value || step.value !== 1) return false
-    return props.showReporterWizard && !wizardHiddenUntilNextStep.value
+watch(problemTypeId, () => {
+    problemNatureId.value = ''
 })
 
 function dismissWizard() {
@@ -71,19 +75,30 @@ function dismissWizard() {
 }
 
 function wizardNext() {
-    if (wizardStep.value < REPORTER_WIZARD_STEPS.length - 1) {
+    const isLastStep = wizardStep.value >= REPORTER_WIZARD_STEPS.length - 1
+
+    if (!isLastStep) {
         wizardStep.value += 1
-    } else {
-        wizardHiddenUntilNextStep.value = true
+        return
     }
+
+    wizardHiddenUntilNextStep.value = true
+    api.post(route('reporter.wizardDismissed')).catch(() => {})
 }
 
 function wizardBack() {
-    if (wizardStep.value > 0) {
+    const hasPreviousStep = wizardStep.value > 0
+
+    if (hasPreviousStep) {
         wizardStep.value -= 1
-    } else {
-        dismissWizard()
+        return
     }
+
+    dismissWizard()
+}
+
+function wizardClose() {
+    dismissWizard()
 }
 
 const handleFileClick = () => {
@@ -97,32 +112,44 @@ const handleFileChange = (e) => {
 
 const step1Error = ref('')
 
+const ADDRESS_REQUIRED_MSG = 'Pasirinkite problemos vietą žemėlapyje arba įveskite adresą.'
+
+function getStep1ValidationError() {
+    if (!problemTypeId.value) return 'Pasirinkite problemos rūšį.'
+
+    const natures = natureOptionsForSelectedType.value
+    const natureRequired = natures.length > 0
+
+    if (natureRequired && !problemNatureId.value) return 'Pasirinkite problemos pobūdį.'
+
+    return null
+}
+
 function handleNext() {
-    if (step.value === 1) {
-        step1Error.value = ''
-        if (!problemTypeId.value) {
-            step1Error.value = 'Pasirinkite problemos rūšį.'
-            return
-        }
-        const natures = natureOptionsForSelectedType.value
-        if (natures.length > 0 && !problemNatureId.value) {
-            step1Error.value = 'Pasirinkite problemos pobūdį.'
-            return
-        }
-        step.value = 2
-        wizardStep.value = 0
-        if (!props.hasAcceptedReportTerms) {
-            reviewModalMode.value = 'terms-first'
-            showReviewModal.value = true
-        }
+    if (step.value !== 1) return
+
+    step1Error.value = ''
+    const validationError = getStep1ValidationError()
+
+    if (validationError) {
+        step1Error.value = validationError
+        return
+    }
+
+    step.value = 2
+    wizardStep.value = 0
+
+    const needsTermsModal = !props.hasAcceptedReportTerms
+
+    if (needsTermsModal) {
+        reviewModalMode.value = 'terms-first'
+        showReviewModal.value = true
     }
 }
 
 function handleBackToStep1() {
     step.value = 1
 }
-
-const ADDRESS_REQUIRED_MSG = 'Pasirinkite problemos vietą žemėlapyje arba įveskite adresą.'
 
 function getAddressError() {
     return (addressStep2.value ?? '').trim() ? null : ADDRESS_REQUIRED_MSG
@@ -134,17 +161,24 @@ function handlePerziureti() {
     submitError.value = ''
 }
 
+const hasAcceptedTerms = computed(
+    () => props.hasAcceptedReportTerms || termsAcceptedThisSession.value
+)
+
 function handlePateikti() {
     submitError.value = ''
-    const err = getAddressError()
-    if (err) {
-        submitError.value = err
+    const addressErr = getAddressError()
+
+    if (addressErr) {
+        submitError.value = addressErr
         return
     }
-    if (props.hasAcceptedReportTerms || termsAcceptedThisSession.value) {
+
+    if (hasAcceptedTerms.value) {
         handleReviewConfirm()
         return
     }
+
     reviewModalMode.value = 'submit'
     showReviewModal.value = true
 }
@@ -156,16 +190,20 @@ function handleReviewContinue() {
     })
 }
 
-function handleReviewConfirm() {
-    if (isSubmitting.value) return
-    const err = getAddressError()
-    if (err) {
-        submitError.value = err
-        return
+function getSubmitErrorMessage(err) {
+    const data = err.response?.data ?? {}
+    const errors = data.errors
+
+    if (errors) {
+        const first = Object.values(errors).flat()
+        return first[0] || 'Nepavyko pateikti.'
     }
-    submitError.value = ''
-    isSubmitting.value = true
-    const payload = {
+
+    return data.message || 'Nepavyko pateikti. Bandykite dar kartą.'
+}
+
+function buildReportPayload() {
+    return {
         problem_type_id: problemTypeId.value ? Number(problemTypeId.value) : null,
         problem_nature_id: problemNatureId.value ? Number(problemNatureId.value) : null,
         description: description.value,
@@ -173,7 +211,22 @@ function handleReviewConfirm() {
         lat: latStep2.value ?? null,
         lng: lngStep2.value ?? null,
     }
-    api.post(route('reporter.report.store'), payload)
+}
+
+function handleReviewConfirm() {
+    if (isSubmitting.value) return
+
+    const addressErr = getAddressError()
+
+    if (addressErr) {
+        submitError.value = addressErr
+        return
+    }
+
+    submitError.value = ''
+    isSubmitting.value = true
+
+    api.post(route('reporter.report.store'), buildReportPayload())
         .then((res) => {
             termsAcceptedThisSession.value = true
             showReviewModal.value = false
@@ -181,13 +234,7 @@ function handleReviewConfirm() {
             showSuccessModal.value = true
         })
         .catch((err) => {
-            const data = err.response?.data
-            if (data?.errors) {
-                const first = Object.values(data.errors).flat()
-                submitError.value = first[0] || 'Nepavyko pateikti.'
-            } else {
-                submitError.value = data?.message || 'Nepavyko pateikti. Bandykite dar kartą.'
-            }
+            submitError.value = getSubmitErrorMessage(err)
         })
         .finally(() => { isSubmitting.value = false })
 }
@@ -210,10 +257,10 @@ function openCancelModal() {
     <Head title="Naujas pranešimas" />
     <AuthenticatedLayout>
         <ReporterWizardModal
-            :show="showWizard"
+            :show="isWizardVisible"
             :step="wizardStep"
             :steps="REPORTER_WIZARD_STEPS"
-            @close="dismissWizard"
+            @close="wizardClose"
             @next="wizardNext"
             @back="wizardBack"
         />
@@ -501,6 +548,7 @@ function openCancelModal() {
 
 .reporter-report-actions .app-button {
     min-width: 200px;
+    border-radius: 20px;
 }
 
 .reporter-report-step2-title {
@@ -526,5 +574,6 @@ function openCancelModal() {
 
 .reporter-report-step2-actions .app-button {
     min-width: 140px;
+    border-radius: 20px;
 }
 </style>

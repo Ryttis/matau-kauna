@@ -3,6 +3,7 @@ import { ref } from 'vue'
 import { Head, router } from '@inertiajs/vue3'
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue'
 import AppBackButton from '@/Components/App/AppBackButton.vue'
+import AppButton from '@/Components/App/AppButton.vue'
 import AddEntryModal from '@/Components/App/Modals/AddEntryModal.vue'
 import StatusBadge from '@/Components/Problems/StatusBadge.vue'
 import { PROBLEM_STATUS_LABELS } from '@/constants/problemStatus'
@@ -90,9 +91,13 @@ const handleBack = () => {
             </div>
 
             <div v-if="canAddEntry" class="review-progress-actions">
-                <button type="button" class="review-progress-add-btn" @click="openAddEntry">
-                    Pridėti įrašą
-                </button>
+                <AppButton
+                    text="Pridėti įrašą"
+                    variant="primary"
+                    as-button
+                    class="review-progress-add-btn"
+                    @click="openAddEntry"
+                />
             </div>
         </div>
 
@@ -285,19 +290,11 @@ const handleBack = () => {
     padding-top: 24px;
 }
 
-.review-progress-add-btn {
-    padding: 12px 32px;
-    background-color: #1946A0;
-    color: #fff;
-    border: none;
-    border-radius: 5px;
-    font-size: 18px;
-    font-weight: 400;
-    font-family: 'Inter', sans-serif;
-    cursor: pointer;
-}
-
-.review-progress-add-btn:hover {
-    background-color: #1a3d95;
+.review-progress-actions :deep(.review-progress-add-btn) {
+    width: var(--button-width);
+    height: var(--button-height);
+    padding: 9px 24px;
+    border-radius: var(--button-border-radius);
+    font-family: 'Open Sans', sans-serif;
 }
 </style>

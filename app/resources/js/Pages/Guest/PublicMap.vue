@@ -28,7 +28,6 @@ const {
     clearFilters,
 } = useProblemsMapFilter(allProblems)
 
-// Grupuoti pagal merged_into_problem_id, kad sąraše būtų teisingai rodomos apjungtos problemos
 const groupedForList = computed(() => {
     const list = filteredProblems.value || []
     const mains = list.filter((p) => !p.merged_into_problem_id)
@@ -51,11 +50,16 @@ const groupedForList = computed(() => {
 const { displayRows } = useProblemDisplayRows(groupedForList)
 
 const showFilterModal = ref(false)
-function openFilterModal() { showFilterModal.value = true }
+
+function openFilterModal() {
+    showFilterModal.value = true
+}
+
 function handleFilterApply(filters) {
     applyFilters(filters)
     showFilterModal.value = false
 }
+
 function handleFilterClear() {
     clearFilters()
 }

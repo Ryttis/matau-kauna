@@ -50,3 +50,38 @@ export function getStatusBadgeStyle(status) {
     const textColor = STATUS_BADGE_TEXT[status] ?? '#fff'
     return { backgroundColor: bg, color: textColor }
 }
+
+export const STATUS_MODAL_BORDER = {
+    [PROBLEM_STATUS.NEW]: '#D4A574',
+    [PROBLEM_STATUS.IN_REVIEW]: '#F5C842',
+    [PROBLEM_STATUS.RESOLVED]: '#4CAF50',
+    [PROBLEM_STATUS.INACTIVE]: '#666666',
+}
+
+export const STATUS_MODAL_BORDER_HOVER = {
+    [PROBLEM_STATUS.NEW]: '#C8955F',
+    [PROBLEM_STATUS.IN_REVIEW]: '#E5B832',
+    [PROBLEM_STATUS.RESOLVED]: '#45A049',
+    [PROBLEM_STATUS.INACTIVE]: '#555555',
+}
+
+export const STATUS_MODAL_BG_HOVER = {
+    [PROBLEM_STATUS.NEW]: '#FFF9F5',
+    [PROBLEM_STATUS.IN_REVIEW]: '#FFFDF5',
+    [PROBLEM_STATUS.RESOLVED]: '#F5FFF5',
+    [PROBLEM_STATUS.INACTIVE]: '#F5F5F5',
+}
+
+const DEFAULT_STATUS_MODAL = {
+    border: '#95a5a6',
+    borderHover: '#7f8c8d',
+    bgHover: '#ecf0f1',
+}
+
+export function getStatusModalVars(status) {
+    return {
+        '--status-border': STATUS_MODAL_BORDER[status] ?? DEFAULT_STATUS_MODAL.border,
+        '--status-border-hover': STATUS_MODAL_BORDER_HOVER[status] ?? DEFAULT_STATUS_MODAL.borderHover,
+        '--status-bg-hover': STATUS_MODAL_BG_HOVER[status] ?? DEFAULT_STATUS_MODAL.bgHover,
+    }
+}

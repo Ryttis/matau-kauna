@@ -5,6 +5,7 @@ import AppButton from '@/Components/App/AppButton.vue'
 import AppCheckbox from '@/Components/App/AppCheckbox.vue'
 import AppInput from '@/Components/App/AppInput.vue'
 import AppSelect from '@/Components/App/AppSelect.vue'
+import { ICON_CALENDAR } from '@/constants/icons'
 
 const PUBLIC_STATUS_OPTIONS = [
     { value: 'nauja', label: 'Nauja' },
@@ -38,25 +39,22 @@ const emit = defineEmits(['close', 'apply', 'clear'])
 
 const isPublicMap = () => props.variant === 'publicMap'
 
-const localFilters = ref({
-    reportNumber: props.filters?.reportNumber || '',
-    problemType: props.filters?.problemType ?? (isPublicMap() ? 'all' : ''),
-    dateFrom: props.filters?.dateFrom || '',
-    dateTo: props.filters?.dateTo || '',
-    status: props.filters?.status || '',
-    statuses: props.filters?.statuses ? [...props.filters.statuses] : [],
-})
+function getInitialFilters() {
+    return {
+        reportNumber: props.filters?.reportNumber || '',
+        problemType: props.filters?.problemType ?? (isPublicMap() ? 'all' : ''),
+        dateFrom: props.filters?.dateFrom || '',
+        dateTo: props.filters?.dateTo || '',
+        status: props.filters?.status || '',
+        statuses: props.filters?.statuses ? [...props.filters.statuses] : [],
+    }
+}
+
+const localFilters = ref(getInitialFilters())
 
 watch(() => props.show, (newVal) => {
     if (newVal) {
-        localFilters.value = {
-            reportNumber: props.filters?.reportNumber || '',
-            problemType: props.filters?.problemType ?? (isPublicMap() ? 'all' : ''),
-            dateFrom: props.filters?.dateFrom || '',
-            dateTo: props.filters?.dateTo || '',
-            status: props.filters?.status || '',
-            statuses: props.filters?.statuses ? [...props.filters.statuses] : [],
-        }
+        localFilters.value = getInitialFilters()
     }
 })
 
@@ -70,41 +68,25 @@ function setStatus(value, checked) {
 }
 
 const handleApply = () => {
-    if (isPublicMap()) {
-        emit('apply', {
-            statuses: [...(localFilters.value.statuses || [])],
-            problemType: localFilters.value.problemType,
-            dateFrom: localFilters.value.dateFrom,
-            dateTo: localFilters.value.dateTo,
-        })
-    } else {
-        emit('apply', {
-            reportNumber: localFilters.value.reportNumber,
-            problemType: localFilters.value.problemType,
-            dateFrom: localFilters.value.dateFrom,
-            dateTo: localFilters.value.dateTo,
-            status: localFilters.value.status,
-        })
+    const f = localFilters.value
+    const payload = {
+        reportNumber: f.reportNumber,
+        problemType: f.problemType,
+        dateFrom: f.dateFrom,
+        dateTo: f.dateTo,
     }
+    if (isPublicMap()) {
+        payload.statuses = [...(f.statuses || [])]
+    } else {
+        payload.status = f.status
+    }
+    emit('apply', payload)
 }
 
 const handleClear = () => {
-    if (isPublicMap()) {
-        localFilters.value = {
-            problemType: 'all',
-            dateFrom: '',
-            dateTo: '',
-            statuses: [],
-        }
-    } else {
-        localFilters.value = {
-            reportNumber: '',
-            problemType: '',
-            dateFrom: '',
-            dateTo: '',
-            status: '',
-        }
-    }
+    localFilters.value = isPublicMap()
+        ? { reportNumber: '', problemType: 'all', dateFrom: '', dateTo: '', statuses: [] }
+        : { reportNumber: '', problemType: '', dateFrom: '', dateTo: '', status: '' }
     emit('clear')
 }
 
@@ -117,12 +99,11 @@ const handleClose = () => {
     <BaseModal
         :show="show"
         title="Filtruoti"
-        :max-width="'500px'"
+        max-width="500px"
         @close="handleClose"
     >
         <div class="filter-modal-body">
-            <!-- Dashboard: Pranešimo numeris -->
-            <div v-if="!isPublicMap()" class="filter-section">
+            <div class="filter-section">
                 <AppInput
                     v-model="localFilters.reportNumber"
                     label="Pranešimo numeris"
@@ -132,8 +113,7 @@ const handleClose = () => {
                 />
             </div>
 
-            <!-- PublicMap: Būsena -->
-            <div v-else class="filter-section">
+            <div v-if="isPublicMap()" class="filter-section">
                 <label class="filter-label">Būsena</label>
                 <div class="filter-status-checkboxes">
                     <label
@@ -150,22 +130,21 @@ const handleClose = () => {
                 </div>
             </div>
 
-            <!-- Problemos tipas (category) -->
             <div class="filter-section">
                 <AppSelect
                     v-model="localFilters.problemType"
                     label="Problemos tipas"
-                    placeholder="Pasirinkti kategorija"
+                    placeholder="Pasirinkti kategoriją"
                     :variant="isPublicMap() ? 'blue' : 'white'"
+                    :rounded="true"
                 >
-                    <option v-if="isPublicMap()" value="all">Pasirinkti kategorija</option>
+                    <option v-if="isPublicMap()" value="all">Pasirinkti kategoriją</option>
                     <option v-for="category in (categories || [])" :key="category" :value="category">
                         {{ category }}
                     </option>
                 </AppSelect>
             </div>
 
-            <!-- Data -->
             <div class="filter-section">
                 <label class="filter-label">Data</label>
                 <div class="date-inputs">
@@ -174,12 +153,18 @@ const handleClose = () => {
                         type="text"
                         placeholder="dd/mm/yyyy"
                         variant="filter"
+                        :show-icon="true"
+                        :icon-src="ICON_CALENDAR"
+                        icon-alt="Kalendorius"
                     />
                     <AppInput
                         v-model="localFilters.dateTo"
                         type="text"
                         placeholder="dd/mm/yyyy"
                         variant="filter"
+                        :show-icon="true"
+                        :icon-src="ICON_CALENDAR"
+                        icon-alt="Kalendorius"
                     />
                 </div>
             </div>
@@ -275,5 +260,23 @@ const handleClose = () => {
     width: 100%;
     max-width: 340px;
     margin-bottom: 0 !important;
+    border-radius: 15px !important;
+    padding: 8px 18px !important;
+    min-height: 40px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Open Sans', sans-serif;
+    font-weight: 400;
+    font-size: 16px;
 }
+
+.filter-modal-clear-btn {
+    color: var(--color-primary, #1946A0);
+}
+
+.filter-modal-apply-btn {
+    color: #ffffff;
+}
+
 </style>

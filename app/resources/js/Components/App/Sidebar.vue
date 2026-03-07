@@ -1,35 +1,47 @@
 <script setup>
 import { Link, usePage } from '@inertiajs/vue3'
 import { computed, ref } from 'vue'
+import {
+    ICON_MAP,
+    ICON_PENCIL,
+    ICON_LIST,
+    ICON_STATISTICS,
+    ICON_STATE,
+    ICON_ARROW,
+    ICON_SETTINGS,
+} from '@/constants/icons'
+import {
+    ROLE_SYSTEM_ADMIN,
+    ROLE_REPORTER,
+    ROLE_PROBLEM_ADMIN,
+} from '@/constants/roles'
 
 const page = usePage()
 
 const user = computed(() => page.props.auth?.user ?? null)
 const roles = computed(() => page.props.auth?.roles ?? [])
 const permissions = computed(() => page.props.auth?.permissions ?? [])
-const isSystemAdmin = computed(() => !!page.props.auth?.isSystemAdmin)
+const activeRole = computed(() => {
+    const auth = page.props.auth
+    return auth?.activeRole ?? auth?.active_role ?? (roles.value?.length === 1 ? roles.value[0] : null)
+})
+const isSystemAdmin = computed(() => (activeRole.value?.role ?? '') === ROLE_SYSTEM_ADMIN)
+const isReporterOnly = computed(() => (activeRole.value?.role ?? '') === ROLE_REPORTER)
 
 const canAccessIssues = computed(() =>
     isSystemAdmin.value || permissions.value.includes('issues.view')
 )
 
 const canAccessAutomation = computed(() =>
-    isSystemAdmin.value || (roles.value || []).some((r) => r.role === 'ROLE_PROBLEM_ADMIN')
+    isSystemAdmin.value || (roles.value || []).some((r) => r.role === ROLE_PROBLEM_ADMIN)
 )
-
-const isReporterOnly = computed(() => {
-    const r = roles.value || []
-    return r.length === 1 && r[0]?.role === 'ROLE_REPORTER'
-})
 
 const canAccessStatistics = computed(() =>
     isSystemAdmin.value || permissions.value.includes('statistics.view')
 )
 
 const sidebarTitle = computed(() => {
-    if (isSystemAdmin.value) return 'Sistemos administratorius'
-    if (roles.value?.length) return roles.value[0].name
-    return 'Naudotojas'
+    return activeRole.value?.name ?? 'Naudotojas'
 })
 
 const isActive = (path) => {
@@ -64,7 +76,7 @@ const toggleStatistics = () => {
                         class="nav-link"
                         :class="{ active: isActive('/dashboard') }"
                     >
-                        <img src="/icons/map-icon.png" />
+                        <img :src="ICON_MAP" class="nav-icon" alt="" />
                         <span>Žemėlapis</span>
                     </Link>
                     <Link
@@ -72,7 +84,7 @@ const toggleStatistics = () => {
                         class="nav-link"
                         :class="{ active: isActive('/reporter/report') }"
                     >
-                        <img src="/icons/pencil-icon.png" />
+                        <img :src="ICON_PENCIL" class="nav-icon" alt="" />
                         <span>Pranešimas</span>
                     </Link>
                 </template>
@@ -83,7 +95,7 @@ const toggleStatistics = () => {
                         class="nav-link"
                         :class="{ active: isActive('/dashboard') }"
                     >
-                        <img src="/icons/list-active-icon.png" />
+                        <img :src="ICON_LIST" class="nav-icon" alt="" />
                         <span>Sąrašas</span>
                     </Link>
 
@@ -92,7 +104,7 @@ const toggleStatistics = () => {
                         class="nav-link"
                         :class="{ active: isActive('/map') }"
                     >
-                        <img src="/icons/map-icon.png" />
+                        <img :src="ICON_MAP" class="nav-icon" alt="" />
                         <span>Žemėlapis</span>
                     </Link>
 
@@ -102,7 +114,7 @@ const toggleStatistics = () => {
                         class="nav-link"
                         :class="{ active: isActive('/automation') }"
                     >
-                        <img src="/icons/list-active-icon.png" />
+                        <img :src="ICON_LIST" class="nav-icon" alt="" />
                         <span>Automatizacija</span>
                     </Link>
                 </template>
@@ -114,12 +126,13 @@ const toggleStatistics = () => {
                         :class="{ active: isActive('/statistics') }"
                         @click="toggleStatistics"
                     >
-                        <img src="/icons/statistics-icon.png" />
+                        <img :src="ICON_STATISTICS" class="nav-icon" alt="" />
                         <span>Statistika</span>
                         <img
-                            src="/icons/arrow-icon.png"
+                            :src="ICON_ARROW"
                             class="dropdown-icon"
                             :class="{ open: isStatisticsOpen }"
+                            alt=""
                         />
                     </button>
 
@@ -165,12 +178,13 @@ const toggleStatistics = () => {
                     :class="{ active: isActive('/states') }"
                     @click="toggleStates"
                 >
-                    <img src="/icons/state-icon.png" />
+                    <img :src="ICON_STATE" class="nav-icon" alt="" />
                     <span>Būsenos</span>
                     <img
-                        src="/icons/arrow-icon.png"
+                        :src="ICON_ARROW"
                         class="dropdown-icon"
                         :class="{ open: isStatesOpen }"
+                        alt=""
                     />
                 </button>
 
@@ -232,7 +246,7 @@ const toggleStatistics = () => {
                     class="nav-link"
                     :class="{ active: isActive('/settings') }"
                 >
-                    <img src="/icons/settings-icon.png" />
+                    <img :src="ICON_SETTINGS" class="nav-icon" alt="" />
                     <span>Nustatymai</span>
                 </Link>
             </div>
@@ -253,7 +267,7 @@ const toggleStatistics = () => {
     text-align: center;
     font-weight: bold;
     padding: 40px 0;
-    border-bottom: 1px solid #1946A0;
+    border-bottom: 1px solid var(--color-primary);
 }
 
 .nav {
@@ -303,8 +317,8 @@ const toggleStatistics = () => {
 
 .nav-link:hover,
 .nav-link.active {
-    background: #1946A0;
-    color: #fff;
+    background: var(--color-primary);
+    color: var(--color-white, #fff);
 }
 
 .nav-link.active img,
@@ -316,11 +330,19 @@ const toggleStatistics = () => {
     align-items: center;
 }
 
-.nav-link img:not(.dropdown-icon),
+.nav-icon {
+    width: 20px;
+    height: 20px;
+    display: block;
+    object-fit: contain;
+    flex-shrink: 0;
+}
+
 .nav-link .dropdown-icon {
     width: 16px;
     height: 16px;
     display: block;
+    flex-shrink: 0;
 }
 
 .dropdown-icon {
@@ -351,7 +373,7 @@ const toggleStatistics = () => {
 
 .submenu-link:hover,
 .submenu-link.active {
-    background: #1946A0;
-    color: #fff;
+    background: var(--color-primary);
+    color: var(--color-white, #fff);
 }
 </style>

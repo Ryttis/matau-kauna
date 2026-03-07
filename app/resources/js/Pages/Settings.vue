@@ -1,17 +1,16 @@
 <script setup>
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue'
 import SettingsSection from '@/Components/App/SettingsSection.vue'
+import SettingsPrivacyBlock from '@/Components/App/SettingsPrivacyBlock.vue'
 import AppInput from '@/Components/App/AppInput.vue'
 import AppButton from '@/Components/App/AppButton.vue'
 import AppSelect from '@/Components/App/AppSelect.vue'
 import DeleteAccountModal from '@/Components/App/DeleteAccountModal.vue'
 import BaseModal from '@/Components/App/BaseModal.vue'
-import SuccessModal from '@/Components/App/SuccessModal.vue'
 import axios from 'axios'
-import { Head, Link, router, useForm, usePage } from '@inertiajs/vue3'
+import { Head, router, useForm, usePage } from '@inertiajs/vue3'
 import { ref, computed } from 'vue'
-import { ROLE_INSTITUTION_ADMIN, ROLE_EMPLOYEE } from '@/constants/roles.js'
-import { useSuccessModal } from '@/composables/useSuccessModal.js'
+import { ROLE_SYSTEM_ADMIN, ROLE_INSTITUTION_ADMIN } from '@/constants/roles.js'
 
 const props = defineProps({
     employees: Array,
@@ -20,23 +19,32 @@ const props = defineProps({
 })
 
 const page = usePage()
-const user = page.props.auth.user
+const user = page.props.auth?.user
 const authRoles = computed(() => page.props.auth?.roles || [])
+const activeRole = computed(() => {
+    const auth = page.props.auth
+    return auth?.activeRole ?? auth?.active_role ?? (authRoles.value?.length === 1 ? authRoles.value[0] : null)
+})
+const isSystemAdmin = computed(() => (activeRole.value?.role ?? '') === ROLE_SYSTEM_ADMIN)
+
+const roleDisplayNames = (page.props.auth?.roles ?? [])
+    .map((r) => r?.name)
+    .filter(Boolean)
+
+function isRoleDisplayName(value) {
+    if (!value || typeof value !== 'string') return false
+    const v = value.trim()
+    return roleDisplayNames.some((rn) => rn && String(rn).trim() === v)
+}
 
 const isInstitutionAdmin = computed(() =>
     authRoles.value.some((r) => r.role === ROLE_INSTITUTION_ADMIN)
 )
-const isEmployee = computed(() =>
-    authRoles.value.some((r) => r.role === ROLE_EMPLOYEE)
-)
-const canManageEmailUpdatesAssigned = computed(
-    () => isInstitutionAdmin.value || isEmployee.value
-)
 
 const profileForm = useForm({
-    name: user.name || '',
-    surname: user.surname || '',
-    email: user.email || '',
+    name: isRoleDisplayName(user?.name) ? '' : (user?.name || ''),
+    surname: isRoleDisplayName(user?.surname) ? '' : (user?.surname || ''),
+    email: user?.email || '',
 })
 
 const employeeForm = useForm({
@@ -50,20 +58,26 @@ const institutionForm = useForm({
     code: user.institution?.code || '',
 })
 
-const passwordForm = useForm({})
+const passwordForm = useForm({
+    current_password: '',
+    password: '',
+    password_confirmation: '',
+})
 
 const deleteAccountForm = useForm({
     password: '',
 })
 
+const privacyForm = useForm({})
+
 const showDeleteModal = ref(false)
-const { showSuccessModal, successMessage, closeSuccessModal, showWithMessage } = useSuccessModal()
 const twoFactorEnabled = ref(!!user.two_factor_enabled)
 const emailUpdatesInstitutionAdmin = ref(!!user.email_updates_institution_admin)
 const emailNotificationsEnabled = ref(!!user.email_notifications_enabled)
 
 const sections = ref({
     profile: true,
+    password: true,
     employee: true,
     groups: true,
     invite: true,
@@ -104,12 +118,6 @@ const updatePassword = () => {
     passwordForm.put(route('settings.password'), {
         preserveScroll: true,
         onSuccess: () => passwordForm.reset(),
-    })
-}
-
-const requestPasswordReset = () => {
-    passwordForm.post(route('settings.password.email'), {
-        preserveScroll: true,
     })
 }
 
@@ -160,7 +168,6 @@ const sendInvite = async () => {
             institution_id: user.institution_id,
             role_id: inviteForm.value.role_id,
         })
-        showWithMessage('Pakvietimas išsiųstas.')
         inviteForm.value = { email: '', role_id: '' }
     } catch (e) {
         inviteError.value = e.response?.data?.message ?? 'Nepavyko išsiųsti pakvietimo.'
@@ -179,7 +186,6 @@ const createTeam = async () => {
         })
         teams.value = [...teams.value, data].sort((a, b) => a.name.localeCompare(b.name))
         teamForm.value.name = ''
-        showWithMessage('Grupė sukurta.')
     } catch (e) {
         teamError.value = e.response?.data?.message ?? 'Nepavyko sukurti grupės.'
     } finally {
@@ -211,7 +217,6 @@ const saveTeamEdit = async () => {
             .map((t) => (t.id === data.id ? data : t))
             .sort((a, b) => a.name.localeCompare(b.name))
         teamEditOpen.value = false
-        showWithMessage('Grupė pervadinta.')
     } catch (e) {
         teamError.value = e.response?.data?.message ?? 'Nepavyko pervadinti grupės.'
     } finally {
@@ -229,7 +234,6 @@ const saveTeamMembers = async () => {
         })
         teams.value = teams.value.map((t) => (t.id === data.id ? data : t))
         teamMembersOpen.value = false
-        showWithMessage('Grupės nariai atnaujinti.')
     } catch (e) {
         teamError.value = e.response?.data?.message ?? 'Nepavyko atnaujinti narių.'
     } finally {
@@ -257,13 +261,15 @@ const deleteTeam = async (team) => {
     <Head title="Nustatymai" />
 
     <AuthenticatedLayout>
-        <div class="settings-container">
+        <div class="settings-container settings-page">
             <div class="settings-content">
-                <SettingsSection
-                    title="Profilio duomenys"
-                    :open="sections.profile"
-                    @toggle="toggleSection('profile')"
-                >
+                <div class="settings-inner">
+                    <template v-if="!isSystemAdmin">
+                    <SettingsSection
+                        title="Profilio duomenys"
+                        :open="sections.profile"
+                        @toggle="toggleSection('profile')"
+                    >
                     <form @submit.prevent="updateProfile" class="form-grid">
                         <AppInput v-model="profileForm.name" placeholder="Vardas" :showIcon="true" />
                         <AppInput v-model="profileForm.surname" placeholder="Pavardė" :showIcon="true" />
@@ -275,6 +281,42 @@ const deleteTeam = async (team) => {
                         />
                     </form>
                 </SettingsSection>
+
+                <SettingsSection
+                    title="Keisti slaptažodį"
+                    :open="sections.password"
+                    @toggle="toggleSection('password')"
+                >
+                    <form @submit.prevent="updatePassword" class="form-grid">
+                        <AppInput
+                            v-model="passwordForm.current_password"
+                            type="password"
+                            placeholder="Esamas slaptažodis"
+                            :show-icon="true"
+                        />
+                        <AppInput
+                            v-model="passwordForm.password"
+                            type="password"
+                            placeholder="Naujas slaptažodis"
+                            :show-icon="true"
+                        />
+                        <AppInput
+                            v-model="passwordForm.password_confirmation"
+                            type="password"
+                            placeholder="Pakartoti slaptažodį"
+                            :show-icon="true"
+                        />
+                        <div v-if="passwordForm.errors.password" class="form-error">
+                            {{ passwordForm.errors.password }}
+                        </div>
+                        <AppButton
+                            text="Patvirtinti"
+                            variant="primary"
+                            :disabled="passwordForm.processing"
+                        />
+                    </form>
+                </SettingsSection>
+                    </template>
 
                 <SettingsSection
                     v-if="isInstitutionAdmin"
@@ -375,81 +417,19 @@ const deleteTeam = async (team) => {
                     </form>
                 </SettingsSection>
 
-                <div class="privacy-block">
-                    <SettingsSection
-                        title="Privatumo taisyklės"
-                        :open="sections.privacy"
-                        :noBorder="true"
-                        class="privacy-section"
-                        @toggle="toggleSection('privacy')"
-                    >
-                    </SettingsSection>
-
-                    <div class="privacy-row privacy-row-2fa">
-                        <span class="privacy-label">2 FA autentifikavimas</span>
-                        <div class="privacy-row-2fa-right">
-                            <label class="switch">
-                                <input v-model="twoFactorEnabled" type="checkbox" />
-                                <span class="slider round"></span>
-                            </label>
-                        </div>
-                    </div>
-                    <div
-                        v-if="isInstitutionAdmin"
-                        class="privacy-row privacy-row-2fa"
-                    >
-                        <span class="privacy-label">Informacijos atnaujinimo siuntimas el. paštu – Įstaigos administratorius</span>
-                        <div class="privacy-row-2fa-right">
-                            <label class="switch">
-                                <input
-                                    v-model="emailUpdatesInstitutionAdmin"
-                                    type="checkbox"
-                                    @change="saveEmailUpdatesInstitutionAdmin"
-                                />
-                                <span class="slider round"></span>
-                            </label>
-                        </div>
-                    </div>
-                    <div
-                        v-if="canManageEmailUpdatesAssigned"
-                        class="privacy-row privacy-row-2fa"
-                    >
-                        <span class="privacy-label">Pranešimai apie naujai priskirtas problemas el. paštu</span>
-                        <div class="privacy-row-2fa-right">
-                            <label class="switch">
-                                <input
-                                    v-model="emailNotificationsEnabled"
-                                    type="checkbox"
-                                    @change="saveEmailNotificationsEnabled"
-                                />
-                                <span class="slider round"></span>
-                            </label>
-                        </div>
-                    </div>
-
-                    <Link
-                        :href="route('settings.change-password')"
-                        class="privacy-link"
-                    >
-                        Keisti slaptažodį
-                    </Link>
-                    <AppButton
-                        text="Gauti slaptažodžio keitimo nuorodą el. paštu"
-                        variant="link"
-                        as-button
-                        class="privacy-link"
-                        @click="requestPasswordReset"
-                    />
-
-                    <div class="privacy-row">
-                        <AppButton
-                            text="Šalinti paskyrą"
-                            variant="link"
-                            as-button
-                            class="privacy-link"
-                            @click="showDeleteModal = true"
-                        />
-                    </div>
+                <SettingsPrivacyBlock
+                    :two-factor-enabled="twoFactorEnabled"
+                    :email-updates-institution-admin="emailUpdatesInstitutionAdmin"
+                    :email-notifications-enabled="emailNotificationsEnabled"
+                    :is-institution-admin="isInstitutionAdmin"
+                    :is-system-admin="isSystemAdmin"
+                    @update:twoFactorEnabled="twoFactorEnabled = $event"
+                    @update:emailUpdatesInstitutionAdmin="emailUpdatesInstitutionAdmin = $event"
+                    @update:emailNotificationsEnabled="emailNotificationsEnabled = $event"
+                    @save-email-updates-admin="saveEmailUpdatesInstitutionAdmin"
+                    @save-email-notifications="saveEmailNotificationsEnabled"
+                    @delete-account="showDeleteModal = true"
+                />
                 </div>
             </div>
         </div>
@@ -545,42 +525,51 @@ const deleteTeam = async (team) => {
             </template>
         </BaseModal>
 
-        <SuccessModal
-            :show="showSuccessModal"
-            :message="successMessage"
-            @close="closeSuccessModal"
-        />
     </AuthenticatedLayout>
 </template>
 
 <style scoped>
-.settings-container {
-    max-width: 800px;
-    background: #fff;
-    padding: 20px;
+.settings-page {
+    --settings-container-max: 640px;
+    --settings-inner-max: 400px;
+    --settings-button-width: 260px;
+    --settings-button-height: 40px;
+    --settings-radius: 15px;
+    --settings-input-radius: 10px;
 }
 
-.settings-content {
-    max-width: 100%;
+.settings-container {
+    width: 100%;
+    max-width: var(--settings-container-max);
+    margin: 0 auto;
+    background: var(--color-white);
+    padding: 24px;
     box-sizing: border-box;
 }
 
-.invite-success {
-    color: #2e7d32;
-    font-size: 14px;
-    margin-bottom: 12px;
+.settings-content {
+    width: 100%;
+    box-sizing: border-box;
 }
 
-.invite-error {
-    color: #c62828;
+.settings-inner {
+    width: 100%;
+    max-width: var(--settings-inner-max);
+    margin: 0 auto;
+    box-sizing: border-box;
+}
+
+.invite-error,
+.form-error {
+    color: var(--color-error);
     font-size: 14px;
-    margin-bottom: 12px;
+    margin-bottom: 0;
 }
 
 .settings-select {
     padding: 10px 12px;
-    border: 1px solid #e6e8ee;
-    border-radius: 10px;
+    border: 1px solid var(--color-border-light);
+    border-radius: var(--settings-input-radius);
     font-size: 16px;
     min-width: 200px;
 }
@@ -588,10 +577,55 @@ const deleteTeam = async (team) => {
 .form-grid {
     display: flex;
     flex-direction: column;
-    gap: 10px;
+    gap: 12px;
     width: 100%;
-    max-width: 400px;
+    max-width: var(--settings-inner-max);
     box-sizing: border-box;
+    align-items: flex-start;
+}
+
+.settings-page .form-grid :deep(.app-input-group) {
+    width: 100% !important;
+    max-width: 100%;
+    box-sizing: border-box;
+}
+
+.settings-page .form-grid :deep(.app-input-wrapper-edit),
+.settings-page .form-grid :deep(.app-input-edit) {
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.settings-page .form-grid :deep(.app-button) {
+    width: var(--settings-button-width) !important;
+    max-width: var(--settings-button-width) !important;
+    height: var(--settings-button-height) !important;
+    min-height: var(--settings-button-height) !important;
+    border-radius: var(--settings-radius) !important;
+    padding: 0 24px !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    align-self: center !important;
+    font-family: 'Open Sans', sans-serif !important;
+    font-weight: 400 !important;
+}
+
+.settings-page .form-grid :deep(.app-button--primary) {
+    background-color: var(--color-primary) !important;
+    color: var(--color-white) !important;
+}
+
+.settings-page :deep(.app-input-edit),
+.settings-page :deep(.app-input-wrapper-edit .app-input-edit) {
+    background-color: var(--color-white) !important;
+    border: 1px solid var(--color-border) !important;
+    border-radius: var(--settings-input-radius) !important;
+}
+
+.settings-page :deep(.app-input-wrapper-edit .app-input-icon) {
+    width: 20px !important;
+    height: 20px !important;
 }
 
 .form-grid-inline {
@@ -611,7 +645,7 @@ const deleteTeam = async (team) => {
     align-items: center;
     gap: 8px;
     padding: 8px 0;
-    border-bottom: 1px solid #e5e7eb;
+    border-bottom: 1px solid var(--color-border);
     font-size: 14px;
 }
 
@@ -620,11 +654,11 @@ const deleteTeam = async (team) => {
 }
 
 .groups-members {
-    color: #6b7280;
+    color: var(--color-gray-500);
 }
 
 .groups-empty {
-    color: #6b7280;
+    color: var(--color-gray-500);
     font-size: 14px;
     margin: 12px 0 0;
 }
@@ -634,7 +668,7 @@ const deleteTeam = async (team) => {
     padding: 0;
     border: none;
     background: none;
-    color: #1946a0;
+    color: var(--color-primary);
     cursor: pointer;
     font-size: 13px;
 }
@@ -659,35 +693,10 @@ const deleteTeam = async (team) => {
     cursor: pointer;
 }
 
-.btn-primary, .btn-secondary {
-    padding: 10px 16px;
-    border-radius: 8px;
-    font-size: 14px;
-    font-weight: 500;
-    cursor: pointer;
-}
-
-.btn-primary {
-    background: #1946a0;
-    color: #fff;
-    border: none;
-}
-
-.btn-primary:disabled {
-    opacity: 0.7;
-    cursor: not-allowed;
-}
-
-.btn-secondary {
-    background: #f5f5f5;
-    color: #333;
-    border: 1px solid #ddd;
-}
-
 .employee-list {
     margin-top: 20px;
     padding-top: 15px;
-    border-top: 1px solid #E5E7EB;
+    border-top: 1px solid var(--color-border);
 }
 
 .employee-list h3 {
@@ -703,153 +712,8 @@ const deleteTeam = async (team) => {
 
 .employee-list li {
     font-size: 14px;
-    color: #4B5563;
+    color: var(--color-text-muted);
     padding: 4px 0;
-}
-
-.privacy-block {
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-    margin-bottom: 24px;
-    width: 100%;
-    box-sizing: border-box;
-}
-
-.privacy-block > * {
-    margin: 0;
-    padding: 0;
-    height: 32px;
-    min-height: 32px;
-    box-sizing: border-box;
-}
-
-.privacy-block .privacy-section.section {
-    margin-bottom: 0;
-    min-height: 32px;
-}
-
-.privacy-block .privacy-section :deep(.section-header) {
-    margin: 0;
-    padding: 0;
-    height: 32px;
-    min-height: 32px;
-    line-height: 32px;
-    display: flex;
-    align-items: center;
-}
-
-.privacy-block .privacy-section :deep(.section-header h2) {
-    line-height: 1.2;
-}
-
-.privacy-block .privacy-section :deep(.section-content) {
-    margin: 0;
-    padding: 0;
-}
-
-.privacy-row.privacy-row-2fa {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) auto;
-    align-items: center;
-    gap: 12px;
-    width: 100%;
-    height: 32px;
-    min-height: 32px;
-    box-sizing: border-box;
-    white-space: nowrap;
-}
-
-.privacy-label {
-    font-size: 18px;
-    font-weight: 600;
-    color: #000;
-    min-width: 0;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
-
-.privacy-row-2fa-right {
-    justify-self: end;
-    width: max-content;
-}
-
-.privacy-row:not(.privacy-row-2fa) {
-    display: flex;
-    align-items: center;
-    height: 32px;
-    min-height: 32px;
-}
-
-.privacy-link {
-    width: auto;
-    margin: 0;
-    padding: 0;
-    font-size: 18px;
-    font-weight: 600;
-    color: #000;
-    text-align: left;
-    display: inline-block;
-    line-height: 32px;
-    text-decoration: none;
-}
-
-.privacy-link:hover {
-    text-decoration: underline;
-}
-
-.switch {
-    position: relative;
-    display: inline-block;
-    width: 44px;
-    height: 22px;
-}
-
-.switch input {
-    opacity: 0;
-    width: 0;
-    height: 0;
-}
-
-.slider {
-    position: absolute;
-    cursor: pointer;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background-color: #ccc;
-    transition: 0.25s ease;
-}
-
-.slider:before {
-    position: absolute;
-    content: "";
-    height: 16px;
-    width: 16px;
-    left: 3px;
-    bottom: 3px;
-    background-color: #fff;
-    border-radius: 50%;
-    transition: transform 0.25s ease;
-    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.15);
-}
-
-input:checked + .slider {
-    background-color: #1946A0;
-}
-
-input:checked + .slider:before {
-    transform: translateX(22px);
-}
-
-.slider.round {
-    border-radius: 22px;
-}
-
-.slider.round:before {
-    border-radius: 50%;
 }
 
 </style>

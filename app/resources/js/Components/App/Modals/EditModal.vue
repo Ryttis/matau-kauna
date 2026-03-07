@@ -36,25 +36,15 @@ watch(() => props.show, (newVal) => {
     }
 })
 
-
-const handleClose = () => {
-    emit('close')
-}
+const handleClose = () => emit('close')
 
 const handleSave = () => {
     if (isSubmitting.value) return
-
     isSubmitting.value = true
-
     router.put(route('problems.update', props.problem.id), form.value, {
         preserveScroll: true,
-        onSuccess: () => {
-            isSubmitting.value = false
-            emit('close')
-        },
-        onError: () => {
-            isSubmitting.value = false
-        }
+        onSuccess: () => { isSubmitting.value = false; emit('close') },
+        onError: () => { isSubmitting.value = false },
     })
 }
 
@@ -66,210 +56,225 @@ const handleFileAttach = () => {
 <template>
     <BaseModal
         :show="show"
-        :max-width="'650px'"
+        width="520px"
+        max-width="520px"
+        max-height="90vh"
         @close="handleClose"
     >
         <template #header>
-            <div class="edit-modal-header-empty"></div>
+            <div class="edit-modal-header-content">
+                <input
+                    v-model="form.internal_number"
+                    type="text"
+                    class="edit-modal-nr-input"
+                    :placeholder="problem?.internal_number || 'Nr'"
+                />
+            </div>
         </template>
 
         <div class="edit-modal-body">
-                <div class="edit-form-row edit-form-row-single">
-                    <div class="edit-field-group">
-                        <AppInput
-                            v-model="form.internal_number"
-                            label="Nr"
-                            type="text"
-                            :show-icon="true"
-                        />
-                    </div>
-                    <div class="edit-field-group">
-                        <label class="edit-field-label">Data</label>
-                        <span class="edit-date-value">{{ new Date(problem.created_at).toLocaleDateString('lt-LT') }}</span>
-                    </div>
-                    <div class="edit-field-group">
-                        <StatusBadge :status="problem?.status" />
-                    </div>
-                </div>
+            <p class="edit-date-line">Data: {{ new Date(problem.created_at).toLocaleDateString('lt-LT') }}</p>
 
-                <div class="edit-form-row">
-                    <div class="edit-field-group">
-                        <AppInput
-                            v-model="form.title"
-                            label="Pavadinimas"
-                            type="text"
-                            :show-icon="true"
-                        />
-                    </div>
-                </div>
+            <div class="edit-form-field edit-form-field-status">
+                <StatusBadge :status="problem?.status" />
+            </div>
 
-                <div class="edit-form-row">
-                    <div class="edit-field-group">
-                        <AppInput
-                            v-model="form.category"
-                            label="Kategorija"
-                            type="text"
-                            :options="categories"
-                            :show-icon="true"
-                        />
-                    </div>
-                </div>
+            <div class="edit-form-field">
+                <AppInput
+                    v-model="form.title"
+                    label="Pavadinimas"
+                    type="text"
+                    :show-icon="true"
+                />
+            </div>
 
-                <div class="edit-form-row">
-                    <div class="edit-field-group">
-                        <AppInput
-                            v-model="form.address"
-                            label="Adresas"
-                            type="text"
-                            :show-icon="true"
-                        />
-                    </div>
-                </div>
+            <div class="edit-form-field">
+                <AppInput
+                    v-model="form.category"
+                    label="Kategorija"
+                    type="text"
+                    :options="categories"
+                    :show-icon="true"
+                />
+            </div>
 
-                <div class="edit-form-row edit-form-row-description">
-                    <div class="edit-field-group edit-field-group-description">
-                        <AppInput
-                            v-model="form.description"
-                            label="Aprašymas"
-                            :as-textarea="true"
-                            :rows="5"
-                            :show-icon="true"
-                        />
-                    </div>
-                    <div class="edit-file-attach">
-                        <label class="edit-field-label edit-field-label-empty">&nbsp;</label>
-                        <div class="edit-file-placeholder" @click="handleFileAttach">
-                            <div class="edit-file-pattern"></div>
-                            <span class="edit-file-text">Prisegti failą</span>
-                        </div>
+            <div class="edit-form-field">
+                <AppInput
+                    v-model="form.address"
+                    label="Adresas"
+                    type="text"
+                    :show-icon="true"
+                />
+            </div>
+
+            <div class="edit-form-row edit-form-row-two">
+                <div class="edit-form-field">
+                    <AppInput
+                        v-model="form.description"
+                        label="Aprašymas"
+                        :as-textarea="true"
+                        :rows="3"
+                        :show-icon="true"
+                    />
+                </div>
+                <div class="edit-form-field edit-field-photo">
+                    <label class="edit-field-label">Nuotrauka</label>
+                    <div class="edit-file-placeholder" @click="handleFileAttach">
+                        <span class="edit-file-text">Prisegti failą</span>
                     </div>
                 </div>
+            </div>
         </div>
 
         <template #footer>
-            <AppButton
-                :text="isSubmitting ? 'Saugoma...' : 'Saugoti'"
-                variant="primary"
-                :disabled="isSubmitting"
-                as-button
-                @click="handleSave"
-                class="edit-save-btn"
-            />
+            <div class="edit-save-wrap">
+                <AppButton
+                    :text="isSubmitting ? 'Saugoma...' : 'Saugoti'"
+                    variant="primary"
+                    :disabled="isSubmitting"
+                    as-button
+                    class="edit-save-btn"
+                    @click="handleSave"
+                />
+            </div>
         </template>
     </BaseModal>
 </template>
 
 <style scoped>
-.edit-modal-header-empty {
+.edit-modal-header-content {
     flex: 1;
+    min-width: 0;
+    display: flex;
+    align-items: center;
+}
+
+.edit-modal-nr-input {
+    width: 100%;
+    max-width: 200px;
+    height: var(--control-height);
+    padding: 0 16px;
+    border: 1px solid var(--color-border, #e5e5e5);
+    border-radius: var(--control-radius);
+    font-size: 14px;
+    font-family: 'Open Sans', sans-serif;
+    color: #333;
+    background: #fff;
+    box-sizing: border-box;
+}
+
+.edit-modal-nr-input::placeholder {
+    color: #999;
+}
+
+.edit-modal-nr-input:focus {
+    outline: none;
+    border-color: var(--color-primary, #1946A0);
 }
 
 .edit-modal-body {
-    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
 }
 
 :deep(.modal-body) {
-    padding: 20px;
+    padding: 16px;
 }
 
-.edit-form-row {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 16px;
-    margin-bottom: 16px;
+:deep(.modal-header) {
+    padding: 12px 16px;
 }
 
-.edit-form-row-single {
-    grid-template-columns: 1fr;
+.edit-date-line {
+    margin: 0;
+    font-size: 14px;
+    font-weight: 700;
+    color: #000;
+    font-family: 'Open Sans', sans-serif;
 }
 
-.edit-form-row-description {
-    grid-template-columns: 1fr 200px;
-    align-items: start;
-}
-
-.edit-field-group {
+.edit-form-field {
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: 6px;
 }
 
-.edit-field-group-description {
-    grid-column: 1;
+.edit-form-field-status {
+    align-items: flex-start;
+}
+
+.edit-form-field-status :deep(.status-badge) {
+    flex: none;
 }
 
 .edit-field-label {
-    font-size: 16px;
+    font-size: 14px;
     font-weight: 600;
-    color: #333;
-    font-family: 'Inter', sans-serif;
+    color: #000;
+    font-family: 'Open Sans', sans-serif;
 }
 
-
-.edit-date-value {
-    font-size: 16px;
-    color: #333;
-    font-family: 'Inter', sans-serif;
-    display: block;
-    margin-bottom: 8px;
+.edit-modal-body :deep(.app-input-label) {
+    color: #000;
 }
 
-.edit-file-attach {
-    grid-column: 2;
+.edit-form-row-two {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    align-items: stretch;
+}
+
+.edit-form-row-two .edit-form-field {
+    min-width: 0;
     display: flex;
     flex-direction: column;
-    gap: 8px;
-    height: 100%;
 }
 
-.edit-field-label-empty {
-    visibility: hidden;
+.edit-form-row-two .edit-field-photo .edit-file-placeholder {
+    flex: 1;
+    min-height: 80px;
 }
 
 .edit-file-placeholder {
-    width: 100%;
-    height: 120px;
-    min-height: 120px;
-    max-height: 120px;
-    border: 1px solid #e0e0e0;
-    border-radius: 5px;
+    min-height: 80px;
+    border: 1px solid var(--color-border, #e5e5e5);
+    border-radius: var(--control-radius);
     display: flex;
-    flex-direction: column;
     align-items: center;
     justify-content: center;
     cursor: pointer;
-    transition: border-color 0.2s;
-    position: relative;
-    overflow: hidden;
-    background-color: #f9f9f9;
+    background: #f9f9f9;
     box-sizing: border-box;
 }
 
 .edit-file-placeholder:hover {
-    border-color: #1946A0;
-}
-
-.edit-file-pattern {
-    width: 100%;
-    height: 100%;
-    background: repeating-conic-gradient(#f0f0f0 0% 25%, #ffffff 0% 50%) 50% / 20px 20px;
-    position: absolute;
-    top: 0;
-    left: 0;
+    border-color: var(--color-primary, #1946A0);
 }
 
 .edit-file-text {
-    position: relative;
-    z-index: 1;
-    font-size: 14px;
+    font-size: 13px;
     color: #666;
-    font-family: 'Inter', sans-serif;
-    margin-top: 8px;
+    font-family: 'Open Sans', sans-serif;
+}
+
+.edit-save-wrap {
+    display: flex;
+    justify-content: center;
+    width: 100%;
 }
 
 .edit-save-btn {
-    width: 100%;
-    max-width: 400px;
-    margin: 0 auto;
+    width: var(--button-width);
+}
+
+:deep(.edit-save-btn) {
+    height: var(--control-height);
+    border-radius: var(--control-radius);
+}
+
+:deep(.modal) {
+    border-radius: 5px;
 }
 </style>

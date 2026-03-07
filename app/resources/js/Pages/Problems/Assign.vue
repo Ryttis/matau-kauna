@@ -253,14 +253,16 @@ const toggleStatus = () => {
                                 Išspręsta
                             </button>
                         </div>
-                        <AppButton
-                            text="Siųsti"
-                            variant="primary"
-                            as-button
-                            @click="handleSend"
-                            :disabled="selectedInstitutionIds.length === 0"
-                            class="assign-send-btn"
-                        />
+                        <div class="assign-send-btn-wrap">
+                            <AppButton
+                                text="Siųsti"
+                                variant="primary"
+                                as-button
+                                @click="handleSend"
+                                :disabled="selectedInstitutionIds.length === 0"
+                                class="assign-send-btn"
+                            />
+                        </div>
                     </div>
                 </div>
 
@@ -273,13 +275,15 @@ const toggleStatus = () => {
                         variant="filter"
                         class="assign-email-input"
                     />
-                    <AppButton
-                        text="Siųsti"
-                        variant="primary"
-                        as-button
-                        @click="handleSendEmail"
-                        class="assign-send-btn assign-send-btn-email"
-                    />
+                    <div class="assign-send-btn-wrap">
+                        <AppButton
+                            text="Siųsti"
+                            variant="primary"
+                            as-button
+                            @click="handleSendEmail"
+                            class="assign-send-btn"
+                        />
+                    </div>
                 </div>
             </div>
         </div>
@@ -418,7 +422,11 @@ const toggleStatus = () => {
 
 .assign-section .app-input-group {
     width: 100%;
-    max-width: 400px;
+}
+
+.assign-section-email .app-input-group {
+    width: var(--control-width);
+    max-width: 100%;
 }
 
 .assign-more-btn {
@@ -477,21 +485,21 @@ const toggleStatus = () => {
 }
 
 .assign-status-buttons {
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
+    display: grid;
+    grid-template-columns: repeat(3, var(--button-width));
+    gap: var(--button-grid-gap);
     margin-bottom: 20px;
 }
 
 .assign-status-btn {
     width: 100%;
-    max-width: 400px;
-    padding: 12px 16px;
+    padding: 9px 24px;
+    min-height: var(--button-height);
     background: #ffffff;
     border: 2px solid;
-    border-radius: 5px;
+    border-radius: var(--button-border-radius);
     cursor: pointer;
-    font-size: 18px;
+    font-size: 16px;
     color: #1E1C1C;
     transition: all 0.2s;
     user-select: none;
@@ -551,16 +559,14 @@ const toggleStatus = () => {
     border-width: 3px;
 }
 
-.assign-send-btn {
-    width: 100%;
-    max-width: 400px;
+.assign-send-btn-wrap {
+    display: flex;
 }
 
-.assign-email-input {
-    max-width: 400px;
-}
-
-.assign-send-btn-email {
-    max-width: 400px;
+.assign-section :deep(.assign-send-btn) {
+    width: var(--button-width);
+    height: var(--button-height);
+    border-radius: var(--button-border-radius);
+    padding: 9px 24px;
 }
 </style>
