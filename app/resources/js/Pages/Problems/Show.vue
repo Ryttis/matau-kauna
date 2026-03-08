@@ -13,6 +13,7 @@ import AppBackButton from '@/Components/App/AppBackButton.vue'
 import ProblemMergeLinks from '@/Components/Problems/ProblemMergeLinks.vue'
 import StatusBadge from '@/Components/Problems/StatusBadge.vue'
 import { useAuth } from '@/composables/useAuth'
+import { ICON_RIGHT_ARROW } from '@/constants/icons'
 
 const props = defineProps({
     problem: Object,
@@ -170,7 +171,7 @@ const mergeTargetId = computed(() =>
 
             <div class="review-progress-section" @click="() => router.visit(route('problems.reviewProgress', problem.id))">
                 <span class="review-progress-text">Nagrinėjimo eiga</span>
-                <img src="/icons/right-next-arrow.png" alt="Rodyklė" class="review-progress-arrow" />
+                <img :src="ICON_RIGHT_ARROW" alt="Rodyklė" class="review-progress-arrow" />
             </div>
 
             <div v-if="canSeeProblemAdminButtons" class="problem-actions">
@@ -212,6 +213,14 @@ const mergeTargetId = computed(() =>
                     @click="() => router.visit(route('problems.merge', mergeTargetId))"
                     class="action-btn"
                 />
+                <AppButton
+                    v-if="canDeleteProblem"
+                    text="Šalinti"
+                    variant="secondary"
+                    as-button
+                    @click="showDeleteModal = true"
+                    class="action-btn"
+                />
             </div>
 
             <div v-else-if="canSeeInstitutionAdminButtons" class="problem-actions">
@@ -230,22 +239,6 @@ const mergeTargetId = computed(() =>
                     class="action-btn"
                 />
                 <AppButton
-                    v-if="canPublish"
-                    :text="problem.is_published_publicly ? 'Nebepaskelbti viešai' : 'Paskelbti viešai'"
-                    variant="secondary"
-                    as-button
-                    @click="handleTogglePublish"
-                    class="action-btn"
-                />
-                <AppButton
-                    v-if="problem.institution_id"
-                    text="Grąžinti problemos administratoriui"
-                    variant="secondary"
-                    as-button
-                    @click="handleGrazintiAdmin"
-                    class="action-btn"
-                />
-                <AppButton
                     text="Apjungti"
                     variant="secondary"
                     as-button
@@ -254,7 +247,7 @@ const mergeTargetId = computed(() =>
                 />
             </div>
 
-            <div v-else-if="canDeleteProblem" class="problem-actions">
+            <div v-else-if="isEmployee" class="problem-actions">
                 <AppButton
                     text="Atvaizduoti/keisti būseną"
                     variant="primary"
@@ -263,26 +256,10 @@ const mergeTargetId = computed(() =>
                     class="action-btn"
                 />
                 <AppButton
-                    v-if="canPublish"
-                    :text="problem.is_published_publicly ? 'Nebepaskelbti viešai' : 'Paskelbti viešai'"
-                    variant="secondary"
-                    as-button
-                    @click="handleTogglePublish"
-                    class="action-btn"
-                />
-                <AppButton
-                    v-if="isEmployee"
                     text="Grąžinti problemos administratoriui"
-                    variant="secondary"
+                    variant="primary"
                     as-button
                     @click="handleGrazintiAdmin"
-                    class="action-btn"
-                />
-                <AppButton
-                    text="Šalinti"
-                    variant="secondary"
-                    as-button
-                    @click="showDeleteModal = true"
                     class="action-btn"
                 />
             </div>

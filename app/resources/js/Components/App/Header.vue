@@ -1,6 +1,7 @@
 <script setup>
     import { computed, ref } from 'vue'
     import { Link, usePage, router } from '@inertiajs/vue3'
+    import { ICON_USER, ICON_BELL, ICON_LOGOUT } from '@/constants/icons'
 
     const page = usePage()
     const roleDropdownOpen = ref(false)
@@ -51,18 +52,18 @@
             </div>
             <Link :href="route('profile')" class="icon-text-wrp link-reset">
                 <div class="active-img-wrp">
-                    <img class="active" src="/icons/user-icon.png" />
+                    <img class="active" :src="ICON_USER" alt="" />
                 </div>
                 <span>{{ user?.name }}</span>
             </Link>
-            <img src="/icons/bell-icon.png" />
+            <img :src="ICON_BELL" alt="" />
             <button
                 class="header-icon-button"
                 type="button"
                 @click="logout"
                 title="Atsijungti"
             >
-                <img src="/icons/logout-icon.png" />
+                <img :src="ICON_LOGOUT" alt="" />
             </button>
         </div>
     </div>
@@ -71,13 +72,13 @@
 <style scoped>
     .header {
         height: 66px;
-        background-color: #1946A0;
+        background-color: var(--color-primary, #1946A0);
         width: 100%;
         display: flex;
     }
 
     .header-icons {
-        color: #fff;
+        color: var(--color-white, #fff);
         display: flex;
         gap: 36px;
         margin: auto 100px auto auto;
@@ -91,7 +92,7 @@
     .header-icons .active-img-wrp {
         width: 24px;
         height: 24px;
-        background-color: #fff;
+        background-color: var(--color-white, #fff);
         border-radius: 50%;
         padding: 4px;
         display: flex;
@@ -133,7 +134,7 @@
     .role-switcher-btn {
         padding: 6px 12px;
         background: rgba(255,255,255,0.2);
-        color: #fff;
+        color: var(--color-white, #fff);
         border: 1px solid rgba(255,255,255,0.4);
         border-radius: 8px;
         font-size: 14px;
@@ -150,8 +151,8 @@
         left: 0;
         margin-top: 4px;
         min-width: 180px;
-        background: #fff;
-        border: 1px solid #e0e0e0;
+        background: var(--color-white, #fff);
+        border: 1px solid var(--color-border, #e0e0e0);
         border-radius: 8px;
         box-shadow: 0 4px 12px rgba(0,0,0,0.1);
         z-index: 100;
@@ -164,7 +165,7 @@
         text-align: left;
         border: none;
         background: none;
-        color: #333;
+        color: var(--color-text, #333);
         font-size: 14px;
         cursor: pointer;
     }

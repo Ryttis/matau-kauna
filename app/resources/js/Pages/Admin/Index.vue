@@ -59,6 +59,6 @@ const activeComponent = computed(() => {
 
 <style scoped>
 .admin-content {
-    background: #ffffff;
+    background: var(--color-white);
 }
 </style>

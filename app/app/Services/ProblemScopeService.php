@@ -17,7 +17,11 @@ class ProblemScopeService
         }
 
         if ($this->isInstitutionScoped($user)) {
-            $query->where('institution_id', $user->institution_id);
+            if ($user->institution_id === null) {
+                $query->whereRaw('1 = 0');
+            } else {
+                $query->where('institution_id', $user->institution_id);
+            }
 
             return;
         }

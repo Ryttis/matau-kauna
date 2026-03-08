@@ -9,6 +9,7 @@ import SuccessModal from '@/Components/App/SuccessModal.vue'
 import EntityTable from '@/Components/App/Tables/EntityTable.vue'
 import { useSuccessModal } from '@/composables/useSuccessModal.js'
 import { PROBLEM_STATUS } from '@/constants/problemStatus'
+import { ICON_ARROW } from '@/constants/icons'
 
 const institutionColumns = [{ key: 'name', label: 'Įstaiga' }]
 
@@ -173,7 +174,7 @@ const toggleStatus = () => {
                     <h1 class="assign-title">Problemai priskiriama atsakingai įstaigai</h1>
                     <button class="assign-title-icon-btn" type="button" @click="toggleInstitutions">
                         <img
-                            src="/icons/arrow-icon.png"
+                            :src="ICON_ARROW"
                             alt="Dropdown"
                             class="assign-title-icon"
                             :class="{ 'assign-icon-rotated': !isInstitutionsExpanded }"
@@ -213,7 +214,7 @@ const toggleStatus = () => {
                         <label class="assign-section-label">Būsena</label>
                         <button class="assign-section-icon-btn" type="button" @click="toggleStatus">
                             <img
-                                src="/icons/arrow-icon.png"
+                                :src="ICON_ARROW"
                                 alt="Dropdown"
                                 class="assign-section-icon"
                                 :class="{ 'assign-icon-rotated': !isStatusExpanded }"

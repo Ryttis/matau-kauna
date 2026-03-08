@@ -112,13 +112,13 @@ function goToReviewProgress() {
     gap: 12px;
     margin-bottom: 24px;
     padding-bottom: 16px;
-    border-bottom: 1px solid #e0e0e0;
+    border-bottom: 1px solid var(--color-border);
 }
 
 .reporter-problem-back {
     display: inline-flex;
     align-items: center;
-    color: #1946a0;
+    color: var(--color-primary);
     text-decoration: none;
 }
 
@@ -145,13 +145,13 @@ function goToReviewProgress() {
 
 .header-label {
     font-size: 14px;
-    color: #666;
+    color: var(--color-text-muted);
 }
 
 .header-value {
     font-size: 16px;
     font-weight: 600;
-    color: #333;
+    color: var(--color-text);
 }
 
 .reporter-problem-status-section {
@@ -191,14 +191,14 @@ function goToReviewProgress() {
     font-size: 16px;
     font-weight: 600;
     font-family: inherit;
-    color: #fff;
-    background: #1946a0;
+    color: var(--color-white);
+    background: var(--color-primary);
     border: none;
     border-radius: 15px;
     cursor: pointer;
 }
 
 .reporter-problem-stebeti-btn:hover {
-    background: #153a8a;
+    background: var(--color-primary-hover);
 }
 </style>

@@ -9,7 +9,12 @@ const props = defineProps({
     emailNotificationsEnabled: { type: Boolean, default: false },
     isInstitutionAdmin: { type: Boolean, default: false },
     isSystemAdmin: { type: Boolean, default: false },
+    isProblemAdmin: { type: Boolean, default: false },
 })
+
+const showFiveFields = computed(() =>
+    props.isSystemAdmin || props.isProblemAdmin || props.isInstitutionAdmin
+)
 
 const secondSwitchValue = computed(() =>
     props.isInstitutionAdmin ? props.emailUpdatesInstitutionAdmin : props.emailNotificationsEnabled
@@ -37,7 +42,7 @@ function onSecondSwitchChange(v) {
 
 <template>
     <div class="privacy-block">
-        <template v-if="isSystemAdmin">
+        <template v-if="showFiveFields">
             <div class="privacy-row privacy-row-switch">
                 <span class="privacy-label">Informacijos atnaujinimo siuntimas el. paštu</span>
                 <div class="privacy-row-right">

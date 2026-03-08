@@ -6,6 +6,8 @@ import AppButton from '@/Components/App/AppButton.vue'
 import FilterModal from '@/Components/App/Modals/FilterModal.vue'
 import KaunasProblemsMap from '@/Components/Map/KaunasProblemsMap.vue'
 import { useAuth } from '@/composables/useAuth'
+import { ICON_FILTER } from '@/constants/icons'
+import { PROBLEM_STATUS, MARKER_COLOR_BY_STATUS } from '@/constants/problemStatus'
 
 const props = defineProps({
     categories: Array,
@@ -55,25 +57,28 @@ const handleFilterClose = () => {
     showFilterModal.value = false
 }
 
-// TODO: Priskirti problemą – dar neįgyvendinta
 const handleAssignProblem = () => {}
 
 const handleAssignInstitution = () => {
     router.visit(route('dashboard'))
 }
 
-// TODO: Atvaizduoti/keisti būseną – dar neįgyvendinta
 const handleDisplayStatus = () => {}
 
-// TODO: Ieškoti – dar neįgyvendinta
 const handleIeskoti = () => {}
+
+const statusIndicatorVars = {
+    '--status-new': MARKER_COLOR_BY_STATUS[PROBLEM_STATUS.NEW],
+    '--status-review': MARKER_COLOR_BY_STATUS[PROBLEM_STATUS.IN_REVIEW],
+    '--status-resolved': MARKER_COLOR_BY_STATUS[PROBLEM_STATUS.RESOLVED],
+}
 </script>
 
 <template>
     <Head title="Žemėlapis" />
 
     <AuthenticatedLayout>
-        <div class="map-page">
+        <div class="map-page" :style="statusIndicatorVars">
             <div class="search-filter-section">
                 <input
                     v-model="searchQuery"
@@ -82,7 +87,7 @@ const handleIeskoti = () => {}
                     placeholder="ieškoti"
                 />
                 <img
-                    src="/icons/filter-icon.png"
+                    :src="ICON_FILTER"
                     class="filter-icon"
                     alt="Filtruoti"
                     @click="handleFilterClick"
@@ -230,15 +235,15 @@ const handleIeskoti = () => {}
 }
 
 .status-circle--new {
-    background-color: #FF6B35;
+    background-color: var(--status-new);
 }
 
 .status-circle--review {
-    background-color: #FFD23F;
+    background-color: var(--status-review);
 }
 
 .status-circle--resolved {
-    background-color: #06A77D;
+    background-color: var(--status-resolved);
 }
 
 .status-label {

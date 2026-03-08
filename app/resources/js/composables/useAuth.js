@@ -1,7 +1,6 @@
 import { computed } from 'vue'
 import { usePage } from '@inertiajs/vue3'
 import {
-    ROLE_SYSTEM_ADMIN,
     ROLE_PROBLEM_ADMIN,
     ROLE_INSTITUTION_ADMIN,
     ROLE_MUNICIPALITY_REP,
@@ -39,15 +38,7 @@ export function useAuth() {
     const canExport = computed(
         () => isProblemAdmin.value || isSystemAdmin.value
     )
-    const canAssignProblem = computed(
-        () =>
-            isProblemAdmin.value ||
-            isInstitutionAdmin.value ||
-            isSystemAdmin.value
-    )
-    const canDeleteProblem = computed(
-        () => isEmployee.value || isSystemAdmin.value
-    )
+    const canDeleteProblem = computed(() => isSystemAdmin.value)
     const canEditProblem = computed(
         () =>
             (isProblemAdmin.value || isSystemAdmin.value) &&
@@ -59,9 +50,6 @@ export function useAuth() {
             isInstitutionAdmin.value ||
             isSystemAdmin.value
     )
-    const canSeeAssignInstitutionPage = computed(
-        () => isInstitutionAdmin.value || isSystemAdmin.value
-    )
     const canPublish = computed(
         () => hasPermission('issues.publish') || hasPermission('issues.view')
     )
@@ -71,8 +59,6 @@ export function useAuth() {
         roles,
         permissions,
         isSystemAdmin,
-        hasRole,
-        hasPermission,
         isProblemAdmin,
         isInstitutionAdmin,
         isEmployee,
@@ -80,11 +66,9 @@ export function useAuth() {
         canSeeProblemAdminButtons,
         canSeeInstitutionAdminButtons,
         canExport,
-        canAssignProblem,
         canDeleteProblem,
         canEditProblem,
         canMergeProblem,
-        canSeeAssignInstitutionPage,
         canPublish,
     }
 }

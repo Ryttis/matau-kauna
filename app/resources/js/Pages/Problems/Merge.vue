@@ -10,6 +10,7 @@ import SuccessModal from '@/Components/App/SuccessModal.vue'
 import KaunasProblemsMap from '@/Components/Map/KaunasProblemsMap.vue'
 import { useSuccessModal } from '@/composables/useSuccessModal.js'
 import { KAUNAS_CENTER } from '@/composables/leafletKaunas'
+import { ICON_ARROW } from '@/constants/icons'
 
 const props = defineProps({
     problem: Object,
@@ -261,7 +262,7 @@ onUnmounted(() => {
                         >
                             <span>{{ selectedCategory || 'Kategorija' }}</span>
                             <img
-                                src="/icons/arrow-icon.png"
+                                :src="ICON_ARROW"
                                 alt="Dropdown"
                                 class="merge-dropdown-icon"
                                 :class="{ 'merge-dropdown-rotated': showCategoryDropdown }"

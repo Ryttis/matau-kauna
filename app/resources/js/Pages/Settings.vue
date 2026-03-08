@@ -4,82 +4,78 @@ import SettingsSection from '@/Components/App/SettingsSection.vue'
 import SettingsPrivacyBlock from '@/Components/App/SettingsPrivacyBlock.vue'
 import AppInput from '@/Components/App/AppInput.vue'
 import AppButton from '@/Components/App/AppButton.vue'
-import AppSelect from '@/Components/App/AppSelect.vue'
 import DeleteAccountModal from '@/Components/App/DeleteAccountModal.vue'
-import BaseModal from '@/Components/App/BaseModal.vue'
-import axios from 'axios'
 import { Head, router, useForm, usePage } from '@inertiajs/vue3'
-import { ref, computed } from 'vue'
-import { ROLE_SYSTEM_ADMIN, ROLE_INSTITUTION_ADMIN } from '@/constants/roles.js'
+import { ref, computed, watch, onMounted } from 'vue'
+import { ROLE_SYSTEM_ADMIN, ROLE_INSTITUTION_ADMIN, ROLE_PROBLEM_ADMIN } from '@/constants/roles.js'
+import {
+    SETTINGS_CONTAINER_MAX,
+    SETTINGS_INNER_MAX,
+    SETTINGS_BUTTON_WIDTH,
+    SETTINGS_BUTTON_HEIGHT,
+    SETTINGS_BORDER_RADIUS,
+    SETTINGS_INPUT_RADIUS,
+} from '@/constants/theme'
 
-const props = defineProps({
-    employees: Array,
-    teams: { type: Array, default: () => [] },
-    inviteRoles: { type: Array, default: () => [] },
-})
+const settingsPageStyle = {
+    '--settings-container-max': `${SETTINGS_CONTAINER_MAX}px`,
+    '--settings-inner-max': `${SETTINGS_INNER_MAX}px`,
+    '--settings-button-width': `${SETTINGS_BUTTON_WIDTH}px`,
+    '--settings-button-height': `${SETTINGS_BUTTON_HEIGHT}px`,
+    '--settings-radius': `${SETTINGS_BORDER_RADIUS}px`,
+    '--settings-input-radius': `${SETTINGS_INPUT_RADIUS}px`,
+}
 
 const page = usePage()
-const user = page.props.auth?.user
+const user = computed(() => page.props.auth?.user ?? null)
 const authRoles = computed(() => page.props.auth?.roles || [])
 const activeRole = computed(() => {
     const auth = page.props.auth
-    return auth?.activeRole ?? auth?.active_role ?? (authRoles.value?.length === 1 ? authRoles.value[0] : null)
+    const roles = authRoles.value
+    return auth?.activeRole ?? auth?.active_role ?? (roles?.length === 1 ? roles[0] : null)
 })
 const isSystemAdmin = computed(() => (activeRole.value?.role ?? '') === ROLE_SYSTEM_ADMIN)
+const isProblemAdmin = computed(() => (activeRole.value?.role ?? '') === ROLE_PROBLEM_ADMIN)
 
 const isInstitutionAdmin = computed(() =>
     authRoles.value.some((r) => r.role === ROLE_INSTITUTION_ADMIN)
 )
 
-const employeeForm = useForm({
-    name: '',
-    surname: '',
-    email: '',
-})
-
 const institutionForm = useForm({
-    name: user.institution?.name || '',
-    code: user.institution?.code || '',
+    name: '',
+    code: '',
 })
 
 const deleteAccountForm = useForm({
     password: '',
 })
 
-const privacyForm = useForm({})
-
 const showDeleteModal = ref(false)
-const twoFactorEnabled = ref(!!user.two_factor_enabled)
-const emailUpdatesInstitutionAdmin = ref(!!user.email_updates_institution_admin)
-const emailNotificationsEnabled = ref(!!user.email_notifications_enabled)
+const twoFactorEnabled = ref(false)
+const emailUpdatesInstitutionAdmin = ref(false)
+const emailNotificationsEnabled = ref(false)
 
-const sections = ref({
-    employee: true,
-    groups: true,
-    invite: true,
-    institution: true,
-    privacy: true,
-})
+const sections = ref({ institution: true })
+
+function initFromUser() {
+    const u = user.value
+    if (!u) return
+    institutionForm.name = u.institution?.name ?? ''
+    institutionForm.code = u.institution?.code ?? ''
+    twoFactorEnabled.value = !!u.two_factor_enabled
+    emailUpdatesInstitutionAdmin.value = !!u.email_updates_institution_admin
+    emailNotificationsEnabled.value = !!u.email_notifications_enabled
+}
+
+watch(user, initFromUser, { immediate: true })
+onMounted(initFromUser)
 
 const toggleSection = (section) => {
     sections.value[section] = !sections.value[section]
 }
 
-const storeEmployee = () => {
-    employeeForm.post(route('settings.employees'), {
-        preserveScroll: true,
-        onSuccess: () => employeeForm.reset(),
-    })
-}
-
 const updateInstitution = () => {
     institutionForm.patch(route('settings.institution'), {
-        preserveScroll: true,
-    })
-}
-
-const updatePrivacy = () => {
-    privacyForm.patch(route('settings.privacy'), {
         preserveScroll: true,
     })
 }
@@ -106,209 +102,15 @@ const saveEmailNotificationsEnabled = () => {
     }, { preserveScroll: true })
 }
 
-const inviteForm = ref({ email: '', role_id: '' })
-const inviteError = ref('')
-const inviteSending = ref(false)
-const teams = ref(props.teams ? [...props.teams] : [])
-const teamForm = ref({ name: '' })
-const teamError = ref('')
-const teamSaving = ref(false)
-const teamMembersOpen = ref(false)
-const selectedTeam = ref(null)
-const selectedMemberIds = ref([])
-const teamMembersSaving = ref(false)
-const teamEditOpen = ref(false)
-const editTeamForm = ref({ id: null, name: '' })
-const teamEditSaving = ref(false)
-
-const sendInvite = async () => {
-    if (!user?.institution_id || !inviteForm.value.email || !inviteForm.value.role_id) return
-    inviteError.value = ''
-    inviteSending.value = true
-    try {
-        await axios.post('/invitations', {
-            email: inviteForm.value.email,
-            institution_id: user.institution_id,
-            role_id: inviteForm.value.role_id,
-        })
-        inviteForm.value = { email: '', role_id: '' }
-    } catch (e) {
-        inviteError.value = e.response?.data?.message ?? 'Nepavyko išsiųsti pakvietimo.'
-    } finally {
-        inviteSending.value = false
-    }
-}
-
-const createTeam = async () => {
-    if (!teamForm.value.name) return
-    teamError.value = ''
-    teamSaving.value = true
-    try {
-        const { data } = await axios.post(route('settings.teams'), {
-            name: teamForm.value.name,
-        })
-        teams.value = [...teams.value, data].sort((a, b) => a.name.localeCompare(b.name))
-        teamForm.value.name = ''
-    } catch (e) {
-        teamError.value = e.response?.data?.message ?? 'Nepavyko sukurti grupės.'
-    } finally {
-        teamSaving.value = false
-    }
-}
-
-const openTeamMembers = (team) => {
-    selectedTeam.value = team
-    selectedMemberIds.value = (team.employees ?? []).map((e) => e.id)
-    teamMembersOpen.value = true
-}
-
-const openTeamEdit = (team) => {
-    editTeamForm.value = { id: team.id, name: team.name }
-    teamEditOpen.value = true
-}
-
-const saveTeamEdit = async () => {
-    if (!editTeamForm.value.id || !editTeamForm.value.name) return
-    teamError.value = ''
-    teamEditSaving.value = true
-    try {
-        const { data } = await axios.put(
-            route('settings.teams.update', editTeamForm.value.id),
-            { name: editTeamForm.value.name }
-        )
-        teams.value = teams.value
-            .map((t) => (t.id === data.id ? data : t))
-            .sort((a, b) => a.name.localeCompare(b.name))
-        teamEditOpen.value = false
-    } catch (e) {
-        teamError.value = e.response?.data?.message ?? 'Nepavyko pervadinti grupės.'
-    } finally {
-        teamEditSaving.value = false
-    }
-}
-
-const saveTeamMembers = async () => {
-    if (!selectedTeam.value) return
-    teamError.value = ''
-    teamMembersSaving.value = true
-    try {
-        const { data } = await axios.post(route('settings.teams.members', selectedTeam.value.id), {
-            employee_ids: selectedMemberIds.value,
-        })
-        teams.value = teams.value.map((t) => (t.id === data.id ? data : t))
-        teamMembersOpen.value = false
-    } catch (e) {
-        teamError.value = e.response?.data?.message ?? 'Nepavyko atnaujinti narių.'
-    } finally {
-        teamMembersSaving.value = false
-    }
-}
-
-const deleteTeam = async (team) => {
-    if (!team) return
-    if (!confirm(`Ar tikrai norite pašalinti grupę \"${team.name}\"?`)) return
-    teamError.value = ''
-    teamSaving.value = true
-    try {
-        await axios.delete(route('settings.teams.destroy', team.id))
-        teams.value = teams.value.filter((t) => t.id !== team.id)
-    } catch (e) {
-        teamError.value = e.response?.data?.message ?? 'Nepavyko pašalinti grupės.'
-    } finally {
-        teamSaving.value = false
-    }
-}
 </script>
 
 <template>
     <Head title="Nustatymai" />
 
     <AuthenticatedLayout>
-        <div class="settings-container settings-page">
+        <div class="settings-container settings-page" :style="settingsPageStyle">
             <div class="settings-content">
                 <div class="settings-inner">
-                <SettingsSection
-                    v-if="isInstitutionAdmin"
-                    title="Darbuotojas"
-                    :open="sections.employee"
-                    @toggle="toggleSection('employee')"
-                >
-                    <form @submit.prevent="storeEmployee" class="form-grid">
-                        <AppInput v-model="employeeForm.name" placeholder="Vardas" />
-                        <AppInput v-model="employeeForm.surname" placeholder="Pavardė" />
-                        <AppInput v-model="employeeForm.email" type="email" placeholder="El. paštas" />
-                        <AppButton
-                            text="Saugoti"
-                            variant="primary"
-                            :disabled="employeeForm.processing"
-                        />
-                    </form>
-                    <div v-if="employees && employees.length > 0" class="employee-list">
-                        <h3>Darbuotojų sąrašas:</h3>
-                        <ul>
-                            <li v-for="emp in employees" :key="emp.id">
-                                {{ emp.name }} {{ emp.surname }} ({{ emp.email }})
-                            </li>
-                        </ul>
-                    </div>
-                </SettingsSection>
-
-                <SettingsSection
-                    v-if="isInstitutionAdmin"
-                    title="Darbuotojų grupės"
-                    :open="sections.groups"
-                    @toggle="toggleSection('groups')"
-                >
-                    <div v-if="teamError" class="invite-error">{{ teamError }}</div>
-                    <form @submit.prevent="createTeam" class="form-grid form-grid-inline">
-                        <AppInput v-model="teamForm.name" placeholder="Grupės pavadinimas" />
-                        <AppButton
-                            text="Sukurti grupę"
-                            variant="primary"
-                            :disabled="teamSaving || !teamForm.name"
-                        />
-                    </form>
-                    <div v-if="teams && teams.length > 0" class="employee-list">
-                        <h3>Grupių sąrašas:</h3>
-                        <ul class="groups-list">
-                            <li v-for="team in teams" :key="team.id" class="groups-item">
-                                <span class="groups-name">{{ team.name }}</span>
-                                <span class="groups-members">({{ team.employees?.length ?? 0 }} darbuotojai)</span>
-                                <button type="button" class="link-btn small" @click="openTeamMembers(team)">
-                                    Nariai
-                                </button>
-                                <button type="button" class="link-btn small" @click="openTeamEdit(team)">
-                                    Pervadinti
-                                </button>
-                                <button type="button" class="link-btn small" @click="deleteTeam(team)">
-                                    Šalinti
-                                </button>
-                            </li>
-                        </ul>
-                    </div>
-                    <div v-else class="groups-empty">Grupių dar nėra.</div>
-                </SettingsSection>
-
-                <SettingsSection
-                    v-if="isInstitutionAdmin"
-                    title="Pakviesti darbuotoją"
-                    :open="sections.invite"
-                    @toggle="toggleSection('invite')"
-                >
-                    <div v-if="inviteError" class="invite-error">{{ inviteError }}</div>
-                    <form @submit.prevent="sendInvite" class="form-grid">
-                        <AppInput v-model="inviteForm.email" type="email" placeholder="El. paštas" :showIcon="true" />
-                        <AppSelect v-model="inviteForm.role_id" placeholder="Rolė" variant="white" class="settings-select">
-                            <option v-for="r in inviteRoles" :key="r.id" :value="r.id">{{ r.name }}</option>
-                        </AppSelect>
-                        <AppButton
-                            text="Siųsti pakvietimą"
-                            variant="primary"
-                            :disabled="inviteSending || !inviteForm.email || !inviteForm.role_id"
-                        />
-                    </form>
-                </SettingsSection>
-
                 <SettingsSection
                     v-if="isInstitutionAdmin"
                     title="Įstaigos nustatymai"
@@ -332,6 +134,7 @@ const deleteTeam = async (team) => {
                     :email-notifications-enabled="emailNotificationsEnabled"
                     :is-institution-admin="isInstitutionAdmin"
                     :is-system-admin="isSystemAdmin"
+                    :is-problem-admin="isProblemAdmin"
                     @update:twoFactorEnabled="twoFactorEnabled = $event"
                     @update:emailUpdatesInstitutionAdmin="emailUpdatesInstitutionAdmin = $event"
                     @update:emailNotificationsEnabled="emailNotificationsEnabled = $event"
@@ -377,76 +180,10 @@ const deleteTeam = async (team) => {
             </template>
         </DeleteAccountModal>
 
-        <BaseModal
-            :open="teamMembersOpen"
-            title="Grupės nariai"
-            @close="teamMembersOpen = false"
-        >
-            <div class="members-checklist">
-                <label
-                    v-for="emp in employees"
-                    :key="emp.id"
-                    class="members-check"
-                >
-                    <input type="checkbox" :value="emp.id" v-model="selectedMemberIds" />
-                    <span>{{ emp.name }} {{ emp.surname }} ({{ emp.email }})</span>
-                </label>
-            </div>
-            <template #footer>
-                <AppButton
-                    text="Atšaukti"
-                    variant="secondary"
-                    as-button
-                    @click="teamMembersOpen = false"
-                />
-                <AppButton
-                    text="Išsaugoti"
-                    variant="primary"
-                    as-button
-                    :disabled="teamMembersSaving"
-                    @click="saveTeamMembers"
-                />
-            </template>
-        </BaseModal>
-
-        <BaseModal
-            :open="teamEditOpen"
-            title="Pervadinti grupę"
-            @close="teamEditOpen = false"
-        >
-            <form @submit.prevent="saveTeamEdit" class="form-grid">
-                <AppInput v-model="editTeamForm.name" placeholder="Grupės pavadinimas" />
-            </form>
-            <template #footer>
-                <AppButton
-                    text="Atšaukti"
-                    variant="secondary"
-                    as-button
-                    @click="teamEditOpen = false"
-                />
-                <AppButton
-                    text="Išsaugoti"
-                    variant="primary"
-                    as-button
-                    :disabled="teamEditSaving || !editTeamForm.name"
-                    @click="saveTeamEdit"
-                />
-            </template>
-        </BaseModal>
-
     </AuthenticatedLayout>
 </template>
 
 <style scoped>
-.settings-page {
-    --settings-container-max: 640px;
-    --settings-inner-max: 400px;
-    --settings-button-width: 260px;
-    --settings-button-height: 40px;
-    --settings-radius: 15px;
-    --settings-input-radius: 10px;
-}
-
 .settings-container {
     width: 100%;
     max-width: var(--settings-container-max);
@@ -468,19 +205,10 @@ const deleteTeam = async (team) => {
     box-sizing: border-box;
 }
 
-.invite-error,
 .form-error {
     color: var(--color-error);
     font-size: 14px;
     margin-bottom: 0;
-}
-
-.settings-select {
-    padding: 10px 12px;
-    border: 1px solid var(--color-border-light);
-    border-radius: var(--settings-input-radius);
-    font-size: 16px;
-    min-width: 200px;
 }
 
 .form-grid {
@@ -535,94 +263,6 @@ const deleteTeam = async (team) => {
 .settings-page :deep(.app-input-wrapper-edit .app-input-icon) {
     width: 20px !important;
     height: 20px !important;
-}
-
-.form-grid-inline {
-    flex-direction: row;
-    align-items: flex-end;
-    flex-wrap: wrap;
-}
-
-.groups-list {
-    list-style: none;
-    padding: 0;
-    margin: 12px 0 0;
-}
-
-.groups-item {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 8px 0;
-    border-bottom: 1px solid var(--color-border);
-    font-size: 14px;
-}
-
-.groups-name {
-    font-weight: 500;
-}
-
-.groups-members {
-    color: var(--color-gray-500);
-}
-
-.groups-empty {
-    color: var(--color-gray-500);
-    font-size: 14px;
-    margin: 12px 0 0;
-}
-
-.link-btn.small {
-    margin-left: auto;
-    padding: 0;
-    border: none;
-    background: none;
-    color: var(--color-primary);
-    cursor: pointer;
-    font-size: 13px;
-}
-
-.link-btn.small:hover {
-    text-decoration: underline;
-}
-
-.members-checklist {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-    max-height: 320px;
-    overflow: auto;
-}
-
-.members-check {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    font-size: 14px;
-    cursor: pointer;
-}
-
-.employee-list {
-    margin-top: 20px;
-    padding-top: 15px;
-    border-top: 1px solid var(--color-border);
-}
-
-.employee-list h3 {
-    font-size: 14px;
-    font-weight: 600;
-    margin-bottom: 10px;
-}
-
-.employee-list ul {
-    list-style: none;
-    padding: 0;
-}
-
-.employee-list li {
-    font-size: 14px;
-    color: var(--color-text-muted);
-    padding: 4px 0;
 }
 
 </style>

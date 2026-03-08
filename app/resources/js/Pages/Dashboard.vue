@@ -15,6 +15,7 @@ import { useProblemDisplayRows } from '@/composables/useProblemDisplayRows'
 import { useSuccessModal } from '@/composables/useSuccessModal.js'
 import { debounce } from 'lodash-es'
 import { PROBLEM_STATUS_LABELS, PROBLEM_STATUS_OPTIONS } from '@/constants/problemStatus'
+import { ICON_FILTER, ICON_CIRCLE_ARROW_RIGHT } from '@/constants/icons'
 import { useAuth } from '@/composables/useAuth'
 
 const props = defineProps({
@@ -146,12 +147,11 @@ const {
     canSeeProblemAdminButtons,
     canSeeInstitutionAdminButtons,
     canExport,
-    canAssignProblem,
     canDeleteProblem,
     canPublish,
+    isEmployee,
 } = useAuth()
 
-const statusLabels = PROBLEM_STATUS_LABELS
 const selectedProblemIdForReview = computed(() =>
     selectedProblems.value.length === 1 ? selectedProblems.value[0] : null
 )
@@ -495,7 +495,7 @@ onUnmounted(() => {
                         aria-label="Filtruoti"
                         @click="reporterOpenFilterModal"
                     >
-                        <img src="/icons/filter-icon.png" class="reporter-dashboard-filter-icon" alt="" />
+                        <img :src="ICON_FILTER" class="reporter-dashboard-filter-icon" alt="" />
                     </button>
                 </div>
                 <label class="reporter-dashboard-checkbox-label">
@@ -556,7 +556,7 @@ onUnmounted(() => {
                 placeholder="Ieškoti"
             />
             <img
-                src="/icons/filter-icon.png"
+                :src="ICON_FILTER"
                 @click="showFilterModal = true"
                 class="filter-icon"
             />
@@ -566,7 +566,7 @@ onUnmounted(() => {
             :problems="problemsList"
             :display-rows="displayRows"
             :selected-problems="selectedProblems"
-            :status-labels="statusLabels"
+            :status-labels="PROBLEM_STATUS_LABELS"
             :sort-by="sortBy"
             :sort-direction="sortDirection"
             :can-publish="canPublish"
@@ -582,7 +582,7 @@ onUnmounted(() => {
                 class="view-more-link"
             >
                 <span>Žiūrėti daugiau</span>
-                <img src="/icons/circle-arrow-right.png" alt="Rodyklė" class="view-more-arrow" />
+                <img :src="ICON_CIRCLE_ARROW_RIGHT" alt="Rodyklė" class="view-more-arrow" />
             </a>
         </div>
 
@@ -628,6 +628,15 @@ onUnmounted(() => {
                     :disabled="selectedProblems.length === 0"
                     @click="handleBulkPublishToggle"
                 />
+                <AppButton
+                    v-if="canDeleteProblem"
+                    text="Šalinti"
+                    variant="secondary"
+                    as-button
+                    class="list-nav-btn"
+                    :disabled="selectedProblems.length !== 1"
+                    @click="handleDeleteProblems"
+                />
             </template>
 
             <template v-else-if="canSeeInstitutionAdminButtons">
@@ -656,29 +665,13 @@ onUnmounted(() => {
                 />
             </template>
 
-            <template v-else-if="canDeleteProblem">
+            <template v-else-if="isEmployee">
                 <AppButton
                     text="Atvaizduoti/keisti būseną"
                     as-button
                     class="list-nav-btn"
-                    @click="openStatusModal()"
-                />
-                <AppButton
-                    v-if="canPublish"
-                    :text="bulkPublishButtonLabel"
-                    variant="secondary"
-                    as-button
-                    class="list-nav-btn"
                     :disabled="selectedProblems.length === 0"
-                    @click="handleBulkPublishToggle"
-                />
-                <AppButton
-                    text="Šalinti"
-                    variant="secondary"
-                    as-button
-                    class="list-nav-btn"
-                    :disabled="selectedProblems.length !== 1"
-                    @click="handleDeleteProblems"
+                    @click="openStatusModal()"
                 />
                 <AppButton
                     text="Stebėti"
@@ -974,23 +967,23 @@ onUnmounted(() => {
 
 .list-navigation :deep(.app-button--primary),
 .list-navigation .export-wrapper :deep(.app-button--primary) {
-    background-color: #1946A0 !important;
-    color: #fff !important;
+    background-color: var(--color-primary) !important;
+    color: var(--color-white) !important;
 }
 
 .list-navigation :deep(.app-button--primary:hover),
 .list-navigation :deep(.app-button--primary:focus-visible),
 .list-navigation .export-wrapper :deep(.app-button--primary:hover),
 .list-navigation .export-wrapper :deep(.app-button--primary:focus-visible) {
-    background-color: #153a8a !important;
-    color: #fff !important;
+    background-color: var(--color-primary-hover) !important;
+    color: var(--color-white) !important;
 }
 
 .list-navigation :deep(.app-button--secondary),
 .list-navigation .export-wrapper :deep(.app-button--secondary) {
-    background-color: #fff !important;
-    color: #333 !important;
-    border: 1px solid #1946A0 !important;
+    background-color: var(--color-white) !important;
+    color: var(--color-text) !important;
+    border: 1px solid var(--color-primary) !important;
 }
 
 .list-navigation :deep(.app-button--secondary:hover),
@@ -998,8 +991,8 @@ onUnmounted(() => {
 .list-navigation .export-wrapper :deep(.app-button--secondary:hover),
 .list-navigation .export-wrapper :deep(.app-button--secondary:focus-visible) {
     background-color: #f5f5f5 !important;
-    color: #333 !important;
-    border: 1px solid #1946A0 !important;
+    color: var(--color-text) !important;
+    border: 1px solid var(--color-primary) !important;
 }
 
 .list-navigation :deep(.app-button--disabled),
@@ -1019,8 +1012,8 @@ onUnmounted(() => {
     right: 0;
     left: auto;
     margin-top: 5px;
-    background: white;
-    border: 1px solid #e0e0e0;
+    background: var(--color-white);
+    border: 1px solid var(--color-border);
     border-radius: 8px;
     padding: 5px;
     min-width: 200px;

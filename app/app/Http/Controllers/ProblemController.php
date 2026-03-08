@@ -76,7 +76,13 @@ class ProblemController extends Controller
             ->notArchived()
             ->when(
                 $user && $this->scopeService->isInstitutionScoped($user),
-                fn ($query) => $query->where('institution_id', $user->institution_id)
+                function ($query) use ($user) {
+                    if ($user->institution_id === null) {
+                        $query->whereRaw('1 = 0');
+                    } else {
+                        $query->where('institution_id', $user->institution_id);
+                    }
+                }
             )
             ->when(
                 $user && $this->scopeService->isEmployeeScoped($user),

@@ -3,6 +3,7 @@ import { onMounted, ref } from 'vue'
 import axios from 'axios'
 import SuccessModal from '@/Components/App/SuccessModal.vue'
 import AppDataTable from '@/Components/App/AppDataTable.vue'
+import AppButton from '@/Components/App/AppButton.vue'
 import { useSuccessModal } from '@/composables/useSuccessModal.js'
 
 const invitationsPage = ref(null)
@@ -45,12 +46,10 @@ onMounted(loadInvitations)
 </script>
 
 <template>
-    <div>
+    <div class="admin-tab">
         <div class="header-row">
             <h3 class="title">Pakvietimai</h3>
-            <button type="button" class="secondary-btn small" @click="loadInvitations">
-                Atnaujinti
-            </button>
+            <AppButton text="Atnaujinti" variant="secondary" as-button class="btn-header" @click="loadInvitations" />
         </div>
 
         <SuccessModal
@@ -104,61 +103,10 @@ onMounted(loadInvitations)
 </template>
 
 <style scoped>
-.header-row {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    gap: 12px;
-    margin-bottom: 10px;
-}
-
-.title {
-    font-size: 18px;
-    font-weight: 700;
-}
-
-.error {
-    background: #fff0f0;
-    border: 1px solid #ffd2d2;
-    color: #8b1e1e;
-    padding: 10px 12px;
-    border-radius: 10px;
-    margin-bottom: 12px;
-    font-size: 13px;
-}
-
-.success {
-    background: #ecfdf3;
-    border: 1px solid #abefc6;
-    color: #027a48;
-    padding: 10px 12px;
-    border-radius: 10px;
-    margin-bottom: 12px;
-    font-size: 13px;
-}
-
-.link-btn {
-    border: none;
-    background: transparent;
-    color: #1946A0;
-    cursor: pointer;
-    padding: 0;
-    font-weight: 600;
-}
-
-.link-btn:disabled {
-    opacity: 0.6;
-    cursor: not-allowed;
-}
-
-.secondary-btn {
-    border: 1px solid #e6e8ee;
-    background: #ffffff;
-    color: #1946A0;
-    border-radius: 10px;
+.btn-header {
+    width: auto;
+    min-width: auto;
     padding: 8px 14px;
-    cursor: pointer;
-    font-weight: 600;
     font-size: 13px;
 }
 </style>

@@ -137,7 +137,6 @@ function onBack() {
     flex: 1;
 }
 
-/* Figma: body padding 16px top/bottom, 8px left/right (arba 16px visur) */
 .wizard-body {
     text-align: center;
     padding: 16px 16px 8px;

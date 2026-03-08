@@ -42,5 +42,5 @@ const submit = () => {
 
 <style scoped>
 .form-grid { display: flex; flex-direction: column; gap: 10px; }
-.error { color: #DC2626; font-size: 12px; margin-top: -6px; }
+.error { color: var(--color-error); font-size: 12px; margin-top: -6px; }
 </style>

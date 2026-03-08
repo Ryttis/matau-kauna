@@ -10,6 +10,7 @@ import AppCheckbox from '@/Components/App/AppCheckbox.vue'
 import SuccessModal from '@/Components/App/SuccessModal.vue'
 import { useAuth } from '@/composables/useAuth'
 import { useSuccessModal } from '@/composables/useSuccessModal.js'
+import { ICON_ARROW } from '@/constants/icons'
 
 const { canSeeInstitutionAdminButtons } = useAuth()
 const { showSuccessModal, successMessage, closeSuccessModal } = useSuccessModal()
@@ -207,7 +208,7 @@ watch(
                 >
                     <span class="section-expand-title">Peradresuoti</span>
                     <img
-                        src="/icons/arrow-icon.png"
+                        :src="ICON_ARROW"
                         alt=""
                         class="section-expand-icon"
                         :class="{ rotated: !reassignExpanded }"

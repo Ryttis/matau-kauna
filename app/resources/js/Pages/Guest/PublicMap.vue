@@ -8,6 +8,7 @@ import KaunasProblemsMap from '@/Components/Map/KaunasProblemsMap.vue'
 import ProblemsMapList from '@/Components/Map/ProblemsMapList.vue'
 import { useProblemsMapFilter } from '@/composables/useProblemsMapFilter'
 import { useProblemDisplayRows } from '@/composables/useProblemDisplayRows'
+import { ICON_FILTER } from '@/constants/icons'
 
 const props = defineProps({
     problems: { type: Array, default: () => [] },
@@ -87,7 +88,7 @@ function openProblemView(problemId) {
                     aria-label="Filtruoti"
                     @click="openFilterModal"
                 >
-                    <img src="/icons/filter-icon.png" class="public-map-filter-icon" alt="" />
+                    <img :src="ICON_FILTER" class="public-map-filter-icon" alt="" />
                 </button>
             </div>
         </div>

@@ -1,5 +1,6 @@
 <script setup>
 import { computed } from 'vue'
+import { ICON_CLOSE } from '@/constants/icons'
 
 const props = defineProps({
     title: {
@@ -78,7 +79,7 @@ const handleOverlayClick = (event) => {
                     class="x-btn"
                     @click="handleClose"
                 >
-                    <img src="/icons/close-icon.png" alt="Uždaryti" class="close-icon" />
+                    <img :src="ICON_CLOSE" alt="Uždaryti" class="close-icon" />
                 </button>
             </div>
 
@@ -109,7 +110,7 @@ const handleOverlayClick = (event) => {
 
 .modal {
     max-width: 100%;
-    background: #ffffff;
+    background: var(--color-white, #fff);
     border-radius: 5px;
     overflow: hidden;
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
@@ -129,7 +130,7 @@ const handleOverlayClick = (event) => {
 .modal-title {
     font-size: 16px;
     font-weight: 700;
-    color: #333;
+    color: var(--color-text, #333);
 }
 
 .modal-title-empty {
