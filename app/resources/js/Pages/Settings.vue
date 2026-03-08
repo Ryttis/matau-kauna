@@ -27,25 +27,9 @@ const activeRole = computed(() => {
 })
 const isSystemAdmin = computed(() => (activeRole.value?.role ?? '') === ROLE_SYSTEM_ADMIN)
 
-const roleDisplayNames = (page.props.auth?.roles ?? [])
-    .map((r) => r?.name)
-    .filter(Boolean)
-
-function isRoleDisplayName(value) {
-    if (!value || typeof value !== 'string') return false
-    const v = value.trim()
-    return roleDisplayNames.some((rn) => rn && String(rn).trim() === v)
-}
-
 const isInstitutionAdmin = computed(() =>
     authRoles.value.some((r) => r.role === ROLE_INSTITUTION_ADMIN)
 )
-
-const profileForm = useForm({
-    name: isRoleDisplayName(user?.name) ? '' : (user?.name || ''),
-    surname: isRoleDisplayName(user?.surname) ? '' : (user?.surname || ''),
-    email: user?.email || '',
-})
 
 const employeeForm = useForm({
     name: '',
@@ -56,12 +40,6 @@ const employeeForm = useForm({
 const institutionForm = useForm({
     name: user.institution?.name || '',
     code: user.institution?.code || '',
-})
-
-const passwordForm = useForm({
-    current_password: '',
-    password: '',
-    password_confirmation: '',
 })
 
 const deleteAccountForm = useForm({
@@ -76,8 +54,6 @@ const emailUpdatesInstitutionAdmin = ref(!!user.email_updates_institution_admin)
 const emailNotificationsEnabled = ref(!!user.email_notifications_enabled)
 
 const sections = ref({
-    profile: true,
-    password: true,
     employee: true,
     groups: true,
     invite: true,
@@ -87,12 +63,6 @@ const sections = ref({
 
 const toggleSection = (section) => {
     sections.value[section] = !sections.value[section]
-}
-
-const updateProfile = () => {
-    profileForm.patch(route('settings.profile'), {
-        preserveScroll: true,
-    })
 }
 
 const storeEmployee = () => {
@@ -111,13 +81,6 @@ const updateInstitution = () => {
 const updatePrivacy = () => {
     privacyForm.patch(route('settings.privacy'), {
         preserveScroll: true,
-    })
-}
-
-const updatePassword = () => {
-    passwordForm.put(route('settings.password'), {
-        preserveScroll: true,
-        onSuccess: () => passwordForm.reset(),
     })
 }
 
@@ -264,60 +227,6 @@ const deleteTeam = async (team) => {
         <div class="settings-container settings-page">
             <div class="settings-content">
                 <div class="settings-inner">
-                    <template v-if="!isSystemAdmin">
-                    <SettingsSection
-                        title="Profilio duomenys"
-                        :open="sections.profile"
-                        @toggle="toggleSection('profile')"
-                    >
-                    <form @submit.prevent="updateProfile" class="form-grid">
-                        <AppInput v-model="profileForm.name" placeholder="Vardas" :showIcon="true" />
-                        <AppInput v-model="profileForm.surname" placeholder="Pavardė" :showIcon="true" />
-                        <AppInput v-model="profileForm.email" type="email" placeholder="El. paštas" :showIcon="true" />
-                        <AppButton
-                            text="Saugoti"
-                            variant="primary"
-                            :disabled="profileForm.processing"
-                        />
-                    </form>
-                </SettingsSection>
-
-                <SettingsSection
-                    title="Keisti slaptažodį"
-                    :open="sections.password"
-                    @toggle="toggleSection('password')"
-                >
-                    <form @submit.prevent="updatePassword" class="form-grid">
-                        <AppInput
-                            v-model="passwordForm.current_password"
-                            type="password"
-                            placeholder="Esamas slaptažodis"
-                            :show-icon="true"
-                        />
-                        <AppInput
-                            v-model="passwordForm.password"
-                            type="password"
-                            placeholder="Naujas slaptažodis"
-                            :show-icon="true"
-                        />
-                        <AppInput
-                            v-model="passwordForm.password_confirmation"
-                            type="password"
-                            placeholder="Pakartoti slaptažodį"
-                            :show-icon="true"
-                        />
-                        <div v-if="passwordForm.errors.password" class="form-error">
-                            {{ passwordForm.errors.password }}
-                        </div>
-                        <AppButton
-                            text="Patvirtinti"
-                            variant="primary"
-                            :disabled="passwordForm.processing"
-                        />
-                    </form>
-                </SettingsSection>
-                    </template>
-
                 <SettingsSection
                     v-if="isInstitutionAdmin"
                     title="Darbuotojas"

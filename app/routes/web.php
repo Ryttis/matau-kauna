@@ -82,6 +82,7 @@ Route::middleware(['auth', 'verified', 'reporter.terms'])->group(function () {
         Route::get('/statistics/institutions', [ProblemController::class, 'statistics'])->name('statistics.institutions');
     });
 
+    Route::get('/profile', [SettingsController::class, 'profile'])->name('profile');
     Route::get('/settings', [SettingsController::class, 'index'])->name('settings');
     Route::get('/settings/change-password', [SettingsController::class, 'changePassword'])->name('settings.change-password');
     Route::put('/settings/password', [SettingsController::class, 'updatePassword'])->name('settings.password');

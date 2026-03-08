@@ -22,6 +22,11 @@ class SettingsController extends Controller
         private SettingsService $settingsService
     ) {}
 
+    public function profile(): Response
+    {
+        return Inertia::render('Profile');
+    }
+
     public function index(): Response
     {
         $data = $this->settingsService->getSettingsPageData(Auth::user());

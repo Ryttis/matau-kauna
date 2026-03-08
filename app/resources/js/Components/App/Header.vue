@@ -1,6 +1,6 @@
 <script setup>
     import { computed, ref } from 'vue'
-    import { usePage, router } from '@inertiajs/vue3'
+    import { Link, usePage, router } from '@inertiajs/vue3'
 
     const page = usePage()
     const roleDropdownOpen = ref(false)
@@ -49,12 +49,12 @@
                     </button>
                 </div>
             </div>
-            <div class="icon-text-wrp">
+            <Link :href="route('profile')" class="icon-text-wrp link-reset">
                 <div class="active-img-wrp">
                     <img class="active" src="/icons/user-icon.png" />
                 </div>
                 <span>{{ user?.name }}</span>
-            </div>
+            </Link>
             <img src="/icons/bell-icon.png" />
             <button
                 class="header-icon-button"
@@ -102,6 +102,16 @@
     .header-icons img.active {
         width: 16px;
         height: 16px;
+    }
+
+    .link-reset {
+        color: inherit;
+        text-decoration: none;
+    }
+
+    .link-reset:hover {
+        color: inherit;
+        text-decoration: none;
     }
 
     .icon-text-wrp {
