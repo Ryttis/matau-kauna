@@ -133,7 +133,7 @@ loadSettings()
 </script>
 
 <template>
-    <div class="audits-tab">
+    <div class="admin-tab audits-tab">
         <h2 class="title">Auditai</h2>
         <p class="desc">Žurnalas apima prisijungimus, naudotojų veiksmus ir sistemos įvykius. Prieiga tik sistemos administratoriui.</p>
 
@@ -258,7 +258,7 @@ loadSettings()
 }
 .desc {
     font-size: 14px;
-    color: #555;
+    color: var(--color-text-muted);
     margin: 0 0 24px 0;
 }
 .settings-block,
@@ -308,22 +308,22 @@ loadSettings()
 }
 .filter-label {
     font-size: 12px;
-    color: #555;
+    color: var(--color-text-muted);
 }
 .filter-select {
     padding: 8px 12px;
-    border: 1px solid #e5e7eb;
+    border: 1px solid var(--color-border);
     border-radius: 6px;
     font-size: 14px;
     min-width: 160px;
 }
 .error {
-    color: #b91c1c;
+    color: var(--color-error);
     font-size: 14px;
     margin: 0 0 12px 0;
 }
 .loading {
-    color: #666;
+    color: var(--color-text-muted);
     font-size: 14px;
 }
 .table-wrap {
@@ -338,14 +338,14 @@ loadSettings()
 .data-table td {
     padding: 10px 12px;
     text-align: left;
-    border-bottom: 1px solid #e8e8e8;
+    border-bottom: 1px solid var(--color-border);
 }
 .data-table th {
     font-weight: 600;
-    background: #f5f5f5;
+    background: var(--color-border-light);
 }
 .empty-cell {
-    color: #666;
+    color: var(--color-text-muted);
     padding: 24px 12px;
     text-align: center;
     font-size: 14px;
@@ -359,8 +359,8 @@ loadSettings()
 .page-btn {
     padding: 6px 12px;
     font-size: 14px;
-    border: 1px solid #e5e7eb;
-    background: #fff;
+    border: 1px solid var(--color-border);
+    background: var(--color-white);
     cursor: pointer;
     border-radius: 6px;
 }
@@ -370,6 +370,6 @@ loadSettings()
 }
 .page-info {
     font-size: 14px;
-    color: #666;
+    color: var(--color-text-muted);
 }
 </style>

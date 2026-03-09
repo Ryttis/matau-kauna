@@ -77,7 +77,7 @@ const updatePassword = () => {
     box-sizing: border-box;
 }
 .error-message {
-    color: #b91c1c;
+    color: var(--color-error);
     margin-bottom: 12px;
 }
 </style>

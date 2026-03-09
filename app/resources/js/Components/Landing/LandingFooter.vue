@@ -10,7 +10,7 @@
                     <Link :href="route('cookies')" class="landing-footer-link">Slapukai</Link>
                     <Link :href="route('contacts')" class="landing-footer-link">Kontaktai</Link>
                     <Link :href="route('help')" class="landing-footer-link">
-                        <img src="/icons/question-icon.png" alt="" class="landing-footer-icon" width="18" height="18" />
+                        <img :src="ICON_QUESTION" alt="" class="landing-footer-icon" width="18" height="18" />
                         Pagalba
                     </Link>
                 </nav>
@@ -23,6 +23,7 @@
 <script setup>
 import { Link } from '@inertiajs/vue3'
 import CookieConsentBanner from '@/Components/Landing/CookieConsentBanner.vue'
+import { ICON_QUESTION } from '@/constants/icons'
 </script>
 
 <style scoped>

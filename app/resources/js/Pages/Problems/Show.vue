@@ -13,6 +13,7 @@ import AppBackButton from '@/Components/App/AppBackButton.vue'
 import ProblemMergeLinks from '@/Components/Problems/ProblemMergeLinks.vue'
 import StatusBadge from '@/Components/Problems/StatusBadge.vue'
 import { useAuth } from '@/composables/useAuth'
+import { ICON_RIGHT_ARROW } from '@/constants/icons'
 
 const props = defineProps({
     problem: Object,
@@ -170,131 +171,97 @@ const mergeTargetId = computed(() =>
 
             <div class="review-progress-section" @click="() => router.visit(route('problems.reviewProgress', problem.id))">
                 <span class="review-progress-text">Nagrinėjimo eiga</span>
-                <img src="/icons/right-next-arrow.png" alt="Rodyklė" class="review-progress-arrow" />
+                <img :src="ICON_RIGHT_ARROW" alt="Rodyklė" class="review-progress-arrow" />
             </div>
 
             <div v-if="canSeeProblemAdminButtons" class="problem-actions">
-                <div class="actions-row">
-                    <AppButton
-                        text="Priskirti problemą"
-                        variant="primary"
-                        as-button
-                        @click="() => router.visit(route('problems.assign.single', problem.id))"
-                        class="action-btn"
-                    />
-                    <AppButton
-                        text="Atvaizduoti/keisti būseną"
-                        variant="primary"
-                        as-button
-                        @click="openStatusModal"
-                        class="action-btn"
-                    />
-                </div>
-                <div class="actions-row">
-                    <AppButton
-                        v-if="canPublish"
-                        :text="problem.is_published_publicly ? 'Nebepaskelbti viešai' : 'Paskelbti viešai'"
-                        variant="secondary"
-                        as-button
-                        @click="handleTogglePublish"
-                        class="action-btn"
-                    />
-                    <AppButton
-                        v-if="canEditProblem"
-                        text="Koreguoti"
-                        variant="secondary"
-                        as-button
-                        @click="openEditModal"
-                        class="action-btn"
-                    />
-                    <AppButton
-                        v-if="canMergeProblem"
-                        text="Apjungti"
-                        variant="secondary"
-                        as-button
-                        @click="() => router.visit(route('problems.merge', mergeTargetId))"
-                        class="action-btn"
-                    />
-                </div>
+                <AppButton
+                    text="Priskirti problemą"
+                    variant="primary"
+                    as-button
+                    @click="() => router.visit(route('problems.assign.single', problem.id))"
+                    class="action-btn"
+                />
+                <AppButton
+                    text="Atvaizduoti/keisti būseną"
+                    variant="primary"
+                    as-button
+                    @click="openStatusModal"
+                    class="action-btn"
+                />
+                <AppButton
+                    v-if="canPublish"
+                    :text="problem.is_published_publicly ? 'Nebepaskelbti viešai' : 'Paskelbti viešai'"
+                    variant="secondary"
+                    as-button
+                    @click="handleTogglePublish"
+                    class="action-btn"
+                />
+                <AppButton
+                    v-if="canEditProblem"
+                    text="Koreguoti"
+                    variant="secondary"
+                    as-button
+                    @click="openEditModal"
+                    class="action-btn"
+                />
+                <AppButton
+                    v-if="canMergeProblem"
+                    text="Apjungti"
+                    variant="secondary"
+                    as-button
+                    @click="() => router.visit(route('problems.merge', mergeTargetId))"
+                    class="action-btn"
+                />
+                <AppButton
+                    v-if="canDeleteProblem"
+                    text="Šalinti"
+                    variant="secondary"
+                    as-button
+                    @click="showDeleteModal = true"
+                    class="action-btn"
+                />
             </div>
 
             <div v-else-if="canSeeInstitutionAdminButtons" class="problem-actions">
-                <div class="actions-row">
-                    <AppButton
-                        text="Priskirti/Peradresuoti problemą"
-                        variant="primary"
-                        as-button
-                        @click="() => router.visit(route('problems.assignInstitution', problem.id))"
-                        class="action-btn"
-                    />
-                    <AppButton
-                        text="Atvaizduoti/keisti būseną"
-                        variant="primary"
-                        as-button
-                        @click="openStatusModal"
-                        class="action-btn"
-                    />
-                    <AppButton
-                        v-if="canPublish"
-                        :text="problem.is_published_publicly ? 'Nebepaskelbti viešai' : 'Paskelbti viešai'"
-                        variant="secondary"
-                        as-button
-                        @click="handleTogglePublish"
-                        class="action-btn"
-                    />
-                    <AppButton
-                        v-if="problem.institution_id"
-                        text="Grąžinti problemos administratoriui"
-                        variant="secondary"
-                        as-button
-                        @click="handleGrazintiAdmin"
-                        class="action-btn"
-                    />
-                </div>
-                <div class="actions-row">
-                    <AppButton
-                        text="Apjungti"
-                        variant="secondary"
-                        as-button
-                        @click="() => router.visit(route('problems.merge', mergeTargetId))"
-                        class="action-btn"
-                    />
-                </div>
+                <AppButton
+                    text="Priskirti/Peradresuoti problemą"
+                    variant="primary"
+                    as-button
+                    @click="() => router.visit(route('problems.assignInstitution', problem.id))"
+                    class="action-btn"
+                />
+                <AppButton
+                    text="Atvaizduoti/keisti būseną"
+                    variant="primary"
+                    as-button
+                    @click="openStatusModal"
+                    class="action-btn"
+                />
+                <AppButton
+                    text="Apjungti"
+                    variant="secondary"
+                    as-button
+                    @click="() => router.visit(route('problems.merge', mergeTargetId))"
+                    class="action-btn"
+                />
             </div>
 
-            <div v-else-if="canDeleteProblem" class="problem-actions">
-                <div class="actions-row">
-                    <AppButton
-                        text="Atvaizduoti/keisti būseną"
-                        variant="primary"
-                        as-button
-                        @click="openStatusModal"
-                        class="action-btn"
-                    />
-                    <AppButton
-                        v-if="canPublish"
-                        :text="problem.is_published_publicly ? 'Nebepaskelbti viešai' : 'Paskelbti viešai'"
-                        variant="secondary"
-                        as-button
-                        @click="handleTogglePublish"
-                        class="action-btn"
-                    />
-                    <AppButton
-                        v-if="isEmployee"
-                        text="Grąžinti problemos administratoriui"
-                        variant="secondary"
-                        as-button
-                        @click="handleGrazintiAdmin"
-                        class="action-btn"
-                    />
-                    <AppButton
-                        text="Šalinti"
-                        variant="secondary"
-                        as-button
-                        @click="showDeleteModal = true"
-                        class="action-btn"
-                    />
-                </div>
+            <div v-else-if="isEmployee" class="problem-actions">
+                <AppButton
+                    text="Atvaizduoti/keisti būseną"
+                    variant="primary"
+                    as-button
+                    @click="openStatusModal"
+                    class="action-btn"
+                />
+                <AppButton
+                    text="Grąžinti problemos administratoriui"
+                    variant="primary"
+                    as-button
+                    @click="handleGrazintiAdmin"
+                    class="action-btn"
+                />
             </div>
 
             <StatusChangeModal
@@ -478,27 +445,36 @@ const mergeTargetId = computed(() =>
 
 
 .problem-actions {
-    display: flex;
-    flex-direction: column;
-    gap: 16px;
-    margin-top: 32px;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    align-items: center;
+    gap: var(--button-grid-gap);
+    margin-top: 40px;
+    width: 100%;
 }
 
-.actions-row {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 12px;
+.problem-actions > * {
+    margin-bottom: 0 !important;
 }
 
 .problem-actions :deep(.action-btn) {
-    flex: 1 1 auto;
-    min-width: 200px;
-    width: auto;
-    min-height: 48px;
-    height: auto;
-    padding: 12px 20px;
+    width: var(--button-width);
+    max-width: 100%;
+    min-height: var(--button-height);
+    box-sizing: border-box;
+    border-radius: var(--button-border-radius);
+    padding: 10px 20px;
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Open Sans', sans-serif;
+    font-size: 16px;
+    font-weight: 400;
+    line-height: 1.4;
+    letter-spacing: -0.011em;
+    text-align: center;
     white-space: normal;
-    line-height: 1.35;
     word-break: break-word;
 }
 </style>

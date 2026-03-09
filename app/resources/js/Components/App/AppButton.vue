@@ -50,7 +50,7 @@ const buttonType = props.asButton ? 'button' : 'submit'
     display: block;
     border: none;
     padding: 10px;
-    border-radius: 5px;
+    border-radius: var(--button-border-radius, 12px);
     margin-bottom: 10px;
     font-size: 18px;
     font-family: 'Inter';
@@ -66,7 +66,7 @@ const buttonType = props.asButton ? 'button' : 'submit'
     padding: 0;
     margin-bottom: 0;
     background: none;
-    color: #000;
+    color: var(--color-text, #000);
     font-size: 16px;
     font-weight: 600;
 }
@@ -77,12 +77,14 @@ const buttonType = props.asButton ? 'button' : 'submit'
 }
 
 .app-button--fixed {
-    width: 290px;
-    height: 45px;
+    min-width: var(--button-min-width);
+    width: var(--button-width, 290px);
+    height: var(--button-height);
+    border-radius: var(--button-border-radius);
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: 0 24px;
+    padding: 9px 24px;
     margin-bottom: 0;
     font-weight: 400;
     font-family: 'Open Sans', sans-serif;
@@ -97,22 +99,22 @@ const buttonType = props.asButton ? 'button' : 'submit'
 }
 
 .app-button--primary {
-    background-color: #1946A0;
-    color: #ffffff;
+    background-color: var(--color-primary);
+    color: var(--color-white, #ffffff);
 }
 
 .app-button--primary:hover {
-    background-color: #1a3d95;
+    background-color: var(--color-primary-hover);
 }
 
 .app-button--primary:active {
-    background-color: #163882;
+    background-color: var(--color-primary-dark);
 }
 
 .app-button--secondary {
-    background-color: #ffffff;
+    background-color: var(--color-white, #ffffff);
     color: #333333;
-    border: 1px solid #1946A0;
+    border: 1px solid var(--color-primary);
 }
 
 .app-button--secondary:hover {
@@ -121,7 +123,7 @@ const buttonType = props.asButton ? 'button' : 'submit'
 
 .app-button--light {
     background-color: #DCE2ED;
-    color: #1946A0;
+    color: var(--color-primary);
     border: none;
 }
 

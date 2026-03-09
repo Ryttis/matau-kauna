@@ -25,9 +25,9 @@ function handleUnmerge() {
 <style scoped>
 .problem-table-unmerge-btn {
     font-size: 12px;
-    color: #1946A0;
+    color: var(--color-primary, #1946A0);
     background: none;
-    border: 1px solid #1946A0;
+    border: 1px solid var(--color-primary, #1946A0);
     border-radius: 4px;
     padding: 4px 10px;
     cursor: pointer;

@@ -104,12 +104,10 @@ const saveGroupPermissions = async () => {
 </script>
 
 <template>
-    <div>
+    <div class="admin-tab">
         <div class="header-row">
             <h3 class="title">Grupės</h3>
-            <button type="button" class="primary-btn small" @click="openCreate">
-                + Pridėti
-            </button>
+            <AppButton text="+ Pridėti" variant="primary" as-button class="btn-header" @click="openCreate" />
         </div>
 
         <table class="table" v-if="groups.length">
@@ -213,138 +211,13 @@ const saveGroupPermissions = async () => {
 </template>
 
 <style scoped>
-.header-row {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    gap: 12px;
-    margin-bottom: 10px;
-}
-
-.title {
-    font-size: 18px;
-    font-weight: 700;
-}
-
-.table {
-    width: 100%;
-    border-collapse: collapse;
-}
-
-th, td {
-    text-align: left;
-    padding: 10px;
-    border-bottom: 1px solid #eef0f3;
-    font-size: 13px;
-    vertical-align: top;
-}
-
-.pill {
-    display: inline-block;
-    margin-right: 6px;
-    margin-bottom: 4px;
-    padding: 4px 8px;
-    border-radius: 999px;
-    background: #F6F7F9;
-    color: #1946A0;
-    font-size: 12px;
+.btn-header {
+    width: auto;
+    min-width: auto;
+    padding: 10px 14px;
 }
 
 .actions {
     width: 170px;
-}
-
-.link-btn {
-    border: none;
-    background: transparent;
-    color: #1946A0;
-    cursor: pointer;
-    padding: 0;
-    font-weight: 600;
-    margin-right: 10px;
-}
-
-.link-btn:hover {
-    text-decoration: underline;
-}
-
-.link-btn.danger {
-    color: #b42318;
-}
-
-.field {
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-    margin-bottom: 12px;
-    font-size: 13px;
-}
-
-.input {
-    height: 40px;
-    border: 1px solid #e6e8ee;
-    border-radius: 10px;
-    padding: 0 12px;
-    background: #F6F7F9;
-}
-
-.hint {
-    color: #6b7280;
-    font-size: 13px;
-    background: #F6F7F9;
-    padding: 10px 12px;
-    border-radius: 10px;
-    margin-bottom: 12px;
-}
-
-.checklist {
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-    max-height: 420px;
-    overflow: auto;
-    border-top: 1px solid #eef0f3;
-    border-bottom: 1px solid #eef0f3;
-    padding: 12px 0;
-}
-
-.check {
-    display: flex;
-    gap: 10px;
-    align-items: center;
-    font-size: 13px;
-}
-
-.primary-btn {
-    border: none;
-    border-radius: 10px;
-    padding: 10px 12px;
-    background: #1946A0;
-    color: #ffffff;
-    cursor: pointer;
-    font-weight: 600;
-}
-
-.primary-btn.small {
-    padding: 10px 14px;
-}
-
-.primary-btn.fixed {
-    padding: 10px 14px;
-}
-
-.primary-btn:disabled {
-    opacity: 0.6;
-    cursor: not-allowed;
-}
-
-.secondary-btn {
-    border: 1px solid #e6e8ee;
-    background: #ffffff;
-    color: #1946A0;
-    border-radius: 10px;
-    padding: 10px 12px;
-    cursor: pointer;
-    font-weight: 600;
 }
 </style>

@@ -156,7 +156,7 @@ onMounted(async () => {
 </script>
 
 <template>
-    <div>
+    <div class="admin-tab">
         <SuccessModal
             :show="showSuccessModal"
             :message="successMessage"
@@ -350,7 +350,7 @@ th,
 td {
     text-align: left;
     padding: 10px;
-    border-bottom: 1px solid #eef0f3;
+    border-bottom: 1px solid var(--color-border-light);
     font-size: 13px;
     vertical-align: top;
 }
@@ -385,7 +385,7 @@ td {
 .link-btn {
     border: none;
     background: transparent;
-    color: #1946a0;
+    color: var(--color-primary);
     cursor: pointer;
     padding: 0;
     font-size: 13px;
@@ -397,7 +397,7 @@ td {
 
 .link-sep {
     margin: 0 6px;
-    color: #ccc;
+    color: var(--color-gray-400);
 }
 
 .link-btn--danger {
@@ -405,13 +405,13 @@ td {
 }
 
 .link-btn--danger:hover {
-    color: #b71c1c;
+    color: var(--color-primary-hover);
 }
 
 .error {
     background: #fff0f0;
     border: 1px solid #ffd2d2;
-    color: #8b1e1e;
+    color: var(--color-error);
     padding: 10px 12px;
     border-radius: 10px;
     margin-bottom: 12px;
@@ -419,7 +419,7 @@ td {
 
 .loading,
 .empty {
-    color: #666;
+    color: var(--color-text-muted);
     margin: 0;
 }
 
@@ -455,13 +455,13 @@ td {
 
 .input {
     padding: 8px 10px;
-    border: 1px solid #e0e0e0;
+    border: 1px solid var(--color-border);
     border-radius: 8px;
     font-size: 14px;
 }
 
 .input:focus {
     outline: none;
-    border-color: #1946a0;
+    border-color: var(--color-primary);
 }
 </style>

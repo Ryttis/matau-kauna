@@ -1,6 +1,7 @@
 <script setup>
 import { ref, computed } from 'vue'
 import { useKaunasMap } from '@/composables/useKaunasMap'
+import { PROBLEM_STATUS, MARKER_COLOR_BY_STATUS } from '@/constants/problemStatus'
 
 const props = defineProps({
     problems: { type: Array, default: () => [] },
@@ -32,15 +33,24 @@ useKaunasMap(mapContainer, problemsToShow, {
         <div ref="mapContainer" class="kaunas-map-container" />
         <div v-if="showLegend" class="kaunas-map-legend">
             <span class="kaunas-map-legend-item">
-                <span class="kaunas-map-legend-dot kaunas-map-legend-dot--orange" />
+                <span
+                    class="kaunas-map-legend-dot"
+                    :style="{ background: MARKER_COLOR_BY_STATUS[PROBLEM_STATUS.NEW] }"
+                />
                 Naujos
             </span>
             <span class="kaunas-map-legend-item">
-                <span class="kaunas-map-legend-dot kaunas-map-legend-dot--yellow" />
+                <span
+                    class="kaunas-map-legend-dot"
+                    :style="{ background: MARKER_COLOR_BY_STATUS[PROBLEM_STATUS.IN_REVIEW] }"
+                />
                 Nagrinėjamos
             </span>
             <span class="kaunas-map-legend-item">
-                <span class="kaunas-map-legend-dot kaunas-map-legend-dot--green" />
+                <span
+                    class="kaunas-map-legend-dot"
+                    :style="{ background: MARKER_COLOR_BY_STATUS[PROBLEM_STATUS.RESOLVED] }"
+                />
                 Išspręstos
             </span>
         </div>
@@ -86,7 +96,7 @@ useKaunasMap(mapContainer, problemsToShow, {
     min-height: 24px;
     padding: 0;
     line-height: 1;
-    color: #1946A0;
+    color: var(--color-primary, #1946A0);
     background: #f0f4ff;
     border: 1px solid #c8d4f0;
     border-radius: 4px;
@@ -120,7 +130,7 @@ useKaunasMap(mapContainer, problemsToShow, {
     gap: 1rem 1.5rem;
     padding: 1rem 1.5rem;
     font-size: 0.875rem;
-    color: #333;
+    color: var(--color-text, #333);
 }
 
 .kaunas-map-legend-item {
@@ -134,8 +144,4 @@ useKaunasMap(mapContainer, problemsToShow, {
     height: 10px;
     border-radius: 50%;
 }
-
-.kaunas-map-legend-dot--orange { background: #e67e22; }
-.kaunas-map-legend-dot--yellow { background: #f1c40f; }
-.kaunas-map-legend-dot--green { background: #27ae60; }
 </style>

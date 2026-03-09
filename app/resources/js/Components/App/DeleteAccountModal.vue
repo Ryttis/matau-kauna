@@ -79,24 +79,29 @@ const handleConfirm = () => emit('confirm')
     padding-top: 8px;
 }
 
-.delete-account-modal__btn-confirm {
+.delete-account-modal__btn-confirm,
+.delete-account-modal__btn-cancel {
     width: 100%;
-    max-width: 290px;
-    background-color: #2E4E93 !important;
-    border-color: #2E4E93 !important;
-    color: #fff !important;
+    max-width: 200px;
+    height: 40px;
+    border-radius: 12px;
+    padding: 0 20px;
+}
+
+.delete-account-modal__btn-confirm {
+    background-color: var(--color-primary-dark, #2E4E93) !important;
+    border-color: var(--color-primary-dark, #2E4E93) !important;
+    color: var(--color-white, #fff) !important;
 }
 
 .delete-account-modal__btn-confirm:hover:not(:disabled) {
-    background-color: #264080 !important;
+    background-color: var(--color-primary-dark-hover, #264080) !important;
 }
 
 .delete-account-modal__btn-cancel {
-    width: 100%;
-    max-width: 290px;
-    background-color: #fff !important;
-    color: #2E4E93 !important;
-    border: 1px solid #2E4E93 !important;
+    background-color: var(--color-white, #fff) !important;
+    color: var(--color-primary-dark, #2E4E93) !important;
+    border: 1px solid var(--color-primary-dark, #2E4E93) !important;
 }
 
 .delete-account-modal__btn-cancel:hover {

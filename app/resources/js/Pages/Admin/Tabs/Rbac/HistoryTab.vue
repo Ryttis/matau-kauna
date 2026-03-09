@@ -52,7 +52,7 @@ load()
 </script>
 
 <template>
-    <div class="history-tab">
+    <div class="admin-tab history-tab">
         <h3 class="tab-title">Prisijungimų istorija</h3>
 
         <div class="toolbar">
@@ -149,11 +149,11 @@ load()
 }
 .type-btn {
     padding: 8px 16px;
-    border: 1px solid #e5e7eb;
-    background: #fff;
+    border: 1px solid var(--color-border);
+    background: var(--color-white);
     cursor: pointer;
     font-size: 14px;
-    color: #555;
+    color: var(--color-text-muted);
 }
 .type-btn:first-child {
     border-radius: 6px 0 0 6px;
@@ -162,20 +162,20 @@ load()
     border-radius: 0 6px 6px 0;
 }
 .type-btn.active {
-    background: #1946a0;
-    color: #fff;
-    border-color: #1946a0;
+    background: var(--color-primary);
+    color: var(--color-white);
+    border-color: var(--color-primary);
 }
 .search-input {
     min-width: 220px;
 }
 .error {
-    color: #b91c1c;
+    color: var(--color-error);
     font-size: 14px;
     margin: 0 0 12px 0;
 }
 .loading {
-    color: #666;
+    color: var(--color-text-muted);
     font-size: 14px;
 }
 .pagination {
@@ -187,8 +187,8 @@ load()
 .page-btn {
     padding: 6px 12px;
     font-size: 14px;
-    border: 1px solid #e5e7eb;
-    background: #fff;
+    border: 1px solid var(--color-border);
+    background: var(--color-white);
     cursor: pointer;
     border-radius: 6px;
 }
@@ -198,6 +198,6 @@ load()
 }
 .page-info {
     font-size: 14px;
-    color: #666;
+    color: var(--color-text-muted);
 }
 </style>

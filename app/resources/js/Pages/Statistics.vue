@@ -7,6 +7,7 @@ import AppSelect from '@/Components/App/AppSelect.vue'
 import CategoryStatsBlock from '@/Components/Statistics/CategoryStatsBlock.vue'
 import EmployeeActivityBlock from '@/Components/Statistics/EmployeeActivityBlock.vue'
 import InstitutionResultsBlock from '@/Components/Statistics/InstitutionResultsBlock.vue'
+import { ICON_DOWNLOAD } from '@/constants/icons'
 
 const props = defineProps({
     categories: { type: Array, default: () => [] },
@@ -95,7 +96,7 @@ const downloadReport = () => {
             <div class="page-header">
                 <h1 class="page-title">Statistika</h1>
                 <button @click="downloadReport" class="download-header-btn">
-                    <img src="/icons/download-icon.png" alt="Download" class="download-icon" />
+                    <img :src="ICON_DOWNLOAD" alt="Download" class="download-icon" />
                     <span>Atsisiųsti</span>
                 </button>
             </div>

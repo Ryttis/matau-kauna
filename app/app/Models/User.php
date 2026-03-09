@@ -113,4 +113,56 @@ class User extends Authenticatable implements MustVerifyEmail
     {
         return in_array($permission, $this->permissions(), true);
     }
+
+    public function hasAnyRole(array $roles): bool
+    {
+        foreach ($roles as $role) {
+            if ($this->hasRole($role)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    public function isProblemAdminOrSystemAdmin(): bool
+    {
+        return $this->hasAnyRole([
+            \App\Models\UserRole::ROLE_PROBLEM_ADMIN,
+            \App\Models\UserRole::ROLE_SYSTEM_ADMIN,
+        ]);
+    }
+
+    public function isInstitutionAdminOrSystemAdmin(): bool
+    {
+        return $this->hasAnyRole([
+            \App\Models\UserRole::ROLE_INSTITUTION_ADMIN,
+            \App\Models\UserRole::ROLE_SYSTEM_ADMIN,
+        ]);
+    }
+
+    public function canMergeProblems(): bool
+    {
+        return $this->hasAnyRole([
+            \App\Models\UserRole::ROLE_PROBLEM_ADMIN,
+            \App\Models\UserRole::ROLE_INSTITUTION_ADMIN,
+            \App\Models\UserRole::ROLE_SYSTEM_ADMIN,
+        ]);
+    }
+
+    public function canEditProblemClassification(): bool
+    {
+        if ($this->hasRole(\App\Models\UserRole::ROLE_SYSTEM_ADMIN)) {
+            return true;
+        }
+
+        return $this->hasRole(\App\Models\UserRole::ROLE_PROBLEM_ADMIN)
+            && $this->hasPermission('classification.edit');
+    }
+
+    public function isReporterOnly(): bool
+    {
+        return $this->hasRole(\App\Models\UserRole::ROLE_REPORTER)
+            && ! $this->hasPermission('issues.view');
+    }
 }

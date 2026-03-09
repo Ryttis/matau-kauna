@@ -1,7 +1,7 @@
 <script setup>
 import { computed } from 'vue'
 import BaseModal from '@/Components/App/BaseModal.vue'
-import AppButton from '@/Components/App/AppButton.vue'
+import { ICON_LEFT_ARROW, ICON_CLOSE } from '@/constants/icons'
 
 const props = defineProps({
     show: Boolean,
@@ -41,8 +41,10 @@ function onBack() {
         :show="show"
         :show-close-button="false"
         :close-on-overlay-click="false"
-        :max-width="'420px'"
+        :width="'370px'"
+        :max-width="'370px'"
         :footer-layout="'column'"
+        class="reporter-wizard-modal"
         @close="onSkip"
     >
         <template #header>
@@ -52,7 +54,7 @@ function onBack() {
                 aria-label="Atgal"
                 @click="onBack"
             >
-                <img src="/icons/left-back-arrow.png" alt="" class="wizard-header-icon" />
+                <img :src="ICON_LEFT_ARROW" alt="" class="wizard-header-icon" />
             </button>
             <div class="wizard-header-spacer" />
             <button
@@ -61,7 +63,7 @@ function onBack() {
                 aria-label="Uždaryti"
                 @click="onSkip"
             >
-                <img src="/icons/close-icon.png" alt="" class="wizard-header-icon" />
+                <img :src="ICON_CLOSE" alt="" class="wizard-header-icon" />
             </button>
         </template>
 
@@ -71,23 +73,39 @@ function onBack() {
         </div>
 
         <template #footer>
-            <AppButton
-                :text="current.primaryLabel"
-                variant="primary"
-                as-button
-                @click="onPrimary"
-            />
-            <AppButton
-                text="Praleisti"
-                variant="outline-light"
-                as-button
-                @click="onSkip"
-            />
+            <div class="wizard-footer-inner">
+                <button
+                    type="button"
+                    class="wizard-primary-btn"
+                    @click="onPrimary"
+                >
+                    {{ current.primaryLabel }}
+                </button>
+                <button
+                    type="button"
+                    class="wizard-skip-btn"
+                    @click="onSkip"
+                >
+                    Praleisti
+                </button>
+            </div>
         </template>
     </BaseModal>
 </template>
 
 <style scoped>
+:deep(.reporter-wizard-modal .modal) {
+    width: 370px;
+    min-height: 360px;
+    max-height: 360px;
+    border-radius: 5px;
+    overflow: hidden;
+}
+
+:deep(.reporter-wizard-modal .modal-header) {
+    padding: 16px 16px 0;
+}
+
 .wizard-header-btn {
     display: flex;
     align-items: center;
@@ -121,32 +139,84 @@ function onBack() {
 
 .wizard-body {
     text-align: center;
-    padding: 8px 0 0;
+    padding: 16px 16px 8px;
+    max-width: 344px;
+    margin: 0 auto;
 }
 
 .wizard-title {
-    margin: 0 0 12px;
-    font-size: 18px;
-    font-weight: 600;
+    margin: 0 0 16px;
+    font-size: 20px;
+    font-weight: 700;
     color: #333;
     font-family: 'Open Sans', sans-serif;
+    line-height: 1.3;
 }
 
 .wizard-description {
     margin: 0 0 24px;
     font-size: 16px;
     line-height: 1.5;
-    color: #666;
+    color: #333;
     font-family: 'Open Sans', sans-serif;
 }
 
-:deep(.modal-footer) {
-    flex-direction: column;
-    align-items: stretch;
-    gap: 10px;
+:deep(.reporter-wizard-modal .modal-body) {
+    padding: 8px 16px 16px;
 }
 
-:deep(.modal-footer) .app-button {
+:deep(.reporter-wizard-modal .modal-footer) {
+    flex-direction: column;
+    align-items: center;
+    padding: 0 16px 16px;
+}
+
+.wizard-footer-inner {
+    width: 202px;
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 24px;
+}
+
+.wizard-primary-btn {
     width: 100%;
+    height: 40px;
+    padding: 0 24px;
+    border: none;
+    border-radius: 20px;
+    background: var(--color-primary);
+    color: var(--color-white, #fff);
+    font-size: 16px;
+    font-weight: 500;
+    font-family: 'Open Sans', sans-serif;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.wizard-primary-btn:hover {
+    background: var(--color-primary-hover);
+}
+
+.wizard-skip-btn {
+    display: block;
+    width: 100%;
+    padding: 8px 16px;
+    margin: 0;
+    border: none;
+    border-radius: 20px;
+    background: none;
+    font-size: 16px;
+    font-weight: 400;
+    color: var(--color-primary);
+    cursor: pointer;
+    font-family: 'Open Sans', sans-serif;
+    text-align: center;
+}
+
+.wizard-skip-btn:hover {
+    opacity: 0.85;
 }
 </style>

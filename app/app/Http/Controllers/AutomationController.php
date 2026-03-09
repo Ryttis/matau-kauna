@@ -8,11 +8,9 @@ use App\Http\Requests\Automation\ResolutionTermRuleRequest;
 use App\Models\ProblemAutoAssignmentRule;
 use App\Models\ProblemAutoPublishRule;
 use App\Models\ProblemResolutionTermRule;
-use App\Models\UserRole;
 use App\Services\AuditLogService;
 use App\Services\AutomationService;
 use Illuminate\Http\RedirectResponse;
-use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -26,7 +24,8 @@ class AutomationController extends Controller
     private function authorizeAutomation(): void
     {
         $user = request()->user();
-        if (! $user->hasRole(UserRole::ROLE_PROBLEM_ADMIN) && ! $user->hasRole(UserRole::ROLE_SYSTEM_ADMIN)) {
+
+        if (! $user->isProblemAdminOrSystemAdmin()) {
             abort(403);
         }
     }

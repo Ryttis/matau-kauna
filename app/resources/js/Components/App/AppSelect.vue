@@ -1,5 +1,6 @@
 <script setup>
 import { computed } from 'vue'
+import { ICON_ARROW } from '@/constants/icons'
 
 const props = defineProps({
     modelValue: {
@@ -24,6 +25,10 @@ const props = defineProps({
         default: 'blue',
         validator: (value) => ['blue', 'white'].includes(value)
     },
+    rounded: {
+        type: Boolean,
+        default: false
+    },
     disabled: {
         type: Boolean,
         default: false
@@ -43,13 +48,13 @@ const value = computed({
         <label v-if="label" class="app-select-label">{{ label }}</label>
 
         <div class="app-select-wrapper">
-            <select v-model="value" class="app-select" :class="`app-select--${variant}`" :disabled="disabled">
+            <select v-model="value" class="app-select" :class="[`app-select--${variant}`, { 'app-select--rounded': rounded }]" :disabled="disabled">
                 <option v-if="placeholder && (modelValue === '' || modelValue === null || modelValue === undefined)" value="">{{ placeholder }}</option>
                 <slot>
                 </slot>
             </select>
             <div class="app-select-icon">
-                <img src="/icons/arrow-icon.png" alt="Dropdown" class="app-select-arrow" :class="`app-select-arrow--${variant}`" />
+                <img :src="ICON_ARROW" alt="Dropdown" class="app-select-arrow" :class="`app-select-arrow--${variant}`" />
             </div>
         </div>
     </div>
@@ -99,8 +104,8 @@ const value = computed({
     border-radius: 5px;
     font-size: 16px;
     font-family: 'Inter', sans-serif;
-    color: #ffffff;
-    background-color: #1946A0;
+    color: var(--color-white, #ffffff);
+    background-color: var(--color-primary);
     cursor: pointer;
     box-sizing: border-box;
     appearance: none;
@@ -112,7 +117,7 @@ const value = computed({
 
 .app-select:focus {
     outline: none;
-    border-color: #1946A0;
+    border-color: var(--color-primary);
 }
 
 .app-select option {
@@ -157,7 +162,7 @@ const value = computed({
 
 .app-select--white:focus {
     outline: none;
-    border-color: #1946A0;
+    border-color: var(--color-primary);
 }
 
 .app-select--white option {
@@ -168,5 +173,9 @@ const value = computed({
 .app-select:disabled {
     opacity: 0.6;
     cursor: not-allowed;
+}
+
+.app-select--rounded {
+    border-radius: 15px;
 }
 </style>

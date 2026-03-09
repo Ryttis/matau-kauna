@@ -1,5 +1,6 @@
 <script setup>
 import BaseModal from '@/Components/App/BaseModal.vue'
+import { ICON_SUCCESS } from '@/constants/icons.js'
 
 defineProps({
     show: Boolean,
@@ -21,30 +22,32 @@ const emit = defineEmits(['close'])
         @close="emit('close')"
     >
         <template #header>
-            <div class="success-modal-spacer" />
+            <div class="success-modal-header-spacer" />
         </template>
         <div class="success-modal-body">
-            <img src="/icons/baseline-check-icon.png" alt="" class="success-modal-icon" />
+            <img :src="ICON_SUCCESS" alt="" class="success-modal-icon" />
             <p class="success-modal-text">{{ message || 'Operacija atlikta sėkmingai.' }}</p>
         </div>
     </BaseModal>
 </template>
 
 <style scoped>
-.success-modal-spacer {
+.success-modal-header-spacer {
     flex: 1;
+    min-width: 0;
 }
 
 .success-modal-body {
     text-align: center;
-    padding: 8px 0 24px;
+    padding: 0 0 24px;
+    margin-top: -20px;
 }
 
 .success-modal-icon {
     display: block;
-    width: 64px;
-    height: 64px;
-    margin: 0 auto 16px;
+    margin: 0 auto 12px;
+    width: 72px;
+    height: 72px;
     object-fit: contain;
 }
 
@@ -52,7 +55,7 @@ const emit = defineEmits(['close'])
     margin: 0;
     font-size: 18px;
     font-weight: 600;
-    color: #333;
+    color: var(--color-text-muted, #333);
     font-family: 'Inter', sans-serif;
     line-height: 1.4;
 }

@@ -12,5 +12,5 @@ export function useReporterApi() {
         return axios.post(url, data, { headers: getHeaders() })
     }
 
-    return { getHeaders, post }
+    return { post }
 }

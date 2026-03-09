@@ -14,14 +14,14 @@
                     Pastebėjote problemą Kaune? Užregistruokite ją - mes perduosime<br>
                     atsakingoms tarnyboms ir informuosime apie sprendimą.
                 </p>
-                <a :href="route('login')" class="landing-cta">Pranešimai</a>
+                <a :href="route('reports')" class="landing-cta">
+                    <span class="landing-cta-icon" aria-hidden="true">+</span>
+                    <span>Nauja problema</span>
+                </a>
             </div>
         </div>
     </main>
 </template>
-
-<script setup>
-</script>
 
 <style scoped>
 .landing-hero {
@@ -124,12 +124,21 @@
     color: #fff;
     background: var(--lp-primary);
     border: none;
-    border-radius: 5px;
-    padding: 15px 2.5rem;
-    min-height: 54px;
+    border-radius: 9999px;
+    padding: 14px 28px;
+    min-height: 48px;
     cursor: pointer;
     box-sizing: border-box;
     text-decoration: none;
-    display: inline-block;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+}
+
+.landing-cta-icon {
+    font-size: 22px;
+    font-weight: 300;
+    line-height: 1;
 }
 </style>

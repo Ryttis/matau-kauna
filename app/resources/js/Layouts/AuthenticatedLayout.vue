@@ -27,7 +27,7 @@ import Sidebar from '@/Components/App/Sidebar.vue'
 .body {
     flex: 1;
     display: flex;
-    background: #fff;
+    background: var(--color-white, #fff);
 }
 
 .content {

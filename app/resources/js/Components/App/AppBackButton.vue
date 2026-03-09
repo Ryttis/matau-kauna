@@ -1,4 +1,6 @@
 <script setup>
+import { ICON_LEFT_ARROW } from '@/constants/icons'
+
 const props = defineProps({
     to: {
         type: [String, Object, Function],
@@ -28,7 +30,7 @@ const handleClick = () => {
 <template>
     <button @click="handleClick" class="app-back-button">
         <img
-            src="/icons/left-back-arrow.png"
+            :src="ICON_LEFT_ARROW"
             alt="Atgal"
             class="app-back-icon"
             :style="{ width: iconSize, height: iconSize }"

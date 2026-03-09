@@ -31,6 +31,7 @@ class HandleInertiaRequests extends Middleware
                 $permissions = $user->permissions();
                 if (count($roles) === 1) {
                     $activeRole = $roles[0];
+                    $request->session()->put('active_role_id', $roles[0]['id']);
                 }
             }
         }

@@ -1,3 +1,30 @@
+@import './admin-tabs.css';
+
+:root {
+    --color-primary: #1946A0;
+    --color-primary-hover: #153a8a;
+    --color-primary-dark: #2E4E93;
+    --color-primary-dark-hover: #264080;
+    --color-white: #ffffff;
+    --color-text: #000000;
+    --color-text-muted: #4B5563;
+    --color-error: #c62828;
+    --color-border: #e5e5e5;
+    --color-border-light: #e6e8ee;
+    --color-gray-400: #9e9e9e;
+    --color-gray-500: #6b7280;
+
+    --button-height: 45px;
+    --button-width: 290px;
+    --button-min-width: 200px;
+    --button-border-radius: 15px;
+    --button-grid-gap: 16px;
+
+    --control-height: var(--button-height);
+    --control-radius: var(--button-border-radius);
+    --control-width: var(--button-width);
+}
+
 * {
     margin: 0;
     padding: 0;

@@ -76,7 +76,13 @@ class ProblemController extends Controller
             ->notArchived()
             ->when(
                 $user && $this->scopeService->isInstitutionScoped($user),
-                fn ($query) => $query->where('institution_id', $user->institution_id)
+                function ($query) use ($user) {
+                    if ($user->institution_id === null) {
+                        $query->whereRaw('1 = 0');
+                    } else {
+                        $query->where('institution_id', $user->institution_id);
+                    }
+                }
             )
             ->when(
                 $user && $this->scopeService->isEmployeeScoped($user),
@@ -224,8 +230,7 @@ class ProblemController extends Controller
     public function update(Request $request, Problem $problem)
     {
         $user = $request->user();
-        $canEdit = $user->hasRole(UserRole::ROLE_SYSTEM_ADMIN)
-            || ($user->hasRole(UserRole::ROLE_PROBLEM_ADMIN) && $user->hasPermission('classification.edit'));
+        $canEdit = $user->canEditProblemClassification();
         if (! $canEdit) {
             abort(403);
         }
@@ -260,7 +265,7 @@ class ProblemController extends Controller
     public function assign(Request $request): Response
     {
         $user = $request->user();
-        if (! $user->hasRole(UserRole::ROLE_PROBLEM_ADMIN) && ! $user->hasRole(UserRole::ROLE_SYSTEM_ADMIN)) {
+        if (! $user->isProblemAdminOrSystemAdmin()) {
             abort(403);
         }
 
@@ -285,7 +290,7 @@ class ProblemController extends Controller
     public function storeAssign(Request $request)
     {
         $user = $request->user();
-        if (! $user->hasRole(UserRole::ROLE_PROBLEM_ADMIN) && ! $user->hasRole(UserRole::ROLE_SYSTEM_ADMIN)) {
+        if (! $user->isProblemAdminOrSystemAdmin()) {
             abort(403);
         }
 
@@ -329,7 +334,7 @@ class ProblemController extends Controller
     public function sendAssignEmail(Request $request)
     {
         $user = $request->user();
-        if (! $user->hasRole(UserRole::ROLE_PROBLEM_ADMIN) && ! $user->hasRole(UserRole::ROLE_SYSTEM_ADMIN)) {
+        if (! $user->isProblemAdminOrSystemAdmin()) {
             abort(403);
         }
 
@@ -377,7 +382,7 @@ class ProblemController extends Controller
     public function assignSingle(Problem $problem): Response
     {
         $user = request()->user();
-        if (! $user->hasRole(UserRole::ROLE_PROBLEM_ADMIN) && ! $user->hasRole(UserRole::ROLE_SYSTEM_ADMIN)) {
+        if (! $user->isProblemAdminOrSystemAdmin()) {
             abort(403);
         }
 
@@ -450,7 +455,7 @@ class ProblemController extends Controller
     public function assignInstitution(Problem $problem): Response
     {
         $user = request()->user();
-        if (! $user->hasRole(UserRole::ROLE_INSTITUTION_ADMIN) && ! $user->hasRole(UserRole::ROLE_SYSTEM_ADMIN)) {
+        if (! $user->isInstitutionAdminOrSystemAdmin()) {
             abort(403);
         }
         $this->scopeService->authorizeProblemAccess($user, $problem);
@@ -504,7 +509,7 @@ class ProblemController extends Controller
     public function storeAssignInstitution(Request $request, Problem $problem)
     {
         $user = $request->user();
-        if (! $user->hasRole(UserRole::ROLE_INSTITUTION_ADMIN) && ! $user->hasRole(UserRole::ROLE_SYSTEM_ADMIN)) {
+        if (! $user->isInstitutionAdminOrSystemAdmin()) {
             abort(403);
         }
         $this->scopeService->authorizeProblemAccess($user, $problem);
@@ -539,7 +544,7 @@ class ProblemController extends Controller
     public function sendAssignInstitutionEmail(Request $request, Problem $problem): RedirectResponse
     {
         $user = $request->user();
-        if (! $user->hasRole(UserRole::ROLE_INSTITUTION_ADMIN) && ! $user->hasRole(UserRole::ROLE_SYSTEM_ADMIN)) {
+        if (! $user->isInstitutionAdminOrSystemAdmin()) {
             abort(403);
         }
         $this->scopeService->authorizeProblemAccess($user, $problem);
@@ -601,7 +606,7 @@ class ProblemController extends Controller
     public function reassignInstitution(Request $request, Problem $problem): RedirectResponse
     {
         $user = $request->user();
-        if (! $user->hasRole(UserRole::ROLE_PROBLEM_ADMIN) && ! $user->hasRole(UserRole::ROLE_SYSTEM_ADMIN)) {
+        if (! $user->isProblemAdminOrSystemAdmin()) {
             if ($user->hasRole(UserRole::ROLE_INSTITUTION_ADMIN) && $user->institution_id !== null) {
                 if ((int) $problem->institution_id !== (int) $user->institution_id) {
                     abort(403);
@@ -749,7 +754,7 @@ class ProblemController extends Controller
     public function export(Request $request)
     {
         $user = $request->user();
-        if (! $user->hasRole(UserRole::ROLE_PROBLEM_ADMIN) && ! $user->hasRole(UserRole::ROLE_SYSTEM_ADMIN)) {
+        if (! $user->isProblemAdminOrSystemAdmin()) {
             abort(403);
         }
 
@@ -854,7 +859,8 @@ class ProblemController extends Controller
     public function reporterReportStore(Request $request): \Illuminate\Http\JsonResponse
     {
         $user = $request->user();
-        if (! $user || ! $user->hasRole(UserRole::ROLE_REPORTER)) {
+
+        if (! $user?->hasRole(UserRole::ROLE_REPORTER)) {
             return response()->json(['message' => 'Unauthorized'], 403);
         }
 
@@ -870,11 +876,14 @@ class ProblemController extends Controller
         $typeId = (int) $validated['problem_type_id'];
         $natureId = isset($validated['problem_nature_id']) ? (int) $validated['problem_nature_id'] : null;
         $typeValue = ClassifierValue::where('id', $typeId)->whereNull('parent_id')->first();
+
         if (! $typeValue) {
             return response()->json(['message' => 'Invalid classifier value.'], 422);
         }
+
         if ($natureId !== null) {
             $natureValue = ClassifierValue::where('id', $natureId)->where('parent_id', $typeId)->first();
+
             if (! $natureValue) {
                 return response()->json(['message' => 'Invalid classifier value.'], 422);
             }
@@ -905,12 +914,11 @@ class ProblemController extends Controller
     public function publicShow(Request $request, Problem $problem): Response
     {
         $user = $request->user();
-        $isReporterView = $user
-            && $user->hasRole(UserRole::ROLE_REPORTER)
-            && ! $user->hasPermission('issues.view');
-        $isReporterOwnProblem = $isReporterView && (int) $problem->reported_by_user_id === (int) $user->id;
+        $isReporterOnly = $user && $user->isReporterOnly();
+        $isReporterOwnProblem = $isReporterOnly && (int) $problem->reported_by_user_id === (int) $user->id;
+        $isPublic = $problem->is_published_publicly;
 
-        if (! $isReporterOwnProblem && ! $problem->is_published_publicly) {
+        if (! $isReporterOwnProblem && ! $isPublic) {
             abort(404);
         }
 
@@ -931,7 +939,7 @@ class ProblemController extends Controller
             ? $problem->mergedInto->id
             : $problem->id;
 
-        if ($isReporterView) {
+        if ($isReporterOnly) {
             return Inertia::render('Reporter/ProblemShow', [
                 'problem' => $problemData,
                 'mergeTarget' => $mergeContext['mergeTarget'],

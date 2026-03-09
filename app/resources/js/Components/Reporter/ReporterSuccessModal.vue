@@ -2,6 +2,7 @@
 import { router } from '@inertiajs/vue3'
 import BaseModal from '@/Components/App/BaseModal.vue'
 import AppButton from '@/Components/App/AppButton.vue'
+import { ICON_SUCCESS } from '@/constants/icons'
 
 const props = defineProps({
     show: Boolean,
@@ -37,21 +38,28 @@ function goToPerziureti() {
         <template #header>
             <div class="reporter-success-header-spacer" />
         </template>
+
         <div class="reporter-success-body">
-            <img src="/icons/baseline-check-icon.png" alt="" class="reporter-success-icon" />
-            <p class="reporter-success-text">Pranešimas sėkmingai užregistruota!</p>
+            <img :src="ICON_SUCCESS" alt="" class="reporter-success-icon" />
+            <p class="reporter-success-text">
+                <span class="reporter-success-line">Pranešimas sėkmingai</span>
+                <span class="reporter-success-line">užregistruota!</span>
+            </p>
         </div>
+
         <template #footer>
             <AppButton
                 text="Peržiūrėti"
-                variant="outline-light"
+                variant="secondary"
                 as-button
+                class="reporter-success-btn-perziureti"
                 @click="goToPerziureti"
             />
             <AppButton
                 text="Grįžti į pagrindinį"
                 variant="primary"
                 as-button
+                class="reporter-success-btn-main"
                 @click="goToMain"
             />
         </template>
@@ -65,14 +73,14 @@ function goToPerziureti() {
 
 .reporter-success-body {
     text-align: center;
-    padding: 8px 0 16px;
+    padding: 16px 0 24px;
 }
 
 .reporter-success-icon {
     display: block;
-    width: 64px;
-    height: 64px;
     margin: 0 auto 16px;
+    width: 48px;
+    height: 48px;
     object-fit: contain;
 }
 
@@ -84,12 +92,28 @@ function goToPerziureti() {
     font-family: 'Open Sans', sans-serif;
 }
 
-:deep(.modal-footer) {
-    align-items: stretch;
-    gap: 10px;
+.reporter-success-line {
+    display: block;
 }
 
-:deep(.modal-footer) .app-button {
+:deep(.modal-footer) {
+    align-items: stretch;
+    gap: 12px;
+}
+
+:deep(.modal-footer) .reporter-success-btn-perziureti,
+:deep(.modal-footer) .reporter-success-btn-main {
     width: 100%;
+    border-radius: 20px;
+}
+
+:deep(.modal-footer) .reporter-success-btn-perziureti {
+    color: var(--color-primary);
+    border-color: var(--color-primary);
+}
+
+:deep(.modal-footer) .reporter-success-btn-perziureti:hover:not(.app-button--disabled) {
+    color: var(--color-primary-hover);
+    border-color: var(--color-primary-hover);
 }
 </style>

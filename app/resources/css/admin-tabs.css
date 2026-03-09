@@ -1,0 +1,129 @@
+.admin-tab .header-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 10px;
+}
+
+.admin-tab .header-actions {
+    display: flex;
+    gap: 8px;
+}
+
+.admin-tab .title {
+    font-size: 18px;
+    font-weight: 700;
+}
+
+.admin-tab .table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.admin-tab .table th,
+.admin-tab .table td {
+    text-align: left;
+    padding: 10px;
+    border-bottom: 1px solid var(--color-border-light, #e6e8ee);
+    font-size: 13px;
+    vertical-align: top;
+}
+
+.admin-tab .pill {
+    display: inline-block;
+    margin-right: 6px;
+    margin-bottom: 4px;
+    padding: 4px 8px;
+    border-radius: 999px;
+    background: var(--color-border-light, #e6e8ee);
+    color: var(--color-primary);
+    font-size: 12px;
+}
+
+.admin-tab .link-btn {
+    border: none;
+    background: transparent;
+    color: var(--color-primary);
+    cursor: pointer;
+    padding: 0;
+    font-weight: 600;
+    margin-right: 10px;
+    font-size: inherit;
+}
+
+.admin-tab .link-btn:hover {
+    text-decoration: underline;
+}
+
+.admin-tab .link-btn.danger {
+    color: var(--color-error);
+}
+
+.admin-tab .link-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.admin-tab .field {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-bottom: 12px;
+    font-size: 13px;
+}
+
+.admin-tab .input {
+    height: 40px;
+    border: 1px solid var(--color-border-light);
+    border-radius: 10px;
+    padding: 0 12px;
+    background: var(--color-white);
+    font-size: inherit;
+}
+
+.admin-tab .hint {
+    color: var(--color-text-muted);
+    font-size: 13px;
+    background: var(--color-border-light);
+    padding: 10px 12px;
+    border-radius: 10px;
+    margin-bottom: 12px;
+}
+
+.admin-tab .checklist {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    max-height: 420px;
+    overflow: auto;
+    border-top: 1px solid var(--color-border-light);
+    border-bottom: 1px solid var(--color-border-light);
+    padding: 12px 0;
+}
+
+.admin-tab .check {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    font-size: 13px;
+}
+
+.admin-tab .error {
+    background: #fff0f0;
+    border: 1px solid #ffd2d2;
+    color: var(--color-error);
+    padding: 10px 12px;
+    border-radius: 10px;
+    margin-bottom: 12px;
+    font-size: 13px;
+}
+
+.admin-tab .error-list {
+    margin: 0;
+    padding-left: 1.2em;
+}
+
+.admin-tab .error-list li + li {
+    margin-top: 0.25em;
+}

@@ -1,6 +1,7 @@
 import { ref, computed } from 'vue'
 
 const DEFAULT_FILTER_STATE = {
+    reportNumber: '',
     statuses: [],
     problemType: 'all',
     dateFrom: '',
@@ -14,6 +15,14 @@ export function parseDateFilter(str) {
     if (ddmmyy) return new Date(+ddmmyy[3], +ddmmyy[2] - 1, +ddmmyy[1])
     const iso = new Date(s)
     return isNaN(iso.getTime()) ? null : iso
+}
+
+function isInDateRange(createdAt, dateFrom, dateTo) {
+    const created = createdAt ? new Date(createdAt) : null
+    if (!created) return false
+    if (dateFrom && created < dateFrom) return false
+    if (dateTo && created > dateTo) return false
+    return true
 }
 
 export function useProblemsMapFilter(problemsSource) {
@@ -32,6 +41,12 @@ export function useProblemsMapFilter(problemsSource) {
     const filteredProblems = computed(() => {
         const list = Array.isArray(problemsSource.value) ? problemsSource.value : []
         let result = list
+        const reportNum = (filterState.value.reportNumber || '').trim().toLowerCase()
+        if (reportNum) {
+            result = result.filter((p) =>
+                (p.internal_number || '').toLowerCase().includes(reportNum)
+            )
+        }
         const q = (searchQuery.value || '').trim().toLowerCase()
         if (q) {
             result = result.filter(
@@ -50,13 +65,7 @@ export function useProblemsMapFilter(problemsSource) {
         const from = parseDateFilter(filterState.value.dateFrom)
         const to = parseDateFilter(filterState.value.dateTo)
         if (from || to) {
-            result = result.filter((p) => {
-                const created = p.created_at ? new Date(p.created_at) : null
-                if (!created) return false
-                if (from && created < from) return false
-                if (to && created > to) return false
-                return true
-            })
+            result = result.filter((p) => isInDateRange(p.created_at, from, to))
         }
         return result
     })

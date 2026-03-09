@@ -7,6 +7,7 @@ import AppInput from '@/Components/App/AppInput.vue'
 import ProblemDetailBlocks from '@/Components/Problems/ProblemDetailBlocks.vue'
 import ProblemMergeLinks from '@/Components/Problems/ProblemMergeLinks.vue'
 import StatusBadge from '@/Components/Problems/StatusBadge.vue'
+import { ICON_LEFT_ARROW } from '@/constants/icons'
 
 const props = defineProps({
     problem: Object,
@@ -29,7 +30,7 @@ const formattedDate = computed(() => {
             <div class="public-problem-detail">
                 <div class="public-problem-header">
                     <Link :href="route('reports')" class="public-problem-back" aria-label="Atgal">
-                        <img src="/icons/left-back-arrow.png" alt="" class="public-problem-back-icon" />
+                        <img :src="ICON_LEFT_ARROW" alt="" class="public-problem-back-icon" />
                     </Link>
                     <div class="header-info">
                         <span class="header-label">Nr</span>
@@ -87,7 +88,7 @@ const formattedDate = computed(() => {
     min-height: 100vh;
     display: flex;
     flex-direction: column;
-    background: #fff;
+    background: var(--color-white, #fff);
     font-family: 'Open Sans', sans-serif;
 }
 
@@ -116,7 +117,7 @@ const formattedDate = computed(() => {
 .public-problem-back {
     display: inline-flex;
     align-items: center;
-    color: #1946A0;
+    color: var(--color-primary);
     text-decoration: none;
 }
 

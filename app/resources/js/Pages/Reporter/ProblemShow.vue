@@ -3,6 +3,7 @@ import { computed } from 'vue'
 import { Head, Link, router } from '@inertiajs/vue3'
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue'
 import AppInput from '@/Components/App/AppInput.vue'
+import { ICON_LEFT_ARROW } from '@/constants/icons'
 import ProblemDetailBlocks from '@/Components/Problems/ProblemDetailBlocks.vue'
 import ProblemMergeLinks from '@/Components/Problems/ProblemMergeLinks.vue'
 import StatusBadge from '@/Components/Problems/StatusBadge.vue'
@@ -37,7 +38,7 @@ function goToReviewProgress() {
             <div class="reporter-problem-detail">
                 <div class="reporter-problem-header">
                     <Link :href="route('dashboard')" class="reporter-problem-back" aria-label="Atgal">
-                        <img src="/icons/left-back-arrow.png" alt="" class="reporter-problem-back-icon" />
+                        <img :src="ICON_LEFT_ARROW" alt="" class="reporter-problem-back-icon" />
                     </Link>
                     <div class="header-info">
                         <span class="header-label">Nr</span>
@@ -111,13 +112,13 @@ function goToReviewProgress() {
     gap: 12px;
     margin-bottom: 24px;
     padding-bottom: 16px;
-    border-bottom: 1px solid #e0e0e0;
+    border-bottom: 1px solid var(--color-border);
 }
 
 .reporter-problem-back {
     display: inline-flex;
     align-items: center;
-    color: #1946a0;
+    color: var(--color-primary);
     text-decoration: none;
 }
 
@@ -144,13 +145,13 @@ function goToReviewProgress() {
 
 .header-label {
     font-size: 14px;
-    color: #666;
+    color: var(--color-text-muted);
 }
 
 .header-value {
     font-size: 16px;
     font-weight: 600;
-    color: #333;
+    color: var(--color-text);
 }
 
 .reporter-problem-status-section {
@@ -179,22 +180,25 @@ function goToReviewProgress() {
 }
 
 .reporter-problem-stebeti-btn {
-    display: block;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     width: 100%;
-    max-width: 400px;
+    max-width: 290px;
+    height: 45px;
     margin: 0 auto;
-    padding: 14px 24px;
+    padding: 9px 96px;
     font-size: 16px;
     font-weight: 600;
     font-family: inherit;
-    color: #fff;
-    background: #1946a0;
+    color: var(--color-white);
+    background: var(--color-primary);
     border: none;
-    border-radius: 5px;
+    border-radius: 15px;
     cursor: pointer;
 }
 
 .reporter-problem-stebeti-btn:hover {
-    background: #153a8a;
+    background: var(--color-primary-hover);
 }
 </style>
