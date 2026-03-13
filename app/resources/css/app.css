@@ -14,11 +14,27 @@
     --color-gray-400: #9e9e9e;
     --color-gray-500: #6b7280;
 
-    --button-height: 45px;
+    --button-height: 40px;
     --button-width: 290px;
     --button-min-width: 200px;
     --button-border-radius: 15px;
     --button-grid-gap: 16px;
+    --button-font-size: 16px;
+    --button-font-weight: 400;
+
+    --admin-spacing: 12px;
+    --admin-font-size: 14px;
+    --admin-title-size: 16px;
+
+    --admin-btn-height: 32px;
+    --admin-btn-font-size: 13px;
+    --admin-btn-padding-x: 12px;
+    --admin-btn-radius: 8px;
+
+    --font-size-base: 16px;
+    --font-weight-normal: 400;
+    --font-weight-semibold: 600;
+    --font-weight-bold: 700;
 
     --control-height: var(--button-height);
     --control-radius: var(--button-border-radius);

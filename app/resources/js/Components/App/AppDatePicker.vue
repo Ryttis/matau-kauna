@@ -1,5 +1,6 @@
 <script setup>
-import { computed, ref, watch } from 'vue'
+import { computed, ref, watch, nextTick } from 'vue'
+import { ICON_CALENDAR } from '@/constants/icons'
 
 const MONTHS_LT = [
     'Sausis', 'Vasaris', 'Kovas', 'Balandis', 'Gegužė', 'Birželis',
@@ -28,8 +29,12 @@ const props = defineProps({
 const emit = defineEmits(['update:modelValue'])
 
 const isOpen = ref(false)
+const triggerRef = ref(null)
+const dropdownPosition = ref({ top: 0, left: 0 })
 const viewYear = ref(new Date().getFullYear())
 const viewMonth = ref(new Date().getMonth())
+
+const DROPDOWN_Z_INDEX = 10050
 
 const displayValue = computed(() => {
     if (!props.modelValue) return ''
@@ -120,6 +125,16 @@ function open() {
     viewYear.value = d.getFullYear()
     viewMonth.value = d.getMonth()
     isOpen.value = true
+    nextTick(() => updateDropdownPosition())
+}
+
+function updateDropdownPosition() {
+    if (!triggerRef.value) return
+    const rect = triggerRef.value.getBoundingClientRect()
+    dropdownPosition.value = {
+        top: rect.bottom + 6,
+        left: rect.left,
+    }
 }
 
 function close() {
@@ -131,6 +146,7 @@ watch(isOpen, (open) => {
     const d = parseDate(props.modelValue) || new Date()
     viewYear.value = d.getFullYear()
     viewMonth.value = d.getMonth()
+    nextTick(() => updateDropdownPosition())
 })
 
 defineExpose({ open, close })
@@ -141,61 +157,66 @@ defineExpose({ open, close })
         <label v-if="label" class="app-date-picker-label">{{ label }}</label>
         <div class="app-date-picker-trigger-wrap">
             <button
+                ref="triggerRef"
                 type="button"
                 class="app-date-picker-trigger"
                 :class="{ open: isOpen }"
                 @click="open"
             >
-                <span class="app-date-picker-value">{{ displayValue || placeholder }}</span>
-                <svg class="app-date-picker-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
-                    <line x1="16" y1="2" x2="16" y2="6"/>
-                    <line x1="8" y1="2" x2="8" y2="6"/>
-                    <line x1="3" y1="10" x2="21" y2="10"/>
-                </svg>
+                <span class="app-date-picker-value" :class="{ 'is-placeholder': !modelValue }">{{ displayValue || placeholder }}</span>
+                <img :src="ICON_CALENDAR" alt="Kalendorius" class="app-date-picker-icon" />
             </button>
-            <Transition name="calendar">
+            <Teleport to="body">
+                <Transition name="calendar">
+                    <div
+                        v-if="isOpen"
+                        class="app-date-picker-dropdown"
+                        role="dialog"
+                        aria-label="Kalendorius"
+                        :style="{
+                            position: 'fixed',
+                            top: `${dropdownPosition.top}px`,
+                            left: `${dropdownPosition.left}px`,
+                            zIndex: DROPDOWN_Z_INDEX,
+                        }"
+                    >
+                        <div class="app-date-picker-nav">
+                            <button type="button" class="app-date-picker-nav-btn" aria-label="Ankstesnis mėnuo" @click="prevMonth">‹</button>
+                            <span class="app-date-picker-nav-title">{{ viewMonthLabel }}</span>
+                            <button type="button" class="app-date-picker-nav-btn" aria-label="Kitas mėnuo" @click="nextMonth">›</button>
+                        </div>
+                        <div class="app-date-picker-weekdays">
+                            <span v-for="w in ['Pr', 'A', 'T', 'K', 'Pn', 'Š', 'S']" :key="w" class="app-date-picker-weekday">{{ w }}</span>
+                        </div>
+                        <div class="app-date-picker-grid">
+                            <template v-for="(row, ri) in calendarDays" :key="ri">
+                                <button
+                                    v-for="(d, di) in row"
+                                    :key="di"
+                                    type="button"
+                                    class="app-date-picker-day"
+                                    :class="{
+                                        empty: !d,
+                                        selected: d && isSelected(d),
+                                        disabled: d && isDisabled(d)
+                                    }"
+                                    :disabled="!d || isDisabled(d)"
+                                    @click="selectDay(d)"
+                                >
+                                    {{ d ? d.getDate() : '' }}
+                                </button>
+                            </template>
+                        </div>
+                    </div>
+                </Transition>
                 <div
                     v-if="isOpen"
-                    class="app-date-picker-dropdown"
-                    role="dialog"
-                    aria-label="Kalendorius"
-                >
-                    <div class="app-date-picker-nav">
-                        <button type="button" class="app-date-picker-nav-btn" aria-label="Ankstesnis mėnuo" @click="prevMonth">‹</button>
-                        <span class="app-date-picker-nav-title">{{ viewMonthLabel }}</span>
-                        <button type="button" class="app-date-picker-nav-btn" aria-label="Kitas mėnuo" @click="nextMonth">›</button>
-                    </div>
-                    <div class="app-date-picker-weekdays">
-                        <span v-for="w in ['Pr', 'A', 'T', 'K', 'Pn', 'Š', 'S']" :key="w" class="app-date-picker-weekday">{{ w }}</span>
-                    </div>
-                    <div class="app-date-picker-grid">
-                        <template v-for="(row, ri) in calendarDays" :key="ri">
-                            <button
-                                v-for="(d, di) in row"
-                                :key="di"
-                                type="button"
-                                class="app-date-picker-day"
-                                :class="{
-                                    empty: !d,
-                                    selected: d && isSelected(d),
-                                    disabled: d && isDisabled(d)
-                                }"
-                                :disabled="!d || isDisabled(d)"
-                                @click="selectDay(d)"
-                            >
-                                {{ d ? d.getDate() : '' }}
-                            </button>
-                        </template>
-                    </div>
-                </div>
-            </Transition>
-            <div
-                v-if="isOpen"
-                class="app-date-picker-backdrop"
-                aria-hidden="true"
-                @click="close"
-            />
+                    class="app-date-picker-backdrop"
+                    aria-hidden="true"
+                    :style="{ zIndex: DROPDOWN_Z_INDEX - 1 }"
+                    @click="close"
+                />
+            </Teleport>
         </div>
     </div>
 </template>
@@ -226,7 +247,7 @@ defineExpose({ open, close })
     height: 40px;
     padding: 0 40px 0 16px;
     border: 1px solid #e0e0e0;
-    border-radius: 5px;
+    border-radius: 15px;
     font-size: 16px;
     font-family: 'Inter', sans-serif;
     color: #333;
@@ -254,13 +275,9 @@ defineExpose({ open, close })
     flex: 1;
 }
 
-.app-date-picker-value:empty::before {
-    content: attr(data-placeholder);
-    color: #999;
-}
-
 .app-date-picker-trigger .app-date-picker-value:empty::before {
     content: attr(data-placeholder);
+    color: #999;
 }
 
 .app-date-picker-icon {
@@ -269,23 +286,25 @@ defineExpose({ open, close })
     top: 50%;
     transform: translateY(-50%);
     pointer-events: none;
-    color: #666;
+    width: 20px;
+    height: 20px;
+    object-fit: contain;
+    padding: 6px;
+    box-sizing: content-box;
+    background: rgba(0, 0, 0, 0.06);
+    border-radius: 6px;
 }
 
 .app-date-picker-backdrop {
     position: fixed;
     inset: 0;
-    z-index: 9998;
+    background: transparent;
 }
 
 .app-date-picker-dropdown {
-    position: absolute;
-    top: calc(100% + 6px);
-    left: 0;
-    z-index: 9999;
     background: #fff;
     border: 1px solid #e0e0e0;
-    border-radius: 8px;
+    border-radius: 15px;
     box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
     padding: 12px;
     min-width: 240px;
@@ -309,7 +328,7 @@ defineExpose({ open, close })
     width: 28px;
     height: 28px;
     border: none;
-    border-radius: 5px;
+    border-radius: 15px;
     background: #f0f0f0;
     color: #333;
     font-size: 18px;

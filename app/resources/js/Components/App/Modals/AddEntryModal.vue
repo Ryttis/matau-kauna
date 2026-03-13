@@ -217,9 +217,10 @@ function selectStatus(label) {
     right: 12px;
     top: 50%;
     transform: translateY(-50%);
-    width: 20px;
-    height: 20px;
+    width: 15px;
+    height: 15px;
     pointer-events: none;
+    object-fit: contain;
 }
 
 .add-entry-photo-area {

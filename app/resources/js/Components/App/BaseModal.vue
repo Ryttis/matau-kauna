@@ -66,32 +66,34 @@ const handleOverlayClick = (event) => {
 </script>
 
 <template>
-    <div v-if="isOpen" class="modal-overlay" :style="{ zIndex: props.zIndex }" @click="handleOverlayClick">
-        <div class="modal" :style="{ width, maxWidth: maxWidth || 'none', minWidth: minWidth || 'none', maxHeight: maxHeight || 'none' }" @click.stop>
-            <div v-if="$slots.header || title || showCloseButton" class="modal-header">
-                <slot name="header">
-                    <div v-if="title" class="modal-title">{{ title }}</div>
-                    <div v-else class="modal-title-empty"></div>
-                </slot>
-                <button
-                    v-if="showCloseButton"
-                    type="button"
-                    class="x-btn"
-                    @click="handleClose"
-                >
-                    <img :src="ICON_CLOSE" alt="Uždaryti" class="close-icon" />
-                </button>
-            </div>
+    <Teleport to="body">
+        <div v-if="isOpen" class="modal-overlay" :style="{ zIndex: props.zIndex }" @click="handleOverlayClick">
+            <div class="modal" :style="{ width, maxWidth: maxWidth || 'none', minWidth: minWidth || 'none', maxHeight: maxHeight || 'none' }" @click.stop>
+                <div v-if="$slots.header || title || showCloseButton" class="modal-header">
+                    <slot name="header">
+                        <div v-if="title" class="modal-title">{{ title }}</div>
+                        <div v-else class="modal-title-empty"></div>
+                    </slot>
+                    <button
+                        v-if="showCloseButton"
+                        type="button"
+                        class="x-btn"
+                        @click="handleClose"
+                    >
+                        <img :src="ICON_CLOSE" alt="Uždaryti" class="close-icon" />
+                    </button>
+                </div>
 
-            <div class="modal-body">
-                <slot />
-            </div>
+                <div class="modal-body">
+                    <slot />
+                </div>
 
-            <div v-if="$slots.footer" class="modal-footer" :class="`modal-footer-${footerLayout}`">
-                <slot name="footer" />
+                <div v-if="$slots.footer" class="modal-footer" :class="`modal-footer-${footerLayout}`">
+                    <slot name="footer" />
+                </div>
             </div>
         </div>
-    </div>
+    </Teleport>
 </template>
 
 <style scoped>
@@ -111,7 +113,7 @@ const handleOverlayClick = (event) => {
 .modal {
     max-width: 100%;
     background: var(--color-white, #fff);
-    border-radius: 5px;
+    border-radius: 15px;
     overflow: hidden;
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
     max-height: 85vh;
@@ -163,9 +165,9 @@ const handleOverlayClick = (event) => {
 
 .modal-body {
     padding: 20px;
-    flex: 1;
+    flex: 1 1 auto;
     min-height: 0;
-    overflow: hidden;
+    overflow: auto;
 }
 
 .modal-footer {

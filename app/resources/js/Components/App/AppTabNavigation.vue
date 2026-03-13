@@ -42,12 +42,13 @@ const setTab = (key) => {
 
 .app-tab-navigation .nav-item {
     flex: 1;
-    padding: 14px 10px;
+    padding: var(--admin-spacing, 12px) 16px;
     text-align: center;
     background: transparent;
     border: none;
     cursor: pointer;
     color: #1946A0;
+    font-size: var(--admin-font-size, 14px);
     font-weight: 500;
 }
 

@@ -182,32 +182,34 @@ onMounted(async () => {
 <style scoped>
 .subtabs {
     display: flex;
-    gap: 10px;
-    margin-bottom: 14px;
-    background-color: #1946a0;
+    gap: var(--admin-spacing, 12px);
+    margin-bottom: var(--admin-spacing, 12px);
 }
 
 .subtab {
-    padding: 10px 14px;
-    background: #1946a0;
+    padding: var(--admin-spacing, 12px) 16px;
+    background: transparent;
     cursor: pointer;
-    color: #ffffff;
+    color: #666;
+    font-size: var(--admin-font-size, 14px);
     font-weight: 500;
     border: none;
-    margin-top: 10px;
-    margin-left: 10px;
-    border-radius: 10px 10px 0 0;
+    border-radius: 0;
+}
+
+.subtab:hover {
+    color: #1946a0;
 }
 
 .subtab.active {
-    background: #ffffff;
     color: #1946a0;
+    box-shadow: 0 2px 0 0 #1946a0;
 }
 
 .panel {
     background: #ffffff;
     border-radius: 14px;
-    padding: 16px;
+    padding: var(--admin-spacing, 12px) 16px;
 }
 
 .error {

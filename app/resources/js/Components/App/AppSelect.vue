@@ -50,8 +50,7 @@ const value = computed({
         <div class="app-select-wrapper">
             <select v-model="value" class="app-select" :class="[`app-select--${variant}`, { 'app-select--rounded': rounded }]" :disabled="disabled">
                 <option v-if="placeholder && (modelValue === '' || modelValue === null || modelValue === undefined)" value="">{{ placeholder }}</option>
-                <slot>
-                </slot>
+                <slot />
             </select>
             <div class="app-select-icon">
                 <img :src="ICON_ARROW" alt="Dropdown" class="app-select-arrow" :class="`app-select-arrow--${variant}`" />
@@ -101,7 +100,7 @@ const value = computed({
     height: 48px;
     padding: 0 45px 0 15px;
     border: none;
-    border-radius: 5px;
+    border-radius: 15px;
     font-size: 16px;
     font-family: 'Inter', sans-serif;
     color: var(--color-white, #ffffff);

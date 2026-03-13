@@ -15,8 +15,23 @@ import {
     ROLE_REPORTER,
     ROLE_PROBLEM_ADMIN,
 } from '@/constants/roles'
+import { PROBLEM_STATUS } from '@/constants/problemStatus'
 
 const page = usePage()
+
+const dashboardStatusParam = computed(() => {
+    if (!page.url.startsWith('/dashboard')) return ''
+    try {
+        const parts = page.url.split('?')
+        const params = new URLSearchParams(parts[1] || '')
+        return params.get('status') || ''
+    } catch {
+        return ''
+    }
+})
+
+const isStatusLinkActive = (status) => dashboardStatusParam.value === status
+const isVisosActive = () => isActive('/dashboard') && !dashboardStatusParam.value
 
 const user = computed(() => page.props.auth?.user ?? null)
 const roles = computed(() => page.props.auth?.roles ?? [])
@@ -51,15 +66,18 @@ const isActive = (path) => {
     return page.url.startsWith(path)
 }
 
-const isStatesOpen = ref(isActive('/states'))
+const isStatesOpen = ref(isActive('/dashboard'))
 const toggleStates = () => {
+    if (!isStatesOpen.value) isStatisticsOpen.value = false
     isStatesOpen.value = !isStatesOpen.value
 }
 
 const isStatisticsOpen = ref(isActive('/statistics'))
 const toggleStatistics = () => {
+    if (!isStatisticsOpen.value) isStatesOpen.value = false
     isStatisticsOpen.value = !isStatisticsOpen.value
 }
+
 </script>
 
 <template>
@@ -71,6 +89,14 @@ const toggleStatistics = () => {
         <nav class="nav">
             <div class="nav-top">
                 <template v-if="isReporterOnly">
+                    <Link
+                        :href="route('reporter.sarasas')"
+                        class="nav-link"
+                        :class="{ active: isActive('/reporter/sarasas') }"
+                    >
+                        <img :src="ICON_LIST" class="nav-icon" alt="" />
+                        <span>Sąrašas</span>
+                    </Link>
                     <Link
                         href="/dashboard"
                         class="nav-link"
@@ -91,9 +117,9 @@ const toggleStatistics = () => {
 
                 <template v-else-if="canAccessIssues">
                     <Link
-                        href="/dashboard"
+                        :href="route('dashboard')"
                         class="nav-link"
-                        :class="{ active: isActive('/dashboard') }"
+                        :class="{ active: isActive('/dashboard') && !dashboardStatusParam }"
                     >
                         <img :src="ICON_LIST" class="nav-icon" alt="" />
                         <span>Sąrašas</span>
@@ -123,7 +149,7 @@ const toggleStatistics = () => {
                     <button
                         type="button"
                         class="nav-link states-trigger"
-                        :class="{ active: isActive('/statistics') }"
+                        :class="{ active: isActive('/statistics') && !page.url.startsWith('/dashboard') }"
                         @click="toggleStatistics"
                     >
                         <img :src="ICON_STATISTICS" class="nav-icon" alt="" />
@@ -175,7 +201,7 @@ const toggleStatistics = () => {
                 <button
                     type="button"
                     class="nav-link states-trigger"
-                    :class="{ active: isActive('/states') }"
+                    :class="{ active: isActive('/dashboard') }"
                     @click="toggleStates"
                 >
                     <img :src="ICON_STATE" class="nav-icon" alt="" />
@@ -190,43 +216,43 @@ const toggleStatistics = () => {
 
                 <div v-if="isStatesOpen" class="submenu">
                     <Link
-                        href="/states"
+                        :href="route('dashboard')"
                         class="submenu-link"
-                        :class="{ active: page.url === '/states' }"
+                        :class="{ active: isVisosActive() }"
+                    >
+                        Visos
+                    </Link>
+
+                    <Link
+                        :href="`${route('dashboard')}?status=${PROBLEM_STATUS.NEW}`"
+                        class="submenu-link"
+                        :class="{ active: isStatusLinkActive(PROBLEM_STATUS.NEW) }"
                     >
                         Nauja
                     </Link>
 
                     <Link
-                        href="/states/create"
+                        :href="`${route('dashboard')}?status=${PROBLEM_STATUS.IN_REVIEW}`"
                         class="submenu-link"
-                        :class="{ active: page.url.startsWith('/states/create') }"
+                        :class="{ active: isStatusLinkActive(PROBLEM_STATUS.IN_REVIEW) }"
                     >
                         Nagrinėjama
                     </Link>
 
                     <Link
-                        href="/states/create"
+                        :href="`${route('dashboard')}?status=${PROBLEM_STATUS.INACTIVE}`"
                         class="submenu-link"
-                        :class="{ active: page.url.startsWith('/states/create') }"
+                        :class="{ active: isStatusLinkActive(PROBLEM_STATUS.INACTIVE) }"
                     >
                         Neaktuali
                     </Link>
 
                     <Link
-                        href="/states/create"
+                        :href="`${route('dashboard')}?status=${PROBLEM_STATUS.RESOLVED}`"
                         class="submenu-link"
-                        :class="{ active: page.url.startsWith('/states/create') }"
+                        :class="{ active: isStatusLinkActive(PROBLEM_STATUS.RESOLVED) }"
                     >
-                        Grąžinta nagrinėjimui
-                    </Link>
-
-                    <Link
-                        href="/states/create"
-                        class="submenu-link"
-                        :class="{ active: page.url.startsWith('/states/create') }"
-                    >
-                        Išspręsta
+                        Išnagrinėta
                     </Link>
                 </div>
                 </template>
@@ -280,6 +306,11 @@ const toggleStatistics = () => {
     display: flex;
     flex-direction: column;
     gap: 8px;
+    position: sticky;
+    top: 0;
+    background: #F6F7F9;
+    z-index: 2;
+    flex-shrink: 0;
 }
 
 .nav-bottom {
@@ -303,6 +334,9 @@ const toggleStatistics = () => {
     cursor: pointer;
     font-size: 18px;
     background-color: #f6f7f9;
+    position: relative;
+    z-index: 1;
+    box-sizing: border-box;
 }
 
 .nav-link img,
@@ -331,8 +365,8 @@ const toggleStatistics = () => {
 }
 
 .nav-icon {
-    width: 20px;
-    height: 20px;
+    width: 15px;
+    height: 15px;
     display: block;
     object-fit: contain;
     flex-shrink: 0;
@@ -366,12 +400,18 @@ const toggleStatistics = () => {
 .submenu-link {
     display: block;
     padding: 8px 60px;
-    color: black;
+    color: #333;
     text-decoration: none;
     font-size: 16px;
+    border-radius: 8px;
+    transition: background 0.15s ease, color 0.15s ease;
 }
 
-.submenu-link:hover,
+.submenu-link:hover {
+    background: rgba(25, 70, 160, 0.08);
+    color: var(--color-primary);
+}
+
 .submenu-link.active {
     background: var(--color-primary);
     color: var(--color-white, #fff);

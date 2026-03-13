@@ -393,6 +393,7 @@ watch(
             title="Taisyklė"
             :max-width="'520px'"
             class="automation-rule-modal"
+            footer-layout="column"
             @close="showFormModal = false"
         >
             <div class="automation-form">
@@ -429,6 +430,7 @@ watch(
             title="Publikavimo taisyklė"
             :max-width="'520px'"
             class="automation-rule-modal"
+            footer-layout="column"
             @close="showPublishFormModal = false"
         >
             <div class="automation-form">
@@ -464,6 +466,7 @@ watch(
             title="Sprendimo termino taisyklė"
             :max-width="'520px'"
             class="automation-rule-modal"
+            footer-layout="column"
             @close="showTermRuleModal = false"
         >
             <div class="automation-form">
@@ -508,7 +511,7 @@ watch(
 <style scoped>
 .automation-page {
     max-width: 1000px;
-    margin: 0 auto;
+    margin: 0;
     padding: 24px 32px;
 }
 .automation-title {
@@ -593,15 +596,16 @@ watch(
 }
 
 .automation-rule-modal :deep(.modal-footer) {
-    flex-direction: row;
+    flex-direction: column;
     flex-wrap: nowrap;
     gap: var(--button-grid-gap, 12px);
 }
 
 .automation-rule-modal :deep(.modal-footer .app-button) {
-    width: var(--button-width);
-    height: var(--button-height);
+    width: var(--button-width, 290px);
     min-width: var(--button-min-width);
+    height: var(--button-height, 45px);
+    min-height: var(--button-height, 45px);
     border-radius: var(--button-border-radius);
     flex: 0 0 auto;
 }

@@ -45,7 +45,7 @@ const handleBack = () => {
 
 const handleStatusChange = (status) => {
     router.patch(route('problems.updateStatus', props.problem.id), {
-        status: status
+        status,
     }, {
         preserveScroll: true,
         onSuccess: () => {
@@ -287,7 +287,6 @@ const mergeTargetId = computed(() =>
                 footer-layout="column"
                 confirm-variant="primary"
                 width="369px"
-                max-height="275px"
                 @close="showDeleteModal = false"
                 @confirm="handleConfirmDelete"
             />
