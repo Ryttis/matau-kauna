@@ -12,19 +12,11 @@ use Illuminate\Validation\ValidationException;
 
 class LoginRequest extends FormRequest
 {
-    /**
-     * Determine if the user is authorized to make this request.
-     */
     public function authorize(): bool
     {
         return true;
     }
 
-    /**
-     * Get the validation rules that apply to the request.
-     *
-     * @return array<string, \Illuminate\Contracts\Validation\ValidationRule|array<mixed>|string>
-     */
     public function rules(): array
     {
         return [
@@ -34,11 +26,6 @@ class LoginRequest extends FormRequest
         ];
     }
 
-    /**
-     * Attempt to authenticate the request's credentials.
-     *
-     * @throws \Illuminate\Validation\ValidationException
-     */
     public function authenticate(): void
     {
         $this->ensureIsNotRateLimited();
@@ -63,36 +50,16 @@ class LoginRequest extends FormRequest
         ];
         $hasStaffRole = collect($staffRoles)->contains(fn ($role) => $user->hasRole($role));
 
-        if ($loginType === 'pareiskejas') {
-            if (! $user->hasRole(UserRole::ROLE_REPORTER) || $hasStaffRole) {
-                Auth::logout();
-                $this->session()->invalidate();
-                $this->session()->regenerateToken();
+        $invalidReporter = $loginType === 'pareiskejas' && (! $user->hasRole(UserRole::ROLE_REPORTER) || $hasStaffRole);
+        $invalidStaff = $loginType !== 'pareiskejas' && ! $hasStaffRole;
 
-                throw ValidationException::withMessages([
-                    'email' => trans('auth.failed'),
-                ]);
-            }
-        } else {
-            if (! $hasStaffRole) {
-                Auth::logout();
-                $this->session()->invalidate();
-                $this->session()->regenerateToken();
-
-                throw ValidationException::withMessages([
-                    'email' => trans('auth.failed'),
-                ]);
-            }
+        if ($invalidReporter || $invalidStaff) {
+            $this->failLogin();
         }
 
         RateLimiter::clear($this->throttleKey());
     }
 
-    /**
-     * Ensure the login request is not rate limited.
-     *
-     * @throws \Illuminate\Validation\ValidationException
-     */
     public function ensureIsNotRateLimited(): void
     {
         if (! RateLimiter::tooManyAttempts($this->throttleKey(), 5)) {
@@ -111,11 +78,19 @@ class LoginRequest extends FormRequest
         ]);
     }
 
-    /**
-     * Get the rate limiting throttle key for the request.
-     */
     public function throttleKey(): string
     {
         return Str::transliterate(Str::lower($this->string('email')).'|'.$this->ip());
+    }
+
+    private function failLogin(): never
+    {
+        Auth::logout();
+        $this->session()->invalidate();
+        $this->session()->regenerateToken();
+
+        throw ValidationException::withMessages([
+            'email' => trans('auth.failed'),
+        ]);
     }
 }

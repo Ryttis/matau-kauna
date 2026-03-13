@@ -15,10 +15,12 @@ class RoleSelectController extends Controller
         $user = $request->user();
         $roles = $user->roles()->get()->map(fn ($r) => ['id' => $r->id, 'role' => $r->role, 'name' => $r->name])->toArray();
 
-        if (count($roles) <= 1) {
-            if (count($roles) === 1) {
-                $request->session()->put('active_role_id', $roles[0]['id']);
-            }
+        if (count($roles) === 0) {
+            return redirect()->route('dashboard');
+        }
+
+        if (count($roles) === 1) {
+            $request->session()->put('active_role_id', $roles[0]['id']);
 
             return redirect()->route('dashboard');
         }

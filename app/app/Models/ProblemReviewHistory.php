@@ -16,10 +16,7 @@ class ProblemReviewHistory extends Model
         'comment',
     ];
 
-    protected $casts = [
-        'created_at' => 'datetime',
-        'updated_at' => 'datetime',
-    ];
+    protected $casts = [];
 
     public function problem(): BelongsTo
     {

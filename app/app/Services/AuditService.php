@@ -18,46 +18,19 @@ class AuditService
     public function getFilteredLogs(array $filters, int $perPage = 20): LengthAwarePaginator
     {
         $query = AuditLog::query()->orderByDesc('occurred_at');
-
-        $query->occurredBetween(
-            $filters['date_from'] ?? null,
-            $filters['date_to'] ?? null
-        );
-
-        if (! empty($filters['event_type'])) {
-            $query->eventType($filters['event_type']);
-        }
-        if (! empty($filters['result'])) {
-            $query->result($filters['result']);
-        }
-        $query->search($filters['search'] ?? null);
+        $this->applyLogFilters($query, $filters);
 
         return $query->paginate($perPage);
     }
 
-    /**
-     * @param  array<string, mixed>  $filters
-     */
     public function buildExportQuery(array $filters): Builder
     {
-        $query = AuditLog::query()
-            ->orderByDesc('occurred_at')
-            ->occurredBetween($filters['date_from'] ?? null, $filters['date_to'] ?? null);
-
-        if (! empty($filters['event_type'])) {
-            $query->eventType($filters['event_type']);
-        }
-        if (! empty($filters['result'])) {
-            $query->result($filters['result']);
-        }
-        $query->search($filters['search'] ?? null);
+        $query = AuditLog::query()->orderByDesc('occurred_at');
+        $this->applyLogFilters($query, $filters);
 
         return $query;
     }
 
-    /**
-     * @return array<int, array<string, mixed>>
-     */
     public function mapLogsToArray(Collection $logs): array
     {
         return $logs->map(fn (AuditLog $log) => [
@@ -89,11 +62,6 @@ class AuditService
         ];
     }
 
-    /**
-     * @param  array<string, mixed>  $data
-     * @param  \Illuminate\Contracts\Auth\Authenticatable|null  $user
-     * @return array<string, mixed>
-     */
     public function updateSettings(array $data, $user): array
     {
         if (array_key_exists('enabled', $data)) {
@@ -134,5 +102,18 @@ class AuditService
             'retention_days' => $updated?->delete_after_days ?? 365,
             'retention_is_active' => $updated?->is_active ?? true,
         ];
+    }
+
+    private function applyLogFilters(Builder $query, array $filters): void
+    {
+        $query->occurredBetween($filters['date_from'] ?? null, $filters['date_to'] ?? null);
+
+        if (! empty($filters['event_type'])) {
+            $query->eventType($filters['event_type']);
+        }
+        if (! empty($filters['result'])) {
+            $query->result($filters['result']);
+        }
+        $query->search($filters['search'] ?? null);
     }
 }

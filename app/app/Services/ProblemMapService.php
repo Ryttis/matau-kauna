@@ -80,11 +80,6 @@ class ProblemMapService
         })->values()->all();
     }
 
-    /**
-     * @param  Collection<int, Problem>  $mergedProblems
-     * @param  Collection<int, Problem>  $similarProblems
-     * @return array<int, array<string, mixed>>
-     */
     public function buildMapProblemsForMerge(Problem $problem, Collection $mergedProblems, Collection $similarProblems): array
     {
         $center = config('kaunas.map_center');
@@ -105,10 +100,6 @@ class ProblemMapService
         return $mapProblems;
     }
 
-    /**
-     * @param  Problem|object  $problem
-     * @return array<string, mixed>
-     */
     private function mapProblemToMapItem(object $problem, float $centerLat, float $centerLng, int $index): array
     {
         $hasCoords = $problem->lat !== null && $problem->lng !== null;

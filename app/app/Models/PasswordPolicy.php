@@ -58,7 +58,7 @@ class PasswordPolicy extends Model
         Cache::forget('password_policy');
     }
 
-    public function rules(?string $name = null, ?string $email = null): array
+    public function rules(): array
     {
         $r = ['required', 'string', 'min:' . $this->min_length, 'confirmed'];
         if ($this->require_lowercase) {

@@ -9,6 +9,7 @@ use App\Models\Institution;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Collection;
+use Throwable;
 
 class InstitutionController extends Controller
 {
@@ -53,8 +54,9 @@ class InstitutionController extends Controller
     {
         try {
             $institution->update(['archived_at' => now()]);
+
             return response()->json(['ok' => true]);
-        } catch (\Throwable $e) {
+        } catch (Throwable $e) {
             return response()->json(
                 ['message' => 'Nepavyko pašalinti įstaigos. Patikrinkite, ar nėra susijusių duomenų.'],
                 422

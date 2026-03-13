@@ -31,9 +31,6 @@ class LoginHistoryService
         return $query->paginate($perPage);
     }
 
-    /**
-     * @return array<int, array<string, mixed>>
-     */
     public function mapLogsToArray(iterable $logs): array
     {
         $items = [];

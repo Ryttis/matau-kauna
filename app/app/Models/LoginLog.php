@@ -9,7 +9,7 @@ class LoginLog extends Model
 {
     protected $table = 'login_logs';
 
-    const EVENT_LOGIN = 'login';
+    public const EVENT_LOGIN = 'login';
 
     protected $fillable = ['user_id', 'event_type', 'ip', 'user_agent'];
 

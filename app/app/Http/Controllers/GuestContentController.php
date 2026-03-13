@@ -10,30 +10,25 @@ class GuestContentController extends Controller
 {
     public function faq(): Response
     {
-        $content = ContentVersion::getLatestPublished(ContentVersion::TYPE_FAQ);
-
-        return Inertia::render('Guest/Faq', [
-            'title' => (string) ($content?->title ?? 'DUK'),
-            'body' => (string) ($content?->body ?? ''),
-        ]);
+        return $this->renderContentPage(ContentVersion::TYPE_FAQ, 'Guest/Faq', 'DUK');
     }
 
     public function privacy(): Response
     {
-        $content = ContentVersion::getLatestPublished(ContentVersion::TYPE_PRIVACY);
-
-        return Inertia::render('Guest/PrivacyPolicy', [
-            'title' => (string) ($content?->title ?? 'Privatumo politika'),
-            'body' => (string) ($content?->body ?? ''),
-        ]);
+        return $this->renderContentPage(ContentVersion::TYPE_PRIVACY, 'Guest/PrivacyPolicy', 'Privatumo politika');
     }
 
     public function cookies(): Response
     {
-        $content = ContentVersion::getLatestPublished(ContentVersion::TYPE_COOKIES);
+        return $this->renderContentPage(ContentVersion::TYPE_COOKIES, 'Guest/CookiePolicy', 'Slapukų informacija');
+    }
 
-        return Inertia::render('Guest/CookiePolicy', [
-            'title' => (string) ($content?->title ?? 'Slapukų informacija'),
+    private function renderContentPage(string $type, string $view, string $defaultTitle): Response
+    {
+        $content = ContentVersion::getLatestPublished($type);
+
+        return Inertia::render($view, [
+            'title' => (string) ($content?->title ?? $defaultTitle),
             'body' => (string) ($content?->body ?? ''),
         ]);
     }

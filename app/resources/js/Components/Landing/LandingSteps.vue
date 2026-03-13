@@ -27,9 +27,6 @@
     </section>
 </template>
 
-<script setup>
-</script>
-
 <style scoped>
 .landing-section {
     background: var(--lp-section-bg);

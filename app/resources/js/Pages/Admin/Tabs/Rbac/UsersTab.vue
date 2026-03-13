@@ -5,7 +5,7 @@ import BaseModal from '@/Components/App/BaseModal.vue'
 import ConfirmModal from '@/Components/App/ConfirmModal.vue'
 import AppButton from '@/Components/App/AppButton.vue'
 import AppInput from '@/Components/App/AppInput.vue'
-import { ROLE_INSTITUTION_ADMIN, ROLE_EMPLOYEE } from '@/constants/roles.js'
+import { ROLE_INSTITUTION_ADMIN, ROLE_EMPLOYEE } from '@/constants/roles'
 
 const props = defineProps({
     usersPage: Object,

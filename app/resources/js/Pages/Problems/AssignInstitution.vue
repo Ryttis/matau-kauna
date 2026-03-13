@@ -9,7 +9,7 @@ import AppBackButton from '@/Components/App/AppBackButton.vue'
 import AppCheckbox from '@/Components/App/AppCheckbox.vue'
 import SuccessModal from '@/Components/App/SuccessModal.vue'
 import { useAuth } from '@/composables/useAuth'
-import { useSuccessModal } from '@/composables/useSuccessModal.js'
+import { useSuccessModal } from '@/composables/useSuccessModal'
 import { ICON_ARROW } from '@/constants/icons'
 
 const { canSeeInstitutionAdminButtons } = useAuth()

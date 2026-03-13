@@ -12,7 +12,7 @@ enum ProblemStatus: string
 
     public function label(): string
     {
-        return match($this) {
+        return match ($this) {
             self::UNREGISTERED => 'Neužregistruota',
             self::NEW => 'Nauja',
             self::IN_REVIEW => 'Nagrinėjama',
@@ -28,7 +28,7 @@ enum ProblemStatus: string
 
     public static function options(): array
     {
-        return array_map(fn($case) => [
+        return array_map(fn ($case) => [
             'value' => $case->value,
             'label' => $case->label(),
         ], self::cases());
@@ -36,8 +36,8 @@ enum ProblemStatus: string
 
     public static function selectableOptions(): array
     {
-        $cases = array_filter(self::cases(), fn($case) => $case !== self::UNREGISTERED);
-        return array_values(array_map(fn($case) => [
+        $cases = array_filter(self::cases(), fn ($case) => $case !== self::UNREGISTERED);
+        return array_values(array_map(fn ($case) => [
             'value' => $case->value,
             'label' => $case->label(),
         ], $cases));
@@ -47,7 +47,7 @@ enum ProblemStatus: string
     {
         return array_combine(
             array_column(self::cases(), 'value'),
-            array_map(fn($case) => $case->label(), self::cases())
+            array_map(fn ($case) => $case->label(), self::cases())
         );
     }
 }

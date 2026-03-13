@@ -4,9 +4,7 @@ import { loadLeaflet, createBaseMap, KAUNAS_CENTER, MAP_MAX_ZOOM } from '@/compo
 import { ICON_LEFT_ARROW, ICON_RIGHT_ARROW } from '@/constants/icons'
 import { MAP_HIGHLIGHT_COLOR, MAP_MERGED_MARKER_COLOR } from '@/constants/theme'
 
-const HIGHLIGHTED_MARKER_COLOR = MAP_HIGHLIGHT_COLOR
 const HIGHLIGHTED_MARKER_SIZE = 18
-const MERGED_MARKER_COLOR = MAP_MERGED_MARKER_COLOR
 const MERGED_MARKER_SIZE = 14
 
 function unwrapRef(maybeRef) {
@@ -104,7 +102,7 @@ export function useKaunasMap(containerRef, problemsToShowRef, options = {}) {
         list.forEach((p) => {
             const isMain = mainId != null && Number(p.id) === Number(mainId)
             const isMerged = merged.has(Number(p.id))
-            const color = (isMain || isMerged) ? (isMain ? HIGHLIGHTED_MARKER_COLOR : MERGED_MARKER_COLOR) : getMarkerColorForStatus(p.status)
+            const color = (isMain || isMerged) ? (isMain ? MAP_HIGHLIGHT_COLOR : MAP_MERGED_MARKER_COLOR) : getMarkerColorForStatus(p.status)
             const size = isMain ? HIGHLIGHTED_MARKER_SIZE : (isMerged ? MERGED_MARKER_SIZE : 14)
             const icon = L.divIcon({
                 className: markerClassName,

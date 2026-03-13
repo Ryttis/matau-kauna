@@ -10,6 +10,7 @@ use App\Models\Institution;
 use App\Models\ClassifierValue;
 use App\Models\Problem;
 use App\Models\ProblemAutoAssignmentRule;
+use App\Models\User;
 use App\Models\UserRole;
 use App\Services\ProblemAssignmentNotifier;
 use App\Services\ProblemAutoAssignmentService;
@@ -23,7 +24,6 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
-use App\Models\User;
 use Inertia\Inertia;
 use Inertia\Response;
 use Maatwebsite\Excel\Facades\Excel;
@@ -113,7 +113,7 @@ class ProblemController extends Controller
         ]);
     }
 
-    public function updateStatus(Request $request, Problem $problem)
+    public function updateStatus(Request $request, Problem $problem): RedirectResponse
     {
         $user = $request->user();
         $this->scopeService->authorizeProblemAccess($user, $problem);
@@ -140,7 +140,7 @@ class ProblemController extends Controller
         return redirect()->back()->with('success', $message);
     }
 
-    public function bulkUpdateStatus(Request $request)
+    public function bulkUpdateStatus(Request $request): RedirectResponse
     {
         $user = $request->user();
         $validated = $request->validate([
@@ -181,6 +181,7 @@ class ProblemController extends Controller
         $query->update(['is_published_publicly' => $validated['is_published_publicly']]);
 
         $label = $validated['is_published_publicly'] ? 'Paskelbta viešai.' : 'Nuimta nuo viešo skelbimo.';
+
         return redirect()->back()->with('success', $label);
     }
 
@@ -202,6 +203,7 @@ class ProblemController extends Controller
         $query->update(['is_published_publicly' => $validated['is_published_publicly']]);
 
         $label = $validated['is_published_publicly'] ? 'Problemos paskelbtos viešai.' : 'Problemos nuimtos nuo viešo skelbimo.';
+
         return redirect()->back()->with('success', $label);
     }
 
@@ -227,7 +229,7 @@ class ProblemController extends Controller
         ]);
     }
 
-    public function update(Request $request, Problem $problem)
+    public function update(Request $request, Problem $problem): RedirectResponse
     {
         $user = $request->user();
         $canEdit = $user->canEditProblemClassification();
@@ -250,7 +252,7 @@ class ProblemController extends Controller
         return redirect()->back()->with('success', 'Problema atnaujinta');
     }
 
-    public function destroy(Problem $problem)
+    public function destroy(Problem $problem): RedirectResponse
     {
         $user = request()->user();
         if (! $user->hasRole(UserRole::ROLE_EMPLOYEE) && ! $user->hasRole(UserRole::ROLE_SYSTEM_ADMIN)) {
@@ -287,7 +289,7 @@ class ProblemController extends Controller
         ]);
     }
 
-    public function storeAssign(Request $request)
+    public function storeAssign(Request $request): RedirectResponse
     {
         $user = $request->user();
         if (! $user->isProblemAdminOrSystemAdmin()) {
@@ -331,7 +333,7 @@ class ProblemController extends Controller
         return redirect()->route('dashboard')->with('success', $message);
     }
 
-    public function sendAssignEmail(Request $request)
+    public function sendAssignEmail(Request $request): RedirectResponse
     {
         $user = $request->user();
         if (! $user->isProblemAdminOrSystemAdmin()) {
@@ -606,14 +608,13 @@ class ProblemController extends Controller
     public function reassignInstitution(Request $request, Problem $problem): RedirectResponse
     {
         $user = $request->user();
-        if (! $user->isProblemAdminOrSystemAdmin()) {
-            if ($user->hasRole(UserRole::ROLE_INSTITUTION_ADMIN) && $user->institution_id !== null) {
-                if ((int) $problem->institution_id !== (int) $user->institution_id) {
-                    abort(403);
-                }
-            } else {
-                abort(403);
-            }
+        $canReassign = $user->isProblemAdminOrSystemAdmin()
+            || ($user->hasRole(UserRole::ROLE_INSTITUTION_ADMIN)
+                && $user->institution_id !== null
+                && (int) $problem->institution_id === (int) $user->institution_id);
+
+        if (! $canReassign) {
+            abort(403);
         }
 
         $validated = $request->validate([
@@ -827,6 +828,7 @@ class ProblemController extends Controller
         }
 
         $filters = [
+            'search' => $request->get('search'),
             'report_number' => $request->get('report_number'),
             'category' => $request->get('category'),
             'date_from' => $request->get('date_from'),

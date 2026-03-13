@@ -40,10 +40,10 @@ class ClassifierController extends Controller
     public function storeValue(Request $request): JsonResponse
     {
         $validated = $request->validate([
-            'parent_id' => 'nullable|integer|exists:classifier_values,id',
-            'name' => 'required|string|max:255',
-            'sort_order' => 'nullable|integer|min:0',
-            'is_active' => 'nullable|boolean',
+            'parent_id' => ['nullable', 'integer', 'exists:classifier_values,id'],
+            'name' => ['required', 'string', 'max:255'],
+            'sort_order' => ['nullable', 'integer', 'min:0'],
+            'is_active' => ['nullable', 'boolean'],
         ]);
 
         if (! empty($validated['parent_id'])) {
@@ -66,13 +66,14 @@ class ClassifierController extends Controller
     public function updateValue(Request $request, ClassifierValue $value): JsonResponse
     {
         $validated = $request->validate([
-            'name' => 'sometimes|string|max:255',
-            'is_active' => 'sometimes|boolean',
-            'sort_order' => 'sometimes|integer|min:0',
+            'name' => ['sometimes', 'string', 'max:255'],
+            'is_active' => ['sometimes', 'boolean'],
+            'sort_order' => ['sometimes', 'integer', 'min:0'],
         ]);
         if (array_key_exists('name', $validated)) {
             $validated['name'] = trim($validated['name']);
         }
+
         $value->update($validated);
 
         return response()->json(['value' => ClassifierValueMapper::toArray($value)]);
@@ -85,6 +86,7 @@ class ClassifierController extends Controller
             $value->children()->update(['archived_at' => $now]);
         }
         $value->update(['archived_at' => $now]);
+
         return response()->json(['ok' => true]);
     }
 }

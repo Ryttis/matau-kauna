@@ -227,7 +227,7 @@ th {
     color: #1E1C1C;
     text-align: left;
     padding: 10px;
-    border-bottom: 1px solid #e0e0e0;
+    border-bottom: 1px solid var(--color-border, #e5e5e5);
 }
 
 th.sortable {
@@ -246,7 +246,7 @@ td {
     line-height: 150%;
     letter-spacing: -1.1%;
     color: #1E1C1C;
-    border-bottom: 1px solid #f0f0f0;
+    border-bottom: 1px solid var(--color-border, #e5e5e5);
 }
 
 tbody tr:hover {

@@ -7,6 +7,7 @@ use App\Services\LoginHistoryService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
+use Throwable;
 
 class LoginHistoryController extends Controller
 {
@@ -30,7 +31,7 @@ class LoginHistoryController extends Controller
                 'per_page' => $logs->perPage(),
                 'total' => $logs->total(),
             ]);
-        } catch (\Throwable $e) {
+        } catch (Throwable $e) {
             Log::error('Prisijungimų istorija: ' . $e->getMessage(), [
                 'exception' => $e,
                 'trace' => $e->getTraceAsString(),

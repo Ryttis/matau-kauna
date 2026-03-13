@@ -2,7 +2,7 @@
 import BaseModal from '@/Components/App/BaseModal.vue'
 import AppButton from '@/Components/App/AppButton.vue'
 
-const props = defineProps({
+defineProps({
     open: Boolean,
     title: {
         type: String,

@@ -8,6 +8,7 @@ use App\Models\Invitation;
 use App\Models\UserRole;
 use App\Services\InvitationService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Str;
 
 class InvitationController extends Controller
 {
@@ -17,28 +18,21 @@ class InvitationController extends Controller
 
     public function index(Request $request)
     {
-        $user = $request->user();
-        if (! $user->hasRole(UserRole::ROLE_SYSTEM_ADMIN) && ! $user->hasRole(UserRole::ROLE_INSTITUTION_ADMIN)) {
-            abort(403);
-        }
+        $this->ensureCanManageInvitations($request->user());
 
-        return $this->invitationService->getIndexQuery($user)->paginate(20);
+        return $this->invitationService->getIndexQuery($request->user())->paginate(20);
     }
 
     public function store(StoreInvitationRequest $request)
     {
         $user = $request->user();
-        if (! $user->hasRole(UserRole::ROLE_SYSTEM_ADMIN) && ! $user->hasRole(UserRole::ROLE_INSTITUTION_ADMIN)) {
-            abort(403);
-        }
+        $this->ensureCanManageInvitations($user);
 
         $data = $request->validated();
         if (! $user->hasRole(UserRole::ROLE_SYSTEM_ADMIN)) {
             $data['institution_id'] = $user->institution_id;
         }
-        if (! $user->hasRole(UserRole::ROLE_SYSTEM_ADMIN) && (int) $data['institution_id'] !== (int) $user->institution_id) {
-            abort(403);
-        }
+        $this->ensureSameInstitution($user, $data['institution_id'] ?? null);
 
         $result = $this->invitationService->createInvitation($data, $user);
         if (isset($result['error'])) {
@@ -53,19 +47,16 @@ class InvitationController extends Controller
     public function resend(Request $request, Invitation $invitation)
     {
         $user = $request->user();
-        if (! $user->hasRole(UserRole::ROLE_SYSTEM_ADMIN) && ! $user->hasRole(UserRole::ROLE_INSTITUTION_ADMIN)) {
-            abort(403);
-        }
-        if (! $user->hasRole(UserRole::ROLE_SYSTEM_ADMIN) && (int) $invitation->institution_id !== (int) $user->institution_id) {
-            abort(403);
-        }
+        $this->ensureCanManageInvitations($user);
+        $this->ensureSameInstitution($user, $invitation->institution_id);
+
         if ($invitation->used_at) {
             return response()->json(['message' => 'Pakvietimas jau panaudotas.'], 422);
         }
 
         if (! $invitation->expires_at || $invitation->expires_at->isPast()) {
             $invitation->update([
-                'token' => \Illuminate\Support\Str::random(64),
+                'token' => Str::random(64),
                 'expires_at' => now()->addDays(7),
             ]);
         }
@@ -73,5 +64,19 @@ class InvitationController extends Controller
         $this->invitationService->sendInvitationNotification($invitation);
 
         return $invitation->load(['institution:id,name', 'role:id,role,name']);
+    }
+
+    private function ensureCanManageInvitations($user): void
+    {
+        if (! $user->hasRole(UserRole::ROLE_SYSTEM_ADMIN) && ! $user->hasRole(UserRole::ROLE_INSTITUTION_ADMIN)) {
+            abort(403);
+        }
+    }
+
+    private function ensureSameInstitution($user, ?int $institutionId): void
+    {
+        if (! $user->hasRole(UserRole::ROLE_SYSTEM_ADMIN) && (int) $institutionId !== (int) $user->institution_id) {
+            abort(403);
+        }
     }
 }

@@ -23,16 +23,16 @@ class HandleInertiaRequests extends Middleware
         $permissions = [];
         $activeRole = null;
 
-        if ($user) {
-            if ($activeRoleId) {
-                $permissions = $user->permissionsForRole($activeRoleId);
-                $activeRole = collect($roles)->firstWhere('id', $activeRoleId);
-            } else {
-                $permissions = $user->permissions();
-                if (count($roles) === 1) {
-                    $activeRole = $roles[0];
-                    $request->session()->put('active_role_id', $roles[0]['id']);
-                }
+        if ($user && $activeRoleId) {
+            $permissions = $user->permissionsForRole($activeRoleId);
+            $activeRole = collect($roles)->firstWhere('id', $activeRoleId);
+        }
+
+        if ($user && ! $activeRoleId) {
+            $permissions = $user->permissions();
+            if (count($roles) === 1) {
+                $activeRole = $roles[0];
+                $request->session()->put('active_role_id', $roles[0]['id']);
             }
         }
 

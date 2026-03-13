@@ -10,15 +10,18 @@ use Illuminate\Http\Request;
 
 class PublicStatisticsController extends Controller
 {
+    public function __construct(
+        private StatisticsService $statisticsService
+    ) {}
+
     public function data(Request $request): JsonResponse
     {
         $config = PublicStatisticsConfig::get();
         $period = $request->input('period', $config['default_period'] ?? 'year');
         $category = $request->input('category', 'all');
 
-        $service = app(StatisticsService::class);
-        $query = $service->buildPublicProblemQuery($period, $category);
-        $analytics = $service->getAnalytics($query);
+        $query = $this->statisticsService->buildPublicProblemQuery($period, $category);
+        $analytics = $this->statisticsService->getAnalytics($query);
 
         $categories = ClassifierValue::getActiveTypeNames()->values()->all();
 

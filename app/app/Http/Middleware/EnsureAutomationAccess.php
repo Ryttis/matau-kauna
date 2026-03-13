@@ -17,10 +17,10 @@ class EnsureAutomationAccess
             abort(403);
         }
 
-        if ($user->hasRole(UserRole::ROLE_SYSTEM_ADMIN) || $user->hasRole(UserRole::ROLE_PROBLEM_ADMIN)) {
-            return $next($request);
+        if (! $user->hasRole(UserRole::ROLE_SYSTEM_ADMIN) && ! $user->hasRole(UserRole::ROLE_PROBLEM_ADMIN)) {
+            abort(403);
         }
 
-        abort(403);
+        return $next($request);
     }
 }

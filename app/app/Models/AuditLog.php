@@ -52,6 +52,7 @@ class AuditLog extends Model
         if ($to) {
             $query->where('occurred_at', '<=', $to);
         }
+
         return $query;
     }
 

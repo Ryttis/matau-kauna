@@ -35,6 +35,7 @@ class ArchiveController extends Controller
             return response()->json(['message' => 'Naudotojas nearchyvuotas.'], 422);
         }
         $user->update(['archived_at' => null]);
+
         return response()->json(['ok' => true]);
     }
 
@@ -44,6 +45,7 @@ class ArchiveController extends Controller
             return response()->json(['message' => 'Įstaiga nearchyvuota.'], 422);
         }
         $institution->update(['archived_at' => null]);
+
         return response()->json(['ok' => true]);
     }
 
@@ -53,6 +55,7 @@ class ArchiveController extends Controller
             return response()->json(['message' => 'Problema nearchyvuota.'], 422);
         }
         $problem->update(['is_archived' => false, 'archived_at' => null]);
+
         return response()->json(['ok' => true]);
     }
 
@@ -65,6 +68,7 @@ class ArchiveController extends Controller
         if ($classifier_value->parent_id === null) {
             ClassifierValue::where('parent_id', $classifier_value->id)->update(['archived_at' => null]);
         }
+
         return response()->json(['ok' => true]);
     }
 }

@@ -5,10 +5,10 @@ import BaseModal from '@/Components/App/BaseModal.vue'
 import ConfirmModal from '@/Components/App/ConfirmModal.vue'
 import SuccessModal from '@/Components/App/SuccessModal.vue'
 import AppButton from '@/Components/App/AppButton.vue'
-import { useSuccessModal } from '@/composables/useSuccessModal.js'
+import { useSuccessModal } from '@/composables/useSuccessModal'
 import AppInput from '@/Components/App/AppInput.vue'
 import ModalFooterActions from '@/Components/App/ModalFooterActions.vue'
-import { INSTITUTION_TYPES } from '@/constants/institutionTypes.js'
+import { INSTITUTION_TYPES } from '@/constants/institutionTypes'
 
 function emptyInstitutionForm() {
     return {

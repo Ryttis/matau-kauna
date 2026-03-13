@@ -186,6 +186,7 @@ class Problem extends Model
             ->unique()
             ->values()
             ->all();
+
         return $ids;
     }
 }
