@@ -8,6 +8,7 @@ use App\Models\InstitutionTeam;
 use App\Models\PasswordPolicy;
 use App\Models\UserRole;
 use App\Services\SettingsService;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
@@ -39,13 +40,13 @@ class SettingsController extends Controller
         return Inertia::render('Settings/ChangePassword');
     }
 
-    public function updatePassword(Request $request)
+    public function updatePassword(Request $request): RedirectResponse
     {
         $policy = PasswordPolicy::get();
         $user = $request->user();
         $rules = [
             'current_password' => ['required', 'current_password'],
-            'password' => array_merge(['required'], $policy->rules($user->name, $user->email)),
+            'password' => array_merge(['required'], $policy->rules()),
             'password_confirmation' => ['required', 'same:password'],
         ];
         $validated = $request->validate($rules);
@@ -61,7 +62,7 @@ class SettingsController extends Controller
         return back()->with('status', 'Slaptažodis pakeistas.');
     }
 
-    public function updateProfile(Request $request)
+    public function updateProfile(Request $request): RedirectResponse
     {
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
@@ -74,7 +75,7 @@ class SettingsController extends Controller
         return back()->with('success', 'Profilis atnaujintas.');
     }
 
-    public function storeEmployee(Request $request)
+    public function storeEmployee(Request $request): RedirectResponse
     {
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
@@ -88,7 +89,7 @@ class SettingsController extends Controller
         return back()->with('success', 'Darbuotojas pridėtas.');
     }
 
-    public function storeTeam(Request $request)
+    public function storeTeam(Request $request): mixed
     {
         $user = Auth::user();
         $this->ensureInstitutionAdmin($user);
@@ -105,7 +106,7 @@ class SettingsController extends Controller
         return $team->load('employees:id,name,surname,email');
     }
 
-    public function updateTeam(Request $request, InstitutionTeam $team)
+    public function updateTeam(Request $request, InstitutionTeam $team): mixed
     {
         $user = Auth::user();
         $this->ensureInstitutionAdmin($user);
@@ -120,7 +121,7 @@ class SettingsController extends Controller
         return $team->fresh()->load('employees:id,name,surname,email');
     }
 
-    public function destroyTeam(InstitutionTeam $team)
+    public function destroyTeam(InstitutionTeam $team): mixed
     {
         $user = Auth::user();
         $this->ensureInstitutionAdmin($user);
@@ -131,7 +132,7 @@ class SettingsController extends Controller
         return response()->noContent();
     }
 
-    public function syncTeamMembers(Request $request, InstitutionTeam $team)
+    public function syncTeamMembers(Request $request, InstitutionTeam $team): mixed
     {
         $user = Auth::user();
         $this->ensureInstitutionAdmin($user);
@@ -150,7 +151,7 @@ class SettingsController extends Controller
         return $team->fresh()->load('employees:id,name,surname,email');
     }
 
-    public function updateInstitution(Request $request)
+    public function updateInstitution(Request $request): RedirectResponse
     {
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
@@ -168,7 +169,7 @@ class SettingsController extends Controller
         return back()->with('success', 'Įstaigos duomenys atnaujinti.');
     }
 
-    public function updatePrivacy(Request $request)
+    public function updatePrivacy(Request $request): RedirectResponse
     {
         $validated = $request->validate([
             'two_factor_enabled' => ['boolean'],
@@ -181,7 +182,7 @@ class SettingsController extends Controller
         return back()->with('success', 'Privatumo nustatymai atnaujinti.');
     }
 
-    public function sendPasswordResetLink(Request $request)
+    public function sendPasswordResetLink(Request $request): RedirectResponse
     {
         $email = $request->user()->email;
 
@@ -198,7 +199,7 @@ class SettingsController extends Controller
         return back()->withErrors(['email' => 'Nepavyko išsiųsti. Pabandykite vėliau.']);
     }
 
-    public function destroy(Request $request)
+    public function destroy(Request $request): RedirectResponse
     {
         $request->validate([
             'password' => ['required', 'current_password'],

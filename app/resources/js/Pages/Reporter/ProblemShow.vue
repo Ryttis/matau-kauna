@@ -118,6 +118,8 @@ function goToReviewProgress() {
     margin-bottom: 24px;
     padding-bottom: 16px;
     border-bottom: 1px solid var(--color-border);
+    width: 100%;
+    box-sizing: border-box;
 }
 
 .reporter-problem-back {

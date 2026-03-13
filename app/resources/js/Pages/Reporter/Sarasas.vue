@@ -1,11 +1,12 @@
 <script setup>
 import { computed, ref, watch } from 'vue'
 import { Head, router } from '@inertiajs/vue3'
+import { debounce } from 'lodash-es'
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue'
 import EntityTable from '@/Components/App/Tables/EntityTable.vue'
 import TableViewLink from '@/Components/Reporter/TableViewLink.vue'
 import FilterModal from '@/Components/App/Modals/FilterModal.vue'
-import { ICON_FILTER } from '@/constants/icons'
+import { ICON_FILTER, ICON_SEARCH } from '@/constants/icons'
 import { PROBLEM_STATUS_LABELS } from '@/constants/problemStatus'
 
 const props = defineProps({
@@ -18,6 +19,7 @@ const props = defineProps({
 })
 
 const showFilterModal = ref(false)
+const searchQuery = ref(props.filters?.search ?? '')
 const reportNumberFilter = ref(props.filters?.report_number ?? '')
 const categoryFilter = ref(props.filters?.category ?? '')
 const dateFromFilter = ref(props.filters?.date_from ?? '')
@@ -25,11 +27,24 @@ const dateToFilter = ref(props.filters?.date_to ?? '')
 
 watch(() => props.filters, (f) => {
     if (!f) return
+    searchQuery.value = f.search ?? ''
     reportNumberFilter.value = f.report_number ?? ''
     categoryFilter.value = f.category ?? ''
     dateFromFilter.value = f.date_from ?? ''
     dateToFilter.value = f.date_to ?? ''
 }, { immediate: true })
+
+const applyFilters = (params = {}) => {
+    router.get(route('reporter.sarasas'), {
+        search: searchQuery.value || undefined,
+        report_number: (params.reportNumber ?? reportNumberFilter.value) || undefined,
+        category: (params.problemType ?? categoryFilter.value) || undefined,
+        date_from: (params.dateFrom ?? dateFromFilter.value) || undefined,
+        date_to: (params.dateTo ?? dateToFilter.value) || undefined,
+    }, { preserveState: false })
+}
+
+const debouncedSearch = debounce(() => applyFilters(), 300)
 
 function openFilterModal() {
     showFilterModal.value = true
@@ -41,17 +56,25 @@ function handleFilterClose() {
 
 function handleFilterApply(payload) {
     showFilterModal.value = false
-    router.get(route('reporter.sarasas'), {
-        report_number: payload.reportNumber || undefined,
-        category: payload.problemType || undefined,
-        date_from: payload.dateFrom || undefined,
-        date_to: payload.dateTo || undefined,
-    }, { preserveState: false })
+    reportNumberFilter.value = payload.reportNumber ?? ''
+    categoryFilter.value = payload.problemType ?? ''
+    dateFromFilter.value = payload.dateFrom ?? ''
+    dateToFilter.value = payload.dateTo ?? ''
+    applyFilters({
+        reportNumber: payload.reportNumber,
+        problemType: payload.problemType,
+        dateFrom: payload.dateFrom,
+        dateTo: payload.dateTo,
+    })
 }
 
 function handleFilterClear() {
     showFilterModal.value = false
-    router.get(route('reporter.sarasas'))
+    reportNumberFilter.value = ''
+    categoryFilter.value = ''
+    dateFromFilter.value = ''
+    dateToFilter.value = ''
+    router.get(route('reporter.sarasas'), { search: searchQuery.value || undefined }, { preserveState: false })
 }
 
 const items = computed(() => props.problems || [])
@@ -113,10 +136,18 @@ function getRowKey(row) {
 
     <AuthenticatedLayout>
         <div class="reporter-sarasas-page admin-tab">
-            <div class="reporter-sarasas-header">
-                <div>
-                    <h1 class="reporter-sarasas-title">Sąrašas</h1>
-                    <p class="reporter-sarasas-desc">Mano iškeltos problemos</p>
+            <h1 class="reporter-sarasas-title">Sąrašas</h1>
+            <p class="reporter-sarasas-desc">Mano iškeltos problemos</p>
+            <div class="reporter-sarasas-toolbar">
+                <div class="reporter-sarasas-search-wrap">
+                    <img :src="ICON_SEARCH" class="reporter-sarasas-search-icon" alt="" aria-hidden="true" />
+                    <input
+                        v-model="searchQuery"
+                        type="text"
+                        class="reporter-sarasas-search"
+                        placeholder="ieškoti"
+                        @input="debouncedSearch"
+                    />
                 </div>
                 <button
                     type="button"
@@ -125,7 +156,6 @@ function getRowKey(row) {
                     @click="openFilterModal"
                 >
                     <img :src="ICON_FILTER" class="reporter-sarasas-filter-icon" alt="" />
-                    <span>Filtruoti</span>
                 </button>
             </div>
             <div class="reporter-sarasas-table-wrap table">
@@ -161,14 +191,6 @@ function getRowKey(row) {
     max-width: 100%;
 }
 
-.reporter-sarasas-header {
-    display: flex;
-    align-items: flex-start;
-    justify-content: space-between;
-    gap: 16px;
-    margin-bottom: 24px;
-}
-
 .reporter-sarasas-title {
     margin: 0 0 8px 0;
     font-size: 24px;
@@ -177,28 +199,68 @@ function getRowKey(row) {
 }
 
 .reporter-sarasas-desc {
-    margin: 0;
+    margin: 0 0 16px 0;
     font-size: 14px;
     color: #666;
 }
 
-.reporter-sarasas-filter-btn {
-    display: inline-flex;
+.reporter-sarasas-toolbar {
+    display: flex;
     align-items: center;
-    gap: 8px;
-    padding: 10px 18px;
-    border: 1px solid var(--color-primary, #1946A0);
+    gap: 16px;
+    margin-bottom: 24px;
+}
+
+.reporter-sarasas-search-wrap {
+    position: relative;
+    flex: 1;
+    min-width: 0;
+    max-width: 400px;
+    display: flex;
+    align-items: center;
+}
+
+.reporter-sarasas-search-icon {
+    position: absolute;
+    left: 14px;
+    width: 20px;
+    height: 20px;
+    pointer-events: none;
+    object-fit: contain;
+}
+
+.reporter-sarasas-search {
+    width: 100%;
+    height: 40px;
+    border: none;
+    border-radius: 15px;
+    background: #f6f7f9;
+    color: #333;
+    padding: 0 16px 0 44px;
+    font-size: 14px;
+    box-sizing: border-box;
+}
+
+.reporter-sarasas-search::placeholder {
+    color: #999;
+}
+
+.reporter-sarasas-filter-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    padding: 0;
+    border: none;
     border-radius: 15px;
     background: transparent;
-    color: var(--color-primary, #1946A0);
-    font-size: 16px;
-    font-weight: 500;
     cursor: pointer;
     flex-shrink: 0;
 }
 
 .reporter-sarasas-filter-btn:hover {
-    background: rgba(25, 70, 160, 0.08);
+    background: #f0f0f0;
 }
 
 .reporter-sarasas-filter-icon {

@@ -9,14 +9,15 @@ class PurgeAuditLogsCommand extends Command
 {
     protected $signature = 'audit:purge';
 
-    protected $description = 'Delete audit log entries older than configured retention period.';
+    protected $description = 'Ištrina audito žurnalo įrašus, vyresnius nei nustatytas saugojimo laikotarpis.';
 
     public function handle(DataRetentionService $service): int
     {
         $deleted = $service->runAuditLogPurge();
         if ($deleted > 0) {
-            $this->info("Deleted {$deleted} audit log(s).");
+            $this->info("Ištrinta {$deleted} audito įrašų.");
         }
+
         return self::SUCCESS;
     }
 }

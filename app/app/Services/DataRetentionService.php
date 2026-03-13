@@ -5,11 +5,14 @@ namespace App\Services;
 use App\Models\AuditLog;
 use App\Models\DataRetentionRule;
 use App\Models\Problem;
-use App\Services\AuditLogService;
 use Carbon\Carbon;
 
 class DataRetentionService
 {
+    public function __construct(
+        private AuditLogService $auditLogService
+    ) {}
+
     public function runArchive(): int
     {
         $rule = $this->getActiveProblemRule();
@@ -84,7 +87,7 @@ class DataRetentionService
         $query->delete();
 
         if ($count > 0) {
-            app(AuditLogService::class)->logSystem('audit_retention.purge', AuditLog::RESULT_SUCCESS, null, ['deleted_count' => $count]);
+            $this->auditLogService->logSystem('audit_retention.purge', AuditLog::RESULT_SUCCESS, null, ['deleted_count' => $count]);
         }
 
         return $count;

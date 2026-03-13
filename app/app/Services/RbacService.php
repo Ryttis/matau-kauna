@@ -10,9 +10,6 @@ use Illuminate\Support\Facades\Hash;
 
 class RbacService
 {
-    /**
-     * Sync user roles. Returns null on success, or ['message' => string] for 422.
-     */
     public function validateSyncUserRoles(User $user, array $roleIds): ?array
     {
         $currentRoleIds = $user->roles()->pluck('id')->toArray();

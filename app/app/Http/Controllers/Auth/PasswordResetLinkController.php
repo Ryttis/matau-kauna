@@ -25,11 +25,11 @@ class PasswordResetLinkController extends Controller
             $request->only('email')
         );
 
-        if ($status == Password::RESET_LINK_SENT) {
+        if ($status === Password::RESET_LINK_SENT) {
             return back()->with('status', 'Nuoroda išsiųsta į nurodytą el. paštą. Patikrinkite paštą.');
         }
 
-        if ($status == Password::RESET_THROTTLED) {
+        if ($status === Password::RESET_THROTTLED) {
             throw ValidationException::withMessages([
                 'email' => ['Siųsti daugiau negalima. Pabandykite po minutės.'],
             ]);

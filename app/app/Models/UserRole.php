@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 class UserRole extends Model
 {
@@ -13,19 +14,19 @@ class UserRole extends Model
 
     protected $fillable = ['role', 'name'];
 
-    public const ROLE_SYSTEM_ADMIN = 'ROLE_SYSTEM_ADMIN'; // Sistemos administratorius
+    public const ROLE_SYSTEM_ADMIN = 'ROLE_SYSTEM_ADMIN';
 
-    public const ROLE_PROBLEM_ADMIN = 'ROLE_PROBLEM_ADMIN'; // Problemų administratorius
+    public const ROLE_PROBLEM_ADMIN = 'ROLE_PROBLEM_ADMIN';
 
-    public const ROLE_INSTITUTION_ADMIN = 'ROLE_INSTITUTION_ADMIN'; // Įstaigos administratorius
+    public const ROLE_INSTITUTION_ADMIN = 'ROLE_INSTITUTION_ADMIN';
 
-    public const ROLE_MUNICIPALITY_REP = 'ROLE_MUNICIPALITY_REP'; // Savivaldybės atstovas
+    public const ROLE_MUNICIPALITY_REP = 'ROLE_MUNICIPALITY_REP';
 
-    public const ROLE_EMPLOYEE = 'ROLE_EMPLOYEE'; // Įstaigos darbuotojas
+    public const ROLE_EMPLOYEE = 'ROLE_EMPLOYEE';
 
-    public const ROLE_REPORTER = 'ROLE_REPORTER'; // Pareiškėjas (paprastas naudotojas)
+    public const ROLE_REPORTER = 'ROLE_REPORTER';
 
-    public function permissionGroups()
+    public function permissionGroups(): BelongsToMany
     {
         return $this->belongsToMany(
             UserRolePermissionGroup::class,
@@ -35,7 +36,7 @@ class UserRole extends Model
         );
     }
 
-    public function users()
+    public function users(): BelongsToMany
     {
         return $this->belongsToMany(
             User::class,

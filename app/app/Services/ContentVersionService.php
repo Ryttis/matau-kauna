@@ -8,9 +8,6 @@ use App\Models\UserRole;
 
 class ContentVersionService
 {
-    /**
-     * @return array<int, array<string, mixed>>
-     */
     public function getVersionsByType(string $type): array
     {
         return ContentVersion::query()

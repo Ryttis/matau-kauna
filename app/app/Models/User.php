@@ -3,6 +3,8 @@
 namespace App\Models;
 
 use Illuminate\Auth\MustVerifyEmail as MustVerifyEmailTrait;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
@@ -52,15 +54,15 @@ class User extends Authenticatable implements MustVerifyEmail
         return $query->whereNull('archived_at');
     }
 
-    public function institution()
+    public function institution(): BelongsTo
     {
         return $this->belongsTo(Institution::class);
     }
 
-    public function roles()
+    public function roles(): BelongsToMany
     {
         return $this->belongsToMany(
-            \App\Models\UserRole::class,
+            UserRole::class,
             'user_role_map',
             'user_id',
             'role_id'
@@ -128,41 +130,41 @@ class User extends Authenticatable implements MustVerifyEmail
     public function isProblemAdminOrSystemAdmin(): bool
     {
         return $this->hasAnyRole([
-            \App\Models\UserRole::ROLE_PROBLEM_ADMIN,
-            \App\Models\UserRole::ROLE_SYSTEM_ADMIN,
+            UserRole::ROLE_PROBLEM_ADMIN,
+            UserRole::ROLE_SYSTEM_ADMIN,
         ]);
     }
 
     public function isInstitutionAdminOrSystemAdmin(): bool
     {
         return $this->hasAnyRole([
-            \App\Models\UserRole::ROLE_INSTITUTION_ADMIN,
-            \App\Models\UserRole::ROLE_SYSTEM_ADMIN,
+            UserRole::ROLE_INSTITUTION_ADMIN,
+            UserRole::ROLE_SYSTEM_ADMIN,
         ]);
     }
 
     public function canMergeProblems(): bool
     {
         return $this->hasAnyRole([
-            \App\Models\UserRole::ROLE_PROBLEM_ADMIN,
-            \App\Models\UserRole::ROLE_INSTITUTION_ADMIN,
-            \App\Models\UserRole::ROLE_SYSTEM_ADMIN,
+            UserRole::ROLE_PROBLEM_ADMIN,
+            UserRole::ROLE_INSTITUTION_ADMIN,
+            UserRole::ROLE_SYSTEM_ADMIN,
         ]);
     }
 
     public function canEditProblemClassification(): bool
     {
-        if ($this->hasRole(\App\Models\UserRole::ROLE_SYSTEM_ADMIN)) {
+        if ($this->hasRole(UserRole::ROLE_SYSTEM_ADMIN)) {
             return true;
         }
 
-        return $this->hasRole(\App\Models\UserRole::ROLE_PROBLEM_ADMIN)
+        return $this->hasRole(UserRole::ROLE_PROBLEM_ADMIN)
             && $this->hasPermission('classification.edit');
     }
 
     public function isReporterOnly(): bool
     {
-        return $this->hasRole(\App\Models\UserRole::ROLE_REPORTER)
+        return $this->hasRole(UserRole::ROLE_REPORTER)
             && ! $this->hasPermission('issues.view');
     }
 }

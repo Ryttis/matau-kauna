@@ -293,7 +293,7 @@ const toggleStatistics = () => {
     text-align: center;
     font-weight: bold;
     padding: 40px 0;
-    border-bottom: 1px solid var(--color-primary);
+    border-bottom: 1px solid var(--color-border);
 }
 
 .nav {

@@ -87,20 +87,14 @@ class ArchiveService
     {
         $days = isset($data['retention_days']) && $data['retention_days'] !== '' ? (int) $data['retention_days'] : null;
         $payload = [
-            'entity_type' => DataRetentionRule::ENTITY_PROBLEM,
             'archive_after_days' => $days,
             'delete_after_days' => $days,
             'is_active' => (bool) ($data['is_active'] ?? true),
         ];
 
-        $rule = DataRetentionRule::query()
-            ->where('entity_type', DataRetentionRule::ENTITY_PROBLEM)
-            ->first();
-
-        if ($rule) {
-            $rule->update($payload);
-        } else {
-            DataRetentionRule::create($payload);
-        }
+        DataRetentionRule::query()->updateOrCreate(
+            ['entity_type' => DataRetentionRule::ENTITY_PROBLEM],
+            $payload
+        );
     }
 }

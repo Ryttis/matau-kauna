@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 class UserRolePermission extends Model
 {
@@ -13,7 +14,7 @@ class UserRolePermission extends Model
 
     protected $fillable = ['permission'];
 
-    public function groups()
+    public function groups(): BelongsToMany
     {
         return $this->belongsToMany(
             UserRolePermissionGroup::class,

@@ -192,5 +192,4 @@ class RbacController extends Controller
 
         return response()->noContent();
     }
-
 }

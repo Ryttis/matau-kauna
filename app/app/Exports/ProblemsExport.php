@@ -3,7 +3,6 @@
 namespace App\Exports;
 
 use App\Enums\ProblemStatus;
-use App\Models\Problem;
 use Maatwebsite\Excel\Concerns\FromCollection;
 use Maatwebsite\Excel\Concerns\WithHeadings;
 use Maatwebsite\Excel\Concerns\WithMapping;
@@ -18,7 +17,7 @@ class ProblemsExport implements FromCollection, WithHeadings, WithMapping, WithC
         $this->problems = $problems;
     }
 
-    public function collection()
+    public function collection(): \Illuminate\Support\Collection
     {
         return $this->problems;
     }
@@ -43,7 +42,7 @@ class ProblemsExport implements FromCollection, WithHeadings, WithMapping, WithC
         return [
             $problem->internal_number,
             $statusLabels[$problem->status] ?? $problem->status,
-            $problem->created_at->format('Y-m-d'),
+            $problem->created_at?->format('Y-m-d') ?? '',
             $problem->title,
             $problem->category,
             $problem->address,

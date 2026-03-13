@@ -15,11 +15,10 @@ class ReporterTermsController extends Controller
     public function show(Request $request): Response|RedirectResponse
     {
         $user = $request->user();
-
-        if (! $user->hasRole(UserRole::ROLE_REPORTER)) {
-            return redirect()->route('dashboard');
+        $redirect = $this->ensureReporter($user);
+        if ($redirect) {
+            return $redirect;
         }
-
         if ($user->terms_accepted_at !== null) {
             return redirect()->route('dashboard');
         }
@@ -35,9 +34,9 @@ class ReporterTermsController extends Controller
     public function store(Request $request): RedirectResponse
     {
         $user = $request->user();
-
-        if (! $user->hasRole(UserRole::ROLE_REPORTER)) {
-            return redirect()->route('dashboard');
+        $redirect = $this->ensureReporter($user);
+        if ($redirect) {
+            return $redirect;
         }
 
         $request->validate([
@@ -49,5 +48,14 @@ class ReporterTermsController extends Controller
         $user->update(['terms_accepted_at' => now()]);
 
         return redirect()->route('dashboard');
+    }
+
+    private function ensureReporter($user): ?RedirectResponse
+    {
+        if (! $user->hasRole(UserRole::ROLE_REPORTER)) {
+            return redirect()->route('dashboard');
+        }
+
+        return null;
     }
 }

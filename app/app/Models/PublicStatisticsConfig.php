@@ -37,11 +37,6 @@ class PublicStatisticsConfig extends Model
 
     public static function set(array $config): void
     {
-        $row = static::query()->first();
-        if ($row) {
-            $row->update(['config' => $config]);
-        } else {
-            static::create(['config' => $config]);
-        }
+        static::query()->updateOrCreate([], ['config' => $config]);
     }
 }

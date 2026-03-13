@@ -15,9 +15,10 @@ use Inertia\Response;
 
 class AuthenticatedSessionController extends Controller
 {
-    /**
-     * Display the login view.
-     */
+    public function __construct(
+        private AuditLogService $auditLogService
+    ) {}
+
     public function create(): Response
     {
         return Inertia::render('Auth/Login', [
@@ -26,9 +27,6 @@ class AuthenticatedSessionController extends Controller
         ]);
     }
 
-    /**
-     * Handle an incoming authentication request.
-     */
     public function store(LoginRequest $request): RedirectResponse
     {
         $request->authenticate();
@@ -42,7 +40,7 @@ class AuthenticatedSessionController extends Controller
             'ip' => $request->ip(),
             'user_agent' => $request->userAgent(),
         ]);
-        app(AuditLogService::class)->logLogin($user, $request);
+        $this->auditLogService->logLogin($user, $request);
         $roles = $user->roles()->get();
 
         if ($roles->count() > 1) {
@@ -56,14 +54,11 @@ class AuthenticatedSessionController extends Controller
         return redirect()->intended(route('dashboard', absolute: false));
     }
 
-    /**
-     * Destroy an authenticated session.
-     */
     public function destroy(Request $request): RedirectResponse
     {
         $user = $request->user();
         if ($user) {
-            app(AuditLogService::class)->logLogout($user, $request);
+            $this->auditLogService->logLogout($user, $request);
         }
         Auth::guard('web')->logout();
 
