@@ -258,7 +258,6 @@ const handleClose = () => {
     flex: 1;
 }
 
-/* Datos laukai – kaip kiti filtro laukai, paspaudus atsidaro kalendorius */
 .date-inputs :deep(.app-date-picker) {
     flex: 1;
     min-width: 0;
