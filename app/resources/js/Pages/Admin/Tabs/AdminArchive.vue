@@ -286,7 +286,7 @@ onMounted(load)
     max-width: 1000px;
 }
 .title {
-    font-size: 20px;
+    font-size: var(--admin-title-size, 16px);
     font-weight: 700;
     margin: 0 0 8px 0;
 }
@@ -298,7 +298,7 @@ onMounted(load)
     margin-bottom: 24px;
 }
 .settings-title {
-    font-size: 15px;
+    font-size: var(--admin-font-size, 14px);
     font-weight: 600;
     margin: 0 0 12px 0;
     color: #333;
@@ -326,7 +326,7 @@ onMounted(load)
     color: #333;
 }
 .section-title {
-    font-size: 16px;
+    font-size: var(--admin-title-size, 16px);
     font-weight: 600;
     margin: 0 0 12px 0;
     color: #333;

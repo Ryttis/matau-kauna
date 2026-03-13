@@ -143,7 +143,7 @@ const updatePassword = () => {
 .settings-container {
     width: 100%;
     max-width: var(--settings-container-max);
-    margin: 0 auto;
+    margin: 0;
     background: var(--color-white);
     padding: 24px;
     box-sizing: border-box;
@@ -155,7 +155,7 @@ const updatePassword = () => {
 .settings-inner {
     width: 100%;
     max-width: var(--settings-inner-max);
-    margin: 0 auto;
+    margin: 0;
     box-sizing: border-box;
 }
 .form-grid {
@@ -184,7 +184,7 @@ const updatePassword = () => {
     display: inline-flex !important;
     align-items: center !important;
     justify-content: center !important;
-    align-self: center !important;
+    align-self: flex-start !important;
     font-family: 'Open Sans', sans-serif !important;
     font-weight: 400 !important;
 }
@@ -202,8 +202,8 @@ const updatePassword = () => {
 }
 
 .settings-page :deep(.app-input-wrapper-edit .app-input-icon) {
-    width: 20px !important;
-    height: 20px !important;
+    width: 15px !important;
+    height: 15px !important;
 }
 
 .form-error {

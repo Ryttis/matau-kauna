@@ -192,12 +192,6 @@ const saveRoleGroups = async () => {
 </template>
 
 <style scoped>
-.btn-header {
-    width: auto;
-    min-width: auto;
-    padding: 10px 14px;
-}
-
 .actions {
     width: 170px;
 }

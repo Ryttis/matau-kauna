@@ -14,6 +14,7 @@ const props = defineProps({
     mergedChildren: { type: Array, default: () => [] },
     mergedSiblings: { type: Array, default: () => [] },
     reviewProgressProblemId: { type: Number, default: null },
+    backFrom: { type: String, default: '' },
 })
 
 const formattedDate = computed(() => {
@@ -23,6 +24,10 @@ const formattedDate = computed(() => {
 
 const problemIdForReview = computed(() =>
     props.reviewProgressProblemId ?? props.problem?.id
+)
+
+const backUrl = computed(() =>
+    props.backFrom === 'sarasas' ? route('reporter.sarasas') : route('dashboard')
 )
 
 function goToReviewProgress() {
@@ -37,7 +42,7 @@ function goToReviewProgress() {
         <div class="reporter-problem-page">
             <div class="reporter-problem-detail">
                 <div class="reporter-problem-header">
-                    <Link :href="route('dashboard')" class="reporter-problem-back" aria-label="Atgal">
+                    <Link :href="backUrl" class="reporter-problem-back" aria-label="Atgal">
                         <img :src="ICON_LEFT_ARROW" alt="" class="reporter-problem-back-icon" />
                     </Link>
                     <div class="header-info">

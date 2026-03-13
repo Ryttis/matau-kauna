@@ -1,8 +1,7 @@
 <script setup>
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue'
-import { Head, usePage } from '@inertiajs/vue3'
+import { Head } from '@inertiajs/vue3'
 import { computed, ref } from 'vue'
-
 import AdminUsers from '@/Pages/Admin/Tabs/AdminUsers.vue'
 import AdminInstitutions from '@/Pages/Admin/Tabs/AdminInstitutions.vue'
 import AdminRules from '@/Pages/Admin/Tabs/AdminRules.vue'
@@ -11,8 +10,6 @@ import AdminAudits from '@/Pages/Admin/Tabs/AdminAudits.vue'
 import AdminArchive from '@/Pages/Admin/Tabs/AdminArchive.vue'
 import AdminPublicStatistics from '@/Pages/Admin/Tabs/AdminPublicStatistics.vue'
 import AppTabNavigation from '@/Components/App/AppTabNavigation.vue'
-
-const page = usePage()
 
 const tabs = [
     { key: 'users', label: 'Naudotojai', component: AdminUsers },
@@ -60,5 +57,6 @@ const activeComponent = computed(() => {
 <style scoped>
 .admin-content {
     background: var(--color-white);
+    padding: var(--admin-spacing, 12px) 16px 24px;
 }
 </style>

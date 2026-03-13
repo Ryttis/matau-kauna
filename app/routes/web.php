@@ -32,6 +32,7 @@ Route::middleware(['auth', 'verified', 'reporter.terms'])->group(function () {
         ->name('reporter.terms.store');
 
     Route::get('/dashboard', [ProblemController::class, 'index'])->name('dashboard');
+    Route::get('/reporter/sarasas', [ProblemController::class, 'reporterSarasas'])->name('reporter.sarasas');
     Route::get('/reporter/report', [ProblemController::class, 'reporterReport'])->name('reporter.report');
     Route::post('/reporter/report', [ProblemController::class, 'reporterReportStore'])->name('reporter.report.store');
     Route::post('/reporter/wizard-dismissed', [ProblemController::class, 'reporterWizardDismissed'])->name('reporter.wizardDismissed');

@@ -418,7 +418,7 @@ function openCancelModal() {
 .reporter-report-card.reporter-report-card--step2 {
     max-width: 640px;
     background: #f5f5f5;
-    border-radius: 8px;
+    border-radius: 15px;
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
     overflow: visible;
 }
@@ -449,7 +449,7 @@ function openCancelModal() {
     background: transparent;
     color: #666;
     text-decoration: none;
-    border-radius: 4px;
+    border-radius: 15px;
     cursor: pointer;
 }
 
@@ -488,7 +488,7 @@ function openCancelModal() {
     min-height: 120px;
     padding: 12px 16px;
     border: 1px solid #e0e0e0;
-    border-radius: 5px;
+    border-radius: 15px;
     font-size: 16px;
     font-family: inherit;
     color: #333;
@@ -511,7 +511,7 @@ function openCancelModal() {
     min-height: 140px;
     background: #fafafa;
     border: 1px solid #e0e0e0;
-    border-radius: 5px;
+    border-radius: 15px;
     cursor: pointer;
 }
 
@@ -525,7 +525,7 @@ function openCancelModal() {
     height: 100px;
     min-height: 100px;
     background: repeating-conic-gradient(#eee 0% 25%, #fff 0% 50%) 50% / 20px 20px;
-    border-radius: 4px;
+    border-radius: 15px;
 }
 
 .reporter-report-photo-text {
@@ -548,7 +548,7 @@ function openCancelModal() {
 
 .reporter-report-actions .app-button {
     min-width: 200px;
-    border-radius: 20px;
+    border-radius: 15px;
 }
 
 .reporter-report-step2-title {
@@ -574,6 +574,6 @@ function openCancelModal() {
 
 .reporter-report-step2-actions .app-button {
     min-width: 140px;
-    border-radius: 20px;
+    border-radius: 15px;
 }
 </style>

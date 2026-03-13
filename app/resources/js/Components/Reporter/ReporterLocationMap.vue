@@ -2,6 +2,7 @@
 import { ref, watch, onMounted, onUnmounted } from 'vue'
 import { KAUNAS_CENTER } from '@/composables/leafletKaunas'
 import { useKaunasMapLocationPicker } from '@/composables/useKaunasMapLocationPicker'
+import { ICON_SEARCH } from '@/constants/icons'
 
 const props = defineProps({
     initialLat: { type: Number, default: () => KAUNAS_CENTER[0] },
@@ -129,9 +130,11 @@ function onCenterClick() {
                     type="button"
                     class="reporter-location-search-btn"
                     :disabled="isGeocoding"
+                    aria-label="Rasti"
                     @click="onAddressSubmit"
                 >
-                    {{ isGeocoding ? '...' : 'Rasti' }}
+                    <img v-if="!isGeocoding" :src="ICON_SEARCH" alt="" class="reporter-location-search-icon" />
+                    <span v-else class="reporter-location-search-loading">...</span>
                 </button>
             </div>
             <div v-if="showSuggestions" class="reporter-location-suggestions">
@@ -291,10 +294,14 @@ function onCenterClick() {
 
 .reporter-location-search-btn {
     flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
     height: 40px;
-    padding: 0 16px;
+    min-width: 40px;
+    padding: 0 12px;
     border: 1px solid #1946a0;
-    border-radius: 5px;
+    border-radius: 15px;
     background: #fff;
     color: #1946a0;
     font-size: 14px;
@@ -309,5 +316,17 @@ function onCenterClick() {
 .reporter-location-search-btn:disabled {
     opacity: 0.7;
     cursor: not-allowed;
+}
+
+.reporter-location-search-icon {
+    display: block;
+    width: 20px;
+    height: 20px;
+    object-fit: contain;
+}
+
+.reporter-location-search-loading {
+    font-size: 14px;
+    font-weight: 600;
 }
 </style>

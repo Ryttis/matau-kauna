@@ -5,7 +5,7 @@ import AppButton from '@/Components/App/AppButton.vue'
 import AppCheckbox from '@/Components/App/AppCheckbox.vue'
 import AppInput from '@/Components/App/AppInput.vue'
 import AppSelect from '@/Components/App/AppSelect.vue'
-import { ICON_CALENDAR } from '@/constants/icons'
+import AppDatePicker from '@/Components/App/AppDatePicker.vue'
 
 const PUBLIC_STATUS_OPTIONS = [
     { value: 'nauja', label: 'Nauja' },
@@ -33,9 +33,10 @@ const props = defineProps({
     },
     categories: Array,
     allStatusOptions: Array,
+    onlyMine: { type: Boolean, default: undefined },
 })
 
-const emit = defineEmits(['close', 'apply', 'clear'])
+const emit = defineEmits(['close', 'apply', 'clear', 'onlyMineChange'])
 
 const isPublicMap = () => props.variant === 'publicMap'
 
@@ -51,12 +52,22 @@ function getInitialFilters() {
 }
 
 const localFilters = ref(getInitialFilters())
+const localOnlyMine = ref(false)
 
-watch(() => props.show, (newVal) => {
-    if (newVal) {
+watch(() => props.show, (isOpen) => {
+    if (isOpen) {
         localFilters.value = getInitialFilters()
+        localOnlyMine.value = !!props.onlyMine
     }
 })
+
+watch(() => props.onlyMine, (v) => {
+    localOnlyMine.value = !!v
+}, { immediate: true })
+
+function onOnlyMineChange() {
+    emit('onlyMineChange', localOnlyMine.value)
+}
 
 function setStatus(value, checked) {
     const arr = localFilters.value.statuses || []
@@ -103,6 +114,10 @@ const handleClose = () => {
         @close="handleClose"
     >
         <div class="filter-modal-body">
+            <label v-if="isPublicMap() && props.onlyMine !== undefined" class="filter-only-mine-label">
+                <AppCheckbox v-model="localOnlyMine" @update:model-value="onOnlyMineChange" />
+                <span>Rodyti tik mano iškeltas problemas</span>
+            </label>
             <div class="filter-section">
                 <AppInput
                     v-model="localFilters.reportNumber"
@@ -148,23 +163,14 @@ const handleClose = () => {
             <div class="filter-section">
                 <label class="filter-label">Data</label>
                 <div class="date-inputs">
-                    <AppInput
+                    <AppDatePicker
                         v-model="localFilters.dateFrom"
-                        type="text"
                         placeholder="dd/mm/yyyy"
-                        variant="filter"
-                        :show-icon="true"
-                        :icon-src="ICON_CALENDAR"
-                        icon-alt="Kalendorius"
                     />
-                    <AppInput
+                    <AppDatePicker
                         v-model="localFilters.dateTo"
-                        type="text"
                         placeholder="dd/mm/yyyy"
-                        variant="filter"
-                        :show-icon="true"
-                        :icon-src="ICON_CALENDAR"
-                        icon-alt="Kalendorius"
+                        :min-date="localFilters.dateFrom || null"
                     />
                 </div>
             </div>
@@ -194,6 +200,16 @@ const handleClose = () => {
 <style scoped>
 .filter-modal-body {
     padding: 0;
+}
+
+.filter-only-mine-label {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 1rem;
+    font-size: 14px;
+    color: #333;
+    cursor: pointer;
 }
 
 :deep(.modal-body) {
@@ -240,6 +256,57 @@ const handleClose = () => {
 
 .date-inputs :deep(.app-input-group) {
     flex: 1;
+}
+
+/* Datos laukai – kaip kiti filtro laukai, paspaudus atsidaro kalendorius */
+.date-inputs :deep(.app-date-picker) {
+    flex: 1;
+    min-width: 0;
+}
+
+.date-inputs :deep(.app-date-picker-trigger-wrap) {
+    max-width: none;
+    width: 100%;
+}
+
+.date-inputs :deep(.app-date-picker-trigger) {
+    width: 100%;
+    height: 45px;
+    min-height: 45px;
+    padding: 0 44px 0 16px;
+    border: 1px solid var(--color-border, #e5e5e5);
+    border-radius: 15px;
+    background: #fff;
+    font-size: 16px;
+    font-family: 'Open Sans', sans-serif;
+    color: #333;
+    box-sizing: border-box;
+}
+
+.date-inputs :deep(.app-date-picker-trigger:hover) {
+    background: #fff;
+    border-color: #ccc;
+}
+
+.date-inputs :deep(.app-date-picker-trigger.open),
+.date-inputs :deep(.app-date-picker-trigger:focus) {
+    border-color: var(--color-primary, #1946A0);
+    outline: none;
+}
+
+.date-inputs :deep(.app-date-picker-value) {
+    color: #333;
+}
+
+.date-inputs :deep(.app-date-picker-value.is-placeholder) {
+    color: #999;
+    font-style: italic;
+}
+
+.date-inputs :deep(.app-date-picker-icon) {
+    right: 14px;
+    width: 20px;
+    height: 20px;
 }
 
 .filter-modal-footer {

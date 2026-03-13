@@ -819,6 +819,53 @@ class ProblemController extends Controller
         ]);
     }
 
+    public function reporterSarasas(Request $request): Response
+    {
+        $user = $request->user();
+        if (! $user || ! $user->hasRole(UserRole::ROLE_REPORTER) || $user->hasPermission('issues.view')) {
+            return redirect()->route('dashboard');
+        }
+
+        $filters = [
+            'report_number' => $request->get('report_number'),
+            'category' => $request->get('category'),
+            'date_from' => $request->get('date_from'),
+            'date_to' => $request->get('date_to'),
+        ];
+
+        $problems = Problem::query()
+            ->whereIn('status', ['nauja', 'nagrinejama', 'isspresta'])
+            ->notArchived()
+            ->whereNull('merged_into_problem_id')
+            ->where(function ($q) use ($user) {
+                $q->where('reported_by_user_id', $user->id)
+                    ->orWhereHas('mergedProblems', fn ($q2) => $q2->where('reported_by_user_id', $user->id));
+            })
+            ->filtered($filters)
+            ->orderBy('created_at', 'desc')
+            ->get(['id', 'internal_number', 'status', 'created_at', 'title', 'category', 'address', 'description'])
+            ->map(fn ($p) => [
+                'id' => $p->id,
+                'internal_number' => $p->internal_number,
+                'status' => $p->status,
+                'created_at' => $p->created_at?->toIso8601String(),
+                'title' => $p->title,
+                'category' => $p->category,
+                'address' => $p->address,
+                'description' => $p->description ?? '',
+            ])
+            ->values()
+            ->all();
+
+        $categories = ClassifierValue::getActiveTypeNames()->values()->all();
+
+        return Inertia::render('Reporter/Sarasas', [
+            'problems' => $problems,
+            'categories' => $categories,
+            'filters' => $filters,
+        ]);
+    }
+
     public function reporterReport(Request $request): Response
     {
         $user = $request->user();
@@ -946,6 +993,7 @@ class ProblemController extends Controller
                 'mergedChildren' => $mergeContext['mergedChildren'],
                 'mergedSiblings' => $mergeContext['mergedSiblings'],
                 'reviewProgressProblemId' => $reviewProgressProblemId,
+                'backFrom' => $request->query('from'),
             ]);
         }
 

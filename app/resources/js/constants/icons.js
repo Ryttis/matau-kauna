@@ -2,7 +2,7 @@ const BASE = '/icons'
 
 export const ICON_SUCCESS = `${BASE}/baseline-check-icon.png`
 export const ICON_MAP = `${BASE}/map-icon.png`
-export const ICON_PENCIL = `${BASE}/pencil-icon.png`
+export const ICON_PENCIL = `${BASE}/pencil-icon-2.png`
 export const ICON_LIST = `${BASE}/list-active-icon.png`
 export const ICON_STATISTICS = `${BASE}/statistics-icon.png`
 export const ICON_STATE = `${BASE}/state-icon.png`
@@ -19,6 +19,7 @@ export const ICON_USER = `${BASE}/user-icon.png`
 export const ICON_BELL = `${BASE}/bell-icon.png`
 export const ICON_LOGOUT = `${BASE}/logout-icon.png`
 export const ICON_QUESTION = `${BASE}/question-icon.png`
+export const ICON_SEARCH = `${BASE}/search-icon.png`
 
 export const ICONS = {
     success: ICON_SUCCESS,
@@ -40,4 +41,5 @@ export const ICONS = {
     bell: ICON_BELL,
     logout: ICON_LOGOUT,
     question: ICON_QUESTION,
+    search: ICON_SEARCH,
 }

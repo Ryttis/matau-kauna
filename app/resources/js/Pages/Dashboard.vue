@@ -15,7 +15,7 @@ import { useProblemDisplayRows } from '@/composables/useProblemDisplayRows'
 import { useSuccessModal } from '@/composables/useSuccessModal.js'
 import { debounce } from 'lodash-es'
 import { PROBLEM_STATUS_LABELS, PROBLEM_STATUS_OPTIONS } from '@/constants/problemStatus'
-import { ICON_FILTER, ICON_CIRCLE_ARROW_RIGHT } from '@/constants/icons'
+import { ICON_FILTER, ICON_SEARCH, ICON_CIRCLE_ARROW_RIGHT } from '@/constants/icons'
 import { useAuth } from '@/composables/useAuth'
 
 const props = defineProps({
@@ -138,8 +138,17 @@ function reporterHandleStebeti() {
 const showOnlyMyReports = ref(props.onlyMine ?? false)
 watch(() => props.onlyMine, (v) => { showOnlyMyReports.value = !!v })
 function reporterToggleOnlyMine() {
+    reporterClearFilters()
     const base = route('dashboard')
     const query = showOnlyMyReports.value ? '?only_mine=1' : ''
+    router.visit(base + query, { preserveState: false })
+}
+
+function reporterToggleOnlyMineFromFilter(onlyMine) {
+    reporterShowFilterModal.value = false
+    reporterClearFilters()
+    const base = route('dashboard')
+    const query = onlyMine ? '?only_mine=1' : ''
     router.visit(base + query, { preserveState: false })
 }
 
@@ -483,12 +492,15 @@ onUnmounted(() => {
         <div v-if="reporterView" class="reporter-dashboard">
             <div class="reporter-dashboard-top">
                 <div class="reporter-dashboard-toolbar">
-                    <input
-                        v-model="reporterSearchQuery"
-                        type="text"
-                        class="reporter-dashboard-search"
-                        placeholder="ieškoti"
-                    />
+                    <div class="reporter-dashboard-search-wrap">
+                        <img :src="ICON_SEARCH" class="reporter-dashboard-search-icon" alt="" aria-hidden="true" />
+                        <input
+                            v-model="reporterSearchQuery"
+                            type="text"
+                            class="reporter-dashboard-search"
+                            placeholder="ieškoti"
+                        />
+                    </div>
                     <button
                         type="button"
                         class="reporter-dashboard-filter-btn"
@@ -505,7 +517,7 @@ onUnmounted(() => {
                         class="reporter-dashboard-checkbox"
                         @change="reporterToggleOnlyMine"
                     />
-                    <span>Rodyti tik mano pranešimus</span>
+                    <span>Rodyti tik mano iškeltas problemas</span>
                 </label>
             </div>
             <div class="reporter-dashboard-layout">
@@ -517,10 +529,12 @@ onUnmounted(() => {
                     />
                 </div>
                 <aside class="reporter-dashboard-list">
+                    <h3 class="reporter-dashboard-list-title">Sąrašas</h3>
                     <ProblemsMapList
                         :display-rows="reporterDisplayRows"
                         :all-count="reporterProblems.length"
                         :selected-ids="reporterSelectedIds"
+                        @select="reporterToggle"
                         @select-group="reporterToggleGroup"
                         @open="reporterOpenProblemView"
                     />
@@ -540,9 +554,11 @@ onUnmounted(() => {
                 variant="publicMap"
                 :filters="reporterFilterState"
                 :categories="reporterCategoryOptions"
+                :only-mine="showOnlyMyReports"
                 @close="reporterShowFilterModal = false"
                 @apply="reporterHandleFilterApply"
                 @clear="reporterHandleFilterClear"
+                @only-mine-change="reporterToggleOnlyMineFromFilter"
             />
         </div>
 
@@ -758,16 +774,32 @@ onUnmounted(() => {
     gap: 16px;
 }
 
-.reporter-dashboard-search {
+.reporter-dashboard-search-wrap {
+    position: relative;
     flex: 1;
     min-width: 0;
     max-width: 400px;
+    display: flex;
+    align-items: center;
+}
+
+.reporter-dashboard-search-icon {
+    position: absolute;
+    left: 14px;
+    width: 20px;
+    height: 20px;
+    pointer-events: none;
+    object-fit: contain;
+}
+
+.reporter-dashboard-search {
+    width: 100%;
     height: 40px;
     border: none;
-    border-radius: 20px;
+    border-radius: 15px;
     background: #f6f7f9;
     color: #333;
-    padding: 0 16px;
+    padding: 0 16px 0 44px;
     font-size: 14px;
     box-sizing: border-box;
 }
@@ -784,7 +816,7 @@ onUnmounted(() => {
     height: 40px;
     padding: 0;
     border: none;
-    border-radius: 50%;
+    border-radius: 15px;
     background: transparent;
     cursor: pointer;
 }
@@ -853,7 +885,15 @@ onUnmounted(() => {
     min-height: 0;
     display: flex;
     flex-direction: column;
-    gap: 1rem;
+    gap: 0.75rem;
+}
+
+.reporter-dashboard-list-title {
+    margin: 0;
+    font-size: 1rem;
+    font-weight: 600;
+    color: #333;
+    flex-shrink: 0;
 }
 
 .reporter-dashboard-actions {
@@ -866,7 +906,7 @@ onUnmounted(() => {
     width: 100%;
     max-width: 200px;
     height: 40px;
-    border-radius: 12px;
+    border-radius: 15px;
     padding: 0 20px;
 }
 
@@ -886,7 +926,7 @@ onUnmounted(() => {
     width: 340px;
     height: 40px;
     border: none;
-    border-radius: 20px;
+    border-radius: 15px;
     background-color: #F6F7F9;
     color: #333;
     padding: 0 20px;
@@ -1014,7 +1054,7 @@ onUnmounted(() => {
     margin-top: 5px;
     background: var(--color-white);
     border: 1px solid var(--color-border);
-    border-radius: 8px;
+    border-radius: 15px;
     padding: 5px;
     min-width: 200px;
     box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
@@ -1029,7 +1069,7 @@ onUnmounted(() => {
     border: none;
     cursor: pointer;
     font-size: 13px;
-    border-radius: 4px;
+    border-radius: 15px;
 }
 
 .export-option:hover {

@@ -144,9 +144,11 @@ loadSettings()
                     <AppCheckbox v-model="settingsForm.enabled" />
                     <span>Žurnalavimas įjungtas</span>
                 </label>
-                <label class="setting-row">
+                <label class="setting-row setting-row--with-input">
                     <span class="label">Saugojimo laikotarpis (dienos)</span>
-                    <AppInput v-model.number="settingsForm.retention_days" type="number" min="1" max="3650" class="input-narrow" />
+                    <span class="setting-input-wrap">
+                        <AppInput v-model.number="settingsForm.retention_days" type="number" min="1" max="3650" class="input-narrow" />
+                    </span>
                 </label>
                 <label class="setting-row">
                     <AppCheckbox v-model="settingsForm.retention_is_active" />
@@ -279,12 +281,17 @@ loadSettings()
 .setting-row {
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 20px;
     cursor: pointer;
     font-size: 14px;
 }
 .setting-row .label {
-    min-width: 180px;
+    min-width: 220px;
+    flex-shrink: 0;
+}
+.setting-row--with-input .setting-input-wrap {
+    margin-left: 24px;
+    flex-shrink: 0;
 }
 .input-narrow {
     width: 100px;

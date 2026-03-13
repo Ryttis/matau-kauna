@@ -418,13 +418,6 @@ const saveUserRoles = async () => {
 </template>
 
 <style scoped>
-.btn-header {
-    width: auto;
-    min-width: auto;
-    padding: 8px 14px;
-    font-size: 13px;
-}
-
 .actions {
     width: 240px;
 }

@@ -207,10 +207,10 @@ const wrapperClass = computed(() => {
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 36px;
-    height: 36px;
-    border-radius: 10px;
-    background: #EEEEEE;
+    width: 48px;
+    height: 48px;
+    border-radius: 0;
+    background: transparent;
     flex-shrink: 0;
     border: none;
     box-shadow: none;
@@ -219,8 +219,8 @@ const wrapperClass = computed(() => {
 .app-input-wrapper-filter--with-icon .app-input-icon-slot .app-input-icon {
     position: static;
     transform: none;
-    width: 22px;
-    height: 22px;
+    width: 15px;
+    height: 15px;
     display: block;
     object-fit: contain;
     background: transparent;
@@ -300,15 +300,15 @@ input[list] {
     top: 50%;
     transform: translateY(-50%);
     pointer-events: none;
-    width: 32px;
-    height: 32px;
+    width: 15px;
+    height: 15px;
     display: block;
     object-fit: contain;
 }
 
 .app-input-wrapper-edit .app-input-icon {
-    width: 20px !important;
-    height: 20px !important;
+    width: 15px !important;
+    height: 15px !important;
 }
 
 .app-input-icon-textarea {
@@ -324,5 +324,4 @@ textarea.app-input-edit {
     resize: none;
     overflow-y: auto;
 }
-
 </style>
