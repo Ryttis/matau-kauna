@@ -5,23 +5,7 @@ import AppInput from '@/Components/App/AppInput.vue'
 import AppButton from '@/Components/App/AppButton.vue'
 import { Head, useForm, usePage } from '@inertiajs/vue3'
 import { ref, computed, watch } from 'vue'
-import {
-    SETTINGS_CONTAINER_MAX,
-    SETTINGS_INNER_MAX,
-    SETTINGS_BUTTON_WIDTH,
-    SETTINGS_BUTTON_HEIGHT,
-    SETTINGS_BORDER_RADIUS,
-    SETTINGS_INPUT_RADIUS,
-} from '@/constants/theme'
-
-const settingsPageStyle = {
-    '--settings-container-max': `${SETTINGS_CONTAINER_MAX}px`,
-    '--settings-inner-max': `${SETTINGS_INNER_MAX}px`,
-    '--settings-button-width': `${SETTINGS_BUTTON_WIDTH}px`,
-    '--settings-button-height': `${SETTINGS_BUTTON_HEIGHT}px`,
-    '--settings-radius': `${SETTINGS_BORDER_RADIUS}px`,
-    '--settings-input-radius': `${SETTINGS_INPUT_RADIUS}px`,
-}
+import { SETTINGS_PAGE_STYLE } from '@/constants/theme'
 
 const page = usePage()
 const user = computed(() => page.props.auth?.user ?? null)
@@ -79,7 +63,7 @@ const updatePassword = () => {
 <template>
     <Head title="Profilis" />
     <AuthenticatedLayout>
-        <div class="settings-container settings-page" :style="settingsPageStyle">
+        <div class="settings-container settings-page" :style="SETTINGS_PAGE_STYLE">
             <div class="settings-content">
                 <div class="settings-inner">
                     <SettingsSection

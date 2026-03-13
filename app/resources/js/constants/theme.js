@@ -72,6 +72,15 @@ export const SETTINGS_BUTTON_HEIGHT = 40
 export const SETTINGS_BORDER_RADIUS = 15
 export const SETTINGS_INPUT_RADIUS = 10
 
+export const SETTINGS_PAGE_STYLE = {
+    '--settings-container-max': `${SETTINGS_CONTAINER_MAX}px`,
+    '--settings-inner-max': `${SETTINGS_INNER_MAX}px`,
+    '--settings-button-width': `${SETTINGS_BUTTON_WIDTH}px`,
+    '--settings-button-height': `${SETTINGS_BUTTON_HEIGHT}px`,
+    '--settings-radius': `${SETTINGS_BORDER_RADIUS}px`,
+    '--settings-input-radius': `${SETTINGS_INPUT_RADIUS}px`,
+}
+
 export const MAP_HIGHLIGHT_COLOR = COLOR_PRIMARY
 export const MAP_MERGED_MARKER_COLOR = COLOR_PRIMARY
 

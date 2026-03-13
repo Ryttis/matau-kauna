@@ -7,7 +7,7 @@ import AppInput from '@/Components/App/AppInput.vue'
 import AppBackButton from '@/Components/App/AppBackButton.vue'
 import SuccessModal from '@/Components/App/SuccessModal.vue'
 import EntityTable from '@/Components/App/Tables/EntityTable.vue'
-import { useSuccessModal } from '@/composables/useSuccessModal.js'
+import { useSuccessModal } from '@/composables/useSuccessModal'
 import { PROBLEM_STATUS } from '@/constants/problemStatus'
 import { ICON_ARROW } from '@/constants/icons'
 

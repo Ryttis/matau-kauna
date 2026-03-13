@@ -7,24 +7,8 @@ import AppButton from '@/Components/App/AppButton.vue'
 import DeleteAccountModal from '@/Components/App/DeleteAccountModal.vue'
 import { Head, router, useForm, usePage } from '@inertiajs/vue3'
 import { ref, computed, watch, onMounted } from 'vue'
-import { ROLE_SYSTEM_ADMIN, ROLE_INSTITUTION_ADMIN, ROLE_PROBLEM_ADMIN } from '@/constants/roles.js'
-import {
-    SETTINGS_CONTAINER_MAX,
-    SETTINGS_INNER_MAX,
-    SETTINGS_BUTTON_WIDTH,
-    SETTINGS_BUTTON_HEIGHT,
-    SETTINGS_BORDER_RADIUS,
-    SETTINGS_INPUT_RADIUS,
-} from '@/constants/theme'
-
-const settingsPageStyle = {
-    '--settings-container-max': `${SETTINGS_CONTAINER_MAX}px`,
-    '--settings-inner-max': `${SETTINGS_INNER_MAX}px`,
-    '--settings-button-width': `${SETTINGS_BUTTON_WIDTH}px`,
-    '--settings-button-height': `${SETTINGS_BUTTON_HEIGHT}px`,
-    '--settings-radius': `${SETTINGS_BORDER_RADIUS}px`,
-    '--settings-input-radius': `${SETTINGS_INPUT_RADIUS}px`,
-}
+import { ROLE_SYSTEM_ADMIN, ROLE_INSTITUTION_ADMIN, ROLE_PROBLEM_ADMIN } from '@/constants/roles'
+import { SETTINGS_PAGE_STYLE } from '@/constants/theme'
 
 const page = usePage()
 const user = computed(() => page.props.auth?.user ?? null)
@@ -108,7 +92,7 @@ const saveEmailNotificationsEnabled = () => {
     <Head title="Nustatymai" />
 
     <AuthenticatedLayout>
-        <div class="settings-container settings-page" :style="settingsPageStyle">
+        <div class="settings-container settings-page" :style="SETTINGS_PAGE_STYLE">
             <div class="settings-content">
                 <div class="settings-inner">
                 <SettingsSection

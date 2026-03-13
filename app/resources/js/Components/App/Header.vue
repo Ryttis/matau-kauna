@@ -18,10 +18,7 @@
 
     const switchRole = (roleId) => {
         roleDropdownOpen.value = false
-        router.post(route('role.select.store'), { role_id: roleId }, {
-            preserveState: false,
-            onFinish: () => {},
-        })
+        router.post(route('role.select.store'), { role_id: roleId }, { preserveState: false })
     }
 </script>
 

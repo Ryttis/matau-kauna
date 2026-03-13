@@ -4,7 +4,7 @@ import AppInput from '@/Components/App/AppInput.vue'
 import AppButton from '@/Components/App/AppButton.vue'
 import SuccessModal from '@/Components/App/SuccessModal.vue'
 import { Head, useForm } from '@inertiajs/vue3'
-import { useSuccessModal } from '@/composables/useSuccessModal.js'
+import { useSuccessModal } from '@/composables/useSuccessModal'
 
 const { showSuccessModal, successMessage, closeSuccessModal } = useSuccessModal()
 const passwordForm = useForm({

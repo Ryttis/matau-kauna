@@ -4,7 +4,7 @@ import axios from 'axios'
 import SuccessModal from '@/Components/App/SuccessModal.vue'
 import AppDataTable from '@/Components/App/AppDataTable.vue'
 import AppButton from '@/Components/App/AppButton.vue'
-import { useSuccessModal } from '@/composables/useSuccessModal.js'
+import { useSuccessModal } from '@/composables/useSuccessModal'
 
 const invitationsPage = ref(null)
 const loading = ref(false)

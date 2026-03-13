@@ -8,7 +8,7 @@ import AppBackButton from '@/Components/App/AppBackButton.vue'
 import AppCheckbox from '@/Components/App/AppCheckbox.vue'
 import SuccessModal from '@/Components/App/SuccessModal.vue'
 import KaunasProblemsMap from '@/Components/Map/KaunasProblemsMap.vue'
-import { useSuccessModal } from '@/composables/useSuccessModal.js'
+import { useSuccessModal } from '@/composables/useSuccessModal'
 import { KAUNAS_CENTER } from '@/composables/leafletKaunas'
 import { ICON_ARROW } from '@/constants/icons'
 

@@ -1,16 +1,11 @@
 <script setup>
-import Header from '@/Components/App/Header.vue';
+import Header from '@/Components/App/Header.vue'
 </script>
 
 <template>
-    <div
-        class="wrapper"
-    >
+    <div class="wrapper">
         <Header />
-
-        <div
-            class="content"
-        >
+        <div class="content">
             <slot />
         </div>
     </div>

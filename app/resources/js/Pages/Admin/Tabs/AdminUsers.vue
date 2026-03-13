@@ -3,7 +3,7 @@ import { onMounted, ref } from 'vue'
 import axios from 'axios'
 
 import SuccessModal from '@/Components/App/SuccessModal.vue'
-import { useSuccessModal } from '@/composables/useSuccessModal.js'
+import { useSuccessModal } from '@/composables/useSuccessModal'
 import UsersTab from '@/Pages/Admin/Tabs/Rbac/UsersTab.vue'
 import RolesTab from '@/Pages/Admin/Tabs/Rbac/RolesTab.vue'
 import GroupsTab from '@/Pages/Admin/Tabs/Rbac/GroupsTab.vue'
