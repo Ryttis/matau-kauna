@@ -51,6 +51,12 @@ export const LP_SECTION_BG = '#f0f0f0'
 export const LP_STEP_BORDER = '#e0e0e0'
 export const LP_STEP_DIVIDER = '#b8d4c8'
 export const LP_FOOTER_BG = '#1946A0'
+export const LP_HERO_ACCENT = '#2F6FEF'
+export const LP_STEPS_BG = '#F8F9FA'
+export const LP_STEPS_CARD_BG = '#EBF1F7'
+export const LP_STEPS_ACCENT = '#2F6FEF'
+export const LP_STEPS_TITLE = '#212529'
+export const LP_STEPS_DESC = '#6C757D'
 
 export const LP_CSS_VARS = {
     font: '--lp-font',
@@ -63,6 +69,12 @@ export const LP_CSS_VARS = {
     stepBorder: '--lp-step-border',
     stepDivider: '--lp-step-divider',
     footerBg: '--lp-footer-bg',
+    heroAccent: '--lp-hero-accent',
+    stepsBg: '--lp-steps-bg',
+    stepsCardBg: '--lp-steps-card-bg',
+    stepsAccent: '--lp-steps-accent',
+    stepsTitle: '--lp-steps-title',
+    stepsDesc: '--lp-steps-desc',
 }
 
 export const SETTINGS_CONTAINER_MAX = 640
@@ -83,6 +95,7 @@ export const SETTINGS_PAGE_STYLE = {
 
 export const MAP_HIGHLIGHT_COLOR = COLOR_PRIMARY
 export const MAP_MERGED_MARKER_COLOR = COLOR_PRIMARY
+export const MAP_CLUSTER_COLOR = COLOR_PRIMARY_DARK
 
 export const MODAL_BUTTON_HEIGHT = 40
 export const MODAL_BUTTON_MIN_WIDTH = 200

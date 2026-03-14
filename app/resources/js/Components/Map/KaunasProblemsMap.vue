@@ -124,6 +124,33 @@ useKaunasMap(mapContainer, problemsToShow, {
     pointer-events: none;
 }
 
+.kaunas-map-container :deep(.kaunas-map-popup-cluster) {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    max-height: 200px;
+    overflow-y: auto;
+}
+
+.kaunas-map-container :deep(.kaunas-map-popup-open-problem) {
+    color: var(--color-primary, #1946A0);
+    text-decoration: none;
+}
+
+.kaunas-map-container :deep(.kaunas-map-popup-open-problem:hover) {
+    text-decoration: underline;
+}
+
+.kaunas-map-container :deep(.kaunas-map-popup-more) {
+    font-size: 0.875rem;
+    color: var(--color-text-muted, #666);
+}
+
+.kaunas-map-container :deep(.leaflet-marker-icon.kaunas-map-marker--cluster) {
+    background: transparent !important;
+    border: none !important;
+}
+
 .kaunas-map-legend {
     display: flex;
     flex-wrap: wrap;

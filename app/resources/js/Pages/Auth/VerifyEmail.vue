@@ -1,6 +1,6 @@
 <script setup>
 import AppButton from '@/Components/App/AppButton.vue';
-import LandingHeader from '@/Components/Landing/LandingHeader.vue';
+import GuestHeader from '@/Components/Landing/GuestHeader.vue';
 import LandingFooter from '@/Components/Landing/LandingFooter.vue';
 import { Head, router } from '@inertiajs/vue3';
 
@@ -20,7 +20,7 @@ const resend = () => {
     <div class="verify-email-page">
         <Head title="Patvirtinkite el. paštą" />
 
-        <LandingHeader />
+        <GuestHeader />
 
         <main class="verify-email-main">
             <div class="verify-email-card">

@@ -1,7 +1,7 @@
 <script setup>
 import { computed } from 'vue'
 import { Head, Link } from '@inertiajs/vue3'
-import LandingHeader from '@/Components/Landing/LandingHeader.vue'
+import GuestHeader from '@/Components/Landing/GuestHeader.vue'
 import LandingFooter from '@/Components/Landing/LandingFooter.vue'
 import AppInput from '@/Components/App/AppInput.vue'
 import ProblemDetailBlocks from '@/Components/Problems/ProblemDetailBlocks.vue'
@@ -25,7 +25,7 @@ const formattedDate = computed(() => {
 <template>
     <Head :title="`Problemos peržiūra – ${problem?.internal_number}`" />
     <div class="public-problem-page">
-        <LandingHeader active-link="reports" />
+        <GuestHeader active-link="reports" />
         <main class="public-problem-main">
             <div class="public-problem-detail">
                 <div class="public-problem-header">

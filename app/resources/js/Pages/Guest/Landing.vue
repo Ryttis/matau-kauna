@@ -15,8 +15,9 @@ defineProps({
     <Head title="Kauno problemos – Praneškite apie problemą mieste" />
 
     <div class="landing">
-        <LandingHeader />
+        <LandingHeader variant="dark" />
         <LandingHero />
+        <div class="landing-hero-spacer" aria-hidden="true" />
         <LandingSteps />
         <LandingMap :problems="problems ?? []" />
         <LandingFooter />
@@ -40,6 +41,19 @@ defineProps({
     --lp-step-border: #e0e0e0;
     --lp-step-divider: #b8d4c8;
     --lp-footer-bg: #1946A0;
+    --lp-hero-accent: #2F6FEF;
+    --lp-steps-bg: #F8F9FA;
+    --lp-steps-card-bg: #EBF1F7;
+    --lp-steps-accent: #2F6FEF;
+    --lp-steps-title: #212529;
+    --lp-steps-desc: #6C757D;
+}
+
+.landing-hero-spacer {
+    flex: 0 0 auto;
+    min-height: 10px;
+    height: 10px;
+    background: var(--lp-bg);
 }
 
 .landing :deep(.landing-container) {

@@ -18,7 +18,7 @@
                     <h3 class="landing-step-title">Kur yra problema?</h3>
                     <p class="landing-step-desc">Pažymėkite problemos vietą - pasirinkite ją žemėlapyje arba įveskite adresą.</p>
                 </div>
-                <div class="landing-step landing-step--last">
+                <div class="landing-step">
                     <h3 class="landing-step-title">Kokia eiga?</h3>
                     <p class="landing-step-desc">Apie problemos nagrinėjimą būsite informuojamas.</p>
                 </div>
@@ -29,8 +29,8 @@
 
 <style scoped>
 .landing-section {
-    background: var(--lp-section-bg);
-    padding: 5rem 0 5.5rem;
+    background: var(--lp-steps-bg);
+    padding: 3rem 0 3rem;
 }
 
 .landing-section .landing-container {
@@ -46,72 +46,63 @@
 }
 
 .landing-section-title {
-    font-family: var(--lp-font);
-    font-size: clamp(1.5rem, 4vw, 1.75rem);
+    font-family: var(--lp-font), 'Open Sans', sans-serif;
+    font-size: 32px;
     font-weight: 700;
-    color: var(--lp-text);
+    line-height: 1.5;
+    letter-spacing: -0.011em;
+    color: var(--lp-steps-title);
     margin: 0 0 0.75rem;
     text-align: center;
 }
 
 .landing-section-desc {
-    font-family: var(--lp-font);
-    font-size: 1rem;
-    color: var(--lp-text-muted);
-    margin: 0 0 3rem;
-    text-align: center;
+    font-family: var(--lp-font), 'Open Sans', sans-serif;
+    font-size: 18px;
+    font-weight: 600;
     line-height: 1.5;
+    letter-spacing: -0.011em;
+    color: var(--lp-steps-accent);
+    margin: 0 0 2.5rem;
+    text-align: center;
 }
 
 .landing-steps {
     display: grid;
     grid-template-columns: 1fr;
-    gap: 0;
-    border-top: 1px solid var(--lp-step-border);
-    border-bottom: 1px solid var(--lp-step-border);
-    background: var(--lp-section-bg);
+    gap: 1.5rem;
 }
 
 @media (min-width: 768px) {
     .landing-steps {
         grid-template-columns: repeat(4, 1fr);
+        gap: 24px;
     }
 }
 
 .landing-step {
-    padding: 2rem 1.25rem;
-    border-right: none;
-    border-bottom: 1px solid var(--lp-step-border);
-}
-
-.landing-step:last-child {
-    border-bottom: none;
-}
-
-@media (min-width: 768px) {
-    .landing-step {
-        padding: 2rem 1.5rem;
-        border-right: 1px solid var(--lp-step-divider);
-        border-bottom: none;
-    }
-
-    .landing-step--last {
-        border-right: none;
-    }
+    background: var(--lp-steps-card-bg);
+    border: 1px solid var(--lp-steps-accent);
+    border-radius: 15px;
+    padding: 16px 16px 32px;
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+    box-sizing: border-box;
 }
 
 .landing-step-title {
-    font-family: var(--lp-font);
+    font-family: var(--lp-font), 'Open Sans', sans-serif;
     font-size: 1rem;
     font-weight: 700;
-    color: var(--lp-text);
-    margin: 0 0 0.75rem;
+    color: var(--lp-steps-title);
+    margin: 0;
 }
 
 .landing-step-desc {
-    font-family: var(--lp-font);
+    font-family: var(--lp-font), 'Open Sans', sans-serif;
     font-size: 0.9375rem;
-    color: var(--lp-text-muted);
+    color: var(--lp-steps-desc);
     margin: 0;
     line-height: 1.55;
 }

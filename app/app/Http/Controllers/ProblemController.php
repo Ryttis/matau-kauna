@@ -322,8 +322,7 @@ class ProblemController extends Controller
             foreach (Problem::whereIn('id', $validated['problem_ids'])->get() as $p) {
                 $this->resolutionTermService->applyRules($p);
             }
-            $this->assignmentNotifier->notifyInstitutionAdminsOfAssignment($validated['problem_ids'], $validated['institution_id']);
-            $this->assignmentNotifier->notifyInstitutionEmailOfAssignment($validated['problem_ids'], $validated['institution_id']);
+            $this->assignmentNotifier->notifyInstitutionOfAssignment($validated['problem_ids'], $validated['institution_id']);
         }
 
         $message = empty($validated['institution_id'])
@@ -630,8 +629,7 @@ class ProblemController extends Controller
             'assigned_employee_id' => null,
         ]);
 
-        $this->assignmentNotifier->notifyInstitutionAdminsOfAssignment([$problem->id], $validated['institution_id']);
-        $this->assignmentNotifier->notifyInstitutionEmailOfAssignment([$problem->id], $validated['institution_id']);
+        $this->assignmentNotifier->notifyInstitutionOfAssignment([$problem->id], $validated['institution_id']);
 
         return redirect()->back()->with('success', 'Problema perduota kitai įstaigai.');
     }

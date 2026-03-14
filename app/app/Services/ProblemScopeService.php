@@ -100,7 +100,6 @@ class ProblemScopeService
             && (
                 $user->hasRole(UserRole::ROLE_INSTITUTION_ADMIN)
                 || $user->hasRole(UserRole::ROLE_EMPLOYEE)
-                || $user->hasRole(UserRole::ROLE_MUNICIPALITY_REP)
             );
     }
 

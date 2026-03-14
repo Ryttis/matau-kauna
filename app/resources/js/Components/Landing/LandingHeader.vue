@@ -1,7 +1,7 @@
 <template>
     <header class="landing-header" :class="{ 'landing-header--dark': variant === 'dark' }">
         <div class="landing-header-inner">
-            <Link :href="route('landing')" class="landing-logo">Kauno problemos</Link>
+            <Link :href="route('landing')" class="landing-logo">Matau Kaune</Link>
             <nav class="landing-nav">
                 <Link :href="route('reports')" class="landing-link" :class="{ 'landing-link--active': activeLink === 'reports' }">Pranešimai</Link>
                 <Link :href="route('public.statistics')" class="landing-link" :class="{ 'landing-link--active': activeLink === 'statistics' }">Statistika</Link>
@@ -26,10 +26,13 @@ defineProps({
     background: #fff;
     flex-shrink: 0;
     box-sizing: border-box;
+    width: 100%;
 }
 
 .landing-header--dark {
-    background: #1946A0;
+    background: var(--lp-primary);
+    height: 293px;
+    min-height: 293px;
 }
 
 .landing-header--dark .landing-header-line {
@@ -38,13 +41,13 @@ defineProps({
 
 .landing-header-inner {
     display: flex;
-    align-items: center;
+    align-items: flex-start;
     justify-content: space-between;
-    height: 72px;
+    height: 293px;
     margin: 0 auto;
-    max-width: 1200px;
+    max-width: 1440px;
     width: 100%;
-    padding: 0 1rem;
+    padding: 1rem 1rem 0;
     box-sizing: border-box;
 }
 
@@ -52,6 +55,16 @@ defineProps({
     .landing-header-inner {
         padding-left: 2rem;
         padding-right: 2rem;
+    }
+}
+
+@media (max-height: 900px) {
+    .landing-header--dark {
+        height: 260px;
+        min-height: 260px;
+    }
+    .landing-header-inner {
+        height: 260px;
     }
 }
 
@@ -104,7 +117,8 @@ defineProps({
 
 .landing-header--dark .landing-link--btn {
     background: #fff;
-    color: #1946A0 !important;
+    color: #333 !important;
+    border: 1px solid #ccc;
 }
 
 .landing-link--btn:hover {
