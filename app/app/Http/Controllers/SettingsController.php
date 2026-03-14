@@ -172,12 +172,25 @@ class SettingsController extends Controller
     public function updatePrivacy(Request $request): RedirectResponse
     {
         $validated = $request->validate([
-            'two_factor_enabled' => ['boolean'],
-            'email_notifications_enabled' => ['boolean'],
+            'two_factor_enabled' => ['sometimes', 'boolean'],
+            'email_notifications_enabled' => ['sometimes', 'boolean'],
             'email_updates_institution_admin' => ['sometimes', 'boolean'],
         ]);
 
-        Auth::user()->update($validated);
+        $data = [];
+        if (array_key_exists('two_factor_enabled', $validated)) {
+            $data['two_factor_enabled'] = filter_var($validated['two_factor_enabled'], FILTER_VALIDATE_BOOLEAN);
+        }
+        if (array_key_exists('email_notifications_enabled', $validated)) {
+            $data['email_notifications_enabled'] = filter_var($validated['email_notifications_enabled'], FILTER_VALIDATE_BOOLEAN);
+        }
+        if (array_key_exists('email_updates_institution_admin', $validated)) {
+            $data['email_updates_institution_admin'] = filter_var($validated['email_updates_institution_admin'], FILTER_VALIDATE_BOOLEAN);
+        }
+
+        if ($data !== []) {
+            Auth::user()->update($data);
+        }
 
         return back()->with('success', 'Privatumo nustatymai atnaujinti.');
     }

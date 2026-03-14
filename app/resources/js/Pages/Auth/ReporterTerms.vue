@@ -1,6 +1,6 @@
 <script setup>
 import AppButton from '@/Components/App/AppButton.vue';
-import LandingHeader from '@/Components/Landing/LandingHeader.vue';
+import GuestHeader from '@/Components/Landing/GuestHeader.vue';
 import LandingFooter from '@/Components/Landing/LandingFooter.vue';
 import { Head, Link, useForm } from '@inertiajs/vue3';
 import { computed } from 'vue';
@@ -28,7 +28,7 @@ const submit = () => {
     <div class="reporter-terms-page">
         <Head title="Susipažinimas su asmens duomenų naudojimu ir tvarkymu" />
 
-        <LandingHeader />
+        <GuestHeader />
 
         <main class="reporter-terms-main">
             <div class="reporter-terms-card">

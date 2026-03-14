@@ -74,15 +74,19 @@ const deleteAccount = () => {
     })
 }
 
-const saveEmailUpdatesInstitutionAdmin = () => {
+const saveEmailUpdatesInstitutionAdmin = (value) => {
+    const v = value !== undefined ? value : emailUpdatesInstitutionAdmin.value
+    emailUpdatesInstitutionAdmin.value = v
     router.patch(route('settings.privacy'), {
-        email_updates_institution_admin: emailUpdatesInstitutionAdmin,
+        email_updates_institution_admin: v,
     }, { preserveScroll: true })
 }
 
-const saveEmailNotificationsEnabled = () => {
+const saveEmailNotificationsEnabled = (value) => {
+    const v = value !== undefined ? value : emailNotificationsEnabled.value
+    emailNotificationsEnabled.value = v
     router.patch(route('settings.privacy'), {
-        email_notifications_enabled: emailNotificationsEnabled,
+        email_notifications_enabled: v,
     }, { preserveScroll: true })
 }
 
@@ -122,8 +126,8 @@ const saveEmailNotificationsEnabled = () => {
                     @update:twoFactorEnabled="twoFactorEnabled = $event"
                     @update:emailUpdatesInstitutionAdmin="emailUpdatesInstitutionAdmin = $event"
                     @update:emailNotificationsEnabled="emailNotificationsEnabled = $event"
-                    @save-email-updates-admin="saveEmailUpdatesInstitutionAdmin"
-                    @save-email-notifications="saveEmailNotificationsEnabled"
+                    @save-email-updates-admin="(val) => saveEmailUpdatesInstitutionAdmin(val)"
+                    @save-email-notifications="(val) => saveEmailNotificationsEnabled(val)"
                     @delete-account="showDeleteModal = true"
                 />
                 </div>

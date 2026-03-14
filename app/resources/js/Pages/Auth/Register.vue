@@ -1,7 +1,7 @@
 <script setup>
 import AuthInput from '@/Components/Auth/AuthInput.vue';
 import AppButton from '@/Components/App/AppButton.vue';
-import LandingHeader from '@/Components/Landing/LandingHeader.vue';
+import GuestHeader from '@/Components/Landing/GuestHeader.vue';
 import LandingFooter from '@/Components/Landing/LandingFooter.vue';
 import { Head, useForm } from '@inertiajs/vue3';
 import { computed, ref } from 'vue';
@@ -55,7 +55,7 @@ const submit = () => {
     <div class="register-page">
         <Head title="Registruotis" />
 
-        <LandingHeader />
+        <GuestHeader />
 
         <main class="register-page-main">
             <form @submit.prevent="submit" class="register-form">

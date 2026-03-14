@@ -1,6 +1,6 @@
 <script setup>
 import { Head } from '@inertiajs/vue3'
-import LandingHeader from '@/Components/Landing/LandingHeader.vue'
+import GuestHeader from '@/Components/Landing/GuestHeader.vue'
 import LandingFooter from '@/Components/Landing/LandingFooter.vue'
 
 defineProps({
@@ -12,7 +12,7 @@ defineProps({
 <template>
     <Head :title="title + ' – Kauno problemos'" />
     <div class="landing static-page">
-        <LandingHeader />
+        <GuestHeader />
         <main class="static-main">
             <div class="static-container">
                 <h1 class="static-title">{{ title }}</h1>

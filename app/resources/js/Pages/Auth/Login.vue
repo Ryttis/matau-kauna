@@ -3,7 +3,7 @@ import AuthInput from '@/Components/Auth/AuthInput.vue';
 import AppButton from '@/Components/App/AppButton.vue';
 import SuccessModal from '@/Components/App/SuccessModal.vue';
 import LoginNavigation from '@/Components/Auth/Login/LoginNavigation.vue';
-import LandingHeader from '@/Components/Landing/LandingHeader.vue';
+import GuestHeader from '@/Components/Landing/GuestHeader.vue';
 import LandingFooter from '@/Components/Landing/LandingFooter.vue';
 import { Head, Link, useForm } from '@inertiajs/vue3';
 import { ref, watch } from 'vue';
@@ -46,7 +46,7 @@ const submit = () => {
     <div class="login-page">
         <Head title="Prisijungti" />
 
-        <LandingHeader variant="dark" />
+        <GuestHeader variant="dark" />
 
         <main class="login-page-main">
             <SuccessModal

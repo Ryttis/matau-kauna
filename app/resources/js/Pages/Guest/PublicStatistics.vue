@@ -2,7 +2,7 @@
 import { computed, onMounted, ref, watch } from 'vue'
 import axios from 'axios'
 import { Head } from '@inertiajs/vue3'
-import LandingHeader from '@/Components/Landing/LandingHeader.vue'
+import GuestHeader from '@/Components/Landing/GuestHeader.vue'
 import LandingFooter from '@/Components/Landing/LandingFooter.vue'
 import CategoryStatsBlock from '@/Components/Statistics/CategoryStatsBlock.vue'
 
@@ -103,7 +103,7 @@ watch([periodFilter, categoryFilter], fetchData)
 <template>
     <Head title="Statistika – Kauno problemos" />
     <div class="landing public-statistics-page">
-        <LandingHeader active-link="statistics" />
+        <GuestHeader active-link="statistics" />
         <main class="public-statistics-main">
             <div class="public-statistics-inner">
                 <div class="filters-section">

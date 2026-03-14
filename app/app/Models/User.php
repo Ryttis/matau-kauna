@@ -54,6 +54,36 @@ class User extends Authenticatable implements MustVerifyEmail
         return $query->whereNull('archived_at');
     }
 
+    public function scopeWantsInstitutionAdminAssignmentEmails($query)
+    {
+        return $query->where('email_updates_institution_admin', true);
+    }
+
+    public function scopeWantsEmployeeAssignmentEmails($query)
+    {
+        return $query->where('email_notifications_enabled', true);
+    }
+
+    public static function shouldReceiveInstitutionAssignmentEmail(string $email, int $institutionId): bool
+    {
+        $user = self::query()
+            ->notArchived()
+            ->where('email', $email)
+            ->where('institution_id', $institutionId)
+            ->with('roles:id,role')
+            ->first(['id', 'email_updates_institution_admin', 'email_notifications_enabled']);
+
+        if (! $user) {
+            return true;
+        }
+
+        $isAdmin = $user->roles->contains('role', UserRole::ROLE_INSTITUTION_ADMIN);
+        if ($isAdmin) {
+            return $user->email_updates_institution_admin === true;
+        }
+        return $user->email_notifications_enabled === true;
+    }
+
     public function institution(): BelongsTo
     {
         return $this->belongsTo(Institution::class);

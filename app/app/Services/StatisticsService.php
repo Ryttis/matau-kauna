@@ -148,7 +148,6 @@ class StatisticsService
         return $user && (
             $user->hasRole(\App\Models\UserRole::ROLE_INSTITUTION_ADMIN)
             || $user->hasRole(\App\Models\UserRole::ROLE_EMPLOYEE)
-            || $user->hasRole(\App\Models\UserRole::ROLE_MUNICIPALITY_REP)
         );
     }
 

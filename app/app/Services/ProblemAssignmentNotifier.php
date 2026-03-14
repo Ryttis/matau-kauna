@@ -13,6 +13,16 @@ class ProblemAssignmentNotifier
 {
     public function notifyInstitutionAdminsOfAssignment(array $problemIds, int $institutionId): void
     {
+        $this->notifyInstitutionOfAssignment($problemIds, $institutionId);
+    }
+
+    public function notifyInstitutionEmailOfAssignment(array $problemIds, int $institutionId): void
+    {
+        $this->notifyInstitutionOfAssignment($problemIds, $institutionId);
+    }
+
+    public function notifyInstitutionOfAssignment(array $problemIds, int $institutionId): void
+    {
         $problems = Problem::whereIn('id', $problemIds)
             ->orderBy('created_at', 'desc')
             ->get(['id', 'internal_number', 'title', 'created_at']);
@@ -23,14 +33,21 @@ class ProblemAssignmentNotifier
 
         $institution = Institution::find($institutionId);
 
+        $recipientEmails = [];
         $admins = User::query()
             ->notArchived()
             ->where('institution_id', $institutionId)
-            ->where('email_updates_institution_admin', true)
+            ->wantsInstitutionAdminAssignmentEmails()
             ->whereHas('roles', fn ($q) => $q->where('role', UserRole::ROLE_INSTITUTION_ADMIN))
-            ->get(['email', 'name']);
+            ->pluck('email')
+            ->all();
+        foreach ($admins as $email) {
+            if ($email !== null && $email !== '') {
+                $recipientEmails[strtolower(trim($email))] = trim($email);
+            }
+        }
 
-        if ($admins->isEmpty()) {
+        if (empty($recipientEmails)) {
             return;
         }
 
@@ -53,61 +70,20 @@ class ProblemAssignmentNotifier
         $subject = 'Naujos priskirtos problemos';
         $body = implode("\n", $lines);
 
-        foreach ($admins as $admin) {
-            Mail::raw($body, function ($message) use ($admin, $subject) {
-                $message->to($admin->email)->subject($subject);
+        foreach (array_values($recipientEmails) as $email) {
+            Mail::raw($body, function ($message) use ($email, $subject) {
+                $message->to($email)->subject($subject);
             });
         }
     }
 
-    public function notifyInstitutionEmailOfAssignment(array $problemIds, int $institutionId): void
-    {
-        $institution = Institution::find($institutionId);
-
-        if (! $institution) {
-            return;
-        }
-
-        $email = $institution->integration_email ?: $institution->contact_email;
-        if (! $email) {
-            return;
-        }
-
-        $problems = Problem::whereIn('id', $problemIds)
-            ->orderBy('created_at', 'desc')
-            ->get(['id', 'internal_number', 'title', 'created_at']);
-
-        if ($problems->isEmpty()) {
-            return;
-        }
-
-        $lines = [];
-        $lines[] = 'Priskirtų problemų sąrašas:';
-        foreach ($problems as $problem) {
-            $lines[] = sprintf(
-                '- %s | %s | %s | %s',
-                $problem->internal_number,
-                $problem->title,
-                $problem->created_at?->format('Y-m-d'),
-                route('problems.show', $problem->id)
-            );
-        }
-        $lines[] = '';
-        $lines[] = 'Įstaiga: ' . $institution->name;
-
-        $subject = 'Naujos priskirtos problemos';
-        $body = implode("\n", $lines);
-
-        Mail::raw($body, function ($message) use ($email, $subject) {
-            $message->to($email)->subject($subject);
-        });
-    }
-
     public function notifyEmployeeOfAssignment(Problem $problem, Employee $employee): void
     {
-        $user = User::where('email', $employee->email)
+        $user = User::query()
+            ->notArchived()
+            ->where('email', $employee->email)
             ->where('institution_id', $employee->institution_id)
-            ->where('email_notifications_enabled', true)
+            ->wantsEmployeeAssignmentEmails()
             ->first(['email']);
 
         if (! $user) {
@@ -142,9 +118,11 @@ class ProblemAssignmentNotifier
         if ($problem->assigned_employee_id) {
             $employee = $problem->assignedEmployee;
             if ($employee) {
-                $user = User::where('email', $employee->email)
+                $user = User::query()
+                    ->notArchived()
+                    ->where('email', $employee->email)
                     ->where('institution_id', $employee->institution_id)
-                    ->where('email_notifications_enabled', true)
+                    ->wantsEmployeeAssignmentEmails()
                     ->first(['email']);
                 if ($user) {
                     $recipients[] = $user->email;
@@ -155,7 +133,7 @@ class ProblemAssignmentNotifier
             $admins = User::query()
                 ->notArchived()
                 ->where('institution_id', $problem->institution_id)
-                ->where('email_updates_institution_admin', true)
+                ->wantsInstitutionAdminAssignmentEmails()
                 ->whereHas('roles', fn ($q) => $q->where('role', UserRole::ROLE_INSTITUTION_ADMIN))
                 ->pluck('email')
                 ->all();

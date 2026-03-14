@@ -32,10 +32,10 @@ const emit = defineEmits([
 function onSecondSwitchChange(v) {
     if (props.isInstitutionAdmin) {
         emit('update:emailUpdatesInstitutionAdmin', v)
-        emit('save-email-updates-admin')
+        emit('save-email-updates-admin', v)
     } else {
         emit('update:emailNotificationsEnabled', v)
-        emit('save-email-notifications')
+        emit('save-email-notifications', v)
     }
 }
 </script>
@@ -44,20 +44,20 @@ function onSecondSwitchChange(v) {
     <div class="privacy-block">
         <template v-if="showFiveFields">
             <div class="privacy-row privacy-row-switch">
-                <span class="privacy-label">Informacijos atnaujinimo siuntimas el. paštu</span>
+                <span class="privacy-label">Gauti pranešimus apie įstaigai priskirtas problemas</span>
                 <div class="privacy-row-right">
                     <AppSwitch
                         :modelValue="emailUpdatesInstitutionAdmin"
-                        @update:modelValue="(v) => { emit('update:emailUpdatesInstitutionAdmin', v); emit('save-email-updates-admin') }"
+                        @update:modelValue="(v) => { emit('update:emailUpdatesInstitutionAdmin', v); emit('save-email-updates-admin', v) }"
                     />
                 </div>
             </div>
             <div class="privacy-row privacy-row-switch">
-                <span class="privacy-label">Gauti pranešimus</span>
+                <span class="privacy-label">Gauti pranešimus apie man priskirtas problemas</span>
                 <div class="privacy-row-right">
                     <AppSwitch
                         :modelValue="emailNotificationsEnabled"
-                        @update:modelValue="(v) => { emit('update:emailNotificationsEnabled', v); emit('save-email-notifications') }"
+                        @update:modelValue="(v) => { emit('update:emailNotificationsEnabled', v); emit('save-email-notifications', v) }"
                     />
                 </div>
             </div>
@@ -90,7 +90,7 @@ function onSecondSwitchChange(v) {
                 </div>
             </div>
             <div class="privacy-row privacy-row-switch">
-                <span class="privacy-label">Informacijos atnaujinimo siuntimas el. paštu</span>
+                <span class="privacy-label">Gauti pranešimus</span>
                 <div class="privacy-row-right">
                     <AppSwitch
                         :modelValue="secondSwitchValue"

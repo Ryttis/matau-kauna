@@ -1,7 +1,7 @@
 <script setup>
 import { ref, computed } from 'vue'
 import { Head, router } from '@inertiajs/vue3'
-import LandingHeader from '@/Components/Landing/LandingHeader.vue'
+import GuestHeader from '@/Components/Landing/GuestHeader.vue'
 import LandingFooter from '@/Components/Landing/LandingFooter.vue'
 import FilterModal from '@/Components/App/Modals/FilterModal.vue'
 import KaunasProblemsMap from '@/Components/Map/KaunasProblemsMap.vue'
@@ -73,7 +73,7 @@ function openProblemView(problemId) {
 <template>
     <Head title="Pranešimai – Kauno problemos" />
     <div class="landing public-map-page">
-        <LandingHeader active-link="reports" />
+        <GuestHeader active-link="reports" />
         <div class="public-map-toolbar">
             <div class="public-map-toolbar-inner">
                 <input
