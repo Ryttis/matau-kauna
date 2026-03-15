@@ -21,6 +21,7 @@ services:
             context: .
             dockerfile: Dockerfile
         container_name: kauno-problemos-php
+        working_dir: /var/www/html/app
         restart: always
         volumes:
             - ./:/var/www/html

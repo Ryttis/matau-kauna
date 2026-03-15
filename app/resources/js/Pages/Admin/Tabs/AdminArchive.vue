@@ -1,5 +1,5 @@
 <script setup>
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import axios from 'axios'
 import AppButton from '@/Components/App/AppButton.vue'
 import AppInput from '@/Components/App/AppInput.vue'
@@ -15,7 +15,19 @@ const users = ref([])
 const institutions = ref([])
 const problems = ref([])
 const classifierValues = ref([])
-const retentionRule = ref(null)
+const retentionRules = ref({
+    user: null,
+    institution: null,
+    problem: null,
+    classifier_value: null,
+})
+
+const TAB_ENTITY_MAP = {
+    users: 'user',
+    institutions: 'institution',
+    problems: 'problem',
+    classifiers: 'classifier_value',
+}
 
 const settingsForm = ref({
     retention_days: '',
@@ -40,21 +52,31 @@ const EMPTY_MESSAGES = {
 }
 const emptyTabMessage = computed(() => EMPTY_MESSAGES[activeTab.value] ?? '')
 
+function syncSettingsFormFromRule() {
+    const entityType = TAB_ENTITY_MAP[activeTab.value]
+    const r = retentionRules.value[entityType]
+    settingsForm.value = {
+        retention_days: r?.delete_after_days ?? r?.archive_after_days ?? '',
+        is_active: r?.is_active ?? true,
+    }
+}
+
 const load = async () => {
     loading.value = true
     errorMessage.value = ''
     try {
         const { data } = await axios.get('/admin/archive')
-        retentionRule.value = data.retentionRule || null
+        retentionRules.value = data.retentionRules || {
+            user: null,
+            institution: null,
+            problem: null,
+            classifier_value: null,
+        }
         users.value = data.users || []
         institutions.value = data.institutions || []
         problems.value = data.problems || []
         classifierValues.value = data.classifierValues || []
-        const r = data.retentionRule
-        settingsForm.value = {
-            retention_days: r?.archive_after_days ?? r?.delete_after_days ?? '',
-            is_active: r?.is_active ?? true,
-        }
+        syncSettingsFormFromRule()
     } catch (e) {
         errorMessage.value = e.response?.data?.message ?? 'Nepavyko užkrauti duomenų.'
     } finally {
@@ -67,8 +89,10 @@ const saveSettings = async () => {
     errorMessage.value = ''
     successMessage.value = ''
     try {
+        const entityType = TAB_ENTITY_MAP[activeTab.value]
         const days = settingsForm.value.retention_days ? Number(settingsForm.value.retention_days) : null
         await axios.put('/admin/archive/retention-rule', {
+            entity_type: entityType,
             retention_days: days,
             is_active: settingsForm.value.is_active,
         })
@@ -119,6 +143,7 @@ function restoringKey(type, id) {
     return cfg ? `${cfg.key}-${id}` : ''
 }
 
+watch(activeTab, syncSettingsFormFromRule)
 onMounted(load)
 </script>
 
@@ -135,7 +160,7 @@ onMounted(load)
         />
 
         <div class="settings-block">
-            <h3 class="settings-title">Automatinis archyvavimas (problemos)</h3>
+            <h3 class="settings-title">Saugojimo terminas ({{ tabs.find(t => t.key === activeTab)?.label ?? activeTab }})</h3>
             <div class="settings-row">
                 <label class="field-label">Saugoti dienų</label>
                 <AppInput v-model.number="settingsForm.retention_days" type="number" placeholder="365" class="input-narrow" />
@@ -176,6 +201,7 @@ onMounted(load)
                             <th>Vardas</th>
                             <th>El. paštas</th>
                             <th>Archyvuota</th>
+                            <th>Ištrinama</th>
                             <th>Veiksmai</th>
                         </tr>
                     </thead>
@@ -184,6 +210,7 @@ onMounted(load)
                             <td>{{ u.name }}</td>
                             <td>{{ u.email }}</td>
                             <td>{{ formatDate(u.archived_at) }}</td>
+                            <td>{{ formatDate(u.delete_at) }}</td>
                             <td>
                                 <AppButton
                                     text="Atkurti"
@@ -201,6 +228,7 @@ onMounted(load)
                         <tr>
                             <th>Pavadinimas</th>
                             <th>Archyvuota</th>
+                            <th>Ištrinama</th>
                             <th>Veiksmai</th>
                         </tr>
                     </thead>
@@ -208,6 +236,7 @@ onMounted(load)
                         <tr v-for="i in institutions" :key="i.id">
                             <td>{{ i.name }}</td>
                             <td>{{ formatDate(i.archived_at) }}</td>
+                            <td>{{ formatDate(i.delete_at) }}</td>
                             <td>
                                 <AppButton
                                     text="Atkurti"
@@ -226,6 +255,7 @@ onMounted(load)
                             <th>Nr.</th>
                             <th>Pavadinimas</th>
                             <th>Archyvuota</th>
+                            <th>Ištrinama</th>
                             <th>Veiksmai</th>
                         </tr>
                     </thead>
@@ -234,6 +264,7 @@ onMounted(load)
                             <td>{{ p.internal_number }}</td>
                             <td>{{ p.title || '—' }}</td>
                             <td>{{ formatDate(p.archived_at) }}</td>
+                            <td>{{ formatDate(p.delete_at) }}</td>
                             <td>
                                 <AppButton
                                     text="Atkurti"
@@ -252,6 +283,7 @@ onMounted(load)
                             <th>Pavadinimas</th>
                             <th>Tipas</th>
                             <th>Archyvuota</th>
+                            <th>Ištrinama</th>
                             <th>Veiksmai</th>
                         </tr>
                     </thead>
@@ -260,6 +292,7 @@ onMounted(load)
                             <td>{{ c.name }}</td>
                             <td>{{ c.kind }}</td>
                             <td>{{ formatDate(c.archived_at) }}</td>
+                            <td>{{ formatDate(c.delete_at) }}</td>
                             <td>
                                 <AppButton
                                     text="Atkurti"

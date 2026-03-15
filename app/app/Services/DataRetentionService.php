@@ -4,8 +4,11 @@ namespace App\Services;
 
 use App\Enums\AuditLogResult;
 use App\Models\AuditLog;
+use App\Models\ClassifierValue;
 use App\Models\DataRetentionRule;
+use App\Models\Institution;
 use App\Models\Problem;
+use App\Models\User;
 use Carbon\Carbon;
 
 class DataRetentionService
@@ -44,25 +47,81 @@ class DataRetentionService
 
     public function runDeletion(): int
     {
-        $rule = $this->getActiveProblemRule();
+        return $this->runDeletionFor(DataRetentionRule::ENTITY_PROBLEM);
+    }
+
+    public function countArchived(): int
+    {
+        $users = User::query()->whereNotNull('archived_at')->count();
+        $institutions = Institution::query()->whereNotNull('archived_at')->count();
+        $problems = Problem::query()->where('is_archived', true)->whereNotNull('archived_at')->count();
+        $classifiers = ClassifierValue::query()->whereNotNull('archived_at')->count();
+
+        return $users + $institutions + $problems + $classifiers;
+    }
+
+    public function runDeletionFor(string $entityType): int
+    {
+        $rule = DataRetentionRule::query()
+            ->where('entity_type', $entityType)
+            ->where('is_active', true)
+            ->first();
         if (! $rule) {
             return 0;
         }
-
         $days = $rule->delete_after_days ?? $rule->archive_after_days;
         if (! $days || $days < 1) {
             return 0;
         }
-
         $threshold = Carbon::now()->subDays($days);
+
+        return match ($entityType) {
+            DataRetentionRule::ENTITY_USER => $this->deleteArchivedUsers($threshold),
+            DataRetentionRule::ENTITY_INSTITUTION => $this->deleteArchivedInstitutions($threshold),
+            DataRetentionRule::ENTITY_PROBLEM => $this->deleteArchivedProblems($threshold),
+            DataRetentionRule::ENTITY_CLASSIFIER_VALUE => $this->deleteArchivedClassifierValues($threshold),
+            default => 0,
+        };
+    }
+
+    private function deleteArchivedUsers(Carbon $threshold): int
+    {
+        $query = User::query()
+            ->whereNotNull('archived_at')
+            ->where('archived_at', '<=', $threshold);
+        $count = $query->count();
+        $query->delete();
+        return $count;
+    }
+
+    private function deleteArchivedInstitutions(Carbon $threshold): int
+    {
+        $query = Institution::query()
+            ->whereNotNull('archived_at')
+            ->where('archived_at', '<=', $threshold);
+        $count = $query->count();
+        $query->delete();
+        return $count;
+    }
+
+    private function deleteArchivedProblems(Carbon $threshold): int
+    {
         $query = Problem::query()
             ->where('is_archived', true)
             ->whereNotNull('archived_at')
             ->where('archived_at', '<=', $threshold);
-
         $count = $query->count();
         $query->delete();
+        return $count;
+    }
 
+    private function deleteArchivedClassifierValues(Carbon $threshold): int
+    {
+        $query = ClassifierValue::query()
+            ->whereNotNull('archived_at')
+            ->where('archived_at', '<=', $threshold);
+        $count = $query->count();
+        $query->delete();
         return $count;
     }
 
