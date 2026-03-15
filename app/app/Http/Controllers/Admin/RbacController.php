@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Enums\AuditLogResult;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\CreateUserRequest;
 use App\Http\Requests\Admin\SyncUserRolesRequest;
@@ -37,13 +38,19 @@ class RbacController extends Controller
 
         $error = $this->rbacService->validateSyncUserRoles($user, $roleIds);
         if ($error !== null) {
+            $msg = $error['message'] ?? json_encode($error);
+            $this->auditLogService->logUserAction($request->user(), 'rbac.user.sync_roles', 'User', $user->id, AuditLogResult::Error, $msg, ['user_id' => $user->id]);
             return response()->json($error, 422);
         }
 
-        $user->roles()->sync($roleIds);
-        $this->auditLogService->logUserAction($request->user(), 'rbac.user.sync_roles', 'User', $user->id, 'success', null, ['user_id' => $user->id]);
-
-        return $user->load('roles:id,role,name');
+        try {
+            $user->roles()->sync($roleIds);
+            $this->auditLogService->logUserAction($request->user(), 'rbac.user.sync_roles', 'User', $user->id, AuditLogResult::Success, null, ['user_id' => $user->id]);
+            return $user->load('roles:id,role,name');
+        } catch (\Throwable $e) {
+            $this->auditLogService->logUserAction($request->user(), 'rbac.user.sync_roles', 'User', $user->id, AuditLogResult::Error, $e->getMessage(), ['user_id' => $user->id]);
+            throw $e;
+        }
     }
 
     public function roles()
@@ -61,10 +68,14 @@ class RbacController extends Controller
             'name' => ['required', 'string', 'max:255'],
         ]);
 
-        $role = UserRole::create($data);
-        $this->auditLogService->logUserAction($request->user(), 'rbac.role.create', 'UserRole', $role->id, 'success');
-
-        return $role;
+        try {
+            $role = UserRole::create($data);
+            $this->auditLogService->logUserAction($request->user(), 'rbac.role.create', 'UserRole', $role->id, AuditLogResult::Success);
+            return $role;
+        } catch (\Throwable $e) {
+            $this->auditLogService->logUserAction($request->user(), 'rbac.role.create', 'UserRole', null, AuditLogResult::Error, $e->getMessage());
+            throw $e;
+        }
     }
 
     public function groups()
@@ -81,10 +92,14 @@ class RbacController extends Controller
             'name' => ['required', 'string', 'max:255'],
         ]);
 
-        $group = UserRolePermissionGroup::create($data);
-        $this->auditLogService->logUserAction($request->user(), 'rbac.group.create', 'UserRolePermissionGroup', $group->id, 'success');
-
-        return $group;
+        try {
+            $group = UserRolePermissionGroup::create($data);
+            $this->auditLogService->logUserAction($request->user(), 'rbac.group.create', 'UserRolePermissionGroup', $group->id, AuditLogResult::Success);
+            return $group;
+        } catch (\Throwable $e) {
+            $this->auditLogService->logUserAction($request->user(), 'rbac.group.create', 'UserRolePermissionGroup', null, AuditLogResult::Error, $e->getMessage());
+            throw $e;
+        }
     }
 
     public function permissions()
@@ -100,10 +115,14 @@ class RbacController extends Controller
             'permission' => ['required', 'string', 'max:255', 'unique:user_role_permission,permission'],
         ]);
 
-        $permission = UserRolePermission::create($data);
-        $this->auditLogService->logUserAction($request->user(), 'rbac.permission.create', 'UserRolePermission', $permission->id, 'success');
-
-        return $permission;
+        try {
+            $permission = UserRolePermission::create($data);
+            $this->auditLogService->logUserAction($request->user(), 'rbac.permission.create', 'UserRolePermission', $permission->id, AuditLogResult::Success);
+            return $permission;
+        } catch (\Throwable $e) {
+            $this->auditLogService->logUserAction($request->user(), 'rbac.permission.create', 'UserRolePermission', null, AuditLogResult::Error, $e->getMessage());
+            throw $e;
+        }
     }
 
     public function syncRoleGroups(Request $request, UserRole $role)
@@ -113,10 +132,14 @@ class RbacController extends Controller
             'group_ids.*' => ['uuid', 'exists:user_role_permission_group,id'],
         ]);
 
-        $role->permissionGroups()->sync($data['group_ids'] ?? []);
-        $this->auditLogService->logUserAction($request->user(), 'rbac.role.sync_groups', 'UserRole', $role->id, 'success');
-
-        return $role->load('permissionGroups:id,name');
+        try {
+            $role->permissionGroups()->sync($data['group_ids'] ?? []);
+            $this->auditLogService->logUserAction($request->user(), 'rbac.role.sync_groups', 'UserRole', $role->id, AuditLogResult::Success);
+            return $role->load('permissionGroups:id,name');
+        } catch (\Throwable $e) {
+            $this->auditLogService->logUserAction($request->user(), 'rbac.role.sync_groups', 'UserRole', $role->id, AuditLogResult::Error, $e->getMessage());
+            throw $e;
+        }
     }
 
     public function syncGroupPermissions(Request $request, UserRolePermissionGroup $group)
@@ -126,70 +149,100 @@ class RbacController extends Controller
             'permission_ids.*' => ['uuid', 'exists:user_role_permission,id'],
         ]);
 
-        $group->permissions()->sync($data['permission_ids'] ?? []);
-        $this->auditLogService->logUserAction($request->user(), 'rbac.group.sync_permissions', 'UserRolePermissionGroup', $group->id, 'success');
-
-        return $group->load('permissions:id,permission');
+        try {
+            $group->permissions()->sync($data['permission_ids'] ?? []);
+            $this->auditLogService->logUserAction($request->user(), 'rbac.group.sync_permissions', 'UserRolePermissionGroup', $group->id, AuditLogResult::Success);
+            return $group->load('permissions:id,permission');
+        } catch (\Throwable $e) {
+            $this->auditLogService->logUserAction($request->user(), 'rbac.group.sync_permissions', 'UserRolePermissionGroup', $group->id, AuditLogResult::Error, $e->getMessage());
+            throw $e;
+        }
     }
 
     public function createUser(CreateUserRequest $request)
     {
         $data = $request->validated();
-        $user = $this->rbacService->createUser($data);
-        $this->auditLogService->logUserAction($request->user(), 'rbac.user.create', 'User', $user->id, 'success');
-
-        return $user->load(['roles:id,role,name', 'institution:id,name']);
+        try {
+            $user = $this->rbacService->createUser($data);
+            $this->auditLogService->logUserAction($request->user(), 'rbac.user.create', 'User', $user->id, AuditLogResult::Success);
+            return $user->load(['roles:id,role,name', 'institution:id,name']);
+        } catch (\Throwable $e) {
+            $this->auditLogService->logUserAction($request->user(), 'rbac.user.create', 'User', null, AuditLogResult::Error, $e->getMessage());
+            throw $e;
+        }
     }
 
     public function updateUser(UpdateUserRequest $request, User $user)
     {
-        $this->rbacService->updateUser($user, $request->validated());
-        $this->auditLogService->logUserAction($request->user(), 'rbac.user.update', 'User', $user->id, 'success');
-
-        return $user->load(['roles:id,role,name', 'institution:id,name']);
+        try {
+            $this->rbacService->updateUser($user, $request->validated());
+            $this->auditLogService->logUserAction($request->user(), 'rbac.user.update', 'User', $user->id, AuditLogResult::Success);
+            return $user->load(['roles:id,role,name', 'institution:id,name']);
+        } catch (\Throwable $e) {
+            $this->auditLogService->logUserAction($request->user(), 'rbac.user.update', 'User', $user->id, AuditLogResult::Error, $e->getMessage());
+            throw $e;
+        }
     }
 
     public function deleteUser(Request $request, User $user)
     {
         if (auth()->id() === $user->id) {
-            abort(422, 'Negalima ištrinti savo naudotojo.');
+            $msg = 'Negalima ištrinti savo naudotojo.';
+            $this->auditLogService->logUserAction($request->user(), 'rbac.user.archive', 'User', $user->id, AuditLogResult::Error, $msg);
+            abort(422, $msg);
         }
 
-        $user->update(['archived_at' => now()]);
-        $this->auditLogService->logUserAction($request->user(), 'rbac.user.archive', 'User', $user->id, 'success');
-
-        return response()->noContent();
+        try {
+            $user->update(['archived_at' => now()]);
+            $this->auditLogService->logUserAction($request->user(), 'rbac.user.archive', 'User', $user->id, AuditLogResult::Success);
+            return response()->noContent();
+        } catch (\Throwable $e) {
+            $this->auditLogService->logUserAction($request->user(), 'rbac.user.archive', 'User', $user->id, AuditLogResult::Error, $e->getMessage());
+            throw $e;
+        }
     }
 
     public function deleteRole(Request $request, UserRole $role)
     {
         $roleId = $role->id;
-        $role->users()->detach();
-        $role->permissionGroups()->detach();
-        $role->delete();
-        $this->auditLogService->logUserAction($request->user(), 'rbac.role.delete', 'UserRole', $roleId, 'success');
-
-        return response()->noContent();
+        try {
+            $role->users()->detach();
+            $role->permissionGroups()->detach();
+            $role->delete();
+            $this->auditLogService->logUserAction($request->user(), 'rbac.role.delete', 'UserRole', $roleId, AuditLogResult::Success);
+            return response()->noContent();
+        } catch (\Throwable $e) {
+            $this->auditLogService->logUserAction($request->user(), 'rbac.role.delete', 'UserRole', $roleId, AuditLogResult::Error, $e->getMessage());
+            throw $e;
+        }
     }
 
     public function deleteGroup(Request $request, UserRolePermissionGroup $group)
     {
         $groupId = $group->id;
-        $group->roles()->detach();
-        $group->permissions()->detach();
-        $group->delete();
-        $this->auditLogService->logUserAction($request->user(), 'rbac.group.delete', 'UserRolePermissionGroup', $groupId, 'success');
-
-        return response()->noContent();
+        try {
+            $group->roles()->detach();
+            $group->permissions()->detach();
+            $group->delete();
+            $this->auditLogService->logUserAction($request->user(), 'rbac.group.delete', 'UserRolePermissionGroup', $groupId, AuditLogResult::Success);
+            return response()->noContent();
+        } catch (\Throwable $e) {
+            $this->auditLogService->logUserAction($request->user(), 'rbac.group.delete', 'UserRolePermissionGroup', $groupId, AuditLogResult::Error, $e->getMessage());
+            throw $e;
+        }
     }
 
     public function deletePermission(Request $request, UserRolePermission $permission)
     {
         $permissionId = $permission->id;
-        $permission->groups()->detach();
-        $permission->delete();
-        $this->auditLogService->logUserAction($request->user(), 'rbac.permission.delete', 'UserRolePermission', $permissionId, 'success');
-
-        return response()->noContent();
+        try {
+            $permission->groups()->detach();
+            $permission->delete();
+            $this->auditLogService->logUserAction($request->user(), 'rbac.permission.delete', 'UserRolePermission', $permissionId, AuditLogResult::Success);
+            return response()->noContent();
+        } catch (\Throwable $e) {
+            $this->auditLogService->logUserAction($request->user(), 'rbac.permission.delete', 'UserRolePermission', $permissionId, AuditLogResult::Error, $e->getMessage());
+            throw $e;
+        }
     }
 }

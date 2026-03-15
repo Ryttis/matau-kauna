@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Enums\AuditLogResult;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\UpdatePasswordPolicyRequest;
 use App\Models\PasswordPolicy;
@@ -31,16 +32,19 @@ class PasswordPolicyController extends Controller
     public function update(UpdatePasswordPolicyRequest $request): JsonResponse
     {
         $validated = $request->validated();
-        $row = PasswordPolicy::query()->first();
-        if ($row) {
-            $row->update($validated);
-        } else {
-            $row = PasswordPolicy::create($validated);
+        try {
+            $row = PasswordPolicy::query()->first();
+            if ($row) {
+                $row->update($validated);
+            } else {
+                $row = PasswordPolicy::create($validated);
+            }
+            PasswordPolicy::clearCache();
+            $this->auditLogService->logUserAction($request->user(), 'password_policy.update', 'PasswordPolicy', $row->id, AuditLogResult::Success);
+            return response()->json(['ok' => true]);
+        } catch (\Throwable $e) {
+            $this->auditLogService->logUserAction($request->user(), 'password_policy.update', 'PasswordPolicy', null, AuditLogResult::Error, $e->getMessage());
+            throw $e;
         }
-
-        PasswordPolicy::clearCache();
-        $this->auditLogService->logUserAction($request->user(), 'password_policy.update', 'PasswordPolicy', $row->id, 'success');
-
-        return response()->json(['ok' => true]);
     }
 }
