@@ -165,6 +165,11 @@ class User extends Authenticatable implements MustVerifyEmail
         ]);
     }
 
+    public function canPublishProblems(): bool
+    {
+        return $this->isProblemAdminOrSystemAdmin();
+    }
+
     public function isInstitutionAdminOrSystemAdmin(): bool
     {
         return $this->hasAnyRole([

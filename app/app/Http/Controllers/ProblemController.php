@@ -14,7 +14,6 @@ use App\Models\User;
 use App\Models\UserRole;
 use App\Services\ProblemAssignmentNotifier;
 use App\Services\ProblemAutoAssignmentService;
-use App\Services\ProblemAutoPublishService;
 use App\Services\ProblemMapService;
 use App\Services\ProblemMergeContextService;
 use App\Services\ProblemResolutionTermService;
@@ -36,7 +35,6 @@ class ProblemController extends Controller
         private ProblemScopeService $scopeService,
         private ProblemAssignmentNotifier $assignmentNotifier,
         private ProblemAutoAssignmentService $autoAssignmentService,
-        private ProblemAutoPublishService $autoPublishService,
         private ProblemResolutionTermService $resolutionTermService
     ) {}
 
@@ -131,8 +129,6 @@ class ProblemController extends Controller
             'status_updated_at' => now(),
         ]);
 
-        $query->get()->each(fn (Problem $p) => $this->autoPublishService->applyRules($p));
-
         $message = count($ids) > 1
             ? 'Būsena atnaujinta visoms apjungtoms problemoms.'
             : 'Būsena atnaujinta';
@@ -157,15 +153,13 @@ class ProblemController extends Controller
             'status_updated_at' => now(),
         ]);
 
-        $query->get()->each(fn (Problem $p) => $this->autoPublishService->applyRules($p));
-
         return redirect()->back()->with('success', 'Būsenos atnaujintos');
     }
 
     public function updatePublish(Request $request, Problem $problem): RedirectResponse
     {
         $user = $request->user();
-        if (! $user->hasPermission('issues.publish') && ! $user->hasPermission('issues.view')) {
+        if (! $user->canPublishProblems()) {
             abort(403);
         }
         $this->scopeService->authorizeProblemAccess($user, $problem);
@@ -188,7 +182,7 @@ class ProblemController extends Controller
     public function bulkUpdatePublish(Request $request): RedirectResponse
     {
         $user = $request->user();
-        if (! $user->hasPermission('issues.publish') && ! $user->hasPermission('issues.view')) {
+        if (! $user->canPublishProblems()) {
             abort(403);
         }
         $validated = $request->validate([
@@ -246,9 +240,6 @@ class ProblemController extends Controller
         ]);
 
         $problem->update($validated);
-        $problem->refresh();
-        $this->autoPublishService->applyRules($problem);
-
         return redirect()->back()->with('success', 'Problema atnaujinta');
     }
 
@@ -843,7 +834,7 @@ class ProblemController extends Controller
             })
             ->filtered($filters)
             ->orderBy('created_at', 'desc')
-            ->get(['id', 'internal_number', 'status', 'created_at', 'title', 'category', 'address', 'description'])
+            ->get(['id', 'internal_number', 'status', 'created_at', 'title', 'category', 'address', 'description', 'is_published_publicly'])
             ->map(fn ($p) => [
                 'id' => $p->id,
                 'internal_number' => $p->internal_number,
@@ -853,6 +844,7 @@ class ProblemController extends Controller
                 'category' => $p->category,
                 'address' => $p->address,
                 'description' => $p->description ?? '',
+                'is_published_publicly' => $p->is_published_publicly,
             ])
             ->values()
             ->all();

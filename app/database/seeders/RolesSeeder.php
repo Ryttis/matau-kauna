@@ -53,6 +53,7 @@ class RolesSeeder extends Seeder
             'Roles',
             'Permissions',
             'Issues',
+            'IssuesPublish',
             'Classification',
             'Statistics',
             'Admin',
@@ -110,6 +111,9 @@ class RolesSeeder extends Seeder
             $permissions['issues.edit']->id,
             $permissions['issues.assign']->id,
             $permissions['issues.export']->id,
+        ]);
+
+        $groups['IssuesPublish']->permissions()->sync([
             $permissions['issues.publish']->id,
         ]);
 
@@ -130,6 +134,7 @@ class RolesSeeder extends Seeder
 
         $roleProblemAdmin->permissionGroups()->sync([
             $groups['Issues']->id,
+            $groups['IssuesPublish']->id,
             $groups['Classification']->id,
             $groups['Statistics']->id,
         ]);

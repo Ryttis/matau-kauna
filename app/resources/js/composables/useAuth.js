@@ -50,9 +50,7 @@ export function useAuth() {
             isInstitutionAdmin.value ||
             isSystemAdmin.value
     )
-    const canPublish = computed(
-        () => hasPermission('issues.publish') || hasPermission('issues.view')
-    )
+    const canPublish = computed(() => hasPermission('issues.publish'))
 
     return {
         user,
