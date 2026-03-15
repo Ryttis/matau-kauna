@@ -304,8 +304,8 @@ const handleClose = () => {
 
 .date-inputs :deep(.app-date-picker-icon) {
     right: 14px;
-    width: 20px;
-    height: 20px;
+    width: 18px;
+    height: 18px;
 }
 
 .filter-modal-footer {

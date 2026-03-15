@@ -1,6 +1,5 @@
 <script setup>
 import { computed, ref, watch, nextTick } from 'vue'
-import { ICON_CALENDAR } from '@/constants/icons'
 
 const MONTHS_LT = [
     'Sausis', 'Vasaris', 'Kovas', 'Balandis', 'Gegužė', 'Birželis',
@@ -164,7 +163,14 @@ defineExpose({ open, close })
                 @click="open"
             >
                 <span class="app-date-picker-value" :class="{ 'is-placeholder': !modelValue }">{{ displayValue || placeholder }}</span>
-                <img :src="ICON_CALENDAR" alt="Kalendorius" class="app-date-picker-icon" />
+                <span class="app-date-picker-icon" aria-hidden="true">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+                        <line x1="16" y1="2" x2="16" y2="6"/>
+                        <line x1="8" y1="2" x2="8" y2="6"/>
+                        <line x1="3" y1="10" x2="21" y2="10"/>
+                    </svg>
+                </span>
             </button>
             <Teleport to="body">
                 <Transition name="calendar">
@@ -286,13 +292,17 @@ defineExpose({ open, close })
     top: 50%;
     transform: translateY(-50%);
     pointer-events: none;
-    width: 20px;
-    height: 20px;
-    object-fit: contain;
-    padding: 6px;
-    box-sizing: content-box;
-    background: rgba(0, 0, 0, 0.06);
-    border-radius: 6px;
+    width: 18px;
+    height: 18px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #666;
+}
+
+.app-date-picker-icon svg {
+    width: 100%;
+    height: 100%;
 }
 
 .app-date-picker-backdrop {
