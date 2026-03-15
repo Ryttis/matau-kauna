@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Enums\AuditLogResult;
 use App\Models\AuditLog;
 use App\Models\DataRetentionRule;
 use App\Models\Problem;
@@ -83,14 +84,17 @@ class DataRetentionService
 
         $threshold = Carbon::now()->subDays($days);
         $query = AuditLog::query()->where('occurred_at', '<', $threshold);
-        $count = $query->count();
-        $query->delete();
-
-        if ($count > 0) {
-            $this->auditLogService->logSystem('audit_retention.purge', AuditLog::RESULT_SUCCESS, null, ['deleted_count' => $count]);
+        try {
+            $count = $query->count();
+            $query->delete();
+            if ($count > 0) {
+                $this->auditLogService->logSystem('audit_retention.purge', AuditLogResult::Success, null, ['deleted_count' => $count]);
+            }
+            return $count;
+        } catch (\Throwable $e) {
+            $this->auditLogService->logSystem('audit_retention.purge', AuditLogResult::Error, $e->getMessage());
+            throw $e;
         }
-
-        return $count;
     }
 
     private function getActiveProblemRule(): ?DataRetentionRule

@@ -10,9 +10,6 @@ class AuditLog extends Model
     public const ACTOR_USER = 'user';
     public const ACTOR_SYSTEM = 'system';
 
-    public const RESULT_SUCCESS = 'success';
-    public const RESULT_FAILURE = 'failure';
-
     public const EVENT_LOGIN = 'login';
     public const EVENT_LOGOUT = 'logout';
     public const EVENT_USER_ACTION = 'user_action';

@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Enums\AuditLogResult;
 use App\Models\AuditLog;
 use App\Models\AuditSetting;
 use App\Models\User;
@@ -31,7 +32,7 @@ class AuditLogService
             'actor_identifier' => $user->email,
             'event_type' => AuditLog::EVENT_LOGIN,
             'action' => 'auth.login',
-            'result' => AuditLog::RESULT_SUCCESS,
+            'result' => AuditLogResult::Success->value,
             'metadata' => [
                 'ip' => $request->ip(),
                 'user_agent' => $request->userAgent(),
@@ -47,7 +48,7 @@ class AuditLogService
             'actor_identifier' => $user->email,
             'event_type' => AuditLog::EVENT_LOGOUT,
             'action' => 'auth.logout',
-            'result' => AuditLog::RESULT_SUCCESS,
+            'result' => AuditLogResult::Success->value,
             'metadata' => [
                 'ip' => $request->ip(),
                 'user_agent' => $request->userAgent(),
@@ -55,7 +56,7 @@ class AuditLogService
         ]);
     }
 
-    public function logUserAction(?User $user, string $action, ?string $subjectType, ?int $subjectId, string $result, ?string $message = null, array $metadata = []): void
+    public function logUserAction(?User $user, string $action, ?string $subjectType, ?int $subjectId, AuditLogResult|string $result, ?string $message = null, array $metadata = []): void
     {
         if (! $this->shouldLog(AuditLog::EVENT_USER_ACTION)) {
             return;
@@ -68,13 +69,13 @@ class AuditLogService
             'action' => $action,
             'subject_type' => $subjectType,
             'subject_id' => $subjectId,
-            'result' => $result,
+            'result' => $this->normalizeResult($result),
             'message' => $message,
             'metadata' => $metadata ?: null,
         ]);
     }
 
-    public function logIntegration(string $direction, string $systemName, array $params, string $result, ?string $message = null): void
+    public function logIntegration(string $direction, string $systemName, array $params, AuditLogResult|string $result, ?string $message = null): void
     {
         if (! $this->shouldLog(AuditLog::EVENT_INTEGRATION)) {
             return;
@@ -84,7 +85,7 @@ class AuditLogService
             'actor_identifier' => 'integration',
             'event_type' => AuditLog::EVENT_INTEGRATION,
             'action' => "integration.{$direction}",
-            'result' => $result,
+            'result' => $this->normalizeResult($result),
             'message' => $message,
             'metadata' => [
                 'system' => $systemName,
@@ -93,7 +94,7 @@ class AuditLogService
         ]);
     }
 
-    public function logSystem(string $action, string $result, ?string $message = null, array $metadata = []): void
+    public function logSystem(string $action, AuditLogResult|string $result, ?string $message = null, array $metadata = []): void
     {
         if (! $this->shouldLog(AuditLog::EVENT_SYSTEM)) {
             return;
@@ -103,13 +104,13 @@ class AuditLogService
             'actor_identifier' => 'system',
             'event_type' => AuditLog::EVENT_SYSTEM,
             'action' => $action,
-            'result' => $result,
+            'result' => $this->normalizeResult($result),
             'message' => $message,
             'metadata' => $metadata ?: null,
         ]);
     }
 
-    public function logAuditConfig(?User $user, string $action, string $result, ?string $message = null): void
+    public function logAuditConfig(?User $user, string $action, AuditLogResult|string $result, ?string $message = null): void
     {
         $this->write([
             'actor_type' => AuditLog::ACTOR_USER,
@@ -117,9 +118,14 @@ class AuditLogService
             'actor_identifier' => $user ? $user->email : null,
             'event_type' => AuditLog::EVENT_AUDIT_CONFIG,
             'action' => $action,
-            'result' => $result,
+            'result' => $this->normalizeResult($result),
             'message' => $message,
         ]);
+    }
+
+    private function normalizeResult(AuditLogResult|string $result): string
+    {
+        return $result instanceof AuditLogResult ? $result->value : $result;
     }
 
     private function write(array $data): void
