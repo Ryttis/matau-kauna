@@ -100,12 +100,6 @@ const columns = [
         value: (row) => (row.created_at ? new Date(row.created_at).toLocaleDateString('lt-LT') : ''),
     },
     {
-        key: 'title',
-        label: 'Pavadinimas',
-        sortable: false,
-        value: (row) => truncate(row.title, 32),
-    },
-    {
         key: 'category',
         label: 'Kategorija',
         sortable: false,
@@ -116,6 +110,12 @@ const columns = [
         label: 'Adresas',
         sortable: false,
         value: (row) => truncate(row.address, 28),
+    },
+    {
+        key: 'is_published_publicly',
+        label: 'Viešinimas',
+        sortable: false,
+        value: (row) => row.is_published_publicly ? 'Paskelbta' : 'Nepaskelbta',
     },
     {
         key: 'view',
