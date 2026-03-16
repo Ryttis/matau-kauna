@@ -136,6 +136,18 @@ class Problem extends Model
         return $query->where('is_archived', false);
     }
 
+    public function scopeForReporter($query, int $userId)
+    {
+        return $query
+            ->whereIn('status', ['nauja', 'nagrinejama', 'isspresta'])
+            ->notArchived()
+            ->whereNull('merged_into_problem_id')
+            ->where(function ($q) use ($userId) {
+                $q->where('reported_by_user_id', $userId)
+                    ->orWhereHas('mergedProblems', fn ($q2) => $q2->where('reported_by_user_id', $userId));
+            });
+    }
+
     public function reviewHistory(): HasMany
     {
         return $this->hasMany(ProblemReviewHistory::class, 'problem_id')->orderBy('created_at', 'desc');
