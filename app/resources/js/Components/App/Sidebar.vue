@@ -98,6 +98,14 @@ const toggleStatistics = () => {
                         <span>Sąrašas</span>
                     </Link>
                     <Link
+                        :href="route('reporter.statistics')"
+                        class="nav-link"
+                        :class="{ active: isActive('/reporter/statistics') }"
+                    >
+                        <img :src="ICON_STATISTICS" class="nav-icon" alt="" />
+                        <span>Statistika</span>
+                    </Link>
+                    <Link
                         href="/dashboard"
                         class="nav-link"
                         :class="{ active: isActive('/dashboard') }"

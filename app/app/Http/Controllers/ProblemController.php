@@ -825,13 +825,7 @@ class ProblemController extends Controller
         ];
 
         $problems = Problem::query()
-            ->whereIn('status', ['nauja', 'nagrinejama', 'isspresta'])
-            ->notArchived()
-            ->whereNull('merged_into_problem_id')
-            ->where(function ($q) use ($user) {
-                $q->where('reported_by_user_id', $user->id)
-                    ->orWhereHas('mergedProblems', fn ($q2) => $q2->where('reported_by_user_id', $user->id));
-            })
+            ->forReporter($user->id)
             ->filtered($filters)
             ->orderBy('created_at', 'desc')
             ->get(['id', 'internal_number', 'status', 'created_at', 'title', 'category', 'address', 'description', 'is_published_publicly'])
@@ -856,6 +850,128 @@ class ProblemController extends Controller
             'categories' => $categories,
             'filters' => $filters,
         ]);
+    }
+
+    public function reporterStatistics(Request $request): Response
+    {
+        $user = $request->user();
+        if (! $user || ! $user->hasRole(UserRole::ROLE_REPORTER) || $user->hasPermission('issues.view')) {
+            return redirect()->route('dashboard');
+        }
+
+        $filters = [
+            'period' => $request->get('period'),
+            'category' => $request->get('category'),
+            'date_from' => $request->get('date_from'),
+            'date_to' => $request->get('date_to'),
+        ];
+
+        $query = Problem::query()
+            ->forReporter($user->id)
+            ->filtered($filters);
+
+        $problems = $query->get([
+            'id',
+            'status',
+            'category',
+            'created_at',
+            'is_published_publicly',
+            'internal_number',
+            'title',
+        ]);
+
+        $total = $problems->count();
+        $publishedCount = $problems->where('is_published_publicly', true)->count();
+
+        $byStatus = [
+            'nauja' => $problems->where('status', 'nauja')->count(),
+            'nagrinejama' => $problems->where('status', 'nagrinejama')->count(),
+            'isspresta' => $problems->where('status', 'isspresta')->count(),
+        ];
+
+        $byCategory = $problems->groupBy('category')
+            ->map(fn ($group) => $group->count())
+            ->sortDesc()
+            ->all();
+        $byCategory = array_map(
+            fn ($cat, $cnt) => ['category' => $cat, 'count' => $cnt],
+            array_keys($byCategory),
+            $byCategory
+        );
+
+        $monthlyReports = $this->buildReporterMonthlyReports($problems);
+
+        $categories = ClassifierValue::getActiveTypeNames()->values()->all();
+
+        $nagrinejamosProblemos = $problems->where('status', 'nagrinejama')
+            ->sortByDesc('created_at')
+            ->values()
+            ->map(fn ($p) => $this->mapProblemToStatisticsListItem($p))
+            ->all();
+
+        $issprestosProblemos = $problems->where('status', 'isspresta')
+            ->sortByDesc('created_at')
+            ->values()
+            ->map(fn ($p) => $this->mapProblemToStatisticsListItem($p))
+            ->all();
+
+        return Inertia::render('Reporter/Statistics', [
+            'categories' => $categories,
+            'filters' => $filters,
+            'total' => $total,
+            'publishedCount' => $publishedCount,
+            'byStatus' => $byStatus,
+            'byCategory' => array_values($byCategory),
+            'monthlyReports' => $monthlyReports,
+            'nagrinejamosProblemos' => $nagrinejamosProblemos,
+            'issprestosProblemos' => $issprestosProblemos,
+        ]);
+    }
+
+    private function mapProblemToStatisticsListItem(Problem $p): array
+    {
+        return [
+            'id' => $p->id,
+            'internal_number' => $p->internal_number,
+            'created_at' => $p->created_at?->toIso8601String(),
+            'title' => $p->title ?? '',
+        ];
+    }
+
+    private function buildReporterMonthlyReports(\Illuminate\Support\Collection $problems): array
+    {
+        $tz = config('app.timezone', 'UTC');
+        $monthlyCounts = $problems->filter(fn ($p) => $p->created_at !== null)
+            ->groupBy(fn ($p) => $p->created_at->timezone($tz)->format('Y-m'))
+            ->map->count()
+            ->all();
+
+        $end = \Carbon\Carbon::now($tz)->endOfMonth();
+        $startDefault = \Carbon\Carbon::now($tz)->subMonths(11)->startOfMonth();
+        $start = $startDefault;
+
+        if (! empty($monthlyCounts)) {
+            $monthsWithData = array_keys($monthlyCounts);
+            sort($monthsWithData);
+            $earliestMonth = \Carbon\Carbon::parse($monthsWithData[0] . '-01', $tz)->startOfMonth();
+            if ($earliestMonth->lt($start)) {
+                $start = $earliestMonth;
+            }
+        }
+
+        $monthly = [];
+        $maxMonths = 24;
+
+        for ($m = $start->copy(); $m->lte($end) && count($monthly) < $maxMonths; $m->addMonth()) {
+            $key = $m->format('Y-m');
+            $monthly[$key] = $monthlyCounts[$key] ?? 0;
+        }
+
+        return array_map(
+            fn ($month, $value) => ['month' => $month, 'value' => $value],
+            array_keys($monthly),
+            array_values($monthly)
+        );
     }
 
     public function reporterReport(Request $request): Response
