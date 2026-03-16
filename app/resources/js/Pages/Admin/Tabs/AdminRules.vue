@@ -1,6 +1,7 @@
 <script setup>
 import { ref } from 'vue'
 import ContentEditorTab from '@/Components/Admin/ContentEditorTab.vue'
+import EmailNotificationEditor from '@/Components/Admin/EmailNotificationEditor.vue'
 
 const activeSubTab = ref('terms')
 
@@ -48,7 +49,7 @@ const subTabs = [
                 type="cookies"
                 label="Slapukų informacija"
             />
-            <p v-else class="placeholder">Automatinių el. pašto pranešimų turinio valdymas – valdoma skiltyje „Pranešimai“ (viršutinis meniu).</p>
+            <EmailNotificationEditor v-else-if="activeSubTab === 'notifications'" />
         </div>
     </div>
 </template>
@@ -65,30 +66,30 @@ const subTabs = [
 .subtabs {
     display: flex;
     gap: 0;
-    margin-bottom: 0;
-    background-color: #1946a0;
+    margin-bottom: 12px;
 }
 .subtab {
-    padding: 10px 14px;
-    background: #1946a0;
+    padding: 12px 16px;
+    background: transparent;
     cursor: pointer;
-    color: #ffffff;
+    color: #666;
+    font-size: 14px;
     font-weight: 500;
     border: none;
-    margin-top: 10px;
-    margin-left: 10px;
-    border-radius: 10px 10px 0 0;
+    border-bottom: 3px solid transparent;
+}
+.subtab:hover {
+    color: #1946a0;
 }
 .subtab.active {
-    background: #ffffff;
     color: #1946a0;
+    border-bottom-color: #1946a0;
 }
 .panel {
     background: #ffffff;
     border-radius: 14px;
     padding: 20px;
     border: 1px solid #e5e7eb;
-    border-top: none;
 }
 .placeholder {
     color: #666;

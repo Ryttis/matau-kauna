@@ -151,6 +151,9 @@ Route::middleware(['auth', 'verified', 'reporter.terms'])->group(function () {
             Route::delete('/classifiers/values/{value}', [AdminClassifierController::class, 'destroyValue']);
 
             Route::get('/archive', [AdminArchiveController::class, 'index']);
+            Route::get('/email-notifications', [\App\Http\Controllers\Admin\EmailNotificationController::class, 'index']);
+            Route::put('/email-notifications/{emailNotification}', [\App\Http\Controllers\Admin\EmailNotificationController::class, 'update']);
+
             Route::get('/content-versions', [\App\Http\Controllers\Admin\ContentVersionController::class, 'index']);
             Route::post('/content-versions', [\App\Http\Controllers\Admin\ContentVersionController::class, 'store']);
             Route::put('/content-versions/{contentVersion}', [\App\Http\Controllers\Admin\ContentVersionController::class, 'update']);

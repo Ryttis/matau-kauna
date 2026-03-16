@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Models\EmailNotificationTemplate;
 use App\Models\Employee;
 use App\Models\Institution;
 use App\Models\Problem;
@@ -11,6 +12,13 @@ use Illuminate\Support\Facades\Mail;
 
 class ProblemAssignmentNotifier
 {
+    private function replacePlaceholders(string $text, array $replacements): string
+    {
+        foreach ($replacements as $placeholder => $value) {
+            $text = str_replace('{' . $placeholder . '}', (string) $value, $text);
+        }
+        return $text;
+    }
     public function notifyInstitutionAdminsOfAssignment(array $problemIds, int $institutionId): void
     {
         $this->notifyInstitutionOfAssignment($problemIds, $institutionId);
@@ -51,10 +59,9 @@ class ProblemAssignmentNotifier
             return;
         }
 
-        $lines = [];
-        $lines[] = 'Jums priskirtos naujos problemos:';
+        $problemLines = [];
         foreach ($problems as $problem) {
-            $lines[] = sprintf(
+            $problemLines[] = sprintf(
                 '- %s | %s | %s | %s',
                 $problem->internal_number,
                 $problem->title,
@@ -62,13 +69,23 @@ class ProblemAssignmentNotifier
                 route('problems.show', $problem->id)
             );
         }
-        if ($institution) {
-            $lines[] = '';
-            $lines[] = 'Įstaiga: ' . $institution->name;
-        }
+        $problemList = implode("\n", $problemLines);
+        $institutionName = $institution ? $institution->name : '';
 
-        $subject = 'Naujos priskirtos problemos';
-        $body = implode("\n", $lines);
+        $template = EmailNotificationTemplate::getByKey(EmailNotificationTemplate::KEY_INSTITUTION_ASSIGNMENT);
+        if ($template && $template->is_enabled) {
+            $subject = $this->replacePlaceholders($template->subject, [
+                'problem_list' => $problemList,
+                'institution_name' => $institutionName,
+            ]);
+            $body = $this->replacePlaceholders($template->body, [
+                'problem_list' => $problemList,
+                'institution_name' => $institutionName,
+            ]);
+        } else {
+            $subject = 'Naujos priskirtos problemos';
+            $body = "Jums priskirtos naujos problemos:\n{$problemList}\n\nĮstaiga: {$institutionName}";
+        }
 
         foreach (array_values($recipientEmails) as $email) {
             Mail::raw($body, function ($message) use ($email, $subject) {
@@ -90,11 +107,23 @@ class ProblemAssignmentNotifier
             return;
         }
 
-        $subject = 'Jums priskirta nauja problema';
-        $body = implode("\n", [
-            'Jums priskirta nauja problema:',
-            sprintf('%s | %s | %s', $problem->internal_number, $problem->title, route('problems.show', $problem->id)),
-        ]);
+        $url = route('problems.show', $problem->id);
+        $template = EmailNotificationTemplate::getByKey(EmailNotificationTemplate::KEY_EMPLOYEE_ASSIGNMENT);
+        if ($template && $template->is_enabled) {
+            $subject = $this->replacePlaceholders($template->subject, [
+                'internal_number' => $problem->internal_number,
+                'title' => $problem->title,
+                'url' => $url,
+            ]);
+            $body = $this->replacePlaceholders($template->body, [
+                'internal_number' => $problem->internal_number,
+                'title' => $problem->title,
+                'url' => $url,
+            ]);
+        } else {
+            $subject = 'Jums priskirta nauja problema';
+            $body = "Jums priskirta nauja problema:\n{$problem->internal_number} | {$problem->title} | {$url}";
+        }
 
         Mail::raw($body, function ($message) use ($user, $subject) {
             $message->to($user->email)->subject($subject);
@@ -103,16 +132,42 @@ class ProblemAssignmentNotifier
 
     public function notifyDeadlineReminder(Problem $problem, string $type): void
     {
+        $key = $type === 'overdue'
+            ? EmailNotificationTemplate::KEY_DEADLINE_OVERDUE
+            : EmailNotificationTemplate::KEY_DEADLINE_APPROACHING;
+
+        $template = EmailNotificationTemplate::getByKey($key);
+        if ($template && ! $template->is_enabled) {
+            return;
+        }
+
         $deadlineStr = $problem->completion_deadline?->format('Y-m-d') ?? '-';
-        $subject = $type === 'overdue'
-            ? "Problema {$problem->internal_number} – terminas praėjo"
-            : "Problema {$problem->internal_number} – artėja terminas";
-        $body = implode("\n", [
-            $type === 'overdue' ? 'Ši problema turėjo būti išspręsta iki ' . $deadlineStr . '.' : 'Terminas išspręsti problemą: ' . $deadlineStr . '.',
-            '',
-            sprintf('%s | %s', $problem->internal_number, $problem->title),
-            route('problems.show', $problem->id),
-        ]);
+        $url = route('problems.show', $problem->id);
+
+        if ($template) {
+            $subject = $this->replacePlaceholders($template->subject, [
+                'internal_number' => $problem->internal_number,
+                'title' => $problem->title,
+                'url' => $url,
+                'deadline_date' => $deadlineStr,
+            ]);
+            $body = $this->replacePlaceholders($template->body, [
+                'internal_number' => $problem->internal_number,
+                'title' => $problem->title,
+                'url' => $url,
+                'deadline_date' => $deadlineStr,
+            ]);
+        } else {
+            $subject = $type === 'overdue'
+                ? "Problema {$problem->internal_number} – terminas praėjo"
+                : "Problema {$problem->internal_number} – artėja terminas";
+            $body = implode("\n", [
+                $type === 'overdue' ? 'Ši problema turėjo būti išspręsta iki ' . $deadlineStr . '.' : 'Terminas išspręsti problemą: ' . $deadlineStr . '.',
+                '',
+                $problem->internal_number . ' | ' . $problem->title,
+                $url,
+            ]);
+        }
 
         $recipients = [];
         if ($problem->assigned_employee_id) {
