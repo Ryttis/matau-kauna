@@ -99,10 +99,6 @@ class AutomationService
         ];
     }
 
-    /**
-     * Pareiškėjai su paskutiniu prisijungimu ir skaičiuojamomis neaktyvumo dienomis.
-     * last_login_at papildomas iš LoginLog, jei users.last_login_at tuščias.
-     */
     public function getInactiveReportersList(): array
     {
         $users = User::query()
