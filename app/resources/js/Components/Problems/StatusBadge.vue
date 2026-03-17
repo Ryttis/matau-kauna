@@ -19,7 +19,7 @@ const badgeStyle = computed(() => getStatusBadgeStyle(props.status || 'neuzregis
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    min-height: 45px;
+    min-height: var(--button-height, 45px);
     padding: 12px 24px;
     border-radius: 15px;
     font-size: 16px;

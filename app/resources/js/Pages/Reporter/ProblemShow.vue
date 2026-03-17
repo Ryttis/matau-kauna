@@ -191,8 +191,8 @@ function goToReviewProgress() {
     align-items: center;
     justify-content: center;
     width: 100%;
-    max-width: 290px;
-    height: 45px;
+    max-width: var(--button-width, 290px);
+    height: var(--button-height, 45px);
     margin: 0 auto;
     padding: 9px 96px;
     font-size: 16px;

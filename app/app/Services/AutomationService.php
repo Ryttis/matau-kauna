@@ -4,10 +4,15 @@ namespace App\Services;
 
 use App\Enums\ProblemStatus;
 use App\Models\ClassifierValue;
+use App\Models\InactiveReporterDeletionSetting;
 use App\Models\Institution;
+use App\Models\LoginLog;
 use App\Models\ProblemAutoAssignmentRule;
 use App\Models\ProblemAutoPublishRule;
 use App\Models\ProblemResolutionTermRule;
+use App\Models\User;
+use App\Models\UserRole;
+use Illuminate\Support\Carbon;
 
 class AutomationService
 {
@@ -71,6 +76,8 @@ class AutomationService
             ->values()
             ->all();
 
+        $inactiveReporterSetting = InactiveReporterDeletionSetting::firstOrCreateDefault();
+
         return [
             'rules' => $rules,
             'categories' => $categories,
@@ -79,7 +86,59 @@ class AutomationService
             'resolutionTermRules' => $resolutionTermRules,
             'classifierTypesWithNatures' => $classifierTypesWithNatures,
             'statusOptions' => ProblemStatus::options(),
+            'inactiveReporterSetting' => [
+                'id' => $inactiveReporterSetting->id,
+                'inactivity_days' => $inactiveReporterSetting->inactivity_days,
+                'reminder_days' => $inactiveReporterSetting->reminderDays(),
+                'is_active' => $inactiveReporterSetting->is_active,
+                'inactivity_days_min' => InactiveReporterDeletionSetting::INACTIVITY_DAYS_MIN,
+                'inactivity_days_max' => InactiveReporterDeletionSetting::INACTIVITY_DAYS_MAX,
+                'inactivity_days_default' => InactiveReporterDeletionSetting::INACTIVITY_DAYS_DEFAULT,
+            ],
+            'inactiveReportersList' => $this->getInactiveReportersList(),
         ];
+    }
+
+    public function getInactiveReportersList(): array
+    {
+        $users = User::query()
+            ->notArchived()
+            ->whereHas('roles', fn ($q) => $q->where('role', UserRole::ROLE_REPORTER))
+            ->whereDoesntHave('roles', fn ($q) => $q->whereIn('role', [
+                UserRole::ROLE_SYSTEM_ADMIN,
+                UserRole::ROLE_PROBLEM_ADMIN,
+                UserRole::ROLE_INSTITUTION_ADMIN,
+                UserRole::ROLE_MUNICIPALITY_REP,
+                UserRole::ROLE_EMPLOYEE,
+            ]))
+            ->get(['id', 'name', 'surname', 'email', 'last_login_at']);
+
+        $list = [];
+        foreach ($users as $user) {
+            $lastLoginAt = $user->last_login_at;
+            if ($lastLoginAt === null) {
+                $fromLog = LoginLog::where('user_id', $user->id)
+                    ->where('event_type', LoginLog::EVENT_LOGIN)
+                    ->orderByDesc('created_at')
+                    ->value('created_at');
+                $lastLoginAt = $fromLog ? Carbon::parse($fromLog) : null;
+            }
+            $inactiveDays = $lastLoginAt
+                ? (int) $lastLoginAt->diffInDays(now(), false)
+                : null;
+
+            $list[] = [
+                'id' => $user->id,
+                'name' => trim($user->name . ' ' . ($user->surname ?? '')) ?: $user->email,
+                'email' => $user->email,
+                'last_login_at' => $lastLoginAt?->format('Y-m-d H:i'),
+                'inactive_days' => $inactiveDays,
+            ];
+        }
+
+        usort($list, fn ($a, $b) => ($b['inactive_days'] ?? -1) <=> ($a['inactive_days'] ?? -1));
+
+        return $list;
     }
 
     public function normalizeAssignmentRuleData(array $data): array

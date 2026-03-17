@@ -270,8 +270,8 @@ const handleClose = () => {
 
 .date-inputs :deep(.app-date-picker-trigger) {
     width: 100%;
-    height: 45px;
-    min-height: 45px;
+    height: var(--control-height, 45px);
+    min-height: var(--control-height, 45px);
     padding: 0 44px 0 16px;
     border: 1px solid var(--color-border, #e5e5e5);
     border-radius: 15px;
@@ -318,17 +318,21 @@ const handleClose = () => {
 
 .filter-modal-footer--narrow .filter-modal-clear-btn,
 .filter-modal-footer--narrow .filter-modal-apply-btn {
-    max-width: 260px;
+    width: var(--button-width, 290px);
+    height: var(--button-height, 45px);
+    min-height: var(--button-height, 45px);
 }
 
 .filter-modal-clear-btn,
 .filter-modal-apply-btn {
-    width: 100%;
-    max-width: 340px;
+    width: var(--button-width, 290px);
+    height: var(--button-height, 45px);
+    min-height: var(--button-height, 45px);
+    max-width: 100%;
     margin-bottom: 0 !important;
-    border-radius: 15px !important;
-    padding: 8px 18px !important;
-    min-height: 40px;
+    border-radius: var(--button-border-radius, 15px) !important;
+    padding: 0 24px !important;
+    box-sizing: border-box;
     display: inline-flex;
     align-items: center;
     justify-content: center;

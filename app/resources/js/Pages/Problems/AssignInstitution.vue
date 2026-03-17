@@ -401,7 +401,7 @@ input:checked + .slider:before {
 }
 
 .field-fixed-width {
-    width: 290px;
+    width: var(--button-width, 290px);
     max-width: 100%;
 }
 
@@ -420,7 +420,7 @@ input:checked + .slider:before {
 }
 
 .btn-row {
-    width: 290px;
+    width: var(--button-width, 290px);
     max-width: 100%;
 }
 

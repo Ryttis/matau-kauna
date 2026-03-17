@@ -4,8 +4,10 @@ namespace App\Http\Controllers;
 
 use App\Enums\AuditLogResult;
 use App\Http\Requests\Automation\AssignmentRuleRequest;
+use App\Http\Requests\Automation\InactiveReporterSettingRequest;
 use App\Http\Requests\Automation\PublishRuleRequest;
 use App\Http\Requests\Automation\ResolutionTermRuleRequest;
+use App\Models\InactiveReporterDeletionSetting;
 use App\Models\ProblemAutoAssignmentRule;
 use App\Models\ProblemAutoPublishRule;
 use App\Models\ProblemResolutionTermRule;
@@ -163,5 +165,18 @@ class AutomationController extends Controller
             $this->auditLogService->logUserAction(request()->user(), 'automation.resolution_term_rule.destroy', 'ProblemResolutionTermRule', $id, AuditLogResult::Error, $e->getMessage());
             throw $e;
         }
+    }
+
+    public function updateInactiveReporterSetting(InactiveReporterSettingRequest $request): RedirectResponse
+    {
+        $this->authorizeAutomation();
+        $validated = $request->validated();
+        $setting = InactiveReporterDeletionSetting::firstOrCreateDefault();
+        $setting->update([
+            'inactivity_days' => (int) $validated['inactivity_days'],
+            'is_active' => (bool) ($validated['is_active'] ?? $setting->is_active),
+        ]);
+        $this->auditLogService->logUserAction($request->user(), 'automation.inactive_reporter_setting.update', 'InactiveReporterDeletionSetting', $setting->id, AuditLogResult::Success);
+        return redirect()->route('automation.index')->with('success', 'Nebenaudojamų paskyrų nustatymai atnaujinti.');
     }
 }

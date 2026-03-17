@@ -159,8 +159,8 @@ const submit = () => {
 
 .register-field--actions :deep(.app-button) {
     width: 100%;
-    height: 45px;
-    min-height: 45px;
+    height: var(--button-height, 45px);
+    min-height: var(--button-height, 45px);
     margin-bottom: 0;
 }
 

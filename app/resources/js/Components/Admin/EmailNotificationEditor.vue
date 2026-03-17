@@ -12,7 +12,7 @@ const savingId = ref(null)
 const errorMessage = ref('')
 const successMessage = ref('')
 
-const reminderKeys = ['deadline_approaching', 'deadline_overdue']
+const reminderKeys = ['deadline_approaching', 'deadline_overdue', 'inactive_reporter_reminder']
 
 const selectedTemplate = computed(() => {
     if (selectedTemplateId.value === '' || selectedTemplateId.value === null || selectedTemplateId.value === undefined) return null
@@ -61,6 +61,7 @@ function saveTemplate(template) {
 function placeholderHint(key) {
     if (key === 'institution_assignment') return 'Laukai: {problem_list}, {institution_name}'
     if (key === 'employee_assignment') return 'Laukai: {internal_number}, {title}, {url}'
+    if (key === 'inactive_reporter_reminder') return 'Laukai: {user_name}, {deletion_date}, {inactivity_days}'
     if (reminderKeys.includes(key)) return 'Laukai: {internal_number}, {title}, {url}, {deadline_date}'
     return ''
 }

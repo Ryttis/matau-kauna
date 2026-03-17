@@ -44,6 +44,7 @@ Route::middleware(['auth', 'verified', 'reporter.terms'])->group(function () {
         Route::middleware(['automation'])->group(function () {
             Route::get('/automation', [AutomationController::class, 'index'])->name('automation.index');
             Route::post('/automation', [AutomationController::class, 'store'])->name('automation.store');
+            Route::put('/automation/inactive-reporter-setting', [AutomationController::class, 'updateInactiveReporterSetting'])->name('automation.inactiveReporterSetting.update');
             Route::put('/automation/{rule}', [AutomationController::class, 'update'])->name('automation.update');
             Route::delete('/automation/{rule}', [AutomationController::class, 'destroy'])->name('automation.destroy');
             Route::post('/automation/publish-rules', [AutomationController::class, 'storePublishRule'])->name('automation.publishRules.store');

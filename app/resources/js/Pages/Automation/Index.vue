@@ -10,6 +10,7 @@ import SuccessModal from '@/Components/App/SuccessModal.vue'
 import BaseModal from '@/Components/App/BaseModal.vue'
 import ConfirmModal from '@/Components/App/ConfirmModal.vue'
 import { useSuccessModal } from '@/composables/useSuccessModal'
+import { AUTOMATION_SECTIONS, INACTIVITY_DAYS_FALLBACK } from '@/constants/automation'
 
 const { showSuccessModal, successMessage, closeSuccessModal } = useSuccessModal()
 
@@ -21,6 +22,8 @@ const props = defineProps({
     resolutionTermRules: Array,
     classifierTypesWithNatures: Array,
     statusOptions: Array,
+    inactiveReporterSetting: Object,
+    inactiveReportersList: Array,
 })
 
 const showFormModal = ref(false)
@@ -37,6 +40,21 @@ const showTermRuleModal = ref(false)
 const showTermRuleDeleteModal = ref(false)
 const termRuleFormId = ref(null)
 const termRuleToDelete = ref(null)
+
+const activeSection = ref('assignment')
+
+const inactiveReporterForm = ref({
+    inactivity_days: props.inactiveReporterSetting?.inactivity_days_default ?? INACTIVITY_DAYS_FALLBACK,
+    is_active: false,
+})
+const inactiveReporterMinDays = computed(() => props.inactiveReporterSetting?.inactivity_days_min ?? 30)
+const inactiveReporterMaxDays = computed(() => props.inactiveReporterSetting?.inactivity_days_max ?? 3650)
+const canSaveInactiveReporterSetting = computed(() => {
+    const f = inactiveReporterForm.value
+    const minD = inactiveReporterMinDays.value
+    const maxD = inactiveReporterMaxDays.value
+    return f.inactivity_days != null && f.inactivity_days >= minD && f.inactivity_days <= maxD
+})
 const defaultInstitutionId = computed(() =>
     props.institutions?.length ? String(props.institutions[0].id) : ''
 )
@@ -250,6 +268,24 @@ const termRuleRusisOptions = computed(() => {
 
 const termRuleRusisDisabled = computed(() => !termRuleForm.value.category)
 
+function syncInactiveReporterFormFromProps() {
+    const s = props.inactiveReporterSetting
+    if (!s) return
+    inactiveReporterForm.value = {
+        inactivity_days: s.inactivity_days ?? s.inactivity_days_default ?? INACTIVITY_DAYS_FALLBACK,
+        is_active: s.is_active ?? false,
+    }
+}
+
+function submitInactiveReporterForm() {
+    router.put(route('automation.inactiveReporterSetting.update'), {
+        inactivity_days: inactiveReporterForm.value.inactivity_days,
+        is_active: inactiveReporterForm.value.is_active,
+    }, { preserveScroll: true })
+}
+
+watch(() => props.inactiveReporterSetting, syncInactiveReporterFormFromProps, { immediate: true })
+
 watch(
     () => termRuleForm.value.category,
     (newCat) => {
@@ -283,6 +319,19 @@ watch(
         />
         <div class="automation-page">
             <h1 class="automation-title">Automatizacija</h1>
+            <div class="automation-section-select-wrap">
+                <label class="automation-section-label">Automatizacija</label>
+                <AppSelect
+                    v-model="activeSection"
+                    class="automation-section-select"
+                    variant="white"
+                    :rounded="true"
+                >
+                    <option v-for="opt in AUTOMATION_SECTIONS" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
+                </AppSelect>
+            </div>
+
+            <template v-if="activeSection === 'assignment'">
             <p class="automation-desc">
                 Problemos pagal kategoriją automatiškai priskiriamos įstaigoms.
             </p>
@@ -316,7 +365,9 @@ watch(
                 </table>
                 <p v-else class="automation-empty">Nėra taisyklių. Pridėkite taisyklę, kad problemos būtų automatiškai priskiriamos įstaigoms.</p>
             </div>
+            </template>
 
+            <template v-if="activeSection === 'publish'">
             <h2 class="automation-subtitle">Publikavimo taisyklės</h2>
             <p class="automation-desc">
                 Nustatykite, kada problemos bus paskelbiamos viešai.
@@ -349,7 +400,9 @@ watch(
                 </table>
                 <p v-else class="automation-empty">Nėra publikavimo taisyklių.</p>
             </div>
+            </template>
 
+            <template v-if="activeSection === 'resolution_term'">
             <h2 class="automation-subtitle">Sprendimo terminų taisyklės</h2>
             <p class="automation-desc">
                 Nustatykite, kiek dienų įstaiga turi išspręsti problemą. Terminas priskiriamas pagal įstaigą ir kategoriją.
@@ -386,6 +439,53 @@ watch(
                 </table>
                 <p v-else class="automation-empty">Nėra sprendimo termino taisyklių. Pridėkite taisyklę, kad problemoms būtų automatiškai nustatomas terminas.</p>
             </div>
+            </template>
+
+            <template v-if="activeSection === 'inactive_reporter'">
+            <h2 class="automation-subtitle">Nebenaudojamos pareiškėjo paskyros</h2>
+            <p class="automation-desc">
+                Automatiškai šalinti pareiškėjų paskyras, jei prie paskyros nebuvo prisijungta ilgiau nei nustatytas terminas. Priminimas siunčiamas prieš pusę termino (apvalinant į didesnę pusę).
+            </p>
+            <div class="automation-inactive-settings">
+                <AppInput
+                    v-model.number="inactiveReporterForm.inactivity_days"
+                    type="number"
+                    label="Neaktyvumo terminas (dienomis)"
+                    :min="inactiveReporterMinDays"
+                    :max="inactiveReporterMaxDays"
+                />
+                <label class="automation-form-checkbox">
+                    <AppCheckbox v-model="inactiveReporterForm.is_active" />
+                    <span>Aktyvuoti automatinį šalinimą</span>
+                </label>
+                <AppButton
+                    text="Išsaugoti nustatymus"
+                    variant="primary"
+                    as-button
+                    :disabled="!canSaveInactiveReporterSetting"
+                    @click="submitInactiveReporterForm"
+                />
+            </div>
+            <div class="automation-table-wrap">
+                <table class="automation-table" v-if="inactiveReportersList?.length">
+                    <thead>
+                        <tr>
+                            <th>Vartotojas</th>
+                            <th>Paskutinis prisijungimas</th>
+                            <th>Neaktyvumo dienos</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr v-for="row in inactiveReportersList" :key="row.id">
+                            <td>{{ row.name }} <span class="automation-email">({{ row.email }})</span></td>
+                            <td>{{ row.last_login_at ?? '—' }}</td>
+                            <td>{{ row.inactive_days != null ? row.inactive_days : '—' }}</td>
+                        </tr>
+                    </tbody>
+                </table>
+                <p v-else class="automation-empty">Nėra pareiškėjų arba jie dar neprisijungė.</p>
+            </div>
+            </template>
         </div>
 
         <BaseModal
@@ -505,6 +605,7 @@ watch(
             @close="showTermRuleDeleteModal = false"
             @confirm="doTermRuleDelete"
         />
+
     </AuthenticatedLayout>
 </template>
 
@@ -514,23 +615,48 @@ watch(
     margin: 0;
     padding: 24px 32px;
 }
+.automation-section-select-wrap {
+    margin-bottom: 24px;
+    width: 100%;
+    max-width: 420px;
+}
+.automation-section-select-wrap :deep(.app-select-wrapper),
+.automation-section-select-wrap :deep(.app-select) {
+    width: 100%;
+    max-width: 100%;
+}
+.automation-section-label {
+    display: block;
+    margin-bottom: 6px;
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--color-text, #333);
+}
+.automation-section-select :deep(.app-select-group) {
+    margin-bottom: 0;
+}
+.automation-form-hint {
+    margin: -8px 0 0 0;
+    font-size: 13px;
+    color: var(--color-text-muted, #666);
+}
 .automation-title {
     font-size: 24px;
     font-weight: 600;
-    color: #333;
+    color: var(--color-text, #333);
     margin: 0 0 8px 0;
     font-family: 'Inter', sans-serif;
 }
 .automation-desc {
     font-size: 14px;
-    color: #666;
+    color: var(--color-text-muted, #666);
     margin: 0 0 24px 0;
     line-height: 1.5;
 }
 .automation-subtitle {
     font-size: 18px;
     font-weight: 600;
-    color: #333;
+    color: var(--color-text, #333);
     margin: 32px 0 8px 0;
     font-family: 'Inter', sans-serif;
 }
@@ -549,37 +675,48 @@ watch(
 .automation-table td {
     padding: 12px 16px;
     text-align: left;
-    border-bottom: 1px solid #e0e0e0;
+    border-bottom: 1px solid var(--color-border, #e0e0e0);
 }
 .automation-table th {
     font-weight: 600;
-    color: #333;
-    background: #f6f7f9;
+    color: var(--color-text, #333);
+    background: var(--color-bg-subtle, #f6f7f9);
 }
 .automation-table td {
-    color: #333;
+    color: var(--color-text, #333);
 }
 .automation-link {
     background: none;
     border: none;
-    color: #1946A0;
+    color: var(--color-primary, #1946A0);
     cursor: pointer;
     font-size: 14px;
     padding: 0;
     text-decoration: underline;
 }
 .automation-link:hover {
-    color: #0d3580;
+    color: var(--color-primary-hover, #153a8a);
 }
 .automation-sep {
     margin: 0 6px;
-    color: #999;
+    color: var(--color-text-muted, #999);
 }
 .automation-empty {
-    color: #666;
+    color: var(--color-text-muted, #666);
     font-size: 14px;
     margin: 0;
     padding: 24px 0;
+}
+.automation-inactive-settings {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    max-width: 360px;
+    margin-bottom: 24px;
+}
+.automation-email {
+    color: var(--color-text-muted, #666);
+    font-size: 13px;
 }
 .automation-form {
     display: flex;
@@ -592,7 +729,7 @@ watch(
     gap: 10px;
     cursor: pointer;
     font-size: 14px;
-    color: #333;
+    color: var(--color-text, #333);
 }
 
 .automation-rule-modal :deep(.modal-footer) {

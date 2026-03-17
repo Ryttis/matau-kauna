@@ -16,6 +16,7 @@ class EmailNotificationTemplate extends Model
     public const KEY_EMPLOYEE_ASSIGNMENT = 'employee_assignment';
     public const KEY_DEADLINE_APPROACHING = 'deadline_approaching';
     public const KEY_DEADLINE_OVERDUE = 'deadline_overdue';
+    public const KEY_INACTIVE_REPORTER_REMINDER = 'inactive_reporter_reminder';
 
     public static function getByKey(string $key): ?self
     {

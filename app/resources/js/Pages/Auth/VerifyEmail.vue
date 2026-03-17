@@ -91,8 +91,8 @@ const resend = () => {
 
 .verify-email-actions :deep(.app-button) {
     width: 100%;
-    height: 45px;
-    min-height: 45px;
+    height: var(--button-height, 45px);
+    min-height: var(--button-height, 45px);
     display: flex;
     align-items: center;
     justify-content: center;
