@@ -244,7 +244,7 @@ defineExpose({ open, close })
 .app-date-picker-trigger-wrap {
     position: relative;
     width: 100%;
-    max-width: 290px;
+    max-width: var(--button-width, 290px);
     display: inline-block;
 }
 

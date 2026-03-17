@@ -419,6 +419,6 @@ const saveUserRoles = async () => {
 
 <style scoped>
 .actions {
-    width: 240px;
+    width: var(--button-width, 290px);
 }
 </style>

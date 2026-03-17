@@ -154,9 +154,10 @@ const value = computed({
     background-color: #ffffff;
     color: #333333;
     border: 1px solid #e0e0e0;
-    padding: 10px 40px 10px 15px;
-    height: 40px;
-    line-height: 20px;
+    padding: 10px 45px 10px 15px;
+    height: 44px;
+    line-height: 1.35;
+    box-sizing: border-box;
 }
 
 .app-select--white:focus {

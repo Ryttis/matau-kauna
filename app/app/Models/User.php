@@ -27,6 +27,8 @@ class User extends Authenticatable implements MustVerifyEmail
         'reporter_wizard_completed_at',
         'reporter_report_terms_accepted_at',
         'archived_at',
+        'last_login_at',
+        'inactive_reporter_reminder_sent_at',
     ];
 
     protected $hidden = [
@@ -46,6 +48,8 @@ class User extends Authenticatable implements MustVerifyEmail
             'email_notifications_enabled' => 'boolean',
             'email_updates_institution_admin' => 'boolean',
             'archived_at' => 'datetime',
+            'last_login_at' => 'datetime',
+            'inactive_reporter_reminder_sent_at' => 'datetime',
         ];
     }
 

@@ -34,6 +34,7 @@ class AuthenticatedSessionController extends Controller
         $request->session()->regenerate();
 
         $user = $request->user();
+        $user->update(['last_login_at' => now(), 'inactive_reporter_reminder_sent_at' => null]);
         LoginLog::create([
             'user_id' => $user->id,
             'event_type' => LoginLog::EVENT_LOGIN,

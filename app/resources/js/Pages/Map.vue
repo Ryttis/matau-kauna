@@ -270,7 +270,7 @@ const statusIndicatorVars = {
     flex-direction: column;
     gap: 15px;
     align-items: center;
-    max-width: 290px;
+    max-width: var(--button-width, 290px);
     margin: 0 auto;
 }
 
@@ -284,7 +284,7 @@ const statusIndicatorVars = {
 
 .address-input {
     width: 100%;
-    height: 45px;
+    height: var(--control-height, 45px);
     border: none;
     border-radius: 5px;
     background-color: #FFFFFF;
