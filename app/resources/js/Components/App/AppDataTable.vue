@@ -28,15 +28,18 @@ defineProps({
 .app-data-table {
     width: 100%;
     border-collapse: collapse;
+    border-spacing: 0;
     font-size: 14px;
     font-family: 'Inter', sans-serif;
 }
 
 .app-data-table :deep(th),
 .app-data-table :deep(td) {
-    padding: 10px 12px;
+    padding: 12px 12px;
     text-align: left;
     border-bottom: 1px solid #e8e8e8;
+    vertical-align: middle;
+    box-sizing: border-box;
 }
 
 .app-data-table :deep(th) {

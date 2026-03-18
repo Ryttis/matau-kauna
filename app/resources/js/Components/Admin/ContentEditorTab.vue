@@ -331,14 +331,17 @@ function formatDate(s) {
 .versions-table {
     width: 100%;
     border-collapse: collapse;
+    border-spacing: 0;
     font-size: 14px;
     margin-bottom: 24px;
 }
 .versions-table th,
 .versions-table td {
-    padding: 8px 12px;
+    padding: 10px 12px;
     text-align: left;
     border-bottom: 1px solid #e5e7eb;
+    vertical-align: middle;
+    box-sizing: border-box;
 }
 .versions-table th { font-weight: 600; color: #374151; background: #f9fafb; }
 .badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 12px; }

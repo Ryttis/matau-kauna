@@ -669,6 +669,7 @@ watch(
 .automation-table {
     width: 100%;
     border-collapse: collapse;
+    border-spacing: 0;
     font-size: 14px;
 }
 .automation-table th,
@@ -676,6 +677,8 @@ watch(
     padding: 12px 16px;
     text-align: left;
     border-bottom: 1px solid var(--color-border, #e0e0e0);
+    vertical-align: middle;
+    box-sizing: border-box;
 }
 .automation-table th {
     font-weight: 600;

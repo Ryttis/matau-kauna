@@ -120,10 +120,7 @@ const saveRoleGroups = async () => {
                             {{ g.name }}
                         </span>
                     </td>
-                    <td class="actions">
-                        <button type="button" class="link-btn" @click="openAssignGroups(r)">Grupės</button>
-                        <button type="button" class="link-btn danger" @click="openDelete(r)">Trinti</button>
-                    </td>
+                    <td class="actions"><span class="actions-row"><button type="button" class="link-btn" @click="openAssignGroups(r)">Grupės</button><button type="button" class="link-btn danger" @click="openDelete(r)">Trinti</button></span></td>
                 </tr>
             </tbody>
         </table>
@@ -190,9 +187,3 @@ const saveRoleGroups = async () => {
         />
     </div>
 </template>
-
-<style scoped>
-.actions {
-    width: 170px;
-}
-</style>

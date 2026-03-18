@@ -344,15 +344,17 @@ onMounted(async () => {
 .table {
     width: 100%;
     border-collapse: collapse;
+    border-spacing: 0;
 }
 
 th,
 td {
     text-align: left;
-    padding: 10px;
+    padding: 12px 10px;
     border-bottom: 1px solid var(--color-border-light);
     font-size: 13px;
-    vertical-align: top;
+    vertical-align: middle;
+    box-sizing: border-box;
 }
 
 .pill {

@@ -217,17 +217,20 @@ table {
     margin-top: 40px;
     font-family: 'Inter', sans-serif;
     border-collapse: collapse;
+    border-spacing: 0;
 }
 
 th {
     font-size: 12px;
     font-weight: 400;
-    line-height: 150%;
+    line-height: 1.4;
     letter-spacing: -1.1%;
     color: #1E1C1C;
     text-align: left;
-    padding: 10px;
+    padding: 12px 10px;
     border-bottom: 1px solid var(--color-border, #e5e5e5);
+    vertical-align: middle;
+    box-sizing: border-box;
 }
 
 th.sortable {
@@ -243,10 +246,12 @@ td {
     padding: 12px 10px;
     font-size: 12px;
     font-weight: 400;
-    line-height: 150%;
+    line-height: 1.4;
     letter-spacing: -1.1%;
     color: #1E1C1C;
     border-bottom: 1px solid var(--color-border, #e5e5e5);
+    vertical-align: middle;
+    box-sizing: border-box;
 }
 
 tbody tr:hover {

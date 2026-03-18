@@ -339,13 +339,16 @@ loadSettings()
 .data-table {
     width: 100%;
     border-collapse: collapse;
+    border-spacing: 0;
     font-size: 14px;
 }
 .data-table th,
 .data-table td {
-    padding: 10px 12px;
+    padding: 12px 12px;
     text-align: left;
     border-bottom: 1px solid var(--color-border);
+    vertical-align: middle;
+    box-sizing: border-box;
 }
 .data-table th {
     font-weight: 600;

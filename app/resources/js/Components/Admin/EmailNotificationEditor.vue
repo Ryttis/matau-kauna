@@ -4,13 +4,14 @@ import axios from 'axios'
 import AppButton from '@/Components/App/AppButton.vue'
 import AppCheckbox from '@/Components/App/AppCheckbox.vue'
 import AppSelect from '@/Components/App/AppSelect.vue'
+import SuccessModal from '@/Components/App/SuccessModal.vue'
 
 const templates = ref([])
 const selectedTemplateId = ref(null)
 const loading = ref(true)
 const savingId = ref(null)
 const errorMessage = ref('')
-const successMessage = ref('')
+const showSuccessModal = ref(false)
 
 const reminderKeys = ['deadline_approaching', 'deadline_overdue', 'inactive_reporter_reminder']
 
@@ -44,15 +45,13 @@ function load() {
 function saveTemplate(template) {
     savingId.value = template.id
     errorMessage.value = ''
-    successMessage.value = ''
     axios.put(`/admin/email-notifications/${template.id}`, {
         subject: template.subject,
         body: template.body,
         is_enabled: template.is_enabled,
     })
         .then(() => {
-            successMessage.value = 'Išsaugota.'
-            setTimeout(() => { successMessage.value = '' }, 3000)
+            showSuccessModal.value = true
         })
         .catch(() => { errorMessage.value = 'Nepavyko išsaugoti' })
         .finally(() => { savingId.value = null })
@@ -75,7 +74,6 @@ onMounted(() => load())
             Pasirinkite el. laišką ir redaguokite jo temą bei turinį. Priminimams galite įjungti arba išjungti siuntimą.
         </p>
         <p v-if="errorMessage" class="email-notification-editor-error">{{ errorMessage }}</p>
-        <p v-if="successMessage" class="email-notification-editor-success">{{ successMessage }}</p>
         <div v-if="loading" class="email-notification-editor-loading">Kraunama…</div>
         <template v-else>
             <div class="email-notification-editor-select-wrap">
@@ -132,6 +130,11 @@ onMounted(() => load())
                 />
             </div>
         </template>
+        <SuccessModal
+            :show="showSuccessModal"
+            message="Išsaugota."
+            @close="showSuccessModal = false"
+        />
     </div>
 </template>
 
@@ -143,11 +146,6 @@ onMounted(() => load())
 }
 .email-notification-editor-error {
     color: #c00;
-    margin: 0 0 12px 0;
-    font-size: 14px;
-}
-.email-notification-editor-success {
-    color: #0a0;
     margin: 0 0 12px 0;
     font-size: 14px;
 }

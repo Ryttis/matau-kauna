@@ -24,6 +24,7 @@
 
 <template>
     <div class="header">
+        <Link :href="route('dashboard')" class="header-logo">Matau Kauną</Link>
         <div class="header-icons" v-if="isAuthenticated">
             <div v-if="showRoleSwitcher" class="role-switcher-wrp">
                 <button
@@ -72,6 +73,23 @@
         background-color: var(--color-primary, #1946A0);
         width: 100%;
         display: flex;
+        align-items: center;
+    }
+
+    .header-logo {
+        font-size: 1.25rem;
+        font-weight: 700;
+        font-style: italic;
+        color: var(--color-white, #fff);
+        text-decoration: none;
+        margin-left: 100px;
+        flex-shrink: 0;
+    }
+
+    .header-logo:hover {
+        color: var(--color-white, #fff);
+        text-decoration: none;
+        opacity: 0.9;
     }
 
     .header-icons {

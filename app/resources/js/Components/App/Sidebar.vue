@@ -108,7 +108,7 @@ const toggleStatistics = () => {
                     <Link
                         href="/dashboard"
                         class="nav-link"
-                        :class="{ active: isActive('/dashboard') }"
+                        :class="{ active: page.url === '/dashboard' || page.url.startsWith('/dashboard?') }"
                     >
                         <img :src="ICON_MAP" class="nav-icon" alt="" />
                         <span>Žemėlapis</span>
