@@ -120,9 +120,3 @@ const deletePermission = async () => {
         />
     </div>
 </template>
-
-<style scoped>
-.actions {
-    width: 120px;
-}
-</style>

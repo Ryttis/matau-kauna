@@ -398,9 +398,11 @@ onMounted(load)
 }
 .table th,
 .table td {
-    padding: 10px 14px;
+    padding: 12px 14px;
     text-align: left;
     border-bottom: 1px solid #e5e7eb;
+    vertical-align: middle;
+    box-sizing: border-box;
 }
 .table th {
     font-weight: 600;

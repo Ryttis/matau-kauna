@@ -238,11 +238,7 @@ const saveUserRoles = async () => {
                             {{ r.name }}
                         </span>
                     </td>
-                    <td class="actions">
-                        <button type="button" class="link-btn" @click="openAssignRoles(u)">Rolės</button>
-                        <button type="button" class="link-btn" @click="openEdit(u)">Redaguoti</button>
-                        <button type="button" class="link-btn danger" @click="openDelete(u)">Trinti</button>
-                    </td>
+                    <td class="actions"><span class="actions-row"><button type="button" class="link-btn" @click="openAssignRoles(u)">Rolės</button><button type="button" class="link-btn" @click="openEdit(u)">Redaguoti</button><button type="button" class="link-btn danger" @click="openDelete(u)">Trinti</button></span></td>
                 </tr>
             </tbody>
         </table>
@@ -416,9 +412,3 @@ const saveUserRoles = async () => {
         />
     </div>
 </template>
-
-<style scoped>
-.actions {
-    width: var(--button-width, 290px);
-}
-</style>

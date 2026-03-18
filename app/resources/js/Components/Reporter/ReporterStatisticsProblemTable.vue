@@ -73,16 +73,20 @@ function formatDate(isoDateString) {
 
 .reporter-statistics-table th {
     text-align: left;
-    padding: 10px 12px;
+    padding: 12px 12px;
     color: #666;
     font-weight: 500;
     border-bottom: 1px solid #eee;
+    vertical-align: middle;
+    box-sizing: border-box;
 }
 
 .reporter-statistics-table td {
-    padding: 10px 12px;
+    padding: 12px 12px;
     border-bottom: 1px solid #eee;
     color: #333;
+    vertical-align: middle;
+    box-sizing: border-box;
 }
 
 .reporter-statistics-table tbody tr:last-child td {

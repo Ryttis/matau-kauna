@@ -133,14 +133,7 @@ const saveGroupPermissions = async () => {
                             {{ r.name }}
                         </span>
                     </td>
-                    <td class="actions">
-                        <button type="button" class="link-btn" @click="openAssignPermissions(g)">
-                            Teisės
-                        </button>
-                        <button type="button" class="link-btn danger" @click="openDelete(g)">
-                            Trinti
-                        </button>
-                    </td>
+                    <td class="actions"><span class="actions-row"><button type="button" class="link-btn" @click="openAssignPermissions(g)">Teisės</button><button type="button" class="link-btn danger" @click="openDelete(g)">Trinti</button></span></td>
                 </tr>
             </tbody>
         </table>
@@ -209,9 +202,3 @@ const saveGroupPermissions = async () => {
         />
     </div>
 </template>
-
-<style scoped>
-.actions {
-    width: 170px;
-}
-</style>

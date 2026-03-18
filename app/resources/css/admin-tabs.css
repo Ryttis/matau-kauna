@@ -39,9 +39,10 @@
 .admin-tab .table th,
 .admin-tab .table td {
     text-align: left;
-    padding: 10px 12px;
+    padding: 12px 12px;
     border-bottom: 1px solid var(--color-border, #e5e5e5);
     vertical-align: middle;
+    box-sizing: border-box;
 }
 
 .admin-tab .table th {
@@ -62,10 +63,15 @@
 }
 
 .admin-tab .actions {
-    display: flex;
+    white-space: nowrap;
+    vertical-align: middle;
+}
+
+.admin-tab .actions-row {
+    display: inline-flex;
     align-items: center;
-    flex-wrap: wrap;
-    gap: 0 4px;
+    flex-wrap: nowrap;
+    gap: 0;
 }
 
 .admin-tab .link-btn {
@@ -73,22 +79,27 @@
     background: transparent;
     color: var(--color-primary);
     cursor: pointer;
-    padding: 2px 6px;
-    margin: 0 -2px;
+    padding: 0;
+    margin: 0;
     font-weight: 500;
     font-size: var(--admin-font-size, 14px);
     text-decoration: none;
-    border-radius: 2px;
+    border-radius: 0;
+    line-height: 1.4;
+    vertical-align: baseline;
 }
 
 .admin-tab .link-btn:hover {
     text-decoration: underline;
 }
 
-.admin-tab .link-btn:not(:first-child) {
-    border-left: 1px solid var(--color-border, #e5e5e5);
-    margin-left: 4px;
-    padding-left: 10px;
+.admin-tab .actions-row .link-btn + .link-btn::before {
+    content: '|';
+    color: var(--color-border, #c8c8c8);
+    margin: 0 0.5rem;
+    font-weight: 400;
+    text-decoration: none;
+    pointer-events: none;
 }
 
 .admin-tab .link-btn.danger {
