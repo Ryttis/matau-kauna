@@ -217,7 +217,6 @@ table {
     margin-top: 40px;
     font-family: 'Inter', sans-serif;
     border-collapse: collapse;
-    border-spacing: 0;
 }
 
 th {

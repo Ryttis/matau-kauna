@@ -33,9 +33,7 @@
 .admin-tab .table {
     width: 100%;
     border-collapse: collapse;
-    border-spacing: 0;
     font-size: var(--admin-font-size, 14px);
-    table-layout: auto;
 }
 
 .admin-tab .table th,
@@ -64,7 +62,6 @@
     font-size: var(--admin-font-size, 14px);
 }
 
-/* Flex tik viduje span – ne ant td, kad lentelės rėmeliai liktų vienoje linijoje */
 .admin-tab .actions {
     white-space: nowrap;
     vertical-align: middle;
@@ -75,7 +72,6 @@
     align-items: center;
     flex-wrap: nowrap;
     gap: 0;
-    vertical-align: middle;
 }
 
 .admin-tab .link-btn {

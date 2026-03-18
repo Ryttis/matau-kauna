@@ -339,7 +339,6 @@ loadSettings()
 .data-table {
     width: 100%;
     border-collapse: collapse;
-    border-spacing: 0;
     font-size: 14px;
 }
 .data-table th,

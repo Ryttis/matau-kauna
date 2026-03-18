@@ -564,7 +564,6 @@ async function removeNature(nature) {
 .values-table {
     width: 100%;
     border-collapse: collapse;
-    border-spacing: 0;
     font-size: 14px;
 }
 .values-table th,
