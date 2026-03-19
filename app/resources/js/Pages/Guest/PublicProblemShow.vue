@@ -57,12 +57,6 @@ const formattedDate = computed(() => {
                 <div class="public-problem-content">
                     <div class="public-problem-fields">
                         <AppInput
-                            :model-value="problem?.title"
-                            label="Pavadinimas"
-                            type="text"
-                            readonly
-                        />
-                        <AppInput
                             :model-value="problem?.category"
                             label="Kategorija"
                             type="text"

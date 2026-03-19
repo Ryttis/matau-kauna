@@ -5,6 +5,7 @@ import StatusBadge from '@/Components/Problems/StatusBadge.vue'
 import BaseModal from '@/Components/App/BaseModal.vue'
 import AppButton from '@/Components/App/AppButton.vue'
 import AppInput from '@/Components/App/AppInput.vue'
+import AppSelect from '@/Components/App/AppSelect.vue'
 
 const props = defineProps({
     show: Boolean,
@@ -16,7 +17,6 @@ const emit = defineEmits(['close'])
 
 const form = ref({
     internal_number: '',
-    title: '',
     category: '',
     address: '',
     description: '',
@@ -28,7 +28,6 @@ watch(() => props.show, (newVal) => {
     if (newVal && props.problem) {
         form.value = {
             internal_number: props.problem.internal_number || '',
-            title: props.problem.title || '',
             category: props.problem.category || '',
             address: props.problem.address || '',
             description: props.problem.description || '',
@@ -80,22 +79,21 @@ const handleFileAttach = () => {
             </div>
 
             <div class="edit-form-field">
-                <AppInput
-                    v-model="form.title"
-                    label="Pavadinimas"
-                    type="text"
-                    :show-icon="true"
-                />
-            </div>
-
-            <div class="edit-form-field">
-                <AppInput
+                <AppSelect
                     v-model="form.category"
                     label="Kategorija"
-                    type="text"
-                    :options="categories"
-                    :show-icon="true"
-                />
+                    variant="white"
+                    :rounded="true"
+                    placeholder="Pasirinkite kategoriją"
+                >
+                    <option
+                        v-for="category in (categories || [])"
+                        :key="category"
+                        :value="category"
+                    >
+                        {{ category }}
+                    </option>
+                </AppSelect>
             </div>
 
             <div class="edit-form-field">

@@ -2,19 +2,31 @@
 
 namespace App\Models;
 
+use App\Enums\ProblemStatus;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Str;
 
 class Problem extends Model
 {
     use HasFactory;
 
+    public const SORTABLE_COLUMNS = [
+        'created_at',
+        'internal_number',
+        'status',
+        'category',
+        'address',
+        'description',
+        'updated_at',
+    ];
+
     protected $fillable = [
         'internal_number',
         'status',
-        'title',
         'category',
         'problem_type_id',
         'problem_nature_id',
@@ -59,7 +71,7 @@ class Problem extends Model
                 $yearFromDate = $createdAt instanceof \DateTime ? $createdAt->format('Y') : date('Y', strtotime($createdAt));
 
                 $lastProblem = static::where('internal_number', 'like', "KP-{$yearFromDate}-%")
-                    ->orderByRaw("CAST(SUBSTRING(internal_number FROM 10) AS INTEGER) DESC")
+                    ->orderByRaw('CAST(SUBSTRING(internal_number FROM 10) AS INTEGER) DESC')
                     ->first();
 
                 if ($lastProblem) {
@@ -96,39 +108,83 @@ class Problem extends Model
         if (isset($filters['search']) && $filters['search']) {
             $search = $filters['search'];
             $query->where(function ($q) use ($search) {
-                $q->where('title', 'like', "%{$search}%")
-                  ->orWhere('address', 'like', "%{$search}%")
-                  ->orWhere('description', 'like', "%{$search}%")
-                  ->orWhere('internal_number', 'like', "%{$search}%");
+                $q->where('address', 'like', "%{$search}%")
+                    ->orWhere('description', 'like', "%{$search}%")
+                    ->orWhere('internal_number', 'like', "%{$search}%");
             });
-        }
-
-        if (isset($filters['status']) && $filters['status']) {
-            $query->where('status', $filters['status']);
-        }
-
-        if (isset($filters['category']) && $filters['category']) {
-            $query->where('category', $filters['category']);
         }
 
         if (isset($filters['report_number']) && $filters['report_number']) {
             $query->where('internal_number', 'like', "%{$filters['report_number']}%");
         }
 
-        if (isset($filters['date_from']) && $filters['date_from']) {
-            $query->whereDate('created_at', '>=', $filters['date_from']);
-        }
-
-        if (isset($filters['date_to']) && $filters['date_to']) {
-            $query->whereDate('created_at', '<=', $filters['date_to']);
-        }
+        static::applyDashboardFacetFilters($query, $filters);
 
         return $query;
     }
 
+    private static function applyDashboardFacetFilters(Builder $query, array $filters): void
+    {
+        if (isset($filters['status']) && $filters['status']) {
+            $query->where('status', $filters['status']);
+        }
+        if (isset($filters['category']) && $filters['category']) {
+            $query->where('category', $filters['category']);
+        }
+        if (isset($filters['date_from']) && $filters['date_from']) {
+            $query->whereDate('created_at', '>=', $filters['date_from']);
+        }
+        if (isset($filters['date_to']) && $filters['date_to']) {
+            $query->whereDate('created_at', '<=', $filters['date_to']);
+        }
+    }
+
+    public static function mergeGroupRootIdsFromMatchingMergedChildren(array $filters): array
+    {
+        $reportNumber = isset($filters['report_number']) ? trim((string) $filters['report_number']) : '';
+        $search = isset($filters['search']) ? trim((string) $filters['search']) : '';
+        if ($reportNumber === '' && $search === '') {
+            return [];
+        }
+
+        $query = static::query()
+            ->whereNotNull('merged_into_problem_id')
+            ->notArchived();
+
+        if ($reportNumber !== '') {
+            $query->where('internal_number', 'like', '%'.$reportNumber.'%');
+        }
+        if ($search !== '') {
+            $query->where(function ($sub) use ($search) {
+                $sub->where('address', 'like', "%{$search}%")
+                    ->orWhere('description', 'like', "%{$search}%")
+                    ->orWhere('internal_number', 'like', "%{$search}%");
+            });
+        }
+
+        static::applyDashboardFacetFilters($query, $filters);
+
+        return $query->pluck('merged_into_problem_id')
+            ->map(fn ($id) => (int) $id)
+            ->unique()
+            ->filter()
+            ->values()
+            ->all();
+    }
+
+    public static function descriptionPreview(?string $description, int $limit = 200): string
+    {
+        $text = trim(preg_replace('/\s+/', ' ', strip_tags((string) $description)));
+
+        return Str::limit($text, $limit, '…');
+    }
+
     public function scopeSorted($query, $sortBy = 'created_at', $sortDirection = 'desc')
     {
-        return $query->orderBy($sortBy, $sortDirection);
+        $dir = strtolower((string) $sortDirection) === 'asc' ? 'asc' : 'desc';
+        $column = in_array($sortBy, self::SORTABLE_COLUMNS, true) ? $sortBy : 'created_at';
+
+        return $query->orderBy($column, $dir);
     }
 
     public function scopeNotArchived($query)
@@ -139,7 +195,7 @@ class Problem extends Model
     public function scopeForReporter($query, int $userId)
     {
         return $query
-            ->whereIn('status', ['nauja', 'nagrinejama', 'grazinta_nagrinejimui', 'isspresta'])
+            ->whereIn('status', ProblemStatus::staffMapStatusValues())
             ->notArchived()
             ->whereNull('merged_into_problem_id')
             ->where(function ($q) use ($userId) {
@@ -200,5 +256,22 @@ class Problem extends Model
             ->all();
 
         return $ids;
+    }
+
+    public static function expandIdsToMergeGroups(array $ids): array
+    {
+        $unique = collect($ids)->map(fn ($id) => (int) $id)->unique()->filter()->values();
+        if ($unique->isEmpty()) {
+            return [];
+        }
+        $out = collect();
+        foreach ($unique as $id) {
+            $problem = static::query()->find($id);
+            if ($problem !== null) {
+                $out->push(...$problem->getMergeGroupIds());
+            }
+        }
+
+        return $out->unique()->values()->map(fn ($id) => (int) $id)->all();
     }
 }

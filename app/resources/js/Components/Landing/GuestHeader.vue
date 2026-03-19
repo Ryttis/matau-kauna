@@ -1,7 +1,7 @@
 <template>
     <header class="guest-header" :class="{ 'guest-header--dark': variant === 'dark' }">
         <div class="guest-header-inner">
-            <Link :href="route('landing')" class="guest-logo">Matau Kaune</Link>
+            <Link :href="route('landing')" class="guest-logo">Matau Kauną</Link>
             <nav class="guest-nav">
                 <Link :href="route('reports')" class="guest-link" :class="{ 'guest-link--active': activeLink === 'reports' }">Pranešimai</Link>
                 <Link :href="route('public.statistics')" class="guest-link" :class="{ 'guest-link--active': activeLink === 'statistics' }">Statistika</Link>
@@ -59,6 +59,7 @@ defineProps({
 .guest-logo {
     font-size: 1.25rem;
     font-weight: 700;
+    font-style: italic;
     color: #000;
     text-decoration: none;
 }

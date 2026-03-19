@@ -1,7 +1,7 @@
 <template>
     <header class="landing-header" :class="{ 'landing-header--dark': variant === 'dark' }">
         <div class="landing-header-inner">
-            <Link :href="route('landing')" class="landing-logo">Matau Kaune</Link>
+            <Link :href="route('landing')" class="landing-logo">Matau Kauną</Link>
             <nav class="landing-nav">
                 <Link :href="route('reports')" class="landing-link" :class="{ 'landing-link--active': activeLink === 'reports' }">Pranešimai</Link>
                 <Link :href="route('public.statistics')" class="landing-link" :class="{ 'landing-link--active': activeLink === 'statistics' }">Statistika</Link>
@@ -71,6 +71,7 @@ defineProps({
 .landing-logo {
     font-size: 1.25rem;
     font-weight: 700;
+    font-style: italic;
     color: #000;
     text-decoration: none;
 }

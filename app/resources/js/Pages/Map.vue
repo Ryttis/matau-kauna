@@ -29,9 +29,17 @@ function onMapNumberSearchSelect(problem) {
     addressSearchResetToken.value += 1
 }
 
+function onMapNumberSearchClear() {
+    selectedProblemFromAddress.value = null
+}
+
 function onAddressSearchSelect(problem) {
     selectedProblemFromAddress.value = problem
     mapNumberSearchResetToken.value += 1
+}
+
+function onAddressSearchClear() {
+    selectedProblemFromAddress.value = null
 }
 
 const problemsForMap = computed(() => {
@@ -132,6 +140,7 @@ const statusIndicatorVars = {
                         :reset-token="mapNumberSearchResetToken"
                         placeholder="Problemos Nr. (žemėlapis)"
                         @select="onMapNumberSearchSelect"
+                        @clear="onMapNumberSearchClear"
                     />
                 </div>
                 <img
@@ -181,6 +190,7 @@ const statusIndicatorVars = {
                             :reset-token="addressSearchResetToken"
                             placeholder="Įveskite adresą"
                             @select="onAddressSearchSelect"
+                            @clear="onAddressSearchClear"
                         />
                     </div>
                 </div>

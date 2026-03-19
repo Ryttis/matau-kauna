@@ -29,6 +29,13 @@ const categoryDropdownRef = ref(null)
 
 const mainProblemId = computed(() => props.problem.id)
 
+function mergeProblemLabel(p) {
+    const d = (p?.description || '').trim()
+    const short = !d ? '' : d.length > 80 ? d.slice(0, 80) + '…' : d
+    const nr = p?.internal_number || ''
+    return short ? `${short} (Nr. ${nr})` : `Nr. ${nr}`
+}
+
 const problemsForMap = computed(() => {
     const fromBackend = props.mapProblems || []
     if (fromBackend.length > 0) return fromBackend
@@ -37,10 +44,12 @@ const problemsForMap = computed(() => {
     return list.map((p, i) => {
         const hasCoords = p.lat != null && p.lng != null
         const offset = i * 0.002
+        const desc = p.description || ''
         return {
             id: p.id,
             internal_number: p.internal_number,
-            title: p.title,
+            description_preview: desc.slice(0, 200),
+            description: desc,
             status: p.status || 'nauja',
             lat: hasCoords ? Number(p.lat) : centerLat + (offset * 0.1),
             lng: hasCoords ? Number(p.lng) : centerLng + (offset * 0.1),
@@ -305,12 +314,12 @@ onUnmounted(() => {
                         >
                             <template v-if="row.type === 'main'">
                                 <span class="merge-problem-text">
-                                    {{ row.problem.title }} (Nr. {{ row.problem.internal_number }}) — ši problema
+                                    {{ mergeProblemLabel(row.problem) }} — ši problema
                                 </span>
                             </template>
                             <template v-else-if="row.type === 'merged' || row.type === 'similar_merged'">
                                 <span class="merge-problem-text merge-problem-text-merged">
-                                    {{ row.problem.title }} (Nr. {{ row.problem.internal_number }})
+                                    {{ mergeProblemLabel(row.problem) }}
                                 </span>
                                 <button
                                     type="button"
@@ -328,7 +337,7 @@ onUnmounted(() => {
                                         @change="handleSelectItem(row.problem.id)"
                                     />
                                     <span class="merge-problem-text">
-                                        {{ row.problem.title }} (Nr. {{ row.problem.internal_number }})
+                                        {{ mergeProblemLabel(row.problem) }}
                                     </span>
                                 </label>
                             </template>

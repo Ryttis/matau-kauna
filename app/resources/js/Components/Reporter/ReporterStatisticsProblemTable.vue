@@ -26,7 +26,7 @@ function formatDate(isoDateString) {
                     <tr>
                         <th>Nr.</th>
                         <th>Data</th>
-                        <th>Pavadinimas</th>
+                        <th>Aprašymas</th>
                         <th></th>
                     </tr>
                 </thead>
@@ -34,7 +34,7 @@ function formatDate(isoDateString) {
                     <tr v-for="problem in problems" :key="problem.id">
                         <td>{{ problem.internal_number }}</td>
                         <td>{{ formatDate(problem.created_at) }}</td>
-                        <td class="reporter-statistics-cell-title">{{ problem.title || '—' }}</td>
+                        <td class="reporter-statistics-cell-title">{{ problem.description_preview || '—' }}</td>
                         <td>
                             <Link :href="problemViewUrl(problem.id)" class="reporter-statistics-view-btn">Peržiūrėti</Link>
                         </td>

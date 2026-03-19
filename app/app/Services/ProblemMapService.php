@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Enums\ProblemStatus;
 use App\Models\Problem;
 use App\Models\User;
 use Illuminate\Support\Collection;
@@ -17,7 +18,7 @@ class ProblemMapService
         return $this->getMapQueryForUser($user)
             ->orderBy('address')
             ->orderBy('created_at', 'desc')
-            ->get(['id', 'internal_number', 'title', 'status', 'category', 'address', 'lat', 'lng', 'created_at'])
+            ->get(['id', 'internal_number', 'description', 'status', 'category', 'address', 'lat', 'lng', 'created_at'])
             ->map(function ($problem, $index) {
                 return $this->mapProblemToMapItem($problem, $this->getCenterLat(), $this->getCenterLng(), $index);
             })
@@ -37,27 +38,28 @@ class ProblemMapService
         $problems = $this->getMapQueryForUser($user)
             ->where(function ($sub) use ($q, $mode) {
                 if ($mode === 'number') {
-                    $sub->where('internal_number', 'like', '%' . $q . '%');
+                    $sub->where('internal_number', 'like', '%'.$q.'%');
 
                     return;
                 }
                 if ($mode === 'address') {
                     $sub->whereNotNull('address')
                         ->where('address', '!=', '')
-                        ->where('address', 'like', '%' . $q . '%');
+                        ->where('address', 'like', '%'.$q.'%');
 
                     return;
                 }
                 $sub->where(function ($byAddress) use ($q) {
                     $byAddress->whereNotNull('address')
                         ->where('address', '!=', '')
-                        ->where('address', 'like', '%' . $q . '%');
-                })->orWhere('internal_number', 'like', '%' . $q . '%');
+                        ->where('address', 'like', '%'.$q.'%');
+                })->orWhere('internal_number', 'like', '%'.$q.'%');
             })
             ->orderBy('internal_number')
             ->orderBy('created_at', 'desc')
             ->limit(20)
-            ->get(['id', 'internal_number', 'title', 'status', 'category', 'address', 'lat', 'lng', 'created_at']);
+            ->get(['id', 'internal_number', 'description', 'status', 'category', 'address', 'lat', 'lng', 'created_at']);
+
         return $problems->map(function ($problem, $index) use ($centerLat, $centerLng) {
             return $this->mapProblemToMapItem($problem, $centerLat, $centerLng, $index);
         })->values()->all();
@@ -76,7 +78,8 @@ class ProblemMapService
     private function getMapQueryForUser(?User $user): \Illuminate\Database\Eloquent\Builder
     {
         return Problem::query()
-            ->whereIn('status', ['nauja', 'nagrinejama', 'grazinta_nagrinejimui', 'isspresta'])
+            ->notArchived()
+            ->whereIn('status', ProblemStatus::staffMapStatusValues())
             ->when(
                 $user && $this->scopeService->isInstitutionScoped($user),
                 fn ($q) => $q->where('institution_id', $user->institution_id)
@@ -99,10 +102,9 @@ class ProblemMapService
         $center = config('kaunas.map_center');
         $centerLat = $center['lat'];
         $centerLng = $center['lng'];
-        $allowedStatuses = ['nauja', 'nagrinejama', 'isspresta'];
-
         $query = Problem::query()
-            ->whereIn('status', $allowedStatuses)
+            ->notArchived()
+            ->whereIn('status', ProblemStatus::publicMapStatusValues())
             ->when($reportedByUserId === null, fn ($q) => $q->where('is_published_publicly', true))
             ->when($reportedByUserId !== null, function ($q) use ($reportedByUserId) {
                 $q->where(function ($q2) use ($reportedByUserId) {
@@ -112,7 +114,7 @@ class ProblemMapService
             })
             ->orderBy('address')
             ->orderBy('created_at', 'desc')
-            ->get(['id', 'internal_number', 'title', 'status', 'category', 'address', 'lat', 'lng', 'created_at', 'merged_into_problem_id', 'is_published_publicly']);
+            ->get(['id', 'internal_number', 'description', 'status', 'category', 'address', 'lat', 'lng', 'created_at', 'merged_into_problem_id', 'is_published_publicly']);
 
         $index = 0;
 
@@ -152,10 +154,13 @@ class ProblemMapService
         $hasCoords = $problem->lat !== null && $problem->lng !== null;
         $offset = $index * 0.002;
 
+        $description = (string) ($problem->description ?? '');
+
         return [
             'id' => $problem->id,
             'internal_number' => $problem->internal_number,
-            'title' => $problem->title,
+            'description_preview' => Problem::descriptionPreview($description, 200),
+            'description' => $description,
             'status' => $problem->status ?? 'nauja',
             'category' => $problem->category,
             'address' => $problem->address,

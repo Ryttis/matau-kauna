@@ -51,7 +51,8 @@ export function useProblemsMapFilter(problemsSource) {
         if (q) {
             result = result.filter(
                 (p) =>
-                    (p.title || '').toLowerCase().includes(q) ||
+                    (p.description || '').toLowerCase().includes(q) ||
+                    (p.description_preview || '').toLowerCase().includes(q) ||
                     (p.internal_number || '').toLowerCase().includes(q) ||
                     (p.address || '').toLowerCase().includes(q)
             )

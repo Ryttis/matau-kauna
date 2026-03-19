@@ -133,12 +133,6 @@ const mergeTargetId = computed(() =>
             <div class="problem-content">
                 <div class="problem-fields-top">
                     <AppInput
-                        :model-value="problem.title"
-                        label="Pavadinimas"
-                        type="text"
-                        readonly
-                    />
-                    <AppInput
                         :model-value="problem.category"
                         label="Kategorija"
                         type="text"

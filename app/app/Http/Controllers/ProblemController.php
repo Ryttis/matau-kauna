@@ -2,22 +2,21 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\ProblemReviewCommentVisibility;
 use App\Enums\ProblemStatus;
 use App\Exports\ProblemsExport;
 use App\Exports\StatisticsReportExport;
+use App\Http\Requests\StoreProblemReviewHistoryRequest;
+use App\Models\ClassifierValue;
 use App\Models\Employee;
 use App\Models\Institution;
-use App\Models\ClassifierValue;
 use App\Models\Problem;
-use App\Models\ProblemAutoAssignmentRule;
 use App\Models\User;
 use App\Models\UserRole;
 use App\Services\ProblemAssignmentNotifier;
 use App\Services\ProblemAutoAssignmentService;
 use App\Services\ProblemMapService;
 use App\Services\ProblemMergeContextService;
-use App\Enums\ProblemReviewCommentVisibility;
-use App\Http\Requests\StoreProblemReviewHistoryRequest;
 use App\Services\ProblemResolutionTermService;
 use App\Services\ProblemReviewHistoryService;
 use App\Services\ProblemScopeService;
@@ -25,7 +24,6 @@ use App\Services\StatisticsService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Mail;
-use Illuminate\Support\Str;
 use Inertia\Inertia;
 use Inertia\Response;
 use Maatwebsite\Excel\Facades\Excel;
@@ -48,6 +46,7 @@ class ProblemController extends Controller
 
         if ($user->hasRole(UserRole::ROLE_REPORTER) && ! $user->hasPermission('issues.view')) {
             $onlyMine = $request->boolean('only_mine');
+
             return Inertia::render('Dashboard', [
                 'reporterView' => true,
                 'onlyMine' => $onlyMine,
@@ -73,6 +72,8 @@ class ProblemController extends Controller
 
         $employeeId = $this->scopeService->employeeIdForUser($user);
 
+        $mergeRootIdsFromChildMatch = Problem::mergeGroupRootIdsFromMatchingMergedChildren($filters);
+
         $problems = Problem::query()
             ->whereNull('merged_into_problem_id')
             ->notArchived()
@@ -96,7 +97,14 @@ class ProblemController extends Controller
                     }
                 }
             )
-            ->filtered($filters)
+            ->where(function ($query) use ($filters, $mergeRootIdsFromChildMatch) {
+                $query->where(function ($inner) use ($filters) {
+                    $inner->filtered($filters);
+                });
+                if ($mergeRootIdsFromChildMatch !== []) {
+                    $query->orWhereIn('id', $mergeRootIdsFromChildMatch);
+                }
+            })
             ->sorted($sortBy, $sortDirection)
             ->with('mergedProblems')
             ->paginate(6)
@@ -121,7 +129,7 @@ class ProblemController extends Controller
         $this->scopeService->authorizeProblemAccess($user, $problem);
 
         $validated = $request->validate([
-            'status' => 'required|string|in:' . implode(',', ProblemStatus::values()),
+            'status' => 'required|string|in:'.implode(',', ProblemStatus::values()),
         ]);
 
         $ids = $problem->getMergeGroupIds();
@@ -146,7 +154,7 @@ class ProblemController extends Controller
         $validated = $request->validate([
             'problem_ids' => 'required|array',
             'problem_ids.*' => 'required|integer|exists:problems,id',
-            'status' => 'required|string|in:' . implode(',', ProblemStatus::values()),
+            'status' => 'required|string|in:'.implode(',', ProblemStatus::values()),
         ]);
 
         $query = Problem::whereIn('id', $validated['problem_ids']);
@@ -213,7 +221,7 @@ class ProblemController extends Controller
         $categories = ClassifierValue::getActiveTypeNames()->values();
 
         $problem->load('mergedProblems:id,internal_number,merged_into_problem_id');
-        $problem->load('mergedInto:id,internal_number,title');
+        $problem->load('mergedInto:id,internal_number');
 
         $mergeContext = $this->mergeContextService->forProblem($problem);
 
@@ -237,13 +245,13 @@ class ProblemController extends Controller
 
         $validated = $request->validate([
             'internal_number' => 'required|string|max:255',
-            'title' => 'required|string|max:255',
             'category' => 'required|string|max:100',
             'address' => 'required|string|max:255',
             'description' => 'nullable|string',
         ]);
 
         $problem->update($validated);
+
         return redirect()->back()->with('success', 'Problema atnaujinta');
     }
 
@@ -254,7 +262,11 @@ class ProblemController extends Controller
             abort(403);
         }
 
-        $problem->update(['is_archived' => true, 'archived_at' => now()]);
+        $ids = $problem->getMergeGroupIds();
+        Problem::whereIn('id', $ids)->update([
+            'is_archived' => true,
+            'archived_at' => now(),
+        ]);
 
         return redirect()->route('dashboard')->with('success', 'Problema perkelta į archyvą');
     }
@@ -295,7 +307,7 @@ class ProblemController extends Controller
             'problem_ids' => ['required', 'array'],
             'problem_ids.*' => ['required', 'integer', 'exists:problems,id'],
             'institution_id' => ['nullable', 'integer', 'exists:institutions,id'],
-            'status' => ['nullable', 'string', 'in:' . implode(',', ProblemStatus::values())],
+            'status' => ['nullable', 'string', 'in:'.implode(',', ProblemStatus::values())],
         ]);
 
         $update = [
@@ -343,7 +355,7 @@ class ProblemController extends Controller
 
         $problems = Problem::whereIn('id', $validated['problem_ids'])
             ->orderBy('created_at', 'desc')
-            ->get(['id', 'internal_number', 'title', 'status', 'created_at']);
+            ->get(['id', 'internal_number', 'description', 'status', 'created_at']);
 
         $institutionName = null;
         if (! empty($validated['institution_id'])) {
@@ -356,13 +368,13 @@ class ProblemController extends Controller
             $lines[] = sprintf(
                 '- %s | %s | %s',
                 $problem->internal_number,
-                $problem->title,
+                Problem::descriptionPreview($problem->description, 120),
                 $problem->created_at?->format('Y-m-d')
             );
         }
         if ($institutionName) {
             $lines[] = '';
-            $lines[] = 'Priskirta įstaiga: ' . $institutionName;
+            $lines[] = 'Priskirta įstaiga: '.$institutionName;
         }
 
         $subject = 'Problemų priskyrimo informacija';
@@ -402,6 +414,9 @@ class ProblemController extends Controller
         if (! $user) {
             abort(403);
         }
+        if ($problem->is_archived) {
+            abort(404);
+        }
 
         $isReporterOnly = $user->hasRole(UserRole::ROLE_REPORTER) && ! $user->hasPermission('issues.view');
         if ($isReporterOnly) {
@@ -411,8 +426,12 @@ class ProblemController extends Controller
             } else {
                 $mainProblem = $problem;
             }
+            if ($mainProblem->is_archived) {
+                abort(404);
+            }
             $problem = $mainProblem;
             $problem->load('reviewHistory');
+
             return $this->reviewProgressResponse($problem, true);
         }
 
@@ -494,7 +513,7 @@ class ProblemController extends Controller
                 ->get(['id', 'name', 'surname', 'email'])
                 ->map(fn ($e) => [
                     'id' => $e->id,
-                    'name' => trim($e->name . ' ' . $e->surname) ?: $e->email,
+                    'name' => trim($e->name.' '.$e->surname) ?: $e->email,
                     'email' => $e->email,
                 ])
                 ->values()
@@ -564,7 +583,7 @@ class ProblemController extends Controller
         $lines = [
             'Problemos informacija:',
             sprintf('Nr: %s', $problem->internal_number ?? '-'),
-            sprintf('Pavadinimas: %s', $problem->title ?? '-'),
+            sprintf('Aprašymas: %s', Problem::descriptionPreview($problem->description, 500) ?: '-'),
             sprintf('Adresas: %s', $problem->address ?? '-'),
             sprintf('Sukūrimo data: %s', $problem->created_at?->format('Y-m-d') ?? '-'),
         ];
@@ -572,7 +591,7 @@ class ProblemController extends Controller
             $lines[] = sprintf('Atlikimo terminas: %s', $problem->completion_deadline->format('Y-m-d'));
         }
         $body = implode("\n", $lines);
-        $subject = 'Problemos priskyrimo informacija – ' . ($problem->internal_number ?? 'problema');
+        $subject = 'Problemos priskyrimo informacija – '.($problem->internal_number ?? 'problema');
 
         Mail::raw($body, function ($message) use ($validated, $subject) {
             $message->to($validated['email'])->subject($subject);
@@ -686,7 +705,7 @@ class ProblemController extends Controller
             $query->where('category', $categoryFilter);
         }
 
-        $similarProblems = $query->with('mergedProblems:id,internal_number,title,merged_into_problem_id,lat,lng')
+        $similarProblems = $query->with('mergedProblems:id,internal_number,description,merged_into_problem_id,lat,lng')
             ->orderBy('created_at', 'desc')
             ->get();
 
@@ -794,7 +813,7 @@ class ProblemController extends Controller
             $problems = $query->get();
         }
 
-        $filename = 'problemos_' . date('Y-m-d_His') . '.xlsx';
+        $filename = 'problemos_'.date('Y-m-d_His').'.xlsx';
 
         return Excel::download(new ProblemsExport($problems), $filename);
     }
@@ -858,13 +877,12 @@ class ProblemController extends Controller
             ->forReporter($user->id)
             ->filtered($filters)
             ->orderBy('created_at', 'desc')
-            ->get(['id', 'internal_number', 'status', 'created_at', 'title', 'category', 'address', 'description', 'is_published_publicly'])
+            ->get(['id', 'internal_number', 'status', 'created_at', 'category', 'address', 'description', 'is_published_publicly'])
             ->map(fn ($p) => [
                 'id' => $p->id,
                 'internal_number' => $p->internal_number,
                 'status' => $p->status,
                 'created_at' => $p->created_at?->toIso8601String(),
-                'title' => $p->title,
                 'category' => $p->category,
                 'address' => $p->address,
                 'description' => $p->description ?? '',
@@ -907,7 +925,7 @@ class ProblemController extends Controller
             'created_at',
             'is_published_publicly',
             'internal_number',
-            'title',
+            'description',
         ]);
 
         $total = $problems->count();
@@ -965,7 +983,7 @@ class ProblemController extends Controller
             'id' => $p->id,
             'internal_number' => $p->internal_number,
             'created_at' => $p->created_at?->toIso8601String(),
-            'title' => $p->title ?? '',
+            'description_preview' => Problem::descriptionPreview($p->description, 120),
         ];
     }
 
@@ -984,7 +1002,7 @@ class ProblemController extends Controller
         if (! empty($monthlyCounts)) {
             $monthsWithData = array_keys($monthlyCounts);
             sort($monthsWithData);
-            $earliestMonth = \Carbon\Carbon::parse($monthsWithData[0] . '-01', $tz)->startOfMonth();
+            $earliestMonth = \Carbon\Carbon::parse($monthsWithData[0].'-01', $tz)->startOfMonth();
             if ($earliestMonth->lt($start)) {
                 $start = $earliestMonth;
             }
@@ -1005,9 +1023,14 @@ class ProblemController extends Controller
         );
     }
 
-    public function reporterReport(Request $request): Response
+    public function reporterReport(Request $request): Response|RedirectResponse
     {
         $user = $request->user();
+        $isReporterOnly = $user && $user->hasRole(UserRole::ROLE_REPORTER) && ! $user->hasPermission('issues.view');
+        if (! $isReporterOnly) {
+            return redirect()->route('dashboard');
+        }
+
         $types = ClassifierValue::notArchived()
             ->whereNull('parent_id')
             ->where('is_active', true)
@@ -1023,21 +1046,29 @@ class ProblemController extends Controller
 
         return Inertia::render('Reporter/Report', [
             'typeValues' => $typeValues,
-            'showReporterWizard' => $user && ! $user->reporter_wizard_completed_at,
-            'hasAcceptedReportTerms' => $user && $user->reporter_report_terms_accepted_at !== null,
+            'showReporterWizard' => ! $user->reporter_wizard_completed_at,
+            'hasAcceptedReportTerms' => $user->reporter_report_terms_accepted_at !== null,
         ]);
     }
 
     public function reporterWizardDismissed(Request $request): \Illuminate\Http\JsonResponse
     {
-        $request->user()?->update(['reporter_wizard_completed_at' => now()]);
+        $user = $request->user();
+        if (! $user || ! $user->hasRole(UserRole::ROLE_REPORTER) || $user->hasPermission('issues.view')) {
+            return response()->json(['message' => 'Unauthorized'], 403);
+        }
+        $user->update(['reporter_wizard_completed_at' => now()]);
 
         return response()->json(['ok' => true]);
     }
 
     public function reporterTermsAccepted(Request $request): \Illuminate\Http\JsonResponse
     {
-        $request->user()?->update(['reporter_report_terms_accepted_at' => now()]);
+        $user = $request->user();
+        if (! $user || ! $user->hasRole(UserRole::ROLE_REPORTER) || $user->hasPermission('issues.view')) {
+            return response()->json(['message' => 'Unauthorized'], 403);
+        }
+        $user->update(['reporter_report_terms_accepted_at' => now()]);
 
         return response()->json(['ok' => true]);
     }
@@ -1079,7 +1110,6 @@ class ProblemController extends Controller
         $categoryName = $typeValue->name;
 
         $problem = Problem::create([
-            'title' => Str::limit($validated['description'], 255),
             'category' => $categoryName,
             'problem_type_id' => $validated['problem_type_id'],
             'problem_nature_id' => $validated['problem_nature_id'] ?? null,
@@ -1099,6 +1129,10 @@ class ProblemController extends Controller
 
     public function publicShow(Request $request, Problem $problem): Response
     {
+        if ($problem->is_archived) {
+            abort(404);
+        }
+
         $user = $request->user();
         $isReporterOnly = $user && $user->isReporterOnly();
         $isReporterOwnProblem = $isReporterOnly && (int) $problem->reported_by_user_id === (int) $user->id;
@@ -1111,7 +1145,6 @@ class ProblemController extends Controller
         $problemData = [
             'id' => $problem->id,
             'internal_number' => $problem->internal_number,
-            'title' => $problem->title,
             'status' => $problem->status,
             'category' => $problem->category,
             'address' => $problem->address,
@@ -1133,6 +1166,7 @@ class ProblemController extends Controller
                 'mergedSiblings' => $mergeContext['mergedSiblings'],
                 'reviewProgressProblemId' => $reviewProgressProblemId,
                 'backFrom' => $request->query('from'),
+                'backOnlyMine' => $request->boolean('only_mine'),
             ]);
         }
 
@@ -1165,24 +1199,25 @@ class ProblemController extends Controller
             $approachingEnd = $today->copy()->addDays(2);
             $approaching = $all->filter(fn ($p) => $p->completion_deadline && $p->completion_deadline->gte($today) && $p->completion_deadline->lte($approachingEnd) && $p->status !== 'isspresta');
             $overdue = $all->filter(fn ($p) => $p->completion_deadline && $p->completion_deadline->lt($today) && $p->status !== 'isspresta');
+
             return Inertia::render('Statistics/ResolutionTerms', [
                 'approaching' => $approaching->values()->map(fn ($p) => [
                     'id' => $p->id,
                     'internal_number' => $p->internal_number,
-                    'title' => $p->title,
+                    'description_preview' => Problem::descriptionPreview($p->description, 120),
                     'status' => $p->status,
                     'completion_deadline' => $p->completion_deadline?->format('Y-m-d'),
                     'institution_name' => $p->institution?->name,
-                    'assigned_to' => $p->assignedEmployee ? trim($p->assignedEmployee->name . ' ' . $p->assignedEmployee->surname) : null,
+                    'assigned_to' => $p->assignedEmployee ? trim($p->assignedEmployee->name.' '.$p->assignedEmployee->surname) : null,
                 ])->all(),
                 'overdue' => $overdue->values()->map(fn ($p) => [
                     'id' => $p->id,
                     'internal_number' => $p->internal_number,
-                    'title' => $p->title,
+                    'description_preview' => Problem::descriptionPreview($p->description, 120),
                     'status' => $p->status,
                     'completion_deadline' => $p->completion_deadline?->format('Y-m-d'),
                     'institution_name' => $p->institution?->name,
-                    'assigned_to' => $p->assignedEmployee ? trim($p->assignedEmployee->name . ' ' . $p->assignedEmployee->surname) : null,
+                    'assigned_to' => $p->assignedEmployee ? trim($p->assignedEmployee->name.' '.$p->assignedEmployee->surname) : null,
                 ])->all(),
             ]);
         }
@@ -1244,7 +1279,7 @@ class ProblemController extends Controller
             : null;
         $categoryLabel = $category && $category !== 'all' ? $category : null;
 
-        $filename = 'statistikos_ataskaita_' . date('Y-m-d_His') . '.xlsx';
+        $filename = 'statistikos_ataskaita_'.date('Y-m-d_His').'.xlsx';
 
         return Excel::download(
             new StatisticsReportExport($analytics, $period, $institutionLabel, $categoryLabel),

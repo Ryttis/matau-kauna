@@ -60,11 +60,11 @@ class ArchiveService
             ->whereNotNull('archived_at')
             ->whereNull('merged_into_problem_id')
             ->orderByDesc('archived_at')
-            ->get(['id', 'internal_number', 'title', 'archived_at'])
+            ->get(['id', 'internal_number', 'description', 'archived_at'])
             ->map(fn (Problem $p) => $this->withDeleteAt($p->archived_at, $problemRule, [
                 'id' => $p->id,
                 'internal_number' => $p->internal_number,
-                'title' => $p->title,
+                'description_preview' => Problem::descriptionPreview($p->description, 120),
                 'archived_at' => $p->archived_at?->toIso8601String(),
             ]))
             ->values()
@@ -108,10 +108,12 @@ class ArchiveService
         $days = $rule?->delete_after_days ?? $rule?->archive_after_days;
         if (! $archivedAt || ! $days || $days < 1) {
             $row['delete_at'] = null;
+
             return $row;
         }
         $deleteAt = Carbon::parse($archivedAt)->addDays($days);
         $row['delete_at'] = $deleteAt->toIso8601String();
+
         return $row;
     }
 

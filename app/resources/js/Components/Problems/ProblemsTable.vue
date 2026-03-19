@@ -1,6 +1,5 @@
 <script setup>
 import { computed } from 'vue'
-import { router } from '@inertiajs/vue3'
 import EntityTable from '@/Components/App/Tables/EntityTable.vue'
 import ProblemTableUnmergeCell from '@/Components/Problems/ProblemTableUnmergeCell.vue'
 import ProblemTablePublishCell from '@/Components/Problems/ProblemTablePublishCell.vue'
@@ -74,12 +73,6 @@ const columns = computed(() => {
         value: (row) => new Date(getRowData(row).created_at).toLocaleDateString('lt-LT')
     },
     {
-        key: 'title',
-        label: 'Pavadinimas',
-        sortable: true,
-        value: (row) => truncate(getRowData(row).title, 32)
-    },
-    {
         key: 'category',
         label: 'Kategorija',
         sortable: false,
@@ -90,12 +83,6 @@ const columns = computed(() => {
         label: 'Adresas',
         sortable: false,
         value: (row) => truncate(getRowData(row).address, 28)
-    },
-    {
-        key: 'description',
-        label: 'Aprašymas',
-        sortable: false,
-        value: (row) => truncate(getRowData(row).description, 40)
     },
     ...(useRowProblem.value && props.canPublish
         ? [{
@@ -137,11 +124,6 @@ const getSelectValue = (row) => {
     return row.groupIds || [row.problem.id]
 }
 
-const handleRowDblClick = (row) => {
-    const problem = row.problem || row
-    router.visit(route('problems.show', problem.id))
-}
-
 function problemTableRowClass(row) {
     const classes = []
     if (!row.isGroupMain) classes.push('problem-table-merged-row')
@@ -168,7 +150,6 @@ function problemTableRowClass(row) {
         @sort="emit('sort', $event)"
         @select-all="emit('select-all', $event)"
         @select-item="emit('select-item', $event)"
-        @row-dblclick="handleRowDblClick"
     />
 </template>
 

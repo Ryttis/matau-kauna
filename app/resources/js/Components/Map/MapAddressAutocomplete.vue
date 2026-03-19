@@ -9,7 +9,7 @@ const props = defineProps({
     resetToken: { type: Number, default: 0 },
 })
 
-const emit = defineEmits(['select'])
+const emit = defineEmits(['select', 'clear'])
 
 const emptyMessage = computed(() => {
     if (props.searchMode === 'number') {
@@ -52,6 +52,12 @@ function fetchResults() {
 
 function onInput() {
     if (debounceTimer) clearTimeout(debounceTimer)
+    if (inputValue.value.trim() === '') {
+        results.value = []
+        open.value = false
+        emit('clear')
+        return
+    }
     debounceTimer = setTimeout(fetchResults, DEBOUNCE_MS)
 }
 
