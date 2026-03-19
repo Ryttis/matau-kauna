@@ -532,7 +532,6 @@ onUnmounted(() => {
                     <KaunasProblemsMap
                         :problems="reporterProblemsToShowOnMap"
                         marker-class="reporter-dashboard-marker"
-                        :show-returned-legend="false"
                         @open-problem="reporterOpenProblemView"
                     />
                 </div>

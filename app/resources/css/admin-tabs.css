@@ -46,9 +46,10 @@
 }
 
 .admin-tab .table th {
-    font-weight: 600;
-    background: var(--color-border-light, #f6f7f9);
-    color: var(--color-text, #333);
+    font-weight: var(--table-header-font-weight);
+    font-size: var(--table-header-font-size);
+    background: var(--table-header-bg);
+    color: var(--table-header-text);
 }
 
 .admin-tab .pill {

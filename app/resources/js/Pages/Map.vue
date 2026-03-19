@@ -122,7 +122,6 @@ const handleStatusModalClose = () => {
 const statusIndicatorVars = {
     '--status-new': MARKER_COLOR_BY_STATUS[PROBLEM_STATUS.NEW],
     '--status-review': MARKER_COLOR_BY_STATUS[PROBLEM_STATUS.IN_REVIEW],
-    '--status-returned': MARKER_COLOR_BY_STATUS[PROBLEM_STATUS.RETURNED_FOR_REVIEW],
     '--status-resolved': MARKER_COLOR_BY_STATUS[PROBLEM_STATUS.RESOLVED],
 }
 </script>
@@ -159,10 +158,6 @@ const statusIndicatorVars = {
                 <div class="status-indicator status-review">
                     <div class="status-circle status-circle--review"></div>
                     <span class="status-label">Nagrinėjamos</span>
-                </div>
-                <div class="status-indicator status-returned">
-                    <div class="status-circle status-circle--returned"></div>
-                    <span class="status-label">Grąžintos nagrinėjimui</span>
                 </div>
                 <div class="status-indicator status-resolved">
                     <div class="status-circle status-circle--resolved"></div>
@@ -301,10 +296,6 @@ const statusIndicatorVars = {
 
 .status-circle--review {
     background-color: var(--status-review);
-}
-
-.status-circle--returned {
-    background-color: var(--status-returned);
 }
 
 .status-circle--resolved {

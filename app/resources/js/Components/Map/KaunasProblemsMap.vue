@@ -7,9 +7,10 @@ const props = defineProps({
     problems: { type: Array, default: () => [] },
     markerClass: { type: String, default: 'kaunas-map-marker' },
     showLegend: { type: Boolean, default: true },
-    showReturnedLegend: { type: Boolean, default: true },
     highlightedProblemId: { type: [Number, null], default: null },
     mergedProblemIds: { type: Array, default: () => [] },
+    autoFitView: { type: Boolean, default: true },
+    focusHighlightedMarker: { type: Boolean, default: true },
 })
 
 const emit = defineEmits(['openProblem'])
@@ -23,6 +24,8 @@ useKaunasMap(mapContainer, problemsToShow, {
     markerClassName: props.markerClass,
     highlightedProblemId: computed(() => props.highlightedProblemId),
     mergedProblemIds: mergedIds,
+    autoFitView: computed(() => props.autoFitView),
+    focusHighlightedMarker: computed(() => props.focusHighlightedMarker),
 })
 </script>
 
@@ -43,13 +46,6 @@ useKaunasMap(mapContainer, problemsToShow, {
                     :style="{ background: MARKER_COLOR_BY_STATUS[PROBLEM_STATUS.IN_REVIEW] }"
                 />
                 Nagrinėjamos
-            </span>
-            <span v-if="showReturnedLegend" class="kaunas-map-legend-item">
-                <span
-                    class="kaunas-map-legend-dot"
-                    :style="{ background: MARKER_COLOR_BY_STATUS[PROBLEM_STATUS.RETURNED_FOR_REVIEW] }"
-                />
-                Grąžintos nagrinėjimui
             </span>
             <span class="kaunas-map-legend-item">
                 <span

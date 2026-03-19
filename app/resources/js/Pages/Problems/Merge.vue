@@ -287,6 +287,8 @@ onUnmounted(() => {
                         <KaunasProblemsMap
                             :problems="problemsToShowOnMap"
                             :highlighted-problem-id="mainProblemId"
+                            :auto-fit-view="false"
+                            :focus-highlighted-marker="false"
                             :merged-problem-ids="mergedProblemIdsForMap"
                             marker-class="merge-map-marker"
                             :show-legend="false"

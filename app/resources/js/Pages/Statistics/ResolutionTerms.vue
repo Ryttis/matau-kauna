@@ -140,8 +140,10 @@ function goToProblem(id) {
 }
 
 .data-table th {
-    font-weight: 600;
-    background: #f5f5f5;
+    font-weight: var(--table-header-font-weight);
+    font-size: var(--table-header-font-size);
+    background: var(--table-header-bg);
+    color: var(--table-header-text);
 }
 
 .empty {
