@@ -34,8 +34,8 @@ function escapeHtml(s) {
 function clusterPopupContent(problems) {
     const lines = (problems || []).slice(0, 12).map((p) => {
         const num = escapeHtml(p.internal_number || '')
-        const title = escapeHtml((p.title || '').slice(0, 40))
-        return `${num} ${title}`
+        const preview = escapeHtml((p.description_preview || p.description || '').slice(0, 40))
+        return `${num} ${preview}`
     })
     const rest = problems.length > 12 ? problems.length - 12 : 0
     const restLine = rest > 0 ? `+${rest}` : ''
@@ -72,7 +72,7 @@ function updateMarkers(skipFitView = false) {
                 iconAnchor: [7, 7],
             })
             L.marker([lat, lng], { icon })
-                .bindPopup(`<strong>${escapeHtml(p.internal_number)}</strong><br>${escapeHtml(p.title)}`)
+                .bindPopup(`<strong>${escapeHtml(p.internal_number)}</strong><br>${escapeHtml((p.description_preview || p.description || '').slice(0, 200))}`)
                 .addTo(markersLayer)
         } else {
             const { lat, lng, count, problems: clusterProblemsList } = item

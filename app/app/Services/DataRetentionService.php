@@ -91,6 +91,7 @@ class DataRetentionService
             ->where('archived_at', '<=', $threshold);
         $count = $query->count();
         $query->delete();
+
         return $count;
     }
 
@@ -101,18 +102,32 @@ class DataRetentionService
             ->where('archived_at', '<=', $threshold);
         $count = $query->count();
         $query->delete();
+
         return $count;
     }
 
     private function deleteArchivedProblems(Carbon $threshold): int
     {
-        $query = Problem::query()
+        $seedIds = Problem::query()
             ->where('is_archived', true)
             ->whereNotNull('archived_at')
-            ->where('archived_at', '<=', $threshold);
-        $count = $query->count();
-        $query->delete();
-        return $count;
+            ->where('archived_at', '<=', $threshold)
+            ->pluck('id')
+            ->map(fn ($id) => (int) $id)
+            ->all();
+
+        if ($seedIds === []) {
+            return 0;
+        }
+
+        $allIds = Problem::expandIdsToMergeGroups($seedIds);
+        if ($allIds === []) {
+            return 0;
+        }
+
+        Problem::query()->whereIn('id', $allIds)->delete();
+
+        return count($allIds);
     }
 
     private function deleteArchivedClassifierValues(Carbon $threshold): int
@@ -122,6 +137,7 @@ class DataRetentionService
             ->where('archived_at', '<=', $threshold);
         $count = $query->count();
         $query->delete();
+
         return $count;
     }
 
@@ -149,6 +165,7 @@ class DataRetentionService
             if ($count > 0) {
                 $this->auditLogService->logSystem('audit_retention.purge', AuditLogResult::Success, null, ['deleted_count' => $count]);
             }
+
             return $count;
         } catch (\Throwable $e) {
             $this->auditLogService->logSystem('audit_retention.purge', AuditLogResult::Error, $e->getMessage());

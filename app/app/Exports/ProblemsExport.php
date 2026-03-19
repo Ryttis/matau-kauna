@@ -4,17 +4,20 @@ namespace App\Exports;
 
 use App\Enums\ProblemStatus;
 use Maatwebsite\Excel\Concerns\FromCollection;
+use Maatwebsite\Excel\Concerns\WithColumnWidths;
 use Maatwebsite\Excel\Concerns\WithHeadings;
 use Maatwebsite\Excel\Concerns\WithMapping;
-use Maatwebsite\Excel\Concerns\WithColumnWidths;
 
-class ProblemsExport implements FromCollection, WithHeadings, WithMapping, WithColumnWidths
+class ProblemsExport implements FromCollection, WithColumnWidths, WithHeadings, WithMapping
 {
     protected $problems;
+
+    private array $statusLabels;
 
     public function __construct($problems)
     {
         $this->problems = $problems;
+        $this->statusLabels = ProblemStatus::labels();
     }
 
     public function collection(): \Illuminate\Support\Collection
@@ -28,7 +31,6 @@ class ProblemsExport implements FromCollection, WithHeadings, WithMapping, WithC
             'Nr.',
             'Būsena',
             'Data',
-            'Pavadinimas',
             'Kategorija',
             'Adresas',
             'Aprašymas',
@@ -37,13 +39,10 @@ class ProblemsExport implements FromCollection, WithHeadings, WithMapping, WithC
 
     public function map($problem): array
     {
-        $statusLabels = ProblemStatus::labels();
-
         return [
             $problem->internal_number,
-            $statusLabels[$problem->status] ?? $problem->status,
+            $this->statusLabels[$problem->status] ?? $problem->status,
             $problem->created_at?->format('Y-m-d') ?? '',
-            $problem->title,
             $problem->category,
             $problem->address,
             $problem->description,
@@ -56,10 +55,9 @@ class ProblemsExport implements FromCollection, WithHeadings, WithMapping, WithC
             'A' => 15,
             'B' => 20,
             'C' => 12,
-            'D' => 30,
-            'E' => 15,
-            'F' => 30,
-            'G' => 50,
+            'D' => 15,
+            'E' => 30,
+            'F' => 50,
         ];
     }
 }

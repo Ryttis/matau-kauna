@@ -253,7 +253,7 @@ onMounted(load)
                     <thead>
                         <tr>
                             <th>Nr.</th>
-                            <th>Pavadinimas</th>
+                            <th>Aprašymas</th>
                             <th>Archyvuota</th>
                             <th>Ištrinama</th>
                             <th>Veiksmai</th>
@@ -262,7 +262,7 @@ onMounted(load)
                     <tbody>
                         <tr v-for="p in problems" :key="p.id">
                             <td>{{ p.internal_number }}</td>
-                            <td>{{ p.title || '—' }}</td>
+                            <td>{{ p.description_preview || '—' }}</td>
                             <td>{{ formatDate(p.archived_at) }}</td>
                             <td>{{ formatDate(p.delete_at) }}</td>
                             <td>

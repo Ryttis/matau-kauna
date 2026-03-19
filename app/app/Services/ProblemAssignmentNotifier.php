@@ -15,25 +15,17 @@ class ProblemAssignmentNotifier
     private function replacePlaceholders(string $text, array $replacements): string
     {
         foreach ($replacements as $placeholder => $value) {
-            $text = str_replace('{' . $placeholder . '}', (string) $value, $text);
+            $text = str_replace('{'.$placeholder.'}', (string) $value, $text);
         }
-        return $text;
-    }
-    public function notifyInstitutionAdminsOfAssignment(array $problemIds, int $institutionId): void
-    {
-        $this->notifyInstitutionOfAssignment($problemIds, $institutionId);
-    }
 
-    public function notifyInstitutionEmailOfAssignment(array $problemIds, int $institutionId): void
-    {
-        $this->notifyInstitutionOfAssignment($problemIds, $institutionId);
+        return $text;
     }
 
     public function notifyInstitutionOfAssignment(array $problemIds, int $institutionId): void
     {
         $problems = Problem::whereIn('id', $problemIds)
             ->orderBy('created_at', 'desc')
-            ->get(['id', 'internal_number', 'title', 'created_at']);
+            ->get(['id', 'internal_number', 'description', 'created_at']);
 
         if ($problems->isEmpty()) {
             return;
@@ -64,7 +56,7 @@ class ProblemAssignmentNotifier
             $problemLines[] = sprintf(
                 '- %s | %s | %s | %s',
                 $problem->internal_number,
-                $problem->title,
+                Problem::descriptionPreview($problem->description, 120),
                 $problem->created_at?->format('Y-m-d'),
                 route('problems.show', $problem->id)
             );
@@ -108,21 +100,24 @@ class ProblemAssignmentNotifier
         }
 
         $url = route('problems.show', $problem->id);
+        $excerpt = Problem::descriptionPreview($problem->description, 200);
         $template = EmailNotificationTemplate::getByKey(EmailNotificationTemplate::KEY_EMPLOYEE_ASSIGNMENT);
         if ($template && $template->is_enabled) {
             $subject = $this->replacePlaceholders($template->subject, [
                 'internal_number' => $problem->internal_number,
-                'title' => $problem->title,
+                'title' => $excerpt,
+                'description_excerpt' => $excerpt,
                 'url' => $url,
             ]);
             $body = $this->replacePlaceholders($template->body, [
                 'internal_number' => $problem->internal_number,
-                'title' => $problem->title,
+                'title' => $excerpt,
+                'description_excerpt' => $excerpt,
                 'url' => $url,
             ]);
         } else {
             $subject = 'Jums priskirta nauja problema';
-            $body = "Jums priskirta nauja problema:\n{$problem->internal_number} | {$problem->title} | {$url}";
+            $body = "Jums priskirta nauja problema:\n{$problem->internal_number} | {$excerpt} | {$url}";
         }
 
         Mail::raw($body, function ($message) use ($user, $subject) {
@@ -143,17 +138,20 @@ class ProblemAssignmentNotifier
 
         $deadlineStr = $problem->completion_deadline?->format('Y-m-d') ?? '-';
         $url = route('problems.show', $problem->id);
+        $excerpt = Problem::descriptionPreview($problem->description, 200);
 
         if ($template) {
             $subject = $this->replacePlaceholders($template->subject, [
                 'internal_number' => $problem->internal_number,
-                'title' => $problem->title,
+                'title' => $excerpt,
+                'description_excerpt' => $excerpt,
                 'url' => $url,
                 'deadline_date' => $deadlineStr,
             ]);
             $body = $this->replacePlaceholders($template->body, [
                 'internal_number' => $problem->internal_number,
-                'title' => $problem->title,
+                'title' => $excerpt,
+                'description_excerpt' => $excerpt,
                 'url' => $url,
                 'deadline_date' => $deadlineStr,
             ]);
@@ -162,9 +160,9 @@ class ProblemAssignmentNotifier
                 ? "Problema {$problem->internal_number} – terminas praėjo"
                 : "Problema {$problem->internal_number} – artėja terminas";
             $body = implode("\n", [
-                $type === 'overdue' ? 'Ši problema turėjo būti išspręsta iki ' . $deadlineStr . '.' : 'Terminas išspręsti problemą: ' . $deadlineStr . '.',
+                $type === 'overdue' ? 'Ši problema turėjo būti išspręsta iki '.$deadlineStr.'.' : 'Terminas išspręsti problemą: '.$deadlineStr.'.',
                 '',
-                $problem->internal_number . ' | ' . $problem->title,
+                $problem->internal_number.' | '.$excerpt,
                 $url,
             ]);
         }

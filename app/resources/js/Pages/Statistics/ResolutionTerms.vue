@@ -29,7 +29,7 @@ function goToProblem(id) {
                         <thead>
                             <tr>
                                 <th>Nr.</th>
-                                <th>Pavadinimas</th>
+                                <th>Aprašymas</th>
                                 <th>Būsena</th>
                                 <th>Terminas</th>
                                 <th>Įstaiga</th>
@@ -40,7 +40,7 @@ function goToProblem(id) {
                         <tbody>
                             <tr v-for="p in overdue" :key="p.id">
                                 <td>{{ p.internal_number }}</td>
-                                <td>{{ p.title }}</td>
+                                <td>{{ p.description_preview }}</td>
                                 <td>{{ p.status }}</td>
                                 <td>{{ p.completion_deadline }}</td>
                                 <td>{{ p.institution_name || '—' }}</td>
@@ -62,7 +62,7 @@ function goToProblem(id) {
                         <thead>
                             <tr>
                                 <th>Nr.</th>
-                                <th>Pavadinimas</th>
+                                <th>Aprašymas</th>
                                 <th>Būsena</th>
                                 <th>Terminas</th>
                                 <th>Įstaiga</th>
@@ -73,7 +73,7 @@ function goToProblem(id) {
                         <tbody>
                             <tr v-for="p in approaching" :key="p.id">
                                 <td>{{ p.internal_number }}</td>
-                                <td>{{ p.title }}</td>
+                                <td>{{ p.description_preview }}</td>
                                 <td>{{ p.status }}</td>
                                 <td>{{ p.completion_deadline }}</td>
                                 <td>{{ p.institution_name || '—' }}</td>

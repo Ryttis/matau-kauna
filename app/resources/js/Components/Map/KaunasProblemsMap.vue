@@ -7,6 +7,7 @@ const props = defineProps({
     problems: { type: Array, default: () => [] },
     markerClass: { type: String, default: 'kaunas-map-marker' },
     showLegend: { type: Boolean, default: true },
+    showReturnedLegend: { type: Boolean, default: true },
     highlightedProblemId: { type: [Number, null], default: null },
     mergedProblemIds: { type: Array, default: () => [] },
 })
@@ -43,7 +44,7 @@ useKaunasMap(mapContainer, problemsToShow, {
                 />
                 Nagrinėjamos
             </span>
-            <span class="kaunas-map-legend-item">
+            <span v-if="showReturnedLegend" class="kaunas-map-legend-item">
                 <span
                     class="kaunas-map-legend-dot"
                     :style="{ background: MARKER_COLOR_BY_STATUS[PROBLEM_STATUS.RETURNED_FOR_REVIEW] }"

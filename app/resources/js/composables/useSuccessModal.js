@@ -5,6 +5,7 @@ export function useSuccessModal() {
     const page = usePage()
     const showSuccessModal = ref(false)
     const messageOverride = ref('')
+    const lastShownFlashKey = ref('')
 
     const successMessage = computed(
         () =>
@@ -14,10 +15,17 @@ export function useSuccessModal() {
             ''
     )
 
+    const flashMessageKey = computed(() => {
+        const success = page.props.flash?.success || ''
+        const status = page.props.flash?.status || ''
+        return `${success}|||${status}`
+    })
+
     watch(
-        () => [page.props.flash?.success, page.props.flash?.status],
-        ([success, status]) => {
-            if (success || status) {
+        flashMessageKey,
+        (key) => {
+            if (key && key !== '|||' && key !== lastShownFlashKey.value) {
+                lastShownFlashKey.value = key
                 messageOverride.value = ''
                 showSuccessModal.value = true
             }

@@ -78,7 +78,12 @@ const {
 
 function buildReporterDisplayRows(flatList) {
     const list = flatList || []
-    const mains = list.filter((p) => !p.merged_into_problem_id)
+    const idSet = new Set(list.map((p) => p.id))
+    const mains = list.filter((p) => {
+        const parentId = p.merged_into_problem_id
+        if (!parentId) return true
+        return !idSet.has(parentId)
+    })
     const rows = []
     mains.forEach((main) => {
         const merged = list.filter((p) => p.merged_into_problem_id === main.id)
@@ -120,7 +125,9 @@ function reporterHandleFilterApply(filters) {
 function reporterHandleFilterClear() { reporterClearFilters() }
 
 function reporterOpenProblemView(problemId) {
-    router.visit(route('reports.show', problemId))
+    const base = route('reports.show', problemId)
+    const query = showOnlyMyReports.value ? '?from=dashboard&only_mine=1' : '?from=dashboard'
+    router.visit(base + query)
 }
 const reporterSelectedProblemId = computed(() => {
     const ids = reporterSelectedIds.value
@@ -525,6 +532,7 @@ onUnmounted(() => {
                     <KaunasProblemsMap
                         :problems="reporterProblemsToShowOnMap"
                         marker-class="reporter-dashboard-marker"
+                        :show-returned-legend="false"
                         @open-problem="reporterOpenProblemView"
                     />
                 </div>

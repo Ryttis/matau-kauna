@@ -108,7 +108,7 @@ const buttonType = props.asButton ? 'button' : 'submit'
     color: var(--color-white, #ffffff);
 }
 
-.app-button--primary:hover {
+.app-button--primary:hover:not(.app-button--disabled) {
     background-color: var(--color-primary-hover);
 }
 
@@ -122,7 +122,7 @@ const buttonType = props.asButton ? 'button' : 'submit'
     border: 1px solid var(--color-primary);
 }
 
-.app-button--secondary:hover {
+.app-button--secondary:hover:not(.app-button--disabled) {
     background-color: #f5f5f5;
 }
 
@@ -151,7 +151,4 @@ const buttonType = props.asButton ? 'button' : 'submit'
     cursor: not-allowed;
 }
 
-.app-button--disabled:hover {
-    background-color: inherit;
-}
 </style>

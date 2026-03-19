@@ -34,15 +34,16 @@ export function useKaunasMap(containerRef, problemsToShowRef, options = {}) {
 
     function buildPopupContent(p) {
         const num = escapeHtml(p.internal_number)
-        const title = escapeHtml(p.title)
-        return `<strong>${num}</strong><br>${title}`
+        const preview = (p.description_preview || p.description || '').slice(0, 200)
+        const line = escapeHtml(preview)
+        return `<strong>${num}</strong><br>${line}`
     }
 
     function buildClusterPopupContent(problems) {
         const lines = (problems || []).slice(0, 15).map((p) => {
             const num = escapeHtml(p.internal_number)
-            const title = escapeHtml((p.title || '').slice(0, 40))
-            return `<a href="#" class="kaunas-map-popup-open-problem" data-open-problem-id="${Number(p.id)}">${num} ${title}</a>`
+            const preview = escapeHtml((p.description_preview || p.description || '').slice(0, 40))
+            return `<a href="#" class="kaunas-map-popup-open-problem" data-open-problem-id="${Number(p.id)}">${num} ${preview}</a>`
         })
         const rest = problems.length > 15 ? problems.length - 15 : 0
         const restLine = rest > 0 ? `<span class="kaunas-map-popup-more">+${rest}</span>` : ''

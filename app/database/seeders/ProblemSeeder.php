@@ -5,9 +5,9 @@ namespace Database\Seeders;
 use App\Enums\ProblemStatus;
 use App\Models\Problem;
 use App\Models\ProblemReviewHistory;
+use Carbon\Carbon;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
-use Carbon\Carbon;
 
 class ProblemSeeder extends Seeder
 {
@@ -27,7 +27,6 @@ class ProblemSeeder extends Seeder
                 'address' => 'Laisvės al. 1, Kaunas',
                 'lat' => 54.8985,
                 'lng' => 23.8863,
-                'title' => 'Sugedęs šviesoforas',
                 'category' => 'Eismas',
                 'description' => 'Neveikia šviesoforas sankryžoje',
             ],
@@ -35,7 +34,6 @@ class ProblemSeeder extends Seeder
                 'address' => 'Gedimino g. 5, Kaunas',
                 'lat' => 54.8970,
                 'lng' => 23.8850,
-                'title' => 'Duobė kelyje',
                 'category' => 'Keliai',
                 'description' => 'Didelė duobė važiuojamojoje dalyje',
             ],
@@ -43,7 +41,6 @@ class ProblemSeeder extends Seeder
                 'address' => 'Vilniaus g. 12, Kaunas',
                 'lat' => 54.8990,
                 'lng' => 23.8920,
-                'title' => 'Neveikiantis apšvietimas',
                 'category' => 'Apšvietimas',
                 'description' => 'Nedega gatvės šviestuvas',
             ],
@@ -51,7 +48,6 @@ class ProblemSeeder extends Seeder
                 'address' => 'Kęstučio g. 25, Kaunas',
                 'lat' => 54.9010,
                 'lng' => 23.9080,
-                'title' => 'Sugedęs šaligatvis',
                 'category' => 'Pėsčiųjų takai',
                 'description' => 'Atskilę plytelės',
             ],
@@ -59,7 +55,6 @@ class ProblemSeeder extends Seeder
                 'address' => 'Vytauto pr. 45, Kaunas',
                 'lat' => 54.8940,
                 'lng' => 23.9180,
-                'title' => 'Užtvindyta gatvė',
                 'category' => 'Keliai',
                 'description' => 'Po lietaus telkšo vanduo',
             ],
@@ -67,7 +62,6 @@ class ProblemSeeder extends Seeder
                 'address' => 'Donelaičio g. 8, Kaunas',
                 'lat' => 54.8960,
                 'lng' => 23.8810,
-                'title' => 'Pažeistas asfaltas',
                 'category' => 'Keliai',
                 'description' => 'Iškilęs asfaltas kelio ruože',
             ],
@@ -75,7 +69,6 @@ class ProblemSeeder extends Seeder
                 'address' => 'Maironio g. 15, Kaunas',
                 'lat' => 54.8975,
                 'lng' => 23.8870,
-                'title' => 'Sugedęs tvoros elementas',
                 'category' => 'Infrastruktūra',
                 'description' => 'Pažeistas tvoros elementas',
             ],
@@ -83,7 +76,6 @@ class ProblemSeeder extends Seeder
                 'address' => 'Rotušės a. 3, Kaunas',
                 'lat' => 54.8972,
                 'lng' => 23.8865,
-                'title' => 'Neveikiantis fontanas',
                 'category' => 'Parkai',
                 'description' => 'Neveikia fontano sistema',
             ],
@@ -109,7 +101,6 @@ class ProblemSeeder extends Seeder
 
             $problem = Problem::create([
                 'status' => $statuses[array_rand($statuses)],
-                'title' => $data['title'],
                 'category' => $data['category'],
                 'address' => $data['address'],
                 'lat' => $data['lat'],

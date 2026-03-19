@@ -15,6 +15,7 @@ const props = defineProps({
     mergedSiblings: { type: Array, default: () => [] },
     reviewProgressProblemId: { type: Number, default: null },
     backFrom: { type: String, default: '' },
+    backOnlyMine: { type: Boolean, default: false },
 })
 
 const formattedDate = computed(() => {
@@ -26,9 +27,11 @@ const problemIdForReview = computed(() =>
     props.reviewProgressProblemId ?? props.problem?.id
 )
 
-const backUrl = computed(() =>
-    props.backFrom === 'sarasas' ? route('reporter.sarasas') : route('dashboard')
-)
+const backUrl = computed(() => {
+    if (props.backFrom === 'sarasas') return route('reporter.sarasas')
+    const base = route('dashboard')
+    return props.backOnlyMine ? `${base}?only_mine=1` : base
+})
 
 function goToReviewProgress() {
     const id = problemIdForReview.value
