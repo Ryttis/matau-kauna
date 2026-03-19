@@ -74,9 +74,11 @@ function formatDate(isoDateString) {
 .reporter-statistics-table th {
     text-align: left;
     padding: 12px 12px;
-    color: #666;
-    font-weight: 500;
-    border-bottom: 1px solid #eee;
+    font-weight: var(--table-header-font-weight);
+    font-size: var(--table-header-font-size);
+    color: var(--table-header-text);
+    background: var(--table-header-bg);
+    border-bottom: 1px solid var(--color-border, #e5e5e5);
     vertical-align: middle;
     box-sizing: border-box;
 }

@@ -680,9 +680,10 @@ watch(
     box-sizing: border-box;
 }
 .automation-table th {
-    font-weight: 600;
-    color: var(--color-text, #333);
-    background: var(--color-bg-subtle, #f6f7f9);
+    font-weight: var(--table-header-font-weight);
+    font-size: var(--table-header-font-size);
+    color: var(--table-header-text);
+    background: var(--table-header-bg);
 }
 .automation-table td {
     color: var(--color-text, #333);

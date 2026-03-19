@@ -28,7 +28,7 @@ defineProps({
 .app-data-table {
     width: 100%;
     border-collapse: collapse;
-    font-size: 14px;
+    font-size: var(--table-header-font-size);
     font-family: 'Inter', sans-serif;
 }
 
@@ -36,25 +36,26 @@ defineProps({
 .app-data-table :deep(td) {
     padding: 12px 12px;
     text-align: left;
-    border-bottom: 1px solid #e8e8e8;
+    border-bottom: 1px solid var(--color-border, #e5e5e5);
     vertical-align: middle;
     box-sizing: border-box;
 }
 
 .app-data-table :deep(th) {
-    font-weight: 600;
-    background: #f5f5f5;
-    color: #1e1c1c;
+    font-weight: var(--table-header-font-weight);
+    font-size: var(--table-header-font-size);
+    background: var(--table-header-bg);
+    color: var(--table-header-text);
 }
 
 .app-data-table :deep(tbody tr:hover) {
-    background: #f6f7f9;
+    background: var(--color-bg-subtle);
 }
 
 .app-data-table-empty {
-    color: #666;
+    color: var(--color-text-muted);
     padding: 24px 0;
     margin: 0;
-    font-size: 14px;
+    font-size: var(--table-header-font-size);
 }
 </style>

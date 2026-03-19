@@ -342,7 +342,12 @@ function formatDate(s) {
     vertical-align: middle;
     box-sizing: border-box;
 }
-.versions-table th { font-weight: 600; color: #374151; background: #f9fafb; }
+.versions-table th {
+    font-weight: var(--table-header-font-weight);
+    font-size: var(--table-header-font-size);
+    color: var(--table-header-text);
+    background: var(--table-header-bg);
+}
 .badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 12px; }
 .badge-published { background: #d4edda; color: #155724; }
 .badge-draft { background: #fff3cd; color: #856404; }

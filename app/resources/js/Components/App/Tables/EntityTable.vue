@@ -220,11 +220,12 @@ table {
 }
 
 th {
-    font-size: 12px;
-    font-weight: 400;
+    font-size: var(--table-header-font-size);
+    font-weight: var(--table-header-font-weight);
     line-height: 1.4;
     letter-spacing: -1.1%;
-    color: #1E1C1C;
+    color: var(--table-header-text);
+    background: var(--table-header-bg);
     text-align: left;
     padding: 12px 10px;
     border-bottom: 1px solid var(--color-border, #e5e5e5);
@@ -238,7 +239,7 @@ th.sortable {
 }
 
 th.sortable:hover {
-    background-color: #f6f7f9;
+    background-color: var(--table-header-hover-bg);
 }
 
 td {
@@ -247,14 +248,14 @@ td {
     font-weight: 400;
     line-height: 1.4;
     letter-spacing: -1.1%;
-    color: #1E1C1C;
+    color: var(--table-header-text);
     border-bottom: 1px solid var(--color-border, #e5e5e5);
     vertical-align: middle;
     box-sizing: border-box;
 }
 
 tbody tr:hover {
-    background: #f6f7f9;
+    background: var(--color-bg-subtle);
 }
 
 .row-clickable {

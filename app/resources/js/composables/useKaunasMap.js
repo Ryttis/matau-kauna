@@ -1,4 +1,4 @@
-import { watch, onMounted, onUnmounted, nextTick } from 'vue'
+import { watch, onMounted, onUnmounted, nextTick, isRef, unref } from 'vue'
 import { getMarkerColorForStatus } from '@/constants/problemStatus'
 import { loadLeaflet, createBaseMap, KAUNAS_CENTER, MAP_MAX_ZOOM } from '@/composables/leafletKaunas'
 import { MAP_HIGHLIGHT_COLOR, MAP_MERGED_MARKER_COLOR, MAP_CLUSTER_COLOR } from '@/constants/theme'
@@ -9,17 +9,32 @@ const MERGED_MARKER_SIZE = 14
 const CLUSTER_MARKER_SIZE = 28
 const DEFAULT_MARKER_SIZE = 14
 
-function unwrapRef(maybeRef) {
-    if (maybeRef != null && typeof maybeRef === 'object' && 'value' in maybeRef) return maybeRef.value
-    return maybeRef
-}
-
 function escapeHtml(s) {
     return (s || '').replace(/</g, '&lt;').replace(/>/g, '&gt;')
 }
 
 export function useKaunasMap(containerRef, problemsToShowRef, options = {}) {
-    const { onProblemOpen, markerClassName = 'kaunas-map-marker', invalidateSizeDelay = 150, highlightedProblemId = null, mergedProblemIds = null } = options
+    const {
+        onProblemOpen,
+        markerClassName = 'kaunas-map-marker',
+        invalidateSizeDelay = 150,
+        highlightedProblemId = null,
+        mergedProblemIds = null,
+        autoFitView = true,
+        focusHighlightedMarker = true,
+    } = options
+
+    const shouldAutoFitView = () => {
+        const v = autoFitView
+        if (v == null) return true
+        return unref(v) !== false
+    }
+
+    const shouldFocusHighlightedMarker = () => {
+        const v = focusHighlightedMarker
+        if (v == null) return true
+        return unref(v) !== false
+    }
     let map = null
     let markersLayer = null
     let initialized = false
@@ -27,10 +42,10 @@ export function useKaunasMap(containerRef, problemsToShowRef, options = {}) {
     const markersById = {}
 
     const getMergedSet = () => {
-        const raw = unwrapRef(mergedProblemIds)
+        const raw = unref(mergedProblemIds)
         return new Set((Array.isArray(raw) ? raw : []).map(Number))
     }
-    const getHighlightedId = () => unwrapRef(highlightedProblemId)
+    const getHighlightedId = () => unref(highlightedProblemId)
 
     function buildPopupContent(p) {
         const num = escapeHtml(p.internal_number)
@@ -110,7 +125,7 @@ export function useKaunasMap(containerRef, problemsToShowRef, options = {}) {
                     .addTo(markersLayer)
             }
         })
-        if (!skipFitView) {
+        if (!skipFitView && shouldAutoFitView()) {
             if (list.length === 1) {
                 map.setView([list[0].lat, list[0].lng], 14)
             } else if (list.length > 1 && items.length > 0) {
@@ -120,11 +135,10 @@ export function useKaunasMap(containerRef, problemsToShowRef, options = {}) {
             }
         }
         const hiId = getHighlightedId()
-        if (hiId && markersById[hiId]) {
+        if (shouldFocusHighlightedMarker() && hiId && markersById[hiId]) {
             nextTick(() => {
                 if (map && markersById[hiId]) {
                     map.panTo(markersById[hiId].getLatLng())
-                    markersById[hiId].openPopup()
                 }
             })
         }
@@ -169,14 +183,18 @@ export function useKaunasMap(containerRef, problemsToShowRef, options = {}) {
     })
 
     watch(problemsToShowRef, updateMarkers, { deep: true })
-    if (highlightedProblemId && typeof highlightedProblemId === 'object' && 'value' in highlightedProblemId) {
-        watch(highlightedProblemId, () => {
-            updateMarkers(true)
-        })
+
+    const watchOption = (option, deep = false) => {
+        if (!isRef(option)) {
+            return
+        }
+        watch(option, () => updateMarkers(true), deep ? { deep: true } : undefined)
     }
-    if (mergedProblemIds && typeof mergedProblemIds === 'object' && 'value' in mergedProblemIds) {
-        watch(mergedProblemIds, updateMarkers, { deep: true })
-    }
+
+    watchOption(highlightedProblemId)
+    watchOption(autoFitView)
+    watchOption(focusHighlightedMarker)
+    watchOption(mergedProblemIds, true)
 
     onUnmounted(cleanup)
 

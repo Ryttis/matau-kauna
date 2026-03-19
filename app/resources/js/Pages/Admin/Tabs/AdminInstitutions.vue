@@ -356,6 +356,13 @@ td {
     box-sizing: border-box;
 }
 
+.table thead th {
+    font-weight: var(--table-header-font-weight);
+    font-size: var(--table-header-font-size);
+    background: var(--table-header-bg);
+    color: var(--table-header-text);
+}
+
 .pill {
     display: inline-block;
     padding: 4px 8px;

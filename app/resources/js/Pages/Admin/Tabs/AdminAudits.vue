@@ -350,8 +350,10 @@ loadSettings()
     box-sizing: border-box;
 }
 .data-table th {
-    font-weight: 600;
-    background: var(--color-border-light);
+    font-weight: var(--table-header-font-weight);
+    font-size: var(--table-header-font-size);
+    background: var(--table-header-bg);
+    color: var(--table-header-text);
 }
 .empty-cell {
     color: var(--color-text-muted);
