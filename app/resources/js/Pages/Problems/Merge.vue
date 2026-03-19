@@ -146,25 +146,6 @@ const mergedProblemIdsForMap = computed(() =>
     (props.mergedProblems || []).map((p) => p.id)
 )
 
-const navigableGroupsForMap = computed(() => {
-    const fromMap = problemsForMap.value
-    const mainId = Number(mainProblemId.value)
-    const mergedSet = new Set((mergedProblemIdsForMap.value || []).map((id) => Number(id)))
-    const groups = []
-    const main = fromMap.find((p) => Number(p.id) === mainId)
-    const mainMerged = fromMap.filter((p) => mergedSet.has(Number(p.id)))
-    if (main) groups.push([...mainMerged, main])
-    for (const s of similarOnly.value) {
-        const children = s.merged_problems || s.mergedProblems || []
-        if (children.length === 0) continue
-        const childIds = new Set(children.map((m) => Number(m.id)))
-        const groupMerged = fromMap.filter((p) => childIds.has(Number(p.id)))
-        const parent = fromMap.find((p) => Number(p.id) === Number(s.id))
-        if (parent) groups.push([...groupMerged, parent])
-    }
-    return groups
-})
-
 const handleBack = () => {
     router.visit(route('problems.show', props.problem.id))
 }
@@ -298,7 +279,6 @@ onUnmounted(() => {
                             :problems="problemsToShowOnMap"
                             :highlighted-problem-id="mainProblemId"
                             :merged-problem-ids="mergedProblemIdsForMap"
-                            :navigable-groups="navigableGroupsForMap"
                             marker-class="merge-map-marker"
                             :show-legend="false"
                             @open-problem="openProblemView"
@@ -493,8 +473,8 @@ onUnmounted(() => {
 
 .merge-map-container {
     width: 100%;
-    height: 320px;
-    min-height: 320px;
+    height: 480px;
+    min-height: 480px;
     border: 1px solid #e0e0e0;
     border-radius: 5px;
     overflow: hidden;
@@ -506,7 +486,7 @@ onUnmounted(() => {
 
 .merge-map-container :deep(.kaunas-map-container) {
     height: 100%;
-    min-height: 320px;
+    min-height: 480px;
 }
 
 .merge-problems-section {

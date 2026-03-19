@@ -139,7 +139,7 @@ class Problem extends Model
     public function scopeForReporter($query, int $userId)
     {
         return $query
-            ->whereIn('status', ['nauja', 'nagrinejama', 'isspresta'])
+            ->whereIn('status', ['nauja', 'nagrinejama', 'grazinta_nagrinejimui', 'isspresta'])
             ->notArchived()
             ->whereNull('merged_into_problem_id')
             ->where(function ($q) use ($userId) {

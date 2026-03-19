@@ -1,7 +1,6 @@
 import { watch, onMounted, onUnmounted, nextTick } from 'vue'
 import { getMarkerColorForStatus } from '@/constants/problemStatus'
 import { loadLeaflet, createBaseMap, KAUNAS_CENTER, MAP_MAX_ZOOM } from '@/composables/leafletKaunas'
-import { ICON_LEFT_ARROW, ICON_RIGHT_ARROW } from '@/constants/icons'
 import { MAP_HIGHLIGHT_COLOR, MAP_MERGED_MARKER_COLOR, MAP_CLUSTER_COLOR } from '@/constants/theme'
 import { clusterProblems } from '@/utils/mapClustering'
 
@@ -19,18 +18,8 @@ function escapeHtml(s) {
     return (s || '').replace(/</g, '&lt;').replace(/>/g, '&gt;')
 }
 
-function navButton(problemId, icon, title, disabled) {
-    const cls = 'kaunas-map-popup-nav-btn'
-    const iconCls = 'kaunas-map-popup-nav-icon'
-    const src = icon === 'prev' ? ICON_LEFT_ARROW : ICON_RIGHT_ARROW
-    if (disabled) {
-        return `<span class="${cls} ${cls}--disabled" title="${title}"><img src="${src}" alt="" class="${iconCls}" /></span>`
-    }
-    return `<button type="button" class="${cls}" data-nav-problem-id="${problemId}" title="${title}"><img src="${src}" alt="${title}" class="${iconCls}" /></button>`
-}
-
 export function useKaunasMap(containerRef, problemsToShowRef, options = {}) {
-    const { onProblemOpen, markerClassName = 'kaunas-map-marker', invalidateSizeDelay = 150, highlightedProblemId = null, mergedProblemIds = null, navigableGroupsRef = null } = options
+    const { onProblemOpen, markerClassName = 'kaunas-map-marker', invalidateSizeDelay = 150, highlightedProblemId = null, mergedProblemIds = null } = options
     let map = null
     let markersLayer = null
     let initialized = false
@@ -42,37 +31,11 @@ export function useKaunasMap(containerRef, problemsToShowRef, options = {}) {
         return new Set((Array.isArray(raw) ? raw : []).map(Number))
     }
     const getHighlightedId = () => unwrapRef(highlightedProblemId)
-    const getNavigableGroups = () => {
-        const raw = unwrapRef(navigableGroupsRef)
-        if (!Array.isArray(raw)) return []
-        return raw.filter((g) => Array.isArray(g) && g.length > 0)
-    }
-
-    function findGroupAndIndex(groups, pid) {
-        const nid = Number(pid)
-        for (const group of groups) {
-            const idx = group.findIndex((n) => Number(n.id) === nid)
-            if (idx >= 0) return { group, idx }
-        }
-        return { group: [], idx: -1 }
-    }
 
     function buildPopupContent(p) {
         const num = escapeHtml(p.internal_number)
         const title = escapeHtml(p.title)
-        const groups = getNavigableGroups()
-        const { group: navList, idx } = findGroupAndIndex(groups, p.id)
-        let nav = ''
-        if (navList.length > 0 && idx >= 0) {
-            const hasPrev = idx > 0
-            const hasNext = idx < navList.length - 1
-            const prevId = hasPrev ? navList[idx - 1].id : null
-            const nextId = hasNext ? navList[idx + 1].id : null
-            const prevBtn = navButton(prevId, 'prev', 'Ankstesnė', !hasPrev)
-            const nextBtn = navButton(nextId, 'next', 'Kita', !hasNext)
-            nav = `<div class="kaunas-map-popup-nav">${prevBtn}${nextBtn}</div>`
-        }
-        return `<strong>${num}</strong><br>${title}${nav}`
+        return `<strong>${num}</strong><br>${title}`
     }
 
     function buildClusterPopupContent(problems) {
@@ -98,16 +61,6 @@ export function useKaunasMap(containerRef, problemsToShowRef, options = {}) {
                 map.closePopup()
                 return
             }
-            const btn = e.target.closest('.kaunas-map-popup-nav-btn[data-nav-problem-id]')
-            if (!btn) return
-            e.preventDefault()
-            e.stopPropagation()
-            const id = Number(btn.getAttribute('data-nav-problem-id'))
-            const marker = markersById[id]
-            if (!marker) return
-            map.closePopup()
-            map.panTo(marker.getLatLng())
-            marker.openPopup()
         }
         const container = map.getContainer()
         container.addEventListener('click', handler)
@@ -165,6 +118,15 @@ export function useKaunasMap(containerRef, problemsToShowRef, options = {}) {
                 map.fitBounds(bounds.pad(0.1))
             }
         }
+        const hiId = getHighlightedId()
+        if (hiId && markersById[hiId]) {
+            nextTick(() => {
+                if (map && markersById[hiId]) {
+                    map.panTo(markersById[hiId].getLatLng())
+                    markersById[hiId].openPopup()
+                }
+            })
+        }
     }
 
     let removeZoomListener = null
@@ -207,13 +169,12 @@ export function useKaunasMap(containerRef, problemsToShowRef, options = {}) {
 
     watch(problemsToShowRef, updateMarkers, { deep: true })
     if (highlightedProblemId && typeof highlightedProblemId === 'object' && 'value' in highlightedProblemId) {
-        watch(highlightedProblemId, updateMarkers)
+        watch(highlightedProblemId, () => {
+            updateMarkers(true)
+        })
     }
     if (mergedProblemIds && typeof mergedProblemIds === 'object' && 'value' in mergedProblemIds) {
         watch(mergedProblemIds, updateMarkers, { deep: true })
-    }
-    if (navigableGroupsRef && typeof navigableGroupsRef === 'object' && 'value' in navigableGroupsRef) {
-        watch(navigableGroupsRef, updateMarkers, { deep: true })
     }
 
     onUnmounted(cleanup)

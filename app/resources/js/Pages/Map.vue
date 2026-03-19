@@ -1,10 +1,12 @@
 <script setup>
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import { Head, router } from '@inertiajs/vue3'
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue'
 import AppButton from '@/Components/App/AppButton.vue'
 import FilterModal from '@/Components/App/Modals/FilterModal.vue'
+import StatusChangeModal from '@/Components/App/Modals/StatusChangeModal.vue'
 import KaunasProblemsMap from '@/Components/Map/KaunasProblemsMap.vue'
+import MapAddressAutocomplete from '@/Components/Map/MapAddressAutocomplete.vue'
 import { useAuth } from '@/composables/useAuth'
 import { ICON_FILTER } from '@/constants/icons'
 import { PROBLEM_STATUS, MARKER_COLOR_BY_STATUS } from '@/constants/problemStatus'
@@ -17,9 +19,26 @@ const props = defineProps({
 
 const { canSeeProblemAdminButtons, canSeeInstitutionAdminButtons, isMunicipalityRep } = useAuth()
 
-const searchQuery = ref('')
-const addressInput = ref('')
 const showFilterModal = ref(false)
+const selectedProblemFromAddress = ref(null)
+const addressSearchResetToken = ref(0)
+const mapNumberSearchResetToken = ref(0)
+
+function onMapNumberSearchSelect(problem) {
+    selectedProblemFromAddress.value = problem
+    addressSearchResetToken.value += 1
+}
+
+function onAddressSearchSelect(problem) {
+    selectedProblemFromAddress.value = problem
+    mapNumberSearchResetToken.value += 1
+}
+
+const problemsForMap = computed(() => {
+    const sel = selectedProblemFromAddress.value
+    if (sel) return [sel]
+    return props.problems || []
+})
 
 const filters = ref({
     reportNumber: '',
@@ -57,19 +76,45 @@ const handleFilterClose = () => {
     showFilterModal.value = false
 }
 
-const handleAssignProblem = () => {}
+const showStatusModal = ref(false)
 
-const handleAssignInstitution = () => {
-    router.visit(route('dashboard'))
+const handleAssignProblem = () => {
+    if (selectedProblemFromAddress.value) {
+        router.visit(route('problems.assign.single', selectedProblemFromAddress.value.id))
+    }
 }
 
-const handleDisplayStatus = () => {}
+const handleAssignInstitution = () => {
+    if (selectedProblemFromAddress.value) {
+        router.visit(route('problems.assignInstitution', selectedProblemFromAddress.value.id))
+    } else {
+        router.visit(route('dashboard'))
+    }
+}
 
-const handleIeskoti = () => {}
+const handleDisplayStatus = () => {
+    if (selectedProblemFromAddress.value) showStatusModal.value = true
+}
+
+const handleStatusChange = (status) => {
+    if (!selectedProblemFromAddress.value) return
+    router.patch(route('problems.updateStatus', selectedProblemFromAddress.value.id), { status }, {
+        preserveScroll: true,
+        onSuccess: () => {
+            showStatusModal.value = false
+            selectedProblemFromAddress.value = { ...selectedProblemFromAddress.value, status }
+        },
+    })
+}
+
+const handleStatusModalClose = () => {
+    showStatusModal.value = false
+}
 
 const statusIndicatorVars = {
     '--status-new': MARKER_COLOR_BY_STATUS[PROBLEM_STATUS.NEW],
     '--status-review': MARKER_COLOR_BY_STATUS[PROBLEM_STATUS.IN_REVIEW],
+    '--status-returned': MARKER_COLOR_BY_STATUS[PROBLEM_STATUS.RETURNED_FOR_REVIEW],
     '--status-resolved': MARKER_COLOR_BY_STATUS[PROBLEM_STATUS.RESOLVED],
 }
 </script>
@@ -80,12 +125,15 @@ const statusIndicatorVars = {
     <AuthenticatedLayout>
         <div class="map-page" :style="statusIndicatorVars">
             <div class="search-filter-section">
-                <input
-                    v-model="searchQuery"
-                    type="text"
-                    class="search-input"
-                    placeholder="ieškoti"
-                />
+                <div class="map-page-search-wrap">
+                    <MapAddressAutocomplete
+                        variant="pill"
+                        search-mode="number"
+                        :reset-token="mapNumberSearchResetToken"
+                        placeholder="Problemos Nr. (žemėlapis)"
+                        @select="onMapNumberSearchSelect"
+                    />
+                </div>
                 <img
                     :src="ICON_FILTER"
                     class="filter-icon"
@@ -103,6 +151,10 @@ const statusIndicatorVars = {
                     <div class="status-circle status-circle--review"></div>
                     <span class="status-label">Nagrinėjamos</span>
                 </div>
+                <div class="status-indicator status-returned">
+                    <div class="status-circle status-circle--returned"></div>
+                    <span class="status-label">Grąžintos nagrinėjimui</span>
+                </div>
                 <div class="status-indicator status-resolved">
                     <div class="status-circle status-circle--resolved"></div>
                     <span class="status-label">Išspręstos</span>
@@ -111,7 +163,8 @@ const statusIndicatorVars = {
 
             <div class="map-container">
                 <KaunasProblemsMap
-                    :problems="problems || []"
+                    :problems="problemsForMap"
+                    :highlighted-problem-id="selectedProblemFromAddress?.id ?? null"
                     marker-class="map-page-marker"
                     :show-legend="false"
                     @open-problem="openProblemView"
@@ -119,15 +172,20 @@ const statusIndicatorVars = {
             </div>
 
             <div class="location-selection">
-                <h3 class="location-title">Pasirinkite problemos vietą</h3>
-                <input
-                    v-model="addressInput"
-                    type="text"
-                    class="address-input"
-                    placeholder="Suveskite adresą"
-                />
+                <div class="map-page-address-block">
+                    <h3 class="map-page-location-title">Pasirinkite problemos vietą</h3>
+                    <div class="map-page-address-input-wrap">
+                        <MapAddressAutocomplete
+                            variant="pill-bordered"
+                            search-mode="address"
+                            :reset-token="addressSearchResetToken"
+                            placeholder="Įveskite adresą"
+                            @select="onAddressSearchSelect"
+                        />
+                    </div>
+                </div>
 
-                <template v-if="canSeeProblemAdminButtons">
+                <template v-if="selectedProblemFromAddress && canSeeProblemAdminButtons">
                     <AppButton
                         text="Priskirti problemą"
                         as-button
@@ -140,9 +198,9 @@ const statusIndicatorVars = {
                     />
                 </template>
 
-                <template v-else-if="canSeeInstitutionAdminButtons">
+                <template v-else-if="selectedProblemFromAddress && canSeeInstitutionAdminButtons">
                     <AppButton
-                        text="Priskirti/Peradresuoti problemą"
+                        text="Priskirti/peradresuoti problemą"
                         as-button
                         @click="handleAssignInstitution"
                     />
@@ -153,22 +211,21 @@ const statusIndicatorVars = {
                     />
                 </template>
 
-                <template v-else-if="!isMunicipalityRep">
+                <template v-else-if="selectedProblemFromAddress && !isMunicipalityRep">
                     <AppButton
                         text="Atvaizduoti/keisti būseną"
                         as-button
                         @click="handleDisplayStatus"
                     />
                 </template>
-
-                <template v-else>
-                    <AppButton
-                        text="Ieškoti"
-                        as-button
-                        @click="handleIeskoti"
-                    />
-                </template>
             </div>
+
+            <StatusChangeModal
+                :show="showStatusModal"
+                :problem="selectedProblemFromAddress"
+                @close="handleStatusModalClose"
+                @save="handleStatusChange"
+            />
 
             <FilterModal
                 :show="showFilterModal"
@@ -187,7 +244,7 @@ const statusIndicatorVars = {
 .map-page {
     display: flex;
     flex-direction: column;
-    height: calc(100vh - 120px);
+    min-height: calc(100vh - 120px);
     gap: 20px;
 }
 
@@ -198,15 +255,8 @@ const statusIndicatorVars = {
     justify-content: center;
 }
 
-.search-input {
+.map-page-search-wrap {
     width: 340px;
-    height: 40px;
-    border: none;
-    border-radius: 20px;
-    background-color: #F6F7F9;
-    color: #333;
-    padding: 0 20px;
-    font-size: 16px;
 }
 
 .filter-icon {
@@ -217,7 +267,8 @@ const statusIndicatorVars = {
 
 .status-indicators {
     display: flex;
-    gap: 30px;
+    flex-wrap: wrap;
+    gap: 24px;
     align-items: center;
     justify-content: center;
 }
@@ -242,6 +293,10 @@ const statusIndicatorVars = {
     background-color: var(--status-review);
 }
 
+.status-circle--returned {
+    background-color: var(--status-returned);
+}
+
 .status-circle--resolved {
     background-color: var(--status-resolved);
 }
@@ -252,8 +307,8 @@ const statusIndicatorVars = {
 }
 
 .map-container {
-    flex: 1;
     width: 100%;
+    height: 420px;
     min-height: 400px;
     border-radius: 8px;
     overflow: hidden;
@@ -268,29 +323,30 @@ const statusIndicatorVars = {
 .location-selection {
     display: flex;
     flex-direction: column;
-    gap: 15px;
+    gap: 16px;
     align-items: center;
     max-width: var(--button-width, 290px);
+    width: 100%;
     margin: 0 auto;
 }
 
-.location-title {
+.map-page-address-block {
+    width: 100%;
+    text-align: center;
+    margin-bottom: 4px;
+}
+
+.map-page-location-title {
     font-size: 18px;
     font-weight: 500;
     color: #333;
-    margin: 0;
-    text-align: center;
+    margin: 0 0 14px;
 }
 
-.address-input {
+.map-page-address-input-wrap {
     width: 100%;
-    height: var(--control-height, 45px);
-    border: none;
-    border-radius: 5px;
-    background-color: #FFFFFF;
-    color: #333;
-    padding: 0 15px;
-    font-size: 16px;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    max-width: 100%;
+    margin: 0 auto;
 }
+
 </style>

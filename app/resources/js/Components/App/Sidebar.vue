@@ -248,6 +248,14 @@ const toggleStatistics = () => {
                     </Link>
 
                     <Link
+                        :href="`${route('dashboard')}?status=${PROBLEM_STATUS.RETURNED_FOR_REVIEW}`"
+                        class="submenu-link"
+                        :class="{ active: isStatusLinkActive(PROBLEM_STATUS.RETURNED_FOR_REVIEW) }"
+                    >
+                        Grąžinta nagrinėjimui
+                    </Link>
+
+                    <Link
                         :href="`${route('dashboard')}?status=${PROBLEM_STATUS.INACTIVE}`"
                         class="submenu-link"
                         :class="{ active: isStatusLinkActive(PROBLEM_STATUS.INACTIVE) }"

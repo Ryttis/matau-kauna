@@ -1,32 +1,68 @@
 <script setup>
-import { ref } from 'vue'
+import { ref, computed, watch } from 'vue'
 import BaseModal from '@/Components/App/BaseModal.vue'
 import AppButton from '@/Components/App/AppButton.vue'
 import { ICON_PENCIL } from '@/constants/icons'
+import {
+    REVIEW_PROGRESS_MODAL_STATUS_TAGS,
+    REVIEW_ENTRY_VISIBILITY,
+    reviewModalTagKeyForStatus,
+} from '@/constants/reviewProgressEntry'
+import { useReviewProgressEntryForm } from '@/composables/useReviewProgressEntryForm'
 
-defineProps({
-    open: {
-        type: Boolean,
-        default: false,
-    },
+const props = defineProps({
+    open: { type: Boolean, default: false },
+    problemId: { type: Number, required: true },
+    currentStatus: { type: String, default: '' },
 })
 
-defineEmits(['close'])
+const emit = defineEmits(['close'])
 
 const todayDate = new Date().toLocaleDateString('lt-LT')
-const selectedStatus = ref(null)
-const comment = ref('')
+const selectedKey = ref(null)
+const localStatusHint = ref('')
 
-const statusTags = [
-    { label: 'Nauja', borderClass: 'add-entry-status--orange' },
-    { label: 'Nagrinėjama', borderClass: 'add-entry-status--yellow' },
-    { label: 'Grąžinta nagrinėjimui', borderClass: 'add-entry-status--blue' },
-    { label: 'Išnagrinėta', borderClass: 'add-entry-status--green' },
-]
+const { form, submit } = useReviewProgressEntryForm(
+    () => props.problemId,
+    {
+        onSuccess: () => emit('close'),
+    },
+)
 
-function selectStatus(label) {
-    selectedStatus.value = selectedStatus.value === label ? null : label
+const selectedStatusValue = computed(() => {
+    const tag = REVIEW_PROGRESS_MODAL_STATUS_TAGS.find((t) => t.key === selectedKey.value)
+    return tag?.value ?? ''
+})
+
+function selectStatus(tag) {
+    selectedKey.value = selectedKey.value === tag.key ? null : tag.key
+    localStatusHint.value = ''
 }
+
+function runSubmit(visibility) {
+    if (!selectedStatusValue.value) {
+        localStatusHint.value = 'Pasirinkite būseną'
+        return
+    }
+    localStatusHint.value = ''
+    form.status = selectedStatusValue.value
+    submit(visibility)
+}
+
+watch(
+    () => props.open,
+    (isOpen) => {
+        if (isOpen) {
+            selectedKey.value = reviewModalTagKeyForStatus(props.currentStatus)
+            localStatusHint.value = ''
+            form.clearErrors()
+        } else {
+            selectedKey.value = null
+            localStatusHint.value = ''
+            form.clearErrors()
+        }
+    },
+)
 </script>
 
 <template>
@@ -50,29 +86,33 @@ function selectStatus(label) {
                 <div class="add-entry-modal-section add-entry-status-section">
                     <div class="add-entry-status-row">
                         <button
-                            v-for="tag in statusTags"
-                            :key="tag.label"
+                            v-for="tag in REVIEW_PROGRESS_MODAL_STATUS_TAGS"
+                            :key="tag.key"
                             type="button"
                             class="add-entry-status-tag"
-                            :class="[tag.borderClass, { 'add-entry-status-tag--selected': selectedStatus === tag.label }]"
-                            @click="selectStatus(tag.label)"
+                            :class="[tag.borderClass, { 'add-entry-status-tag--selected': selectedKey === tag.key }]"
+                            @click="selectStatus(tag)"
                         >
                             {{ tag.label }}
                         </button>
                     </div>
+                    <p v-if="localStatusHint || form.errors.status" class="add-entry-field-error">
+                        {{ localStatusHint || form.errors.status }}
+                    </p>
                 </div>
 
                 <div class="add-entry-modal-section">
                     <label class="add-entry-modal-label">Komentaras</label>
                     <div class="add-entry-comment-wrap">
                         <textarea
-                            v-model="comment"
+                            v-model="form.comment"
                             class="add-entry-textarea"
                             rows="4"
                             placeholder="Įrašykite komentarą"
                         />
                         <img :src="ICON_PENCIL" alt="" class="add-entry-comment-icon" />
                     </div>
+                    <p v-if="form.errors.comment" class="add-entry-field-error">{{ form.errors.comment }}</p>
                 </div>
 
                 <div class="add-entry-modal-section">
@@ -81,20 +121,25 @@ function selectStatus(label) {
                     </div>
                     <span class="add-entry-attach-label">Prisegti failą</span>
                 </div>
+                <p v-if="form.errors.visibility" class="add-entry-field-error">{{ form.errors.visibility }}</p>
             </div>
 
             <template #footer>
                 <AppButton
-                    text="Siųsti (vidinis komentas)"
+                    text="Siųsti (vidinis komentaras)"
                     variant="primary"
                     as-button
                     class="add-entry-footer-btn"
+                    :disabled="form.processing"
+                    @click="runSubmit(REVIEW_ENTRY_VISIBILITY.INTERNAL)"
                 />
                 <AppButton
                     text="Paskelbti viešai"
                     variant="secondary"
                     as-button
                     class="add-entry-footer-btn"
+                    :disabled="form.processing"
+                    @click="runSubmit(REVIEW_ENTRY_VISIBILITY.PUBLIC)"
                 />
             </template>
         </BaseModal>
@@ -245,6 +290,12 @@ function selectStatus(label) {
     margin-top: 8px;
     font-size: 14px;
     color: #666;
+}
+
+.add-entry-field-error {
+    margin: 8px 0 0;
+    font-size: 13px;
+    color: #c0392b;
 }
 
 .add-entry-modal-root :deep(.modal-footer) {

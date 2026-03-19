@@ -134,6 +134,7 @@ class ProblemSeeder extends Seeder
                     'status' => $statuses[array_rand($statuses)],
                     'responsible' => $responsibleNames[array_rand($responsibleNames)],
                     'comment' => $comments[array_rand($comments)],
+                    'visibility' => rand(0, 1) === 1 ? 'public' : 'internal',
                     'created_at' => $historyDate,
                     'updated_at' => $historyDate,
                 ]);

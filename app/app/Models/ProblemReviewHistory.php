@@ -14,6 +14,7 @@ class ProblemReviewHistory extends Model
         'status',
         'responsible',
         'comment',
+        'visibility',
     ];
 
     protected $casts = [];
