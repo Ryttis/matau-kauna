@@ -23,6 +23,7 @@ const props = defineProps({
     reviewEntries: { type: Array, default: () => [] },
     backUrl: { type: String, default: '' },
     canAddEntry: { type: Boolean, default: true },
+    showReviewVisibilityLabels: { type: Boolean, default: false },
 })
 
 const handleBack = () => {
@@ -79,7 +80,17 @@ const handleBack = () => {
                         </div>
                         <div class="review-progress-divider"></div>
                         <div class="review-progress-comment">
-                            <span class="review-progress-comment-label">Komentaras</span>
+                            <div class="review-progress-comment-heading">
+                                <span class="review-progress-comment-label">Komentaras</span>
+                                <span
+                                    v-if="showReviewVisibilityLabels && entry.visibility === 'internal'"
+                                    class="review-progress-visibility review-progress-visibility--internal"
+                                >Vidinis</span>
+                                <span
+                                    v-else-if="showReviewVisibilityLabels && entry.visibility === 'public'"
+                                    class="review-progress-visibility review-progress-visibility--public"
+                                >Viešas</span>
+                            </div>
                             <div class="review-progress-comment-text">{{ entry.comment || '' }}</div>
                         </div>
                     </div>
@@ -104,6 +115,8 @@ const handleBack = () => {
         <AddEntryModal
             v-if="canAddEntry"
             :open="showAddEntryModal"
+            :problem-id="problem.id"
+            :current-status="problem.status || ''"
             @close="closeAddEntry"
         />
     </AuthenticatedLayout>
@@ -256,6 +269,30 @@ const handleBack = () => {
     display: flex;
     flex-direction: column;
     gap: 8px;
+}
+
+.review-progress-comment-heading {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.review-progress-visibility {
+    font-size: 12px;
+    font-weight: 600;
+    padding: 2px 10px;
+    border-radius: 999px;
+}
+
+.review-progress-visibility--internal {
+    background: #fdebd0;
+    color: #a04000;
+}
+
+.review-progress-visibility--public {
+    background: #e8f4fd;
+    color: #1565c0;
 }
 
 .review-progress-comment-label {

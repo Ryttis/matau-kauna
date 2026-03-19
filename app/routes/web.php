@@ -55,6 +55,7 @@ Route::middleware(['auth', 'verified', 'reporter.terms'])->group(function () {
             Route::delete('/automation/resolution-term-rules/{resolution_term_rule}', [AutomationController::class, 'destroyResolutionTermRule'])->name('automation.resolutionTermRules.destroy');
         });
         Route::get('/map', [ProblemController::class, 'map'])->name('map');
+        Route::get('/map/address-search', [ProblemController::class, 'addressSearch'])->name('map.addressSearch');
         Route::get('/problems/assign', [ProblemController::class, 'assign'])->name('problems.assign');
         Route::post('/problems/assign', [ProblemController::class, 'storeAssign'])->name('problems.assign.store');
         Route::post('/problems/assign/email', [ProblemController::class, 'sendAssignEmail'])->name('problems.assign.email');
@@ -72,6 +73,7 @@ Route::middleware(['auth', 'verified', 'reporter.terms'])->group(function () {
         Route::put('/problems/{problem}', [ProblemController::class, 'update'])->name('problems.update');
         Route::delete('/problems/{problem}', [ProblemController::class, 'destroy'])->name('problems.destroy');
         Route::patch('/problems/{problem}/status', [ProblemController::class, 'updateStatus'])->name('problems.updateStatus');
+        Route::post('/problems/{problem}/review-progress', [ProblemController::class, 'storeReviewProgress'])->name('problems.reviewProgress.store');
         Route::post('/problems/bulk-update-status', [ProblemController::class, 'bulkUpdateStatus'])->name('problems.bulkUpdateStatus');
         Route::patch('/problems/{problem}/publish', [ProblemController::class, 'updatePublish'])->name('problems.updatePublish');
         Route::post('/problems/bulk-update-publish', [ProblemController::class, 'bulkUpdatePublish'])->name('problems.bulkUpdatePublish');

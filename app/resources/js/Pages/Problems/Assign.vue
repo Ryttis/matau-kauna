@@ -246,6 +246,16 @@ const toggleStatus = () => {
                             <button
                                 class="assign-status-btn"
                                 :class="{
+                                    'assign-status-btn-active': selectedStatus === PROBLEM_STATUS.RETURNED_FOR_REVIEW,
+                                    'assign-status-btn-returned': true
+                                }"
+                                @click="handleStatusSelect(PROBLEM_STATUS.RETURNED_FOR_REVIEW)"
+                            >
+                                Grąžinta nagrinėjimui
+                            </button>
+                            <button
+                                class="assign-status-btn"
+                                :class="{
                                     'assign-status-btn-active': selectedStatus === PROBLEM_STATUS.RESOLVED,
                                     'assign-status-btn-resolved': true
                                 }"
@@ -542,6 +552,21 @@ const toggleStatus = () => {
 .assign-status-btn-review.assign-status-btn-active {
     border-color: #BDBDBD;
     background-color: #F5F5F5;
+    border-width: 3px;
+}
+
+.assign-status-btn-returned {
+    border-color: #1946a0;
+}
+
+.assign-status-btn-returned:hover {
+    border-color: #153d8a;
+    background-color: #eef3fc;
+}
+
+.assign-status-btn-returned.assign-status-btn-active {
+    border-color: #153d8a;
+    background-color: #eef3fc;
     border-width: 3px;
 }
 

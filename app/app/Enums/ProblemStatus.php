@@ -7,6 +7,7 @@ enum ProblemStatus: string
     case UNREGISTERED = 'neuzregistruota';
     case NEW = 'nauja';
     case IN_REVIEW = 'nagrinejama';
+    case RETURNED_FOR_REVIEW = 'grazinta_nagrinejimui';
     case RESOLVED = 'isspresta';
     case INACTIVE = 'neaktuali';
 
@@ -16,6 +17,7 @@ enum ProblemStatus: string
             self::UNREGISTERED => 'Neužregistruota',
             self::NEW => 'Nauja',
             self::IN_REVIEW => 'Nagrinėjama',
+            self::RETURNED_FOR_REVIEW => 'Grąžinta nagrinėjimui',
             self::RESOLVED => 'Išspręsta',
             self::INACTIVE => 'Neaktuali',
         };

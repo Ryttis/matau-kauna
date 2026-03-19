@@ -14,12 +14,69 @@ class ProblemMapService
 
     public function getProblemsForMapForUser(?User $user): array
     {
-        $center = config('kaunas.map_center');
-        $centerLat = $center['lat'];
-        $centerLng = $center['lng'];
+        return $this->getMapQueryForUser($user)
+            ->orderBy('address')
+            ->orderBy('created_at', 'desc')
+            ->get(['id', 'internal_number', 'title', 'status', 'category', 'address', 'lat', 'lng', 'created_at'])
+            ->map(function ($problem, $index) {
+                return $this->mapProblemToMapItem($problem, $this->getCenterLat(), $this->getCenterLng(), $index);
+            })
+            ->values()
+            ->all();
+    }
 
-        $query = Problem::query()
-            ->whereIn('status', ['nauja', 'nagrinejama', 'isspresta'])
+    public function searchByAddress(?User $user, string $query, string $mode = 'all'): array
+    {
+        $q = trim($query);
+        if ($q === '') {
+            return [];
+        }
+        $mode = in_array($mode, ['number', 'address'], true) ? $mode : 'all';
+        $centerLat = $this->getCenterLat();
+        $centerLng = $this->getCenterLng();
+        $problems = $this->getMapQueryForUser($user)
+            ->where(function ($sub) use ($q, $mode) {
+                if ($mode === 'number') {
+                    $sub->where('internal_number', 'like', '%' . $q . '%');
+
+                    return;
+                }
+                if ($mode === 'address') {
+                    $sub->whereNotNull('address')
+                        ->where('address', '!=', '')
+                        ->where('address', 'like', '%' . $q . '%');
+
+                    return;
+                }
+                $sub->where(function ($byAddress) use ($q) {
+                    $byAddress->whereNotNull('address')
+                        ->where('address', '!=', '')
+                        ->where('address', 'like', '%' . $q . '%');
+                })->orWhere('internal_number', 'like', '%' . $q . '%');
+            })
+            ->orderBy('internal_number')
+            ->orderBy('created_at', 'desc')
+            ->limit(20)
+            ->get(['id', 'internal_number', 'title', 'status', 'category', 'address', 'lat', 'lng', 'created_at']);
+        return $problems->map(function ($problem, $index) use ($centerLat, $centerLng) {
+            return $this->mapProblemToMapItem($problem, $centerLat, $centerLng, $index);
+        })->values()->all();
+    }
+
+    private function getCenterLat(): float
+    {
+        return (float) config('kaunas.map_center.lat');
+    }
+
+    private function getCenterLng(): float
+    {
+        return (float) config('kaunas.map_center.lng');
+    }
+
+    private function getMapQueryForUser(?User $user): \Illuminate\Database\Eloquent\Builder
+    {
+        return Problem::query()
+            ->whereIn('status', ['nauja', 'nagrinejama', 'grazinta_nagrinejimui', 'isspresta'])
             ->when(
                 $user && $this->scopeService->isInstitutionScoped($user),
                 fn ($q) => $q->where('institution_id', $user->institution_id)
@@ -35,16 +92,6 @@ class ProblemMapService
                     }
                 }
             );
-
-        return $query
-            ->orderBy('address')
-            ->orderBy('created_at', 'desc')
-            ->get(['id', 'internal_number', 'title', 'status', 'category', 'address', 'lat', 'lng', 'created_at'])
-            ->map(function ($problem, $index) use ($centerLat, $centerLng) {
-                return $this->mapProblemToMapItem($problem, $centerLat, $centerLng, $index);
-            })
-            ->values()
-            ->all();
     }
 
     public function getPublicProblemsForMap(?int $reportedByUserId = null): array

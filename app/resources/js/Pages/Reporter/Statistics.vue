@@ -4,14 +4,17 @@ import { Head, router } from '@inertiajs/vue3'
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue'
 import AppSelect from '@/Components/App/AppSelect.vue'
 import ReporterStatisticsProblemTable from '@/Components/Reporter/ReporterStatisticsProblemTable.vue'
-import { PROBLEM_STATUS_LABELS } from '@/constants/problemStatus'
+import { PROBLEM_STATUS, PROBLEM_STATUS_LABELS } from '@/constants/problemStatus'
 
 const props = defineProps({
     categories: { type: Array, default: () => [] },
     filters: { type: Object, default: () => ({}) },
     total: { type: Number, default: 0 },
     publishedCount: { type: Number, default: 0 },
-    byStatus: { type: Object, default: () => ({ nauja: 0, nagrinejama: 0, isspresta: 0 }) },
+    byStatus: {
+        type: Object,
+        default: () => ({ nauja: 0, nagrinejama: 0, grazinta_nagrinejimui: 0, isspresta: 0 }),
+    },
     byCategory: { type: Array, default: () => [] },
     monthlyReports: { type: Array, default: () => [] },
     nagrinejamosProblemos: { type: Array, default: () => [] },
@@ -131,6 +134,10 @@ function monthLabel(monthString) {
                 <div class="reporter-statistics-card">
                     <h3 class="reporter-statistics-card-title">{{ PROBLEM_STATUS_LABELS.nagrinejama || 'Nagrinėjama' }}</h3>
                     <p class="reporter-statistics-card-value">{{ byStatus.nagrinejama ?? 0 }}</p>
+                </div>
+                <div class="reporter-statistics-card">
+                    <h3 class="reporter-statistics-card-title">{{ PROBLEM_STATUS_LABELS[PROBLEM_STATUS.RETURNED_FOR_REVIEW] }}</h3>
+                    <p class="reporter-statistics-card-value">{{ byStatus.grazinta_nagrinejimui ?? 0 }}</p>
                 </div>
                 <div class="reporter-statistics-card">
                     <h3 class="reporter-statistics-card-title">{{ PROBLEM_STATUS_LABELS.isspresta || 'Išspręsta' }}</h3>

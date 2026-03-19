@@ -16,7 +16,10 @@ use App\Services\ProblemAssignmentNotifier;
 use App\Services\ProblemAutoAssignmentService;
 use App\Services\ProblemMapService;
 use App\Services\ProblemMergeContextService;
+use App\Enums\ProblemReviewCommentVisibility;
+use App\Http\Requests\StoreProblemReviewHistoryRequest;
 use App\Services\ProblemResolutionTermService;
+use App\Services\ProblemReviewHistoryService;
 use App\Services\ProblemScopeService;
 use App\Services\StatisticsService;
 use Illuminate\Http\RedirectResponse;
@@ -35,7 +38,8 @@ class ProblemController extends Controller
         private ProblemScopeService $scopeService,
         private ProblemAssignmentNotifier $assignmentNotifier,
         private ProblemAutoAssignmentService $autoAssignmentService,
-        private ProblemResolutionTermService $resolutionTermService
+        private ProblemResolutionTermService $resolutionTermService,
+        private ProblemReviewHistoryService $reviewHistoryService
     ) {}
 
     public function index(Request $request): Response
@@ -424,15 +428,12 @@ class ProblemController extends Controller
 
     private function reviewProgressResponse(Problem $problem, bool $reporterBackToDashboard): Response
     {
-        $reviewEntries = $problem->reviewHistory->map(function ($entry) {
-            return [
-                'id' => $entry->id,
-                'date' => $entry->created_at->toISOString(),
-                'status' => $entry->status,
-                'responsible' => $entry->responsible ?? '',
-                'comment' => $entry->comment ?? '',
-            ];
-        })->toArray();
+        $user = request()->user();
+        $reviewEntries = $this->reviewHistoryService->visibleEntriesForProblem(
+            $problem,
+            $user,
+            $reporterBackToDashboard
+        );
 
         $canAddEntry = ! $reporterBackToDashboard;
 
@@ -441,7 +442,22 @@ class ProblemController extends Controller
             'reviewEntries' => $reviewEntries,
             'backUrl' => $reporterBackToDashboard ? route('dashboard') : route('problems.show', $problem->id),
             'canAddEntry' => $canAddEntry,
+            'showReviewVisibilityLabels' => $canAddEntry,
         ]);
+    }
+
+    public function storeReviewProgress(StoreProblemReviewHistoryRequest $request, Problem $problem): RedirectResponse
+    {
+        $validated = $request->validated();
+        $this->reviewHistoryService->storeEntry(
+            $problem,
+            $request->user(),
+            $validated['status'],
+            $validated['comment'] ?? null,
+            ProblemReviewCommentVisibility::from($validated['visibility'])
+        );
+
+        return redirect()->back()->with('success', 'Įrašas išsaugotas.');
     }
 
     public function assignInstitution(Problem $problem): Response
@@ -795,6 +811,20 @@ class ProblemController extends Controller
         ]);
     }
 
+    public function addressSearch(Request $request): \Illuminate\Http\JsonResponse
+    {
+        $query = $request->input('q', '');
+        $mode = $request->input('mode', 'all');
+        $mode = is_string($mode) && in_array($mode, ['all', 'number', 'address'], true) ? $mode : 'all';
+        $results = $this->mapService->searchByAddress(
+            $request->user(),
+            is_string($query) ? $query : '',
+            $mode
+        );
+
+        return response()->json($results);
+    }
+
     public function landing(): Response
     {
         return Inertia::render('Guest/Landing', [
@@ -886,6 +916,7 @@ class ProblemController extends Controller
         $byStatus = [
             'nauja' => $problems->where('status', 'nauja')->count(),
             'nagrinejama' => $problems->where('status', 'nagrinejama')->count(),
+            'grazinta_nagrinejimui' => $problems->where('status', 'grazinta_nagrinejimui')->count(),
             'isspresta' => $problems->where('status', 'isspresta')->count(),
         ];
 
