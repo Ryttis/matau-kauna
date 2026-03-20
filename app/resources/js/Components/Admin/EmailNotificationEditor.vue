@@ -58,10 +58,10 @@ function saveTemplate(template) {
 }
 
 function placeholderHint(key) {
-    if (key === 'institution_assignment') return 'Laukai: {problem_list}, {institution_name}'
-    if (key === 'employee_assignment') return 'Laukai: {internal_number}, {description_excerpt}, {url} (seniau: {title})'
-    if (key === 'inactive_reporter_reminder') return 'Laukai: {user_name}, {deletion_date}, {inactivity_days}'
-    if (reminderKeys.includes(key)) return 'Laukai: {internal_number}, {description_excerpt}, {url}, {deadline_date} (seniau: {title})'
+    if (key === 'institution_assignment') return '{problem_list}, {institution_name}'
+    if (key === 'employee_assignment') return '{internal_number}, {description_excerpt}, {url}'
+    if (key === 'inactive_reporter_reminder') return '{user_name}, {deletion_date}, {inactivity_days}'
+    if (reminderKeys.includes(key)) return '{internal_number}, {description_excerpt}, {url}, {deadline_date}'
     return ''
 }
 
