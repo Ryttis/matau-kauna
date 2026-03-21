@@ -57,8 +57,12 @@ function saveTemplate(template) {
 
 function placeholderHint(key) {
     if (key === 'institution_assignment') return '{problem_list}, {institution_name}'
-    if (key === 'employee_assignment') return '{internal_number}, {description_excerpt}, {url}, {title}'
-    if (key === 'inactive_reporter_reminder') return '{user_name}, {deletion_date}, {inactivity_days}'
+    if (key === 'employee_assignment') {
+        return '{internal_number}, {description_excerpt}, {url}, {title}'
+    }
+    if (key === 'inactive_reporter_reminder') {
+        return '{user_name}, {deletion_date}, {inactivity_days}'
+    }
     if (key === 'reporter_status_change') {
         return '{internal_number}, {description_excerpt}, {url}, {old_status}, {new_status}, {old_status_label}, {new_status_label}'
     }
