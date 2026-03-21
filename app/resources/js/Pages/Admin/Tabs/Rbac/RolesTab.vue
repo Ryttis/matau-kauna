@@ -127,7 +127,6 @@ const saveRoleGroups = async () => {
 
         <div v-else>Nėra rolių.</div>
 
-        <!-- Create Role -->
         <BaseModal :open="isCreateOpen" title="Sukurti rolę" @close="isCreateOpen = false">
             <AppInput v-model="createForm.role" label="Rolės kodas" placeholder="ROLE_MODERATOR" />
             <AppInput v-model="createForm.name" label="Pavadinimas" placeholder="Moderatorius" />
@@ -144,7 +143,6 @@ const saveRoleGroups = async () => {
             </template>
         </BaseModal>
 
-        <!-- Assign Groups -->
         <BaseModal
             :open="isAssignGroupsOpen"
             title="Priskirti grupes rolei"
@@ -174,7 +172,6 @@ const saveRoleGroups = async () => {
             </template>
         </BaseModal>
 
-        <!-- Delete Role -->
         <ConfirmModal
             :open="isDeleteOpen"
             title="Ištrinti rolę"

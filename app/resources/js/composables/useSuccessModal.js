@@ -1,11 +1,10 @@
-import { ref, computed, watch } from 'vue'
+import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue'
 import { usePage } from '@inertiajs/vue3'
 
 export function useSuccessModal() {
     const page = usePage()
     const showSuccessModal = ref(false)
     const messageOverride = ref('')
-    const lastShownFlashKey = ref('')
 
     const successMessage = computed(
         () =>
@@ -15,23 +14,29 @@ export function useSuccessModal() {
             ''
     )
 
-    const flashMessageKey = computed(() => {
-        const success = page.props.flash?.success || ''
-        const status = page.props.flash?.status || ''
-        return `${success}|||${status}`
+    const tryShowFromFlash = () => {
+        if (messageOverride.value) {
+            return
+        }
+        const flash = page.props?.flash
+        const msg = flash?.success || flash?.status
+        if (msg && String(msg).trim()) {
+            showSuccessModal.value = true
+        }
+    }
+
+    const onInertiaSuccess = () => {
+        nextTick(tryShowFromFlash)
+    }
+
+    onMounted(() => {
+        tryShowFromFlash()
+        document.addEventListener('inertia:success', onInertiaSuccess)
     })
 
-    watch(
-        flashMessageKey,
-        (key) => {
-            if (key && key !== '|||' && key !== lastShownFlashKey.value) {
-                lastShownFlashKey.value = key
-                messageOverride.value = ''
-                showSuccessModal.value = true
-            }
-        },
-        { immediate: true }
-    )
+    onUnmounted(() => {
+        document.removeEventListener('inertia:success', onInertiaSuccess)
+    })
 
     const closeSuccessModal = () => {
         showSuccessModal.value = false

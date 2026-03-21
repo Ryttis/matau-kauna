@@ -333,6 +333,7 @@ function openCancelModal() {
         <ReporterReviewModal
             :show="showReviewModal"
             :mode="reviewModalMode"
+            :submitting="isSubmitting"
             @close="showReviewModal = false"
             @confirm="handleReviewConfirm"
             @continue="handleReviewContinue"
@@ -485,12 +486,14 @@ function openCancelModal() {
                                 text="Pateikti"
                                 variant="primary"
                                 as-button
+                                :loading="isSubmitting"
                                 @click="handlePateikti"
                             />
                             <AppButton
                                 text="Peržiūrėti"
                                 variant="outline-light"
                                 as-button
+                                :disabled="isSubmitting"
                                 @click="handlePerziureti"
                             />
                         </div>

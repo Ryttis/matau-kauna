@@ -8,6 +8,7 @@ import TableViewLink from '@/Components/Reporter/TableViewLink.vue'
 import FilterModal from '@/Components/App/Modals/FilterModal.vue'
 import { ICON_FILTER, ICON_SEARCH } from '@/constants/icons'
 import { PROBLEM_STATUS_LABELS } from '@/constants/problemStatus'
+import { buildReporterProblemDisplayRows } from '@/utils/reporterProblemRows'
 
 const props = defineProps({
     problems: { type: Array, default: () => [] },
@@ -77,7 +78,8 @@ function handleFilterClear() {
     router.get(route('reporter.sarasas'), { search: searchQuery.value || undefined }, { preserveState: false })
 }
 
-const items = computed(() => props.problems || [])
+const flatProblems = computed(() => props.problems || [])
+const displayRows = computed(() => buildReporterProblemDisplayRows(flatProblems.value))
 
 const truncate = (str, maxLen = 28) => {
     if (!str) return ''
@@ -85,49 +87,63 @@ const truncate = (str, maxLen = 28) => {
     return s.length <= maxLen ? s : s.slice(0, maxLen) + '…'
 }
 
+function rowProblem(row) {
+    return row.problem ?? row
+}
+
 const columns = [
-    { key: 'internal_number', label: 'Nr.', sortable: false, value: (row) => row.internal_number },
+    { key: 'internal_number', label: 'Nr.', sortable: false, value: (row) => rowProblem(row).internal_number },
     {
         key: 'status',
         label: 'Būsena',
         sortable: false,
-        value: (row) => PROBLEM_STATUS_LABELS[row.status] || row.status,
+        value: (row) => PROBLEM_STATUS_LABELS[rowProblem(row).status] || rowProblem(row).status,
     },
     {
         key: 'created_at',
         label: 'Data',
         sortable: false,
-        value: (row) => (row.created_at ? new Date(row.created_at).toLocaleDateString('lt-LT') : ''),
+        value: (row) => (rowProblem(row).created_at ? new Date(rowProblem(row).created_at).toLocaleDateString('lt-LT') : ''),
     },
     {
         key: 'category',
         label: 'Kategorija',
         sortable: false,
-        value: (row) => truncate(row.category, 18),
+        value: (row) => truncate(rowProblem(row).category, 18),
     },
     {
         key: 'address',
         label: 'Adresas',
         sortable: false,
-        value: (row) => truncate(row.address, 28),
+        value: (row) => truncate(rowProblem(row).address, 28),
     },
     {
         key: 'is_published_publicly',
         label: 'Viešinimas',
         sortable: false,
-        value: (row) => row.is_published_publicly ? 'Paskelbta' : 'Nepaskelbta',
+        value: (row) => (rowProblem(row).is_published_publicly ? 'Paskelbta' : 'Nepaskelbta'),
     },
     {
         key: 'view',
         label: 'Peržiūrėti',
         sortable: false,
         cellComponent: TableViewLink,
-        cellProps: (row) => ({ problemId: row.id }),
+        cellProps: (row) => ({ problemId: rowProblem(row).id }),
     },
 ]
 
 function getRowKey(row) {
-    return row.id
+    return row.problem ? row.problem.id : row.id
+}
+
+function sarasasRowClass(row) {
+    if (!row.problem) return ''
+    const classes = []
+    if (!row.isGroupMain) classes.push('reporter-sarasas-merged-row')
+    const inGroup = row.groupIds && row.groupIds.length > 1
+    if (inGroup && !row.isLastInGroup) classes.push('reporter-sarasas-group-inner')
+    if (inGroup && row.isLastInGroup) classes.push('reporter-sarasas-group-end')
+    return classes.join(' ')
 }
 </script>
 
@@ -160,12 +176,13 @@ function getRowKey(row) {
             </div>
             <div class="reporter-sarasas-table-wrap table">
                 <EntityTable
-                    :items="items"
+                    :items="displayRows"
                     :columns="columns"
                     :row-key="getRowKey"
+                    :row-class="sarasasRowClass"
                 />
             </div>
-            <p v-if="items.length === 0" class="reporter-sarasas-empty">Nėra iškeltų problemų</p>
+            <p v-if="flatProblems.length === 0" class="reporter-sarasas-empty">Nėra iškeltų problemų</p>
         </div>
 
         <FilterModal
@@ -281,5 +298,21 @@ function getRowKey(row) {
     margin-top: 24px;
     font-size: 14px;
     color: #666;
+}
+
+.reporter-sarasas-table-wrap :deep(.reporter-sarasas-merged-row) {
+    background-color: #f5f7fa;
+}
+
+.reporter-sarasas-table-wrap :deep(.reporter-sarasas-merged-row td:first-of-type) {
+    padding-left: 1.25rem;
+}
+
+.reporter-sarasas-table-wrap :deep(.reporter-sarasas-group-inner td) {
+    border-bottom: none;
+}
+
+.reporter-sarasas-table-wrap :deep(.reporter-sarasas-group-end td) {
+    border-bottom: 2px solid #e0e0e0;
 }
 </style>

@@ -15,6 +15,7 @@ import ProblemAttachmentsPanel from '@/Components/Problems/ProblemAttachmentsPan
 import StatusBadge from '@/Components/Problems/StatusBadge.vue'
 import { useAuth } from '@/composables/useAuth'
 import { ICON_RIGHT_ARROW } from '@/constants/icons'
+import { PROBLEM_STATUS } from '@/constants/problemStatus'
 
 const props = defineProps({
     problem: Object,
@@ -38,6 +39,8 @@ const {
     canPublish,
     isEmployee,
 } = useAuth()
+
+const canAssignProblem = computed(() => props.problem?.status !== PROBLEM_STATUS.RESOLVED)
 
 const { showSuccessModal, successMessage, closeSuccessModal } = useSuccessModal()
 const showStatusModal = ref(false)
@@ -99,6 +102,28 @@ const isMergedIntoOther = computed(
 const mergeTargetId = computed(() =>
     isMergedIntoOther.value && mainProblem.value ? mainProblem.value.id : props.problem?.id
 )
+
+const employeeDisplayName = (emp) => {
+    if (!emp) return ''
+    const full = [emp.name, emp.surname].filter(Boolean).join(' ').trim()
+    return full || emp.email || ''
+}
+
+const assignmentInfo = computed(() => {
+    const p = props.problem
+    if (!p) {
+        return { hasAny: false, institutionName: null, employeeName: null }
+    }
+    const inst = p.institution
+    const emp = p.assigned_employee ?? p.assignedEmployee
+    const institutionName = inst?.name?.trim() || null
+    const employeeName = employeeDisplayName(emp) || null
+    return {
+        hasAny: Boolean(institutionName || employeeName),
+        institutionName,
+        employeeName,
+    }
+})
 </script>
 
 <template>
@@ -137,6 +162,27 @@ const mergeTargetId = computed(() =>
 
             <div class="problem-content">
                 <div class="problem-fields-top">
+                    <AppInput
+                        v-if="assignmentInfo.institutionName"
+                        :model-value="assignmentInfo.institutionName"
+                        label="Įstaiga"
+                        type="text"
+                        readonly
+                    />
+                    <AppInput
+                        v-if="assignmentInfo.employeeName"
+                        :model-value="assignmentInfo.employeeName"
+                        label="Darbuotojas"
+                        type="text"
+                        readonly
+                    />
+                    <AppInput
+                        v-if="!assignmentInfo.hasAny"
+                        model-value="Dar nepriskirta įstaigai arba konkrečiam darbuotojui."
+                        label="Skirta"
+                        type="text"
+                        readonly
+                    />
                     <AppInput
                         :model-value="problem.category"
                         label="Kategorija"
@@ -177,6 +223,7 @@ const mergeTargetId = computed(() =>
 
             <div v-if="canSeeProblemAdminButtons" class="problem-actions">
                 <AppButton
+                    v-if="canAssignProblem"
                     text="Priskirti problemą"
                     variant="primary"
                     as-button
@@ -226,6 +273,7 @@ const mergeTargetId = computed(() =>
 
             <div v-else-if="canSeeInstitutionAdminButtons" class="problem-actions">
                 <AppButton
+                    v-if="canAssignProblem"
                     text="Priskirti/Peradresuoti problemą"
                     variant="primary"
                     as-button

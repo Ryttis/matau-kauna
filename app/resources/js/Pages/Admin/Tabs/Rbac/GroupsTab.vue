@@ -140,7 +140,6 @@ const saveGroupPermissions = async () => {
 
         <div v-else>Nėra grupių.</div>
 
-        <!-- Create Group -->
         <BaseModal :open="isCreateOpen" title="Sukurti grupę" @close="isCreateOpen = false">
             <AppInput v-model="createForm.name" placeholder="Pavadinimas (pvz. Users)" />
 
@@ -156,7 +155,6 @@ const saveGroupPermissions = async () => {
             </template>
         </BaseModal>
 
-        <!-- Assign Permissions -->
         <BaseModal
             :open="isAssignPermissionsOpen"
             title="Priskirti teises grupei"
@@ -189,7 +187,6 @@ const saveGroupPermissions = async () => {
             </template>
         </BaseModal>
 
-        <!-- Delete Group -->
         <ConfirmModal
             :open="isDeleteOpen"
             title="Ištrinti grupę"

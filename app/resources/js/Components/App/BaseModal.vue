@@ -52,6 +52,20 @@ const props = defineProps({
 
 const emit = defineEmits(['close'])
 
+const modalStyle = computed(() => {
+    const s = { width: props.width }
+    if (props.maxWidth != null && props.maxWidth !== '') {
+        s.maxWidth = props.maxWidth
+    }
+    if (props.minWidth != null && props.minWidth !== '') {
+        s.minWidth = props.minWidth
+    }
+    if (props.maxHeight != null && props.maxHeight !== '') {
+        s.maxHeight = props.maxHeight
+    }
+    return s
+})
+
 const isOpen = computed(() => props.open || props.show)
 
 const handleClose = () => {
@@ -68,7 +82,7 @@ const handleOverlayClick = (event) => {
 <template>
     <Teleport to="body">
         <div v-if="isOpen" class="modal-overlay" :style="{ zIndex: props.zIndex }" @click="handleOverlayClick">
-            <div class="modal" :style="{ width, maxWidth: maxWidth || 'none', minWidth: minWidth || 'none', maxHeight: maxHeight || 'none' }" @click.stop>
+            <div class="modal" :style="modalStyle" @click.stop>
                 <div v-if="$slots.header || title || showCloseButton" class="modal-header">
                     <slot name="header">
                         <div v-if="title" class="modal-title">{{ title }}</div>
@@ -108,6 +122,8 @@ const handleOverlayClick = (event) => {
     align-items: center;
     justify-content: center;
     padding: 20px;
+    overflow-y: auto;
+    box-sizing: border-box;
 }
 
 .modal {
@@ -116,9 +132,11 @@ const handleOverlayClick = (event) => {
     border-radius: 15px;
     overflow: hidden;
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
-    max-height: 85vh;
+    max-height: min(85vh, calc(100vh - 40px));
     display: flex;
     flex-direction: column;
+    margin: auto;
+    flex-shrink: 0;
 }
 
 .modal-header {
@@ -172,10 +190,20 @@ const handleOverlayClick = (event) => {
 
 .modal-footer {
     display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
     justify-content: flex-end;
+    align-items: center;
     gap: 10px;
     padding: 16px 20px;
     flex-shrink: 0;
+}
+
+.modal-footer.modal-footer-row :deep(.app-button.app-button--fixed) {
+    width: auto;
+    min-width: 100px;
+    flex: 0 0 auto;
+    margin-bottom: 0;
 }
 
 .modal-footer-column {

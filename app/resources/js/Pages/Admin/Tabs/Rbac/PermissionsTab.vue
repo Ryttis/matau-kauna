@@ -91,7 +91,6 @@ const deletePermission = async () => {
 
         <div v-else>Nėra teisių.</div>
 
-        <!-- Create Permission -->
         <BaseModal :open="isCreateOpen" title="Sukurti teisę" @close="isCreateOpen = false">
             <AppInput v-model="createForm.permission" label="Pavadinimas" placeholder="users.manage" />
 
@@ -107,7 +106,6 @@ const deletePermission = async () => {
             </template>
         </BaseModal>
 
-        <!-- Delete Permission -->
         <ConfirmModal
             :open="isDeleteOpen"
             title="Ištrinti teisę"

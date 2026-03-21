@@ -89,8 +89,6 @@ Route::middleware(['auth', 'verified', 'reporter.terms'])->group(function () {
         Route::get('/statistics', [ProblemController::class, 'statistics'])->name('statistics');
         Route::get('/statistics/export', [ProblemController::class, 'statisticsExport'])->name('statistics.export');
         Route::get('/statistics/resolution-terms', [ProblemController::class, 'statistics'])->name('statistics.resolution-terms');
-        Route::get('/statistics/categories', [ProblemController::class, 'statistics'])->name('statistics.categories');
-        Route::get('/statistics/institutions', [ProblemController::class, 'statistics'])->name('statistics.institutions');
     });
 
     Route::get('/profile', [SettingsController::class, 'profile'])->name('profile');

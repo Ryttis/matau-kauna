@@ -46,6 +46,10 @@ const props = defineProps({
         type: Boolean,
         default: false
     },
+    hideRowCheckboxes: {
+        type: Boolean,
+        default: false
+    },
     rowClass: {
         type: Function,
         default: null
@@ -143,6 +147,17 @@ const handleRowDoubleClick = (row) => {
     emit('row-dblclick', row)
 }
 
+const selectionByRowClick = computed(
+    () => props.hideRowCheckboxes && props.selectable && props.rowClickable
+)
+
+const handleRowClick = (row, event) => {
+    if (!selectionByRowClick.value) return
+    if (event.detail > 1) return
+    if (event.target.closest('button, a, input, textarea, select, label')) return
+    handleSelectItem(row)
+}
+
 const sortArrow = (key) => {
     if (props.sortBy !== key) return ''
     return props.sortDirection === 'asc' ? '↑' : '↓'
@@ -179,7 +194,12 @@ const sortArrow = (key) => {
             <tr
                 v-for="row in items"
                 :key="getRowKey(row)"
-                :class="[{ 'row-clickable': rowClickable }, 'data-row', rowClass ? rowClass(row) : '']"
+                :class="[
+                    { 'row-clickable': rowClickable, 'row-selected': hideRowCheckboxes && isSelected(row) },
+                    'data-row',
+                    rowClass ? rowClass(row) : ''
+                ]"
+                @click="handleRowClick(row, $event)"
                 @dblclick="handleRowDoubleClick(row)"
             >
                 <td
@@ -197,9 +217,9 @@ const sortArrow = (key) => {
                     </template>
                 </td>
 
-                <td v-if="selectable">
+                <td v-if="selectable" class="entity-table-select-cell">
                     <input
-                        v-if="showRowCheckbox(row)"
+                        v-if="!hideRowCheckboxes && showRowCheckbox(row)"
                         type="checkbox"
                         :checked="isSelected(row)"
                         @change="handleSelectItem(row)"
@@ -258,8 +278,21 @@ tbody tr:hover {
     background: var(--color-bg-subtle);
 }
 
+tbody tr.row-selected {
+    background: color-mix(in srgb, var(--color-primary, #1946a0) 38%, white);
+}
+
+tbody tr.row-selected:hover {
+    background: color-mix(in srgb, var(--color-primary, #1946a0) 46%, white);
+}
+
 .row-clickable {
     cursor: pointer;
+}
+
+.entity-table-select-cell {
+    width: 44px;
+    box-sizing: border-box;
 }
 
 input[type="checkbox"] {

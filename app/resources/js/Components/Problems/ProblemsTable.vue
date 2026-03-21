@@ -32,6 +32,10 @@ const props = defineProps({
     canPublish: {
         type: Boolean,
         default: false
+    },
+    selectByRowClick: {
+        type: Boolean,
+        default: false
     }
 })
 
@@ -92,7 +96,8 @@ const columns = computed(() => {
             cellComponent: ProblemTablePublishCell,
             cellProps: (row) => ({
                 problem: getRowData(row),
-                canPublish: props.canPublish
+                canPublish: props.canPublish,
+                showPublishToggle: row.isGroupMain === true,
             })
         }]
         : []),
@@ -146,6 +151,7 @@ function problemTableRowClass(row) {
         :show-checkbox="useRowProblem ? showRowCheckbox : true"
         :get-select-value="useRowProblem ? getSelectValue : null"
         :row-class="useRowProblem ? (row) => problemTableRowClass(row) : null"
+        :hide-row-checkboxes="selectByRowClick"
         row-clickable
         @sort="emit('sort', $event)"
         @select-all="emit('select-all', $event)"
@@ -154,7 +160,7 @@ function problemTableRowClass(row) {
 </template>
 
 <style scoped>
-:deep(.problem-table-merged-row) {
+:deep(.problem-table-merged-row:not(.row-selected)) {
     background-color: #f5f7fa;
 }
 

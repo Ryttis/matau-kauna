@@ -16,12 +16,19 @@ const props = defineProps({
     asButton: {
         type: Boolean,
         default: false
+    },
+    loading: {
+        type: Boolean,
+        default: false
     }
 })
 
 const emit = defineEmits(['click'])
 
 const handleClick = (event) => {
+    if (props.loading || props.disabled) {
+        return
+    }
     if (props.asButton) {
         event.preventDefault()
         event.stopPropagation()
@@ -35,12 +42,21 @@ const buttonType = props.asButton ? 'button' : 'submit'
 <template>
     <button
         class="app-button"
-        :class="[`app-button--${variant}`, { 'app-button--disabled': disabled, 'app-button--fixed': asButton }]"
+        :class="[
+            `app-button--${variant}`,
+            {
+                'app-button--disabled': disabled || loading,
+                'app-button--fixed': asButton,
+                'app-button--loading': loading,
+            },
+        ]"
         :type="buttonType"
-        :disabled="disabled"
+        :disabled="disabled || loading"
+        :aria-busy="loading"
         @click="handleClick"
     >
-        {{ text }}
+        <span v-if="loading" class="app-button__spinner" aria-hidden="true" />
+        <span v-else class="app-button__label">{{ text }}</span>
     </button>
 </template>
 
@@ -149,6 +165,53 @@ const buttonType = props.asButton ? 'button' : 'submit'
 .app-button--disabled {
     opacity: 0.5;
     cursor: not-allowed;
+}
+
+.app-button--loading:not(.app-button--link) {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: wait;
+    opacity: 1;
+}
+
+.app-button--loading.app-button--disabled {
+    opacity: 1;
+}
+
+.app-button__label {
+    display: inline-block;
+}
+
+.app-button__spinner {
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    border: 2px solid rgba(255, 255, 255, 0.35);
+    border-top-color: #ffffff;
+    animation: app-button-spin 0.65s linear infinite;
+    flex-shrink: 0;
+    box-sizing: border-box;
+}
+
+.app-button--secondary .app-button__spinner,
+.app-button--light .app-button__spinner,
+.app-button--outline-light .app-button__spinner {
+    border-color: rgba(25, 70, 160, 0.2);
+    border-top-color: var(--color-primary, #1946a0);
+}
+
+.app-button--link .app-button__spinner {
+    width: 18px;
+    height: 18px;
+    border-color: rgba(0, 0, 0, 0.12);
+    border-top-color: currentColor;
+}
+
+@keyframes app-button-spin {
+    to {
+        transform: rotate(360deg);
+    }
 }
 
 </style>
