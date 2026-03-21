@@ -11,6 +11,10 @@ const props = defineProps({
         default: 'submit',
         validator: (v) => ['terms-first', 'submit'].includes(v),
     },
+    submitting: {
+        type: Boolean,
+        default: false,
+    },
 })
 
 const emit = defineEmits(['close', 'confirm', 'continue'])
@@ -25,7 +29,7 @@ const primaryButtonText = computed(() =>
 )
 
 function onPrimary() {
-    if (!canContinue.value) return
+    if (!canContinue.value || props.submitting) return
     if (props.mode === 'terms-first') {
         emit('continue')
     } else {
@@ -67,6 +71,7 @@ function onPrimary() {
                 variant="primary"
                 as-button
                 :disabled="!canContinue"
+                :loading="mode === 'submit' && submitting"
                 class="reporter-review-submit-btn"
                 @click="onPrimary"
             />

@@ -9,7 +9,7 @@ import BaseModal from '@/Components/App/BaseModal.vue'
 import ModalFooterActions from '@/Components/App/ModalFooterActions.vue'
 
 const props = defineProps({
-    type: { type: String, required: true }, // terms | faq | privacy
+    type: { type: String, required: true },
     label: { type: String, required: true }
 })
 

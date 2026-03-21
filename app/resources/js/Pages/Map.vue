@@ -86,6 +86,11 @@ const handleFilterClose = () => {
 
 const showStatusModal = ref(false)
 
+const canAssignSelectedProblemOnMap = computed(() => {
+    const p = selectedProblemFromAddress.value
+    return Boolean(p && p.status !== PROBLEM_STATUS.RESOLVED)
+})
+
 const handleAssignProblem = () => {
     if (selectedProblemFromAddress.value) {
         router.visit(route('problems.assign.single', selectedProblemFromAddress.value.id))
@@ -192,6 +197,7 @@ const statusIndicatorVars = {
 
                 <template v-if="selectedProblemFromAddress && canSeeProblemAdminButtons">
                     <AppButton
+                        v-if="canAssignSelectedProblemOnMap"
                         text="Priskirti problemą"
                         as-button
                         @click="handleAssignProblem"
@@ -205,6 +211,7 @@ const statusIndicatorVars = {
 
                 <template v-else-if="selectedProblemFromAddress && canSeeInstitutionAdminButtons">
                     <AppButton
+                        v-if="canAssignSelectedProblemOnMap"
                         text="Priskirti/peradresuoti problemą"
                         as-button
                         @click="handleAssignInstitution"

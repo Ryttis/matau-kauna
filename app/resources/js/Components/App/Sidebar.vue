@@ -15,7 +15,7 @@ import {
     ROLE_REPORTER,
     ROLE_PROBLEM_ADMIN,
 } from '@/constants/roles'
-import { PROBLEM_STATUS } from '@/constants/problemStatus'
+import { SIDEBAR_DASHBOARD_STATUS_ENTRIES } from '@/constants/dashboardSidebarNav'
 
 const page = usePage()
 
@@ -102,7 +102,7 @@ const toggleStatistics = () => {
                         class="nav-link"
                         :class="{ active: isActive('/reporter/statistics') }"
                     >
-                        <img :src="ICON_STATISTICS" class="nav-icon" alt="" />
+                        <img :src="ICON_STATISTICS" class="nav-icon nav-icon--symbol" alt="" />
                         <span>Statistika</span>
                     </Link>
                     <Link
@@ -110,7 +110,7 @@ const toggleStatistics = () => {
                         class="nav-link"
                         :class="{ active: page.url === '/dashboard' || page.url.startsWith('/dashboard?') }"
                     >
-                        <img :src="ICON_MAP" class="nav-icon" alt="" />
+                        <img :src="ICON_MAP" class="nav-icon nav-icon--map" alt="" />
                         <span>Žemėlapis</span>
                     </Link>
                     <Link
@@ -138,7 +138,7 @@ const toggleStatistics = () => {
                         class="nav-link"
                         :class="{ active: isActive('/map') }"
                     >
-                        <img :src="ICON_MAP" class="nav-icon" alt="" />
+                        <img :src="ICON_MAP" class="nav-icon nav-icon--map" alt="" />
                         <span>Žemėlapis</span>
                     </Link>
 
@@ -160,7 +160,7 @@ const toggleStatistics = () => {
                         :class="{ active: isActive('/statistics') && !page.url.startsWith('/dashboard') }"
                         @click="toggleStatistics"
                     >
-                        <img :src="ICON_STATISTICS" class="nav-icon" alt="" />
+                        <img :src="ICON_STATISTICS" class="nav-icon nav-icon--symbol" alt="" />
                         <span>Statistika</span>
                         <img
                             :src="ICON_ARROW"
@@ -186,22 +186,6 @@ const toggleStatistics = () => {
                         >
                             Sprendimo terminai
                         </Link>
-
-                        <Link
-                            href="/statistics/categories"
-                            class="submenu-link"
-                            :class="{ active: page.url === '/statistics/categories' }"
-                        >
-                            Kategorijos
-                        </Link>
-
-                        <Link
-                            href="/statistics/institutions"
-                            class="submenu-link"
-                            :class="{ active: page.url === '/statistics/institutions' }"
-                        >
-                            Įstaigų statistika
-                        </Link>
                     </div>
                 </template>
 
@@ -212,7 +196,7 @@ const toggleStatistics = () => {
                     :class="{ active: isActive('/dashboard') }"
                     @click="toggleStates"
                 >
-                    <img :src="ICON_STATE" class="nav-icon" alt="" />
+                    <img :src="ICON_STATE" class="nav-icon nav-icon--symbol" alt="" />
                     <span>Būsenos</span>
                     <img
                         :src="ICON_ARROW"
@@ -224,51 +208,15 @@ const toggleStatistics = () => {
 
                 <div v-if="isStatesOpen" class="submenu">
                     <Link
-                        :href="route('dashboard')"
+                        v-for="entry in SIDEBAR_DASHBOARD_STATUS_ENTRIES"
+                        :key="entry.key"
+                        :href="entry.status ? `${route('dashboard')}?status=${entry.status}` : route('dashboard')"
                         class="submenu-link"
-                        :class="{ active: isVisosActive() }"
+                        :class="{
+                            active: entry.status ? isStatusLinkActive(entry.status) : isVisosActive(),
+                        }"
                     >
-                        Visos
-                    </Link>
-
-                    <Link
-                        :href="`${route('dashboard')}?status=${PROBLEM_STATUS.NEW}`"
-                        class="submenu-link"
-                        :class="{ active: isStatusLinkActive(PROBLEM_STATUS.NEW) }"
-                    >
-                        Nauja
-                    </Link>
-
-                    <Link
-                        :href="`${route('dashboard')}?status=${PROBLEM_STATUS.IN_REVIEW}`"
-                        class="submenu-link"
-                        :class="{ active: isStatusLinkActive(PROBLEM_STATUS.IN_REVIEW) }"
-                    >
-                        Nagrinėjama
-                    </Link>
-
-                    <Link
-                        :href="`${route('dashboard')}?status=${PROBLEM_STATUS.RETURNED_FOR_REVIEW}`"
-                        class="submenu-link"
-                        :class="{ active: isStatusLinkActive(PROBLEM_STATUS.RETURNED_FOR_REVIEW) }"
-                    >
-                        Grąžinta nagrinėjimui
-                    </Link>
-
-                    <Link
-                        :href="`${route('dashboard')}?status=${PROBLEM_STATUS.INACTIVE}`"
-                        class="submenu-link"
-                        :class="{ active: isStatusLinkActive(PROBLEM_STATUS.INACTIVE) }"
-                    >
-                        Neaktuali
-                    </Link>
-
-                    <Link
-                        :href="`${route('dashboard')}?status=${PROBLEM_STATUS.RESOLVED}`"
-                        class="submenu-link"
-                        :class="{ active: isStatusLinkActive(PROBLEM_STATUS.RESOLVED) }"
-                    >
-                        Išnagrinėta
+                        {{ entry.label }}
                     </Link>
                 </div>
                 </template>
@@ -330,9 +278,9 @@ const toggleStatistics = () => {
     flex-direction: column;
     gap: 8px;
     position: sticky;
-    top: 0;
+    top: var(--app-header-height, 66px);
     background: #F6F7F9;
-    z-index: 2;
+    z-index: 50;
     flex-shrink: 0;
 }
 
@@ -388,11 +336,22 @@ const toggleStatistics = () => {
 }
 
 .nav-icon {
-    width: 15px;
-    height: 15px;
+    width: 22px;
+    height: 22px;
     display: block;
     object-fit: contain;
+    object-position: center;
     flex-shrink: 0;
+}
+
+.nav-icon--map {
+    transform: scale(0.9);
+    transform-origin: center center;
+}
+
+.nav-icon--symbol {
+    transform: scale(1.12);
+    transform-origin: center center;
 }
 
 .nav-link .dropdown-icon {

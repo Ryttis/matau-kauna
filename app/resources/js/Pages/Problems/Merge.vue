@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { ref, computed, watch, nextTick, onMounted, onUnmounted } from 'vue'
 import { Head, router } from '@inertiajs/vue3'
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue'
 import AppSelect from '@/Components/App/AppSelect.vue'
@@ -26,6 +26,9 @@ const selectedCategory = ref(props.selectedCategory || null)
 const selectedProblems = ref([])
 const showCategoryDropdown = ref(false)
 const categoryDropdownRef = ref(null)
+const numberSearchQuery = ref('')
+const selectedAddressProblemId = ref('')
+const mergeListScrollRef = ref(null)
 
 const mainProblemId = computed(() => props.problem.id)
 
@@ -35,6 +38,46 @@ function mergeProblemLabel(p) {
     const nr = p?.internal_number || ''
     return short ? `${short} (Nr. ${nr})` : `Nr. ${nr}`
 }
+
+function normalizeInternalNumber(s) {
+    return String(s || '').replace(/\s/g, '').toUpperCase()
+}
+
+function problemMatchesNumberQuery(problem, rawQuery) {
+    const q = normalizeInternalNumber(rawQuery)
+    if (!q) return true
+    const nr = normalizeInternalNumber(problem?.internal_number)
+    return nr.includes(q)
+}
+
+const addressSelectOptions = computed(() => {
+    const opts = []
+    const seen = new Set()
+
+    const pushProblem = (p) => {
+        if (!p?.id) return
+        const addr = String(p.address || '').trim()
+        if (!addr) return
+        const id = Number(p.id)
+        if (seen.has(id)) return
+        seen.add(id)
+        const nr = p.internal_number || String(id)
+        opts.push({
+            value: String(id),
+            label: `${addr} — ${nr}`,
+        })
+    }
+
+    pushProblem(props.problem)
+    ;(props.mergedProblems || []).forEach(pushProblem)
+    ;(props.similarProblems || []).forEach((s) => {
+        pushProblem(s)
+        const children = s.merged_problems || s.mergedProblems || []
+        children.forEach(pushProblem)
+    })
+
+    return opts.sort((a, b) => a.label.localeCompare(b.label, 'lt'))
+})
 
 const problemsForMap = computed(() => {
     const fromBackend = props.mapProblems || []
@@ -87,10 +130,6 @@ const selectedProblemIds = computed(() => {
     return new Set([...alwaysShow, ...expanded])
 })
 
-const problemsToShowOnMap = computed(() =>
-    problemsForMap.value.filter((p) => selectedProblemIds.value.has(Number(p.id)))
-)
-
 const allProblems = computed(() => {
     const problems = [props.problem, ...props.similarProblems]
     return problems.filter(p => p.status !== 'neuzregistruota')
@@ -129,7 +168,7 @@ const singleListRows = computed(() => {
     const mainWithEnd = { ...main, isCurrentGroupEnd: merged.length === 0 }
     const similarRows = []
     for (const s of similarOnly.value) {
-        const children = s.merged_problems || []
+        const children = s.merged_problems || s.mergedProblems || []
         similarRows.push({
             type: 'similar',
             problem: s,
@@ -151,6 +190,59 @@ const singleListRows = computed(() => {
     return [mainWithEnd, ...mergedRows, ...similarRows]
 })
 
+const addressFilterGroupIds = computed(() => {
+    if (!selectedAddressProblemId.value) return null
+    const tid = Number(selectedAddressProblemId.value)
+    if (Number.isNaN(tid)) return null
+
+    for (const s of similarOnly.value) {
+        const children = s.merged_problems || s.mergedProblems || []
+        const childIds = children.map((m) => Number(m.id))
+        if (Number(s.id) === tid || childIds.includes(tid)) {
+            return new Set([Number(s.id), ...childIds])
+        }
+    }
+    return new Set([tid])
+})
+
+const filteredSingleListRows = computed(() => {
+    let rows = singleListRows.value
+
+    const q = numberSearchQuery.value.trim()
+    if (q) {
+        rows = rows.filter((row) => problemMatchesNumberQuery(row.problem, q))
+    }
+
+    const group = addressFilterGroupIds.value
+    if (group) {
+        rows = rows.filter((row) => group.has(Number(row.problem.id)))
+    }
+
+    return rows
+})
+
+const listFilterMapIds = computed(() => {
+    const hasNumber = numberSearchQuery.value.trim() !== ''
+    const hasAddress = Boolean(selectedAddressProblemId.value)
+    if (!hasNumber && !hasAddress) return null
+    return new Set(filteredSingleListRows.value.map((row) => Number(row.problem.id)))
+})
+
+const problemsToShowOnMap = computed(() => {
+    let list = problemsForMap.value.filter((p) => selectedProblemIds.value.has(Number(p.id)))
+    const filterIds = listFilterMapIds.value
+    if (filterIds === null) return list
+    return list.filter((p) => filterIds.has(Number(p.id)))
+})
+
+watch([numberSearchQuery, selectedAddressProblemId], () => {
+    nextTick(() => {
+        if (mergeListScrollRef.value) {
+            mergeListScrollRef.value.scrollTop = 0
+        }
+    })
+})
+
 const mergedProblemIdsForMap = computed(() =>
     (props.mergedProblems || []).map((p) => p.id)
 )
@@ -163,6 +255,8 @@ const handleCategoryChange = (category) => {
     selectedCategory.value = category || ''
     showCategoryDropdown.value = false
     selectedProblems.value = []
+    numberSearchQuery.value = ''
+    selectedAddressProblemId.value = ''
 
     router.get(route('problems.merge', props.problem.id), {
         category: category || ''
@@ -277,7 +371,6 @@ onUnmounted(() => {
                             </button>
                         </div>
                     </div>
-                    <p class="merge-similar-text">Panašūs netoliese:</p>
                 </div>
             </div>
 
@@ -298,9 +391,44 @@ onUnmounted(() => {
                 </div>
 
                 <div class="merge-problems-section">
-                    <div class="merge-problems-list merge-problems-list-single">
+                    <div class="merge-filters">
+                        <input
+                            v-model="numberSearchQuery"
+                            type="search"
+                            class="merge-search-input"
+                            placeholder="Ieškoti pagal problemos Nr."
+                            autocomplete="off"
+                            aria-label="Ieškoti pagal problemos numerį"
+                        />
+                        <AppSelect
+                            v-model="selectedAddressProblemId"
+                            class="merge-address-select"
+                            label="Adresas"
+                            placeholder=""
+                            variant="white"
+                            label-position="left"
+                        >
+                            <option value="">Visi adresai</option>
+                            <option
+                                v-for="opt in addressSelectOptions"
+                                :key="opt.value"
+                                :value="opt.value"
+                            >
+                                {{ opt.label }}
+                            </option>
+                        </AppSelect>
+                    </div>
+
+                    <div ref="mergeListScrollRef" class="merge-problems-list-scroll">
+                        <div class="merge-problems-list merge-problems-list-single">
                         <div
-                            v-for="row in singleListRows"
+                            v-if="filteredSingleListRows.length === 0"
+                            class="merge-list-empty"
+                        >
+                            Pagal pasirinktus filtrus problemų nerasta.
+                        </div>
+                        <div
+                            v-for="row in filteredSingleListRows"
                             :key="row.problem.id"
                             class="merge-problem-item"
                             :class="{
@@ -344,6 +472,7 @@ onUnmounted(() => {
                                 </label>
                             </template>
                         </div>
+                        </div>
                     </div>
 
                     <div class="merge-actions">
@@ -352,7 +481,7 @@ onUnmounted(() => {
                                 :model-value="similarOnly.length > 0 && selectedProblems.length === similarOnly.length"
                                 @change="handleSelectAll"
                             />
-                            <span class="merge-select-all-text">Pasirinkti visus panašius</span>
+                            <span class="merge-select-all-text">Pasirinkti viską</span>
                         </label>
                         <AppButton
                             text="Apjungti"
@@ -380,7 +509,6 @@ onUnmounted(() => {
     gap: 16px;
     margin-bottom: 24px;
     padding-bottom: 20px;
-    border-bottom: 1px solid #e0e0e0;
 }
 
 
@@ -465,13 +593,6 @@ onUnmounted(() => {
     font-weight: 600;
 }
 
-.merge-similar-text {
-    font-size: 16px;
-    color: #333;
-    font-family: 'Inter', sans-serif;
-    margin: 0;
-}
-
 .merge-content {
     display: flex;
     flex-direction: column;
@@ -504,6 +625,45 @@ onUnmounted(() => {
     display: flex;
     flex-direction: column;
     gap: 20px;
+}
+
+.merge-filters {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    gap: 16px;
+}
+
+.merge-search-input {
+    flex: 1;
+    min-width: 200px;
+    padding: 10px 14px;
+    font-size: 14px;
+    font-family: 'Inter', sans-serif;
+    border: 1px solid #e0e0e0;
+    border-radius: 5px;
+    box-sizing: border-box;
+}
+
+.merge-search-input::placeholder {
+    color: #888;
+}
+
+.merge-address-select {
+    flex: 1;
+    min-width: 260px;
+}
+
+.merge-address-select :deep(.app-select) {
+    min-width: 220px;
+}
+
+.merge-list-empty {
+    padding: 20px 16px;
+    text-align: center;
+    font-size: 14px;
+    color: #666;
+    font-family: 'Inter', sans-serif;
 }
 
 .merge-list-title {
@@ -553,6 +713,20 @@ onUnmounted(() => {
 
 .merge-unmerge-btn:hover {
     background: #e8eef7;
+}
+
+.merge-problems-list-scroll {
+    max-height: calc(10 * 4rem);
+    overflow-y: auto;
+    border: 1px solid #e0e0e0;
+    border-radius: 5px;
+    -webkit-overflow-scrolling: touch;
+}
+
+.merge-problems-list-scroll > .merge-problems-list {
+    border: none;
+    border-radius: 0;
+    overflow: visible;
 }
 
 .merge-problems-list {

@@ -1,16 +1,14 @@
 <script setup>
 import { ref, watch } from 'vue'
-import { Head, router, usePage } from '@inertiajs/vue3'
+import { Head, router } from '@inertiajs/vue3'
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue'
 import AppButton from '@/Components/App/AppButton.vue'
 import AppInput from '@/Components/App/AppInput.vue'
 import AppDatePicker from '@/Components/App/AppDatePicker.vue'
 import AppBackButton from '@/Components/App/AppBackButton.vue'
-import AppCheckbox from '@/Components/App/AppCheckbox.vue'
 import SuccessModal from '@/Components/App/SuccessModal.vue'
 import { useAuth } from '@/composables/useAuth'
 import { useSuccessModal } from '@/composables/useSuccessModal'
-import { ICON_ARROW } from '@/constants/icons'
 
 const { canSeeInstitutionAdminButtons } = useAuth()
 const { showSuccessModal, successMessage, closeSuccessModal } = useSuccessModal()
@@ -27,8 +25,6 @@ const props = defineProps({
     },
 })
 
-const gisEnabled = ref(false)
-const dvsEnabled = ref(false)
 const selectedEmployeeIds = ref([])
 const deadline = ref(
     props.problem?.completion_deadline
@@ -39,40 +35,40 @@ const deadline = ref(
 )
 const emailForInfo = ref('')
 const returnComment = ref('')
-const reassignExpanded = ref(false)
 const selectedReassignIds = ref([])
+
+const assignSubmitting = ref(false)
+const emailSubmitting = ref(false)
+const returnSubmitting = ref(false)
+const reassignSubmitting = ref(false)
+
+const finishVisit = (flag) => ({
+    preserveScroll: true,
+    onFinish: () => {
+        flag.value = false
+    },
+})
 
 const handleBack = () => {
     router.visit(route('problems.show', props.problem.id))
 }
 
-const toggleEmployee = (id) => {
-    const i = selectedEmployeeIds.value.indexOf(id)
-    if (i > -1) {
-        selectedEmployeeIds.value = []
-        return
-    }
-    selectedEmployeeIds.value = [id]
+const selectEmployee = (id) => {
+    selectedEmployeeIds.value = selectedEmployeeIds.value[0] === id ? [] : [id]
 }
 
-const toggleReassign = (id) => {
-    const i = selectedReassignIds.value.indexOf(id)
-    if (i > -1) {
-        selectedReassignIds.value = []
-    } else {
-        selectedReassignIds.value = [id]
-    }
+const selectInstitution = (id) => {
+    selectedReassignIds.value = selectedReassignIds.value[0] === id ? [] : [id]
 }
 
 const handleSendAssign = () => {
     if (!selectedEmployeeIds.value.length) return
 
+    assignSubmitting.value = true
     router.post(route('problems.assignInstitution.store', props.problem.id), {
         employee_id: selectedEmployeeIds.value[0],
         completion_deadline: deadline.value || null,
-    }, {
-        preserveScroll: true,
-    })
+    }, finishVisit(assignSubmitting))
 }
 
 const handleSendEmail = () => {
@@ -81,11 +77,17 @@ const handleSendEmail = () => {
         alert('Įveskite el. paštą.')
         return
     }
-    router.post(route('problems.assignInstitution.sendEmail', props.problem.id), { email }, { preserveScroll: true })
+    emailSubmitting.value = true
+    router.post(
+        route('problems.assignInstitution.sendEmail', props.problem.id),
+        { email },
+        finishVisit(emailSubmitting)
+    )
 }
 
 const handleReturnToAdmin = () => {
-    router.patch(route('problems.return', props.problem.id), {}, { preserveScroll: true })
+    returnSubmitting.value = true
+    router.patch(route('problems.return', props.problem.id), {}, finishVisit(returnSubmitting))
 }
 
 const handleReassign = () => {
@@ -93,9 +95,10 @@ const handleReassign = () => {
         alert('Pasirinkite vieną įstaigą, kuriai perduoti problemą.')
         return
     }
+    reassignSubmitting.value = true
     router.post(route('problems.reassignInstitution', props.problem.id), {
         institution_id: selectedReassignIds.value[0],
-    }, { preserveScroll: true })
+    }, finishVisit(reassignSubmitting))
 }
 
 watch(
@@ -121,45 +124,38 @@ watch(
             <div class="assign-institution-header">
                 <AppBackButton @click="handleBack" />
                 <h1 class="assign-institution-title">
-                    Problemai priskiriama atsakingam darbuotojui/grupei
+                    Priskirti problemą – {{ problem?.internal_number }}
                 </h1>
             </div>
 
-            <div class="assign-institution-switches">
-                <label class="switch-row">
-                    <span class="switch-label">Problema keliama į GIS</span>
-                    <label class="switch">
-                        <input v-model="gisEnabled" type="checkbox" />
-                        <span class="slider round"></span>
-                    </label>
-                </label>
-                <label class="switch-row">
-                    <span class="switch-label">Problema keliama į DVS</span>
-                    <label class="switch">
-                        <input v-model="dvsEnabled" type="checkbox" />
-                        <span class="slider round"></span>
-                    </label>
-                </label>
-            </div>
-
             <div class="assign-institution-section">
-                <h2 class="section-title">Problemai priskiriama atsakingam darbuotojui/grupei</h2>
-                <div class="assign-list-wrap">
-                    <template v-if="employees.length">
-                        <div
-                            v-for="emp in employees"
-                            :key="emp.id"
-                            class="assign-institution-item"
-                        >
-                            <label class="assign-institution-label">
-                                <AppCheckbox
-                                    :model-value="selectedEmployeeIds.includes(emp.id)"
-                                    @change="toggleEmployee(emp.id)"
-                                />
-                                <span class="assign-institution-text">{{ emp.name || emp.email }}</span>
-                            </label>
-                        </div>
-                    </template>
+                <h2 class="section-title">
+                    Problemai priskiriama atsakingam darbuotojui/grupei
+                </h2>
+                <div class="assign-table-scroll" role="region" aria-label="Darbuotojų sąrašas">
+                    <table v-if="employees.length" class="assign-select-table">
+                        <thead>
+                            <tr>
+                                <th>Darbuotojas</th>
+                                <th>El. paštas</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr
+                                v-for="emp in employees"
+                                :key="emp.id"
+                                tabindex="0"
+                                class="assign-select-row"
+                                :class="{ 'assign-select-row--active': selectedEmployeeIds[0] === emp.id }"
+                                @click="selectEmployee(emp.id)"
+                                @keydown.enter.prevent="selectEmployee(emp.id)"
+                                @keydown.space.prevent="selectEmployee(emp.id)"
+                            >
+                                <td>{{ emp.name || '—' }}</td>
+                                <td class="assign-select-cell-muted">{{ emp.email || '—' }}</td>
+                            </tr>
+                        </tbody>
+                    </table>
                     <div v-else class="assign-empty-state">
                         <span class="assign-empty-text">Nėra duomenų</span>
                     </div>
@@ -172,7 +168,13 @@ watch(
                     />
                 </div>
                 <div class="btn-row">
-                    <AppButton text="Siųsti" variant="primary" as-button @click="handleSendAssign" />
+                    <AppButton
+                        text="Priskirti"
+                        variant="primary"
+                        as-button
+                        :loading="assignSubmitting"
+                        @click="handleSendAssign"
+                    />
                 </div>
             </div>
 
@@ -182,7 +184,13 @@ watch(
                     <AppInput v-model="emailForInfo" type="email" placeholder="El. paštas" />
                 </div>
                 <div class="btn-row">
-                    <AppButton text="Siųsti" variant="primary" as-button @click="handleSendEmail" />
+                    <AppButton
+                        text="Siųsti"
+                        variant="primary"
+                        as-button
+                        :loading="emailSubmitting"
+                        @click="handleSendEmail"
+                    />
                 </div>
             </div>
 
@@ -196,50 +204,52 @@ watch(
                     />
                 </div>
                 <div class="btn-row">
-                    <AppButton text="Siųsti" variant="primary" as-button @click="handleReturnToAdmin" />
+                    <AppButton
+                        text="Siųsti"
+                        variant="primary"
+                        as-button
+                        :loading="returnSubmitting"
+                        @click="handleReturnToAdmin"
+                    />
                 </div>
             </div>
 
             <div class="assign-institution-section">
-                <button
-                    type="button"
-                    class="section-expand-btn"
-                    @click="reassignExpanded = !reassignExpanded"
-                >
-                    <span class="section-expand-title">Peradresuoti</span>
-                    <img
-                        :src="ICON_ARROW"
-                        alt=""
-                        class="section-expand-icon"
-                        :class="{ rotated: !reassignExpanded }"
-                    />
-                </button>
-                <div v-show="reassignExpanded" class="section-expand-content">
-                    <div class="assign-list-wrap">
-                        <template v-if="institutions.length">
-                            <div
+                <h2 class="section-title">Peradresuoti</h2>
+                <div class="assign-table-scroll" role="region" aria-label="Įstaigų sąrašas">
+                    <table v-if="institutions.length" class="assign-select-table">
+                        <thead>
+                            <tr>
+                                <th>Įstaiga</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr
                                 v-for="inst in institutions"
-                                :key="inst.id ?? inst"
-                                class="assign-institution-item"
+                                :key="inst.id"
+                                tabindex="0"
+                                class="assign-select-row"
+                                :class="{ 'assign-select-row--active': selectedReassignIds[0] === inst.id }"
+                                @click="selectInstitution(inst.id)"
+                                @keydown.enter.prevent="selectInstitution(inst.id)"
+                                @keydown.space.prevent="selectInstitution(inst.id)"
                             >
-                                <label class="assign-institution-label">
-                                    <AppCheckbox
-                                        :model-value="selectedReassignIds.includes(inst.id ?? inst)"
-                                        @change="toggleReassign(inst.id ?? inst)"
-                                    />
-                                    <span class="assign-institution-text">{{
-                                        typeof inst === 'object' ? (inst.name || inst) : inst
-                                    }}</span>
-                                </label>
-                            </div>
-                        </template>
-                        <div v-else class="assign-empty-state">
-                            <span class="assign-empty-text">Nėra duomenų</span>
-                        </div>
+                                <td>{{ inst.name }}</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                    <div v-else class="assign-empty-state">
+                        <span class="assign-empty-text">Nėra duomenų</span>
                     </div>
-                    <div class="btn-row">
-                        <AppButton text="Siųsti" variant="primary" as-button @click="handleReassign" />
-                    </div>
+                </div>
+                <div class="btn-row">
+                    <AppButton
+                        text="Siųsti"
+                        variant="primary"
+                        as-button
+                        :loading="reassignSubmitting"
+                        @click="handleReassign"
+                    />
                 </div>
             </div>
         </div>
@@ -268,79 +278,6 @@ watch(
     font-family: 'Inter', sans-serif;
 }
 
-.assign-institution-switches {
-    display: flex;
-    flex-direction: column;
-    gap: 14px;
-    margin-bottom: 24px;
-}
-
-.switch-row {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    cursor: pointer;
-}
-
-.switch-label {
-    font-size: 16px;
-    color: #333;
-}
-
-.switch {
-    position: relative;
-    display: inline-block;
-    width: 44px;
-    height: 22px;
-    flex-shrink: 0;
-}
-
-.switch input {
-    opacity: 0;
-    width: 0;
-    height: 0;
-}
-
-.slider {
-    position: absolute;
-    cursor: pointer;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background-color: #ccc;
-    transition: 0.25s ease;
-}
-
-.slider:before {
-    position: absolute;
-    content: "";
-    height: 16px;
-    width: 16px;
-    left: 3px;
-    bottom: 3px;
-    background-color: #fff;
-    border-radius: 50%;
-    transition: transform 0.25s ease;
-    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.15);
-}
-
-input:checked + .slider {
-    background-color: #1946A0;
-}
-
-input:checked + .slider:before {
-    transform: translateX(22px);
-}
-
-.slider.round {
-    border-radius: 22px;
-}
-
-.slider.round:before {
-    border-radius: 50%;
-}
-
 .assign-institution-section {
     margin-bottom: 28px;
 }
@@ -353,37 +290,69 @@ input:checked + .slider:before {
     font-family: 'Inter', sans-serif;
 }
 
-.assign-list-wrap {
+.assign-table-scroll {
     width: 100%;
-    max-width: 400px;
+    max-width: 720px;
+    max-height: calc(5 * 3rem);
+    overflow-y: auto;
     margin-bottom: 16px;
+    border: 1px solid var(--color-border, #e5e5e5);
+    border-radius: 8px;
+    background: #fff;
+    -webkit-overflow-scrolling: touch;
 }
 
-.assign-institution-item {
-    display: flex;
-    align-items: center;
-    padding: 12px 0;
-    border-bottom: 1px solid #e0e0e0;
+.assign-select-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-family: 'Inter', sans-serif;
+    font-size: 15px;
 }
 
-.assign-institution-item:last-of-type {
+.assign-select-table thead th {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    text-align: left;
+    padding: 12px 14px;
+    background: var(--table-header-bg, var(--color-bg-subtle, #f6f7f9));
+    color: var(--table-header-text, #111827);
+    font-weight: 600;
+    font-size: 14px;
+    border-bottom: 1px solid var(--color-border, #e5e5e5);
+}
+
+.assign-select-row {
+    cursor: pointer;
+    outline: none;
+}
+
+.assign-select-row td {
+    padding: 12px 14px;
+    border-bottom: 1px solid var(--color-border, #e5e5e5);
+    color: #333;
+    vertical-align: middle;
+}
+
+.assign-select-row:last-child td {
     border-bottom: none;
 }
 
-.assign-institution-label {
-    display: flex;
-    align-items: center;
-    cursor: pointer;
-    width: 100%;
-    gap: 12px;
+.assign-select-row:hover {
+    background: var(--color-bg-subtle, #f6f7f9);
 }
 
-.assign-institution-text {
-    font-size: 16px;
-    color: #333333;
-    font-family: 'Inter', sans-serif;
-    line-height: 1.5;
-    font-weight: 400;
+.assign-select-row--active {
+    background: color-mix(in srgb, var(--color-primary, #1946a0) 16%, white);
+}
+
+.assign-select-row--active:hover {
+    background: color-mix(in srgb, var(--color-primary, #1946a0) 22%, white);
+}
+
+.assign-select-cell-muted {
+    color: #555;
+    font-size: 14px;
 }
 
 .assign-empty-state {
@@ -426,48 +395,5 @@ input:checked + .slider:before {
 
 .btn-row .app-button {
     width: 100%;
-}
-
-.section-expand-btn {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    width: 100%;
-    padding: 0;
-    margin: 0 0 12px 0;
-    background: none;
-    border: none;
-    cursor: pointer;
-    font-size: 18px;
-    font-weight: 600;
-    color: #333;
-    text-align: left;
-    line-height: 1.2;
-}
-
-.section-expand-btn:hover {
-    opacity: 0.8;
-}
-
-.section-expand-title {
-    flex: 0 0 auto;
-    line-height: 1.2;
-}
-
-.section-expand-icon {
-    width: 16px;
-    height: 16px;
-    flex-shrink: 0;
-    display: block;
-    transition: transform 0.2s;
-}
-
-.section-expand-icon.rotated {
-    transform: rotate(-90deg);
-}
-
-.section-expand-content {
-    padding-left: 0;
-    margin-top: 8px;
 }
 </style>

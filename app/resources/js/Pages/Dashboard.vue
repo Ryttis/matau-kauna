@@ -14,9 +14,10 @@ import { useProblemsMapFilter } from '@/composables/useProblemsMapFilter'
 import { useProblemDisplayRows } from '@/composables/useProblemDisplayRows'
 import { useSuccessModal } from '@/composables/useSuccessModal'
 import { debounce } from 'lodash-es'
-import { PROBLEM_STATUS_LABELS, PROBLEM_STATUS_OPTIONS } from '@/constants/problemStatus'
+import { PROBLEM_STATUS, PROBLEM_STATUS_LABELS, PROBLEM_STATUS_OPTIONS } from '@/constants/problemStatus'
 import { ICON_FILTER, ICON_SEARCH, ICON_CIRCLE_ARROW_RIGHT } from '@/constants/icons'
 import { useAuth } from '@/composables/useAuth'
+import { buildReporterProblemDisplayRows } from '@/utils/reporterProblemRows'
 
 const props = defineProps({
     reporterView: {
@@ -56,6 +57,34 @@ const showDeleteModal = ref(false)
 const { displayRows } = useProblemDisplayRows(problemsList)
 const { showSuccessModal, successMessage, closeSuccessModal } = useSuccessModal()
 
+function allProblemsFlatFromList(list) {
+    const out = []
+    for (const main of list) {
+        out.push(main)
+        for (const m of main.merged_problems || []) {
+            out.push(m)
+        }
+    }
+    return out
+}
+
+const statusByProblemId = computed(() => {
+    const map = new Map()
+    for (const p of allProblemsFlatFromList(problemsList.value)) {
+        map.set(p.id, p.status)
+    }
+    return map
+})
+
+const selectedIncludesResolvedProblem = computed(() => {
+    for (const id of selectedProblems.value) {
+        if (statusByProblemId.value.get(id) === PROBLEM_STATUS.RESOLVED) {
+            return true
+        }
+    }
+    return false
+})
+
 const reporterProblems = computed(() => {
     if (!props.reporterView) return []
     const p = props.problems
@@ -76,37 +105,7 @@ const {
     clearFilters: reporterClearFilters,
 } = useProblemsMapFilter(reporterProblems)
 
-function buildReporterDisplayRows(flatList) {
-    const list = flatList || []
-    const idSet = new Set(list.map((p) => p.id))
-    const mains = list.filter((p) => {
-        const parentId = p.merged_into_problem_id
-        if (!parentId) return true
-        return !idSet.has(parentId)
-    })
-    const rows = []
-    mains.forEach((main) => {
-        const merged = list.filter((p) => p.merged_into_problem_id === main.id)
-        const groupIds = [main.id, ...merged.map((m) => m.id)]
-        rows.push({
-            problem: main,
-            isGroupMain: true,
-            isLastInGroup: merged.length === 0,
-            groupIds,
-        })
-        merged.forEach((m, idx) => {
-            rows.push({
-                problem: m,
-                isGroupMain: false,
-                isLastInGroup: idx === merged.length - 1,
-                groupIds,
-            })
-        })
-    })
-    return rows
-}
-
-const reporterDisplayRows = computed(() => buildReporterDisplayRows(reporterFilteredProblems.value))
+const reporterDisplayRows = computed(() => buildReporterProblemDisplayRows(reporterFilteredProblems.value))
 
 function reporterToggleGroup(groupIds) {
     const next = new Set(reporterSelectedIds.value)
@@ -593,6 +592,7 @@ onUnmounted(() => {
             :sort-by="sortBy"
             :sort-direction="sortDirection"
             :can-publish="canPublish"
+            select-by-row-click
             @sort="handleSort"
             @select-all="handleSelectAll"
             @select-item="handleSelectItem"
@@ -615,7 +615,7 @@ onUnmounted(() => {
                     text="Priskirti problemą"
                     as-button
                     class="list-nav-btn"
-                    :disabled="selectedProblems.length === 0"
+                    :disabled="selectedProblems.length === 0 || selectedIncludesResolvedProblem"
                     @click="handleAssignProblems"
                 />
                 <AppButton
@@ -668,7 +668,7 @@ onUnmounted(() => {
                     variant="primary"
                     as-button
                     class="list-nav-btn"
-                    :disabled="selectedProblems.length !== 1"
+                    :disabled="selectedProblems.length !== 1 || selectedIncludesResolvedProblem"
                     @click="handleAssignInstitution"
                 />
                 <AppButton

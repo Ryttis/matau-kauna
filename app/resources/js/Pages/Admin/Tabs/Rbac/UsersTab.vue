@@ -245,7 +245,6 @@ const saveUserRoles = async () => {
 
         <div v-else>Nėra naudotojų.</div>
 
-        <!-- Create -->
         <BaseModal :open="isCreateOpen" title="Sukurti naudotoją" @close="isCreateOpen = false">
             <div class="hint">
                 Įstaigos administratorių ir darbuotojų paskyros kuriamos tik per pakvietimą.
@@ -289,7 +288,6 @@ const saveUserRoles = async () => {
             </template>
         </BaseModal>
 
-        <!-- Invite -->
         <BaseModal :open="isInviteOpen" title="Pakviesti naudotoją" @close="isInviteOpen = false">
             <div v-if="inviteError" class="error">{{ inviteError }}</div>
             <label class="field">
@@ -327,7 +325,6 @@ const saveUserRoles = async () => {
             </template>
         </BaseModal>
 
-        <!-- Edit -->
         <BaseModal :open="isEditOpen" title="Redaguoti naudotoją" @close="isEditOpen = false">
             <label class="field">
                 <span>Vardas</span>
@@ -362,7 +359,6 @@ const saveUserRoles = async () => {
             </template>
         </BaseModal>
 
-        <!-- Assign roles (moved from right panel) -->
         <BaseModal
             :open="isAssignRolesOpen"
             title="Priskirti roles"
@@ -399,7 +395,6 @@ const saveUserRoles = async () => {
             </template>
         </BaseModal>
 
-        <!-- Delete -->
         <ConfirmModal
             :open="isDeleteOpen"
             title="Ištrinti naudotoją"

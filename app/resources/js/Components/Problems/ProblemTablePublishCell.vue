@@ -5,9 +5,12 @@ import { router } from '@inertiajs/vue3'
 const props = defineProps({
     problem: { type: Object, required: true },
     canPublish: { type: Boolean, default: false },
+    showPublishToggle: { type: Boolean, default: true },
 })
 
-const showSwitch = computed(() => Boolean(props.canPublish && props.problem?.id))
+const showSwitch = computed(() =>
+    Boolean(props.canPublish && props.problem?.id && props.showPublishToggle)
+)
 
 const isOn = computed(() => Boolean(props.problem?.is_published_publicly))
 

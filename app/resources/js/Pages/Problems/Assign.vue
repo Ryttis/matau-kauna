@@ -11,6 +11,16 @@ import { useSuccessModal } from '@/composables/useSuccessModal'
 import { PROBLEM_STATUS } from '@/constants/problemStatus'
 import { ICON_ARROW } from '@/constants/icons'
 
+const ASSIGN_PAGE_STATUSES = [
+    PROBLEM_STATUS.NEW,
+    PROBLEM_STATUS.IN_REVIEW,
+    PROBLEM_STATUS.RETURNED_FOR_REVIEW,
+]
+
+function normalizeStatusForAssignPage(status) {
+    return ASSIGN_PAGE_STATUSES.includes(status) ? status : PROBLEM_STATUS.NEW
+}
+
 const institutionColumns = [{ key: 'name', label: 'Įstaiga' }]
 
 const props = defineProps({
@@ -30,7 +40,7 @@ const props = defineProps({
 
 const { showSuccessModal, successMessage, closeSuccessModal } = useSuccessModal()
 const selectedInstitutionIds = ref([])
-const selectedStatus = ref(props.problem?.status || PROBLEM_STATUS.NEW)
+const selectedStatus = ref(normalizeStatusForAssignPage(props.problem?.status || PROBLEM_STATUS.NEW))
 const email = ref('')
 const displayedCount = ref(6)
 const isInstitutionsExpanded = ref(true)
@@ -70,6 +80,11 @@ const syncInitialSelection = () => {
 
 watch(() => [props.problem, props.problems], () => {
     syncInitialSelection()
+    if (props.problem) {
+        selectedStatus.value = normalizeStatusForAssignPage(
+            props.problem.status || PROBLEM_STATUS.NEW
+        )
+    }
 }, { immediate: true, deep: true })
 
 const hasMore = computed(() => {
@@ -253,20 +268,10 @@ const toggleStatus = () => {
                             >
                                 Grąžinta nagrinėjimui
                             </button>
-                            <button
-                                class="assign-status-btn"
-                                :class="{
-                                    'assign-status-btn-active': selectedStatus === PROBLEM_STATUS.RESOLVED,
-                                    'assign-status-btn-resolved': true
-                                }"
-                                @click="handleStatusSelect(PROBLEM_STATUS.RESOLVED)"
-                            >
-                                Išspręsta
-                            </button>
                         </div>
                         <div class="assign-send-btn-wrap">
                             <AppButton
-                                text="Siųsti"
+                                text="Priskirti"
                                 variant="primary"
                                 as-button
                                 @click="handleSend"
@@ -567,21 +572,6 @@ const toggleStatus = () => {
 .assign-status-btn-returned.assign-status-btn-active {
     border-color: #153d8a;
     background-color: #eef3fc;
-    border-width: 3px;
-}
-
-.assign-status-btn-resolved {
-    border-color: #E0E0E0;
-}
-
-.assign-status-btn-resolved:hover {
-    border-color: #BDBDBD;
-    background-color: #F5F5F5;
-}
-
-.assign-status-btn-resolved.assign-status-btn-active {
-    border-color: #BDBDBD;
-    background-color: #F5F5F5;
     border-width: 3px;
 }
 

@@ -52,6 +52,10 @@ function formatDate(isoDateString) {
     padding: 20px;
     border-radius: 8px;
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    width: 100%;
+    max-height: none;
+    overflow: visible;
+    align-self: start;
 }
 
 .reporter-statistics-table-title {
@@ -63,6 +67,8 @@ function formatDate(isoDateString) {
 
 .reporter-statistics-table-wrap {
     overflow-x: auto;
+    overflow-y: visible;
+    max-height: none;
 }
 
 .reporter-statistics-table {

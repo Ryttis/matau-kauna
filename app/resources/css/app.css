@@ -1,6 +1,8 @@
 @import './admin-tabs.css';
 
 :root {
+    --app-header-height: 66px;
+
     --color-primary: #1946A0;
     --color-primary-hover: #153a8a;
     --color-primary-dark: #2E4E93;

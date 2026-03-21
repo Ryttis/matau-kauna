@@ -20,6 +20,7 @@ use App\Models\User;
 use App\Models\UserRole;
 use App\Services\ProblemAssignmentNotifier;
 use App\Services\ProblemAutoAssignmentService;
+use App\Services\ProblemDeadlineMonitorService;
 use App\Services\ProblemMapService;
 use App\Services\ProblemMergeContextService;
 use App\Services\ProblemReporterStatusNotifier;
@@ -32,6 +33,7 @@ use App\Services\StatisticsService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Mail;
 use Inertia\Inertia;
@@ -269,6 +271,10 @@ class ProblemController extends Controller
         $problem->load('mergedProblems:id,internal_number,merged_into_problem_id');
         $problem->load('mergedInto:id,internal_number');
         $problem->load('attachments');
+        $problem->load([
+            'institution:id,name',
+            'assignedEmployee:id,name,surname,email',
+        ]);
 
         $mergeContext = $this->mergeContextService->forProblem($problem);
 
@@ -401,6 +407,9 @@ class ProblemController extends Controller
 
         $problemIds = array_filter((array) $request->get('problem_ids', []));
         $problems = $problemIds ? Problem::whereIn('id', $problemIds)->get() : collect();
+        if ($problems->contains(fn (Problem $p) => $p->status === ProblemStatus::RESOLVED->value)) {
+            return redirect()->route('dashboard')->with('error', 'Išspręstų problemų negalima priskirti.');
+        }
         $problem = $problems->count() === 1 ? $problems->first() : null;
 
         return Inertia::render('Problems/Assign', [
@@ -417,12 +426,22 @@ class ProblemController extends Controller
             abort(403);
         }
 
+        $statusesAllowedOnAssign = implode(',', array_values(array_filter(
+            ProblemStatus::values(),
+            fn (string $s) => $s !== ProblemStatus::RESOLVED->value
+        )));
+
         $validated = $request->validate([
             'problem_ids' => ['required', 'array'],
             'problem_ids.*' => ['required', 'integer', 'exists:problems,id'],
             'institution_id' => ['nullable', 'integer', 'exists:institutions,id'],
-            'status' => ['nullable', 'string', 'in:'.implode(',', ProblemStatus::values())],
+            'status' => ['nullable', 'string', 'in:'.$statusesAllowedOnAssign],
         ]);
+
+        $problemsToUpdate = Problem::whereIn('id', $validated['problem_ids'])->get();
+        if ($problemsToUpdate->contains(fn (Problem $p) => $p->status === ProblemStatus::RESOLVED->value)) {
+            return redirect()->back()->with('error', 'Išspręstų problemų negalima priskirti.');
+        }
 
         $update = [
             'institution_id' => $validated['institution_id'] ?? null,
@@ -496,6 +515,10 @@ class ProblemController extends Controller
             ->orderBy('created_at', 'desc')
             ->get(['id', 'internal_number', 'description', 'status', 'created_at']);
 
+        if ($problems->contains(fn (Problem $p) => $p->status === ProblemStatus::RESOLVED->value)) {
+            return redirect()->back()->with('error', 'Išspręstų problemų negalima priskirti.');
+        }
+
         $institutionName = null;
         if (! empty($validated['institution_id'])) {
             $institutionName = Institution::where('id', $validated['institution_id'])->value('name');
@@ -526,11 +549,15 @@ class ProblemController extends Controller
         return redirect()->back()->with('success', 'Informacija išsiųsta el. paštu.');
     }
 
-    public function assignSingle(Problem $problem): Response
+    public function assignSingle(Problem $problem): Response|RedirectResponse
     {
         $user = request()->user();
         if (! $user->isProblemAdminOrSystemAdmin()) {
             abort(403);
+        }
+
+        if ($problem->status === ProblemStatus::RESOLVED->value) {
+            return redirect()->route('problems.show', $problem)->with('error', 'Išspręstos problemos priskirti negalima.');
         }
 
         $institutions = Institution::query()
@@ -748,6 +775,10 @@ class ProblemController extends Controller
         }
         $this->scopeService->authorizeProblemAccess($user, $problem);
 
+        if ($problem->status === ProblemStatus::RESOLVED->value) {
+            return redirect()->route('problems.show', $problem)->with('error', 'Išspręstos problemos priskirti negalima.');
+        }
+
         $employees = [];
         if ($user->institution_id) {
             $institutionUsers = User::where('institution_id', $user->institution_id)
@@ -802,6 +833,10 @@ class ProblemController extends Controller
         }
         $this->scopeService->authorizeProblemAccess($user, $problem);
 
+        if ($problem->status === ProblemStatus::RESOLVED->value) {
+            return redirect()->back()->with('error', 'Išspręstos problemos priskirti negalima.');
+        }
+
         $validated = $request->validate([
             'employee_id' => ['required', 'integer', 'exists:employees,id'],
             'completion_deadline' => ['nullable', 'date'],
@@ -836,6 +871,10 @@ class ProblemController extends Controller
             abort(403);
         }
         $this->scopeService->authorizeProblemAccess($user, $problem);
+
+        if ($problem->status === ProblemStatus::RESOLVED->value) {
+            return redirect()->back()->with('error', 'Išspręstos problemos priskirti negalima.');
+        }
 
         $validated = $request->validate([
             'email' => ['required', 'email'],
@@ -903,6 +942,10 @@ class ProblemController extends Controller
             abort(403);
         }
 
+        if ($problem->status === ProblemStatus::RESOLVED->value) {
+            return redirect()->back()->with('error', 'Išspręstos problemos perduoti negalima.');
+        }
+
         $validated = $request->validate([
             'institution_id' => ['required', 'integer', 'exists:institutions,id'],
         ]);
@@ -966,7 +1009,7 @@ class ProblemController extends Controller
             $query->where('category', $categoryFilter);
         }
 
-        $similarProblems = $query->with('mergedProblems:id,internal_number,description,merged_into_problem_id,lat,lng')
+        $similarProblems = $query->with('mergedProblems:id,internal_number,description,merged_into_problem_id,lat,lng,address')
             ->orderBy('created_at', 'desc')
             ->get();
 
@@ -1134,11 +1177,7 @@ class ProblemController extends Controller
             'date_to' => $request->get('date_to'),
         ];
 
-        $problems = Problem::query()
-            ->forReporter($user->id)
-            ->filtered($filters)
-            ->orderBy('created_at', 'desc')
-            ->get(['id', 'internal_number', 'status', 'created_at', 'category', 'address', 'description', 'is_published_publicly'])
+        $problems = $this->reporterProblemsFlatOrderedForList($user, $filters)
             ->map(fn ($p) => [
                 'id' => $p->id,
                 'internal_number' => $p->internal_number,
@@ -1148,6 +1187,7 @@ class ProblemController extends Controller
                 'address' => $p->address,
                 'description' => $p->description ?? '',
                 'is_published_publicly' => $p->is_published_publicly,
+                'merged_into_problem_id' => $p->merged_into_problem_id,
             ])
             ->values()
             ->all();
@@ -1175,29 +1215,10 @@ class ProblemController extends Controller
             'date_to' => $request->get('date_to'),
         ];
 
-        $query = Problem::query()
-            ->forReporter($user->id)
-            ->filtered($filters);
-
-        $problems = $query->get([
-            'id',
-            'status',
-            'category',
-            'created_at',
-            'is_published_publicly',
-            'internal_number',
-            'description',
-        ]);
+        $problems = $this->reporterProblemsFlatOrderedForList($user, $filters);
 
         $total = $problems->count();
-        $publishedCount = $problems->where('is_published_publicly', true)->count();
-
-        $byStatus = [
-            'nauja' => $problems->where('status', 'nauja')->count(),
-            'nagrinejama' => $problems->where('status', 'nagrinejama')->count(),
-            'grazinta_nagrinejimui' => $problems->where('status', 'grazinta_nagrinejimui')->count(),
-            'isspresta' => $problems->where('status', 'isspresta')->count(),
-        ];
+        $solvedCount = $problems->where('status', 'isspresta')->count();
 
         $byCategory = $problems->groupBy('category')
             ->map(fn ($group) => $group->count())
@@ -1229,13 +1250,82 @@ class ProblemController extends Controller
             'categories' => $categories,
             'filters' => $filters,
             'total' => $total,
-            'publishedCount' => $publishedCount,
-            'byStatus' => $byStatus,
+            'solvedCount' => $solvedCount,
             'byCategory' => array_values($byCategory),
             'monthlyReports' => $monthlyReports,
             'nagrinejamosProblemos' => $nagrinejamosProblemos,
             'issprestosProblemos' => $issprestosProblemos,
         ]);
+    }
+
+    private function reporterMergeRootIdsForFilters(User $user, array $filters): Collection
+    {
+        $fromMainFilter = Problem::query()
+            ->forReporter($user->id)
+            ->filtered($filters)
+            ->pluck('id');
+
+        $childMatchRootIds = collect(Problem::mergeGroupRootIdsFromMatchingMergedChildren($filters));
+
+        $fromChildFilter = $childMatchRootIds->filter(
+            fn ($id) => Problem::query()->forReporter($user->id)->whereKey((int) $id)->exists()
+        );
+
+        return $fromMainFilter->merge($fromChildFilter)->unique()->values();
+    }
+
+    private function reporterProblemsFlatOrderedForList(User $user, array $filters): Collection
+    {
+        $rootIds = $this->reporterMergeRootIdsForFilters($user, $filters);
+        if ($rootIds->isEmpty()) {
+            return collect();
+        }
+
+        $rootIdArr = $rootIds->map(fn ($id) => (int) $id)->all();
+
+        $members = Problem::query()
+            ->where(function ($q) use ($rootIdArr) {
+                $q->whereIn('id', $rootIdArr)
+                    ->orWhereIn('merged_into_problem_id', $rootIdArr);
+            })
+            ->notArchived()
+            ->whereIn('status', ProblemStatus::staffMapStatusValues())
+            ->get([
+                'id',
+                'internal_number',
+                'status',
+                'created_at',
+                'category',
+                'address',
+                'description',
+                'is_published_publicly',
+                'merged_into_problem_id',
+            ]);
+
+        $rootsOrdered = Problem::query()
+            ->whereIn('id', $rootIdArr)
+            ->orderByDesc('created_at')
+            ->get([
+                'id',
+                'internal_number',
+                'status',
+                'created_at',
+                'category',
+                'address',
+                'description',
+                'is_published_publicly',
+                'merged_into_problem_id',
+            ]);
+
+        $ordered = collect();
+        foreach ($rootsOrdered as $main) {
+            $ordered->push($main);
+            foreach ($members->where('merged_into_problem_id', $main->id)->sortByDesc('created_at') as $child) {
+                $ordered->push($child);
+            }
+        }
+
+        return $ordered;
     }
 
     private function mapProblemToStatisticsListItem(Problem $p): array
@@ -1528,7 +1618,7 @@ class ProblemController extends Controller
             $this->scopeService->scopeProblemsForUser($query, $user);
             $all = $query->orderBy('completion_deadline')->get();
             $today = now()->startOfDay();
-            $approachingEnd = $today->copy()->addDays(2);
+            $approachingEnd = $today->copy()->addDays(ProblemDeadlineMonitorService::REMIND_DAYS_BEFORE);
             $approaching = $all->filter(fn ($p) => $p->completion_deadline && $p->completion_deadline->gte($today) && $p->completion_deadline->lte($approachingEnd) && $p->status !== 'isspresta');
             $overdue = $all->filter(fn ($p) => $p->completion_deadline && $p->completion_deadline->lt($today) && $p->status !== 'isspresta');
 
@@ -1552,14 +1642,6 @@ class ProblemController extends Controller
                     'assigned_to' => $p->assignedEmployee ? trim($p->assignedEmployee->name.' '.$p->assignedEmployee->surname) : null,
                 ])->all(),
             ]);
-        }
-
-        if ($route === 'statistics.categories') {
-            return Inertia::render('Statistics/Categories');
-        }
-
-        if ($route === 'statistics.institutions') {
-            return Inertia::render('Statistics/Institutions');
         }
 
         $service = app(StatisticsService::class);

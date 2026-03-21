@@ -1,6 +1,7 @@
 <script setup>
 import { Head, router } from '@inertiajs/vue3'
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue'
+import { PROBLEM_STATUS_LABELS } from '@/constants/problemStatus'
 
 defineProps({
     approaching: { type: Array, default: () => [] },
@@ -9,6 +10,16 @@ defineProps({
 
 function goToProblem(id) {
     router.visit(route('problems.show', id))
+}
+
+function statusLabel(status) {
+    return PROBLEM_STATUS_LABELS[status] ?? status ?? '—'
+}
+
+function formatTermDate(isoDate) {
+    if (!isoDate) return '—'
+    const d = new Date(`${isoDate}T12:00:00`)
+    return Number.isNaN(d.getTime()) ? isoDate : d.toLocaleDateString('lt-LT')
 }
 </script>
 
@@ -41,8 +52,8 @@ function goToProblem(id) {
                             <tr v-for="p in overdue" :key="p.id">
                                 <td>{{ p.internal_number }}</td>
                                 <td>{{ p.description_preview }}</td>
-                                <td>{{ p.status }}</td>
-                                <td>{{ p.completion_deadline }}</td>
+                                <td>{{ statusLabel(p.status) }}</td>
+                                <td>{{ formatTermDate(p.completion_deadline) }}</td>
                                 <td>{{ p.institution_name || '—' }}</td>
                                 <td>{{ p.assigned_to || '—' }}</td>
                                 <td>
@@ -56,7 +67,7 @@ function goToProblem(id) {
             </section>
 
             <section class="section">
-                <h2 class="section-title">Artėja terminas (kitas 2 d.)</h2>
+                <h2 class="section-title">Terminas baigiasi šiandien, rytoj arba poryt</h2>
                 <div v-if="approaching?.length" class="table-wrap">
                     <table class="data-table">
                         <thead>
@@ -74,8 +85,8 @@ function goToProblem(id) {
                             <tr v-for="p in approaching" :key="p.id">
                                 <td>{{ p.internal_number }}</td>
                                 <td>{{ p.description_preview }}</td>
-                                <td>{{ p.status }}</td>
-                                <td>{{ p.completion_deadline }}</td>
+                                <td>{{ statusLabel(p.status) }}</td>
+                                <td>{{ formatTermDate(p.completion_deadline) }}</td>
                                 <td>{{ p.institution_name || '—' }}</td>
                                 <td>{{ p.assigned_to || '—' }}</td>
                                 <td>
