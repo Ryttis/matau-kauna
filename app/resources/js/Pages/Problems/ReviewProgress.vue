@@ -1,21 +1,31 @@
 <script setup>
-import { ref } from 'vue'
+import { ref, watch } from 'vue'
+import axios from 'axios'
 import { Head, router } from '@inertiajs/vue3'
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue'
 import AppBackButton from '@/Components/App/AppBackButton.vue'
 import AppButton from '@/Components/App/AppButton.vue'
 import AddEntryModal from '@/Components/App/Modals/AddEntryModal.vue'
+import ConfirmModal from '@/Components/App/ConfirmModal.vue'
 import StatusBadge from '@/Components/Problems/StatusBadge.vue'
 import { PROBLEM_STATUS_LABELS } from '@/constants/problemStatus'
 
 const showAddEntryModal = ref(false)
+const editingEntry = ref(null)
 
 const openAddEntry = () => {
+    editingEntry.value = null
+    showAddEntryModal.value = true
+}
+
+const openEditEntry = (entry) => {
+    editingEntry.value = entry
     showAddEntryModal.value = true
 }
 
 const closeAddEntry = () => {
     showAddEntryModal.value = false
+    editingEntry.value = null
 }
 
 const props = defineProps({
@@ -23,12 +33,77 @@ const props = defineProps({
     reviewEntries: { type: Array, default: () => [] },
     backUrl: { type: String, default: '' },
     canAddEntry: { type: Boolean, default: true },
+    canDeleteReviewAttachments: { type: Boolean, default: false },
     showReviewVisibilityLabels: { type: Boolean, default: false },
+    showWatchToggle: { type: Boolean, default: false },
+    isWatched: { type: Boolean, default: false },
+    watchProblemId: { type: Number, default: null },
+    fileUpload: {
+        type: Object,
+        default: () => ({}),
+    },
 })
+
+const watchActive = ref(props.isWatched)
+const watchLoading = ref(false)
+
+watch(
+    () => props.isWatched,
+    (v) => { watchActive.value = v }
+)
+
+async function toggleProblemWatch() {
+    if (!props.watchProblemId || watchLoading.value) return
+    watchLoading.value = true
+    try {
+        const { data } = await axios.post(route('problems.watch.toggle', props.watchProblemId))
+        watchActive.value = !!data.watched
+    } finally {
+        watchLoading.value = false
+    }
+}
 
 const handleBack = () => {
     const url = props.backUrl || route('problems.show', props.problem.id)
     router.visit(url)
+}
+
+const showDeleteReviewAttachment = ref(false)
+const pendingReviewAttachment = ref(null)
+const deleteReviewAttachmentLoading = ref(false)
+
+function openDeleteReviewAttachment(a, e) {
+    e?.stopPropagation?.()
+    e?.preventDefault?.()
+    if (!props.canDeleteReviewAttachments || deleteReviewAttachmentLoading.value) return
+    pendingReviewAttachment.value = a
+    showDeleteReviewAttachment.value = true
+}
+
+function onCloseDeleteReviewAttachment() {
+    if (deleteReviewAttachmentLoading.value) return
+    showDeleteReviewAttachment.value = false
+    pendingReviewAttachment.value = null
+}
+
+function confirmDeleteReviewAttachment() {
+    const a = pendingReviewAttachment.value
+    if (!a || !props.problem?.id) return
+    deleteReviewAttachmentLoading.value = true
+    router.delete(
+        route('problems.reviewProgress.attachments.destroy', {
+            problem: props.problem.id,
+            attachment: a.id,
+        }),
+        {
+            preserveScroll: true,
+            onFinish: () => {
+                deleteReviewAttachmentLoading.value = false
+                showDeleteReviewAttachment.value = false
+                pendingReviewAttachment.value = null
+            },
+        },
+    )
 }
 </script>
 
@@ -52,8 +127,30 @@ const handleBack = () => {
                 </div>
             </div>
 
+            <div v-if="canAddEntry" class="review-progress-add-top">
+                <AppButton
+                    text="Pridėti įrašą"
+                    variant="primary"
+                    as-button
+                    class="review-progress-add-btn"
+                    @click="openAddEntry"
+                />
+            </div>
+
             <div class="review-progress-status-section">
                 <StatusBadge :status="problem?.status" />
+                <button
+                    v-if="showWatchToggle"
+                    type="button"
+                    class="review-progress-watch-btn"
+                    :class="{ 'is-active': watchActive }"
+                    :aria-pressed="watchActive"
+                    :aria-label="watchActive ? 'Stebima: gausite pranešimus apie naujus įrašus' : 'Stebėti ir gauti pranešimus apie naujus įrašus'"
+                    :disabled="watchLoading"
+                    @click="toggleProblemWatch"
+                >
+                    <img src="/icons/eye-icon.png" alt="" width="28" height="28" />
+                </button>
             </div>
 
             <div class="review-progress-description">
@@ -63,13 +160,23 @@ const handleBack = () => {
 
             <div class="review-progress-content">
                 <div
-                    v-for="(entry, index) in reviewEntries"
-                    :key="index"
+                    v-for="entry in reviewEntries"
+                    :key="entry.id ?? entry.date"
                     class="review-progress-entry"
                 >
                     <div class="review-progress-entry-header">
                         <span class="review-progress-date">{{ new Date(entry.date).toLocaleDateString('lt-LT') }}</span>
-                        <span class="review-progress-time">{{ new Date(entry.date).toLocaleTimeString('lt-LT', { hour: '2-digit', minute: '2-digit' }) }}</span>
+                        <div class="review-progress-entry-header-actions">
+                            <button
+                                v-if="canAddEntry"
+                                type="button"
+                                class="review-progress-edit-btn"
+                                @click="openEditEntry(entry)"
+                            >
+                                Koreguoti
+                            </button>
+                            <span class="review-progress-time">{{ new Date(entry.date).toLocaleTimeString('lt-LT', { hour: '2-digit', minute: '2-digit' }) }}</span>
+                        </div>
                     </div>
                     <div class="review-progress-entry-body">
                         <div class="review-progress-status">
@@ -93,22 +200,51 @@ const handleBack = () => {
                             </div>
                             <div class="review-progress-comment-text">{{ entry.comment || '' }}</div>
                         </div>
+                        <div
+                            v-if="entry.attachments?.length"
+                            class="review-progress-entry-attachments"
+                        >
+                            <div class="review-progress-attachments-label">Priedai</div>
+                            <div class="review-progress-attachments-grid">
+                                <div
+                                    v-for="a in entry.attachments"
+                                    :key="a.id"
+                                    class="review-progress-attachment-item"
+                                >
+                                    <button
+                                        v-if="canDeleteReviewAttachments"
+                                        type="button"
+                                        class="review-progress-attachment-delete"
+                                        :disabled="deleteReviewAttachmentLoading"
+                                        aria-label="Pašalinti priedą"
+                                        @click="openDeleteReviewAttachment(a, $event)"
+                                    >
+                                        Šalinti
+                                    </button>
+                                    <a
+                                        v-if="a.kind === 'photo'"
+                                        :href="a.url"
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        class="review-progress-attachment-link"
+                                    >
+                                        <img :src="a.url" alt="" class="review-progress-attachment-thumb" />
+                                    </a>
+                                    <video
+                                        v-else
+                                        class="review-progress-attachment-video"
+                                        controls
+                                        :src="a.url"
+                                    />
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
                 <div v-if="reviewEntries.length === 0" class="review-progress-empty">
                     <span>Nėra nagrinėjimo įrašų</span>
                 </div>
-            </div>
-
-            <div v-if="canAddEntry" class="review-progress-actions">
-                <AppButton
-                    text="Pridėti įrašą"
-                    variant="primary"
-                    as-button
-                    class="review-progress-add-btn"
-                    @click="openAddEntry"
-                />
             </div>
         </div>
 
@@ -117,7 +253,23 @@ const handleBack = () => {
             :open="showAddEntryModal"
             :problem-id="problem.id"
             :current-status="problem.status || ''"
+            :entry="editingEntry"
+            :file-upload="fileUpload"
             @close="closeAddEntry"
+        />
+
+        <ConfirmModal
+            :open="showDeleteReviewAttachment"
+            message="Ar tikrai pašalinti šį priedą?"
+            confirm-text="Pašalinti"
+            cancel-text="Atšaukti"
+            footer-layout="column"
+            confirm-variant="danger"
+            width="400px"
+            :z-index="5000"
+            :loading="deleteReviewAttachmentLoading"
+            @close="onCloseDeleteReviewAttachment"
+            @confirm="confirmDeleteReviewAttachment"
         />
     </AuthenticatedLayout>
 </template>
@@ -136,6 +288,20 @@ const handleBack = () => {
     margin-bottom: 20px;
     padding-bottom: 16px;
     border-bottom: 1px solid #e0e0e0;
+}
+
+.review-progress-add-top {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 20px;
+}
+
+.review-progress-add-top :deep(.review-progress-add-btn) {
+    width: var(--button-width);
+    height: var(--button-height);
+    padding: 9px 24px;
+    border-radius: var(--button-border-radius);
+    font-family: 'Open Sans', sans-serif;
 }
 
 .review-progress-header-info {
@@ -170,6 +336,39 @@ const handleBack = () => {
 
 .review-progress-status-section {
     margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.review-progress-watch-btn {
+    border: none;
+    background: transparent;
+    padding: 6px;
+    cursor: pointer;
+    line-height: 0;
+    border-radius: 10px;
+    transition: background 0.15s ease, opacity 0.15s ease;
+}
+
+.review-progress-watch-btn:hover:not(:disabled) {
+    background: rgba(0, 0, 0, 0.05);
+}
+
+.review-progress-watch-btn:disabled {
+    opacity: 0.5;
+    cursor: wait;
+}
+
+.review-progress-watch-btn img {
+    display: block;
+    width: 28px;
+    height: 28px;
+}
+
+.review-progress-watch-btn.is-active img {
+    filter: brightness(0) saturate(100%) invert(27%) sepia(96%) saturate(2500%) hue-rotate(212deg) brightness(96%) contrast(96%);
 }
 
 .review-progress-description {
@@ -223,6 +422,30 @@ const handleBack = () => {
     justify-content: space-between;
     align-items: center;
     margin-bottom: 16px;
+    gap: 12px;
+}
+
+.review-progress-entry-header-actions {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-shrink: 0;
+}
+
+.review-progress-edit-btn {
+    border: none;
+    background: none;
+    padding: 0;
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--color-primary, #1946a0);
+    font-family: 'Inter', sans-serif;
+    cursor: pointer;
+    text-decoration: none;
+}
+
+.review-progress-edit-btn:hover {
+    color: #0f2d6b;
 }
 
 .review-progress-date {
@@ -308,8 +531,81 @@ const handleBack = () => {
     font-family: 'Inter', sans-serif;
     font-weight: 400;
     min-height: 20px;
-    border-bottom: 1px solid #e0e0e0;
     padding-bottom: 4px;
+}
+
+.review-progress-entry-attachments {
+    margin-top: 16px;
+    padding-top: 12px;
+    border-top: 1px solid #e0e0e0;
+}
+
+.review-progress-attachments-label {
+    font-size: 14px;
+    font-weight: 600;
+    color: #333;
+    margin-bottom: 10px;
+    font-family: 'Inter', sans-serif;
+}
+
+.review-progress-attachments-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.review-progress-attachment-item {
+    position: relative;
+    display: inline-block;
+    max-width: 100%;
+}
+
+.review-progress-attachment-delete {
+    position: absolute;
+    top: 6px;
+    right: 6px;
+    z-index: 2;
+    padding: 4px 10px;
+    font-size: 12px;
+    font-weight: 600;
+    font-family: 'Inter', sans-serif;
+    color: #fff;
+    background: rgba(0, 0, 0, 0.65);
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    line-height: 1.2;
+}
+
+.review-progress-attachment-delete:hover:not(:disabled) {
+    background: rgba(180, 40, 40, 0.95);
+}
+
+.review-progress-attachment-delete:disabled {
+    opacity: 0.5;
+    cursor: wait;
+}
+
+.review-progress-attachment-link {
+    display: block;
+    max-width: 200px;
+    border-radius: 8px;
+    overflow: hidden;
+    border: 1px solid #e0e0e0;
+}
+
+.review-progress-attachment-thumb {
+    display: block;
+    width: 100%;
+    height: auto;
+    vertical-align: top;
+}
+
+.review-progress-attachment-video {
+    max-width: 280px;
+    max-height: 200px;
+    border-radius: 8px;
+    border: 1px solid #e0e0e0;
 }
 
 .review-progress-empty {
@@ -320,18 +616,4 @@ const handleBack = () => {
     font-family: 'Inter', sans-serif;
 }
 
-.review-progress-actions {
-    display: flex;
-    justify-content: center;
-    margin-top: 40px;
-    padding-top: 24px;
-}
-
-.review-progress-actions :deep(.review-progress-add-btn) {
-    width: var(--button-width);
-    height: var(--button-height);
-    padding: 9px 24px;
-    border-radius: var(--button-border-radius);
-    font-family: 'Open Sans', sans-serif;
-}
 </style>

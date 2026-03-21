@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Str;
 
@@ -242,6 +243,16 @@ class Problem extends Model
     public function mergedProblems(): HasMany
     {
         return $this->hasMany(Problem::class, 'merged_into_problem_id');
+    }
+
+    public function watchers(): BelongsToMany
+    {
+        return $this->belongsToMany(User::class, 'problem_watches')->withTimestamps();
+    }
+
+    public function attachments(): HasMany
+    {
+        return $this->hasMany(ProblemAttachment::class, 'problem_id')->orderBy('id');
     }
 
     public function getMergeGroupIds(): array

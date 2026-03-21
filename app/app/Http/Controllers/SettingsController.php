@@ -67,7 +67,7 @@ class SettingsController extends Controller
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'surname' => ['nullable', 'string', 'max:255'],
-            'email' => ['required', 'string', 'lowercase', 'email', 'max:255', 'unique:users,email,' . Auth::id()],
+            'email' => ['required', 'string', 'lowercase', 'email', 'max:255', 'unique:users,email,'.Auth::id()],
         ]);
 
         Auth::user()->update($validated);
@@ -175,6 +175,8 @@ class SettingsController extends Controller
             'two_factor_enabled' => ['sometimes', 'boolean'],
             'email_notifications_enabled' => ['sometimes', 'boolean'],
             'email_updates_institution_admin' => ['sometimes', 'boolean'],
+            'reporter_email_own_problems' => ['sometimes', 'boolean'],
+            'reporter_email_watched_problems' => ['sometimes', 'boolean'],
         ]);
 
         $data = [];
@@ -186,6 +188,12 @@ class SettingsController extends Controller
         }
         if (array_key_exists('email_updates_institution_admin', $validated)) {
             $data['email_updates_institution_admin'] = filter_var($validated['email_updates_institution_admin'], FILTER_VALIDATE_BOOLEAN);
+        }
+        if (array_key_exists('reporter_email_own_problems', $validated)) {
+            $data['reporter_email_own_problems'] = filter_var($validated['reporter_email_own_problems'], FILTER_VALIDATE_BOOLEAN);
+        }
+        if (array_key_exists('reporter_email_watched_problems', $validated)) {
+            $data['reporter_email_watched_problems'] = filter_var($validated['reporter_email_watched_problems'], FILTER_VALIDATE_BOOLEAN);
         }
 
         if ($data !== []) {

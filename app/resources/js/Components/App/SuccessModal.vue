@@ -16,7 +16,7 @@ const emit = defineEmits(['close'])
 <template>
     <BaseModal
         :show="show"
-        :z-index="1002"
+        :z-index="6000"
         :show-close-button="true"
         :max-width="'420px'"
         @close="emit('close')"

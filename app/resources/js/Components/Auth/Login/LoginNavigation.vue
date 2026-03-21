@@ -5,7 +5,7 @@ const TABS = [
 ]
 
 defineProps({
-    activeTab: { type: String, default: 'darbuotojas' },
+    activeTab: { type: String, default: 'pareiskejas' },
 })
 
 const emit = defineEmits(['select'])

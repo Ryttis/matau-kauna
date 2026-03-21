@@ -131,6 +131,21 @@ export function useKaunasMapLocationPicker(containerRef, options = {}) {
         }
     }
 
+    function applySuggestionSelection(item) {
+        const newLat = Number(item?.lat)
+        const newLng = Number(item?.lng)
+        if (!Number.isFinite(newLat) || !Number.isFinite(newLng)) {
+            return
+        }
+        lat.value = newLat
+        lng.value = newLng
+        address.value = item.display_name || ''
+        if (marker && map) {
+            marker.setLatLng([newLat, newLng])
+            map.setView([newLat, newLng], 15)
+        }
+    }
+
     function centerMap() {
         if (map) map.setView(KAUNAS_CENTER, 12)
     }
@@ -173,5 +188,15 @@ export function useKaunasMapLocationPicker(containerRef, options = {}) {
     onMounted(() => loadLeaflet().then(() => nextTick(() => setTimeout(initMap, 100))))
     onUnmounted(cleanup)
 
-    return { lat, lng, address, isGeocoding, setMarkerPosition, searchAddress, fetchAddressSuggestions, centerMap }
+    return {
+        lat,
+        lng,
+        address,
+        isGeocoding,
+        setMarkerPosition,
+        searchAddress,
+        applySuggestionSelection,
+        fetchAddressSuggestions,
+        centerMap,
+    }
 }

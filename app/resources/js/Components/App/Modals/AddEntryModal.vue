@@ -9,11 +9,25 @@ import {
     reviewModalTagKeyForStatus,
 } from '@/constants/reviewProgressEntry'
 import { useReviewProgressEntryForm } from '@/composables/useReviewProgressEntryForm'
+import { useFileUploadQueue, defaultFileUploadSettings } from '@/composables/useFileUploadQueue'
+import { firstInertiaErrorForPrefix } from '@/utils/laravelApiErrors'
+import {
+    attachmentsToUploadBaseline,
+    formatDetailedFileUploadHint,
+} from '@/utils/fileUploadClient'
 
 const props = defineProps({
     open: { type: Boolean, default: false },
     problemId: { type: Number, required: true },
     currentStatus: { type: String, default: '' },
+    entry: {
+        type: Object,
+        default: null,
+    },
+    fileUpload: {
+        type: Object,
+        default: () => ({}),
+    },
 })
 
 const emit = defineEmits(['close'])
@@ -22,10 +36,41 @@ const todayDate = new Date().toLocaleDateString('lt-LT')
 const selectedKey = ref(null)
 const localStatusHint = ref('')
 
+const modalTitle = computed(() => (props.entry?.id ? 'Koreguoti įrašą' : 'Būsenos keitimas'))
+
+const headerDateDisplay = computed(() => {
+    if (props.entry?.date) {
+        return new Date(props.entry.date).toLocaleDateString('lt-LT')
+    }
+    return todayDate
+})
+
+const uploadRules = computed(() => ({
+    ...defaultFileUploadSettings(),
+    ...props.fileUpload,
+}))
+
+const fileUploadBaseline = computed(() =>
+    attachmentsToUploadBaseline(props.entry?.attachments ?? []),
+)
+
+const {
+    selectedFiles,
+    fileHint,
+    fileInputRef,
+    handleFileChange,
+    removeFile,
+    clearQueue,
+    triggerPicker,
+    showFileSection,
+} = useFileUploadQueue(uploadRules, { appendBaseline: fileUploadBaseline })
+
 const { form, submit } = useReviewProgressEntryForm(
     () => props.problemId,
     {
         onSuccess: () => emit('close'),
+        getFiles: () => selectedFiles.value,
+        getEntryId: () => props.entry?.id ?? null,
     },
 )
 
@@ -41,7 +86,7 @@ function selectStatus(tag) {
 
 function runSubmit(visibility) {
     if (!selectedStatusValue.value) {
-        localStatusHint.value = 'Pasirinkite būseną'
+        localStatusHint.value = 'Pasirinkite būseną.'
         return
     }
     localStatusHint.value = ''
@@ -50,19 +95,38 @@ function runSubmit(visibility) {
 }
 
 watch(
-    () => props.open,
-    (isOpen) => {
-        if (isOpen) {
-            selectedKey.value = reviewModalTagKeyForStatus(props.currentStatus)
-            localStatusHint.value = ''
-            form.clearErrors()
-        } else {
+    () => [props.open, props.entry],
+    ([isOpen, entry]) => {
+        if (!isOpen) {
             selectedKey.value = null
             localStatusHint.value = ''
-            form.clearErrors()
+            return
+        }
+        localStatusHint.value = ''
+        form.clearErrors()
+        clearQueue()
+        if (entry?.id) {
+            form.comment = entry.comment ?? ''
+            form.visibility =
+                entry.visibility === REVIEW_ENTRY_VISIBILITY.PUBLIC
+                    ? REVIEW_ENTRY_VISIBILITY.PUBLIC
+                    : REVIEW_ENTRY_VISIBILITY.INTERNAL
+            selectedKey.value = reviewModalTagKeyForStatus(entry.status)
+        } else {
+            selectedKey.value = reviewModalTagKeyForStatus(props.currentStatus)
+            form.comment = ''
+            form.visibility = REVIEW_ENTRY_VISIBILITY.INTERNAL
         }
     },
 )
+
+const uploadHintText = computed(() =>
+    formatDetailedFileUploadHint(uploadRules.value, {
+        includeExistingInTotal: !!props.entry?.id,
+    }),
+)
+
+const filesErrorText = computed(() => firstInertiaErrorForPrefix(form.errors, 'files'))
 </script>
 
 <template>
@@ -76,12 +140,12 @@ watch(
         >
             <template #header>
                 <span class="add-entry-modal-header-label">Data</span>
-                <span class="add-entry-modal-header-date">{{ todayDate }}</span>
+                <span class="add-entry-modal-header-date">{{ headerDateDisplay }}</span>
                 <div class="add-entry-modal-header-spacer"></div>
             </template>
 
             <div class="add-entry-modal">
-                <h2 class="add-entry-modal-title">Būsenos keitimas</h2>
+                <h2 class="add-entry-modal-title">{{ modalTitle }}</h2>
 
                 <div class="add-entry-modal-section add-entry-status-section">
                     <div class="add-entry-status-row">
@@ -115,11 +179,31 @@ watch(
                     <p v-if="form.errors.comment" class="add-entry-field-error">{{ form.errors.comment }}</p>
                 </div>
 
-                <div class="add-entry-modal-section">
-                    <div class="add-entry-photo-area">
-                        <span class="add-entry-photo-text">Pridėti nuotrauką</span>
+                <div v-if="showFileSection" class="add-entry-modal-section">
+                    <label class="add-entry-modal-label">Priedai</label>
+                    <input
+                        ref="fileInputRef"
+                        type="file"
+                        class="add-entry-file-input-hidden"
+                        multiple
+                        :accept="uploadRules.accept_attr"
+                        @change="handleFileChange"
+                    >
+                    <div class="add-entry-photo-area" @click="triggerPicker">
+                        <span class="add-entry-photo-text">Pridėti nuotrauką arba vaizdo įrašą</span>
                     </div>
-                    <span class="add-entry-attach-label">Prisegti failą</span>
+                    <p class="add-entry-file-hint">{{ uploadHintText }}</p>
+                    <p v-if="fileHint || filesErrorText" class="add-entry-field-error">
+                        {{ fileHint || filesErrorText }}
+                    </p>
+                    <ul v-if="selectedFiles.length" class="add-entry-file-list">
+                        <li v-for="(f, idx) in selectedFiles" :key="idx + f.name" class="add-entry-file-item">
+                            <span class="add-entry-file-name">{{ f.name }}</span>
+                            <button type="button" class="add-entry-file-remove" @click.stop="removeFile(idx)">
+                                Pašalinti
+                            </button>
+                        </li>
+                    </ul>
                 </div>
                 <p v-if="form.errors.visibility" class="add-entry-field-error">{{ form.errors.visibility }}</p>
             </div>
@@ -268,6 +352,14 @@ watch(
     object-fit: contain;
 }
 
+.add-entry-file-input-hidden {
+    position: absolute;
+    width: 0;
+    height: 0;
+    opacity: 0;
+    pointer-events: none;
+}
+
 .add-entry-photo-area {
     min-height: 120px;
     background: repeating-conic-gradient(#e0e0e0 0% 25%, #f5f5f5 0% 50%) 50% / 16px 16px;
@@ -284,12 +376,47 @@ watch(
     background: #fff;
     padding: 8px 16px;
     border-radius: 8px;
+    text-align: center;
+    max-width: 90%;
 }
-.add-entry-attach-label {
-    display: inline-block;
-    margin-top: 8px;
-    font-size: 14px;
-    color: #666;
+.add-entry-file-hint {
+    margin: 8px 0 0;
+    font-size: 11px;
+    line-height: 1.35;
+    color: #777;
+}
+
+.add-entry-file-list {
+    margin: 10px 0 0;
+    padding-left: 18px;
+    font-size: 12px;
+    color: #333;
+}
+
+.add-entry-file-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    margin-bottom: 4px;
+}
+
+.add-entry-file-name {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    min-width: 0;
+}
+
+.add-entry-file-remove {
+    flex: none;
+    border: none;
+    background: none;
+    color: var(--color-primary, #1946a0);
+    cursor: pointer;
+    font-size: 12px;
+    text-decoration: underline;
+    padding: 0;
 }
 
 .add-entry-field-error {

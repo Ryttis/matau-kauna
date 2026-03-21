@@ -20,10 +20,8 @@ const addressDropdownRef = ref(null)
 let suggestDebounceTimer = null
 let lastSuggestQuery = ''
 
-const { lat, lng, address, isGeocoding, searchAddress, fetchAddressSuggestions, centerMap } = useKaunasMapLocationPicker(
-    mapContainer,
-    { initialLat: props.initialLat, initialLng: props.initialLng }
-)
+const { lat, lng, address, isGeocoding, searchAddress, applySuggestionSelection, fetchAddressSuggestions, centerMap } =
+    useKaunasMapLocationPicker(mapContainer, { initialLat: props.initialLat, initialLng: props.initialLng })
 
 watch(address, (v) => { addressInput.value = v ?? '' }, { immediate: true })
 watch(addressInput, (v) => emit('update:address', v ?? ''), { immediate: true })
@@ -62,8 +60,7 @@ function onAddressSubmit() {
 }
 
 function onSelectSuggestion(item) {
-    addressInput.value = item.display_name
-    searchAddress(item.display_name)
+    applySuggestionSelection(item)
     suggestions.value = []
     showSuggestions.value = false
 }
@@ -72,27 +69,28 @@ function closeSuggestions() {
     showSuggestions.value = false
 }
 
-function onInputBlur() {
-    setTimeout(closeSuggestions, 200)
-}
-
 function onKeydown(ev) {
     if (ev.key === 'Escape') closeSuggestions()
 }
 
 onMounted(() => {
-    document.addEventListener('click', handleClickOutside)
+    document.addEventListener('pointerdown', handlePointerOutside, true)
 })
 onUnmounted(() => {
-    document.removeEventListener('click', handleClickOutside)
+    document.removeEventListener('pointerdown', handlePointerOutside, true)
     if (suggestDebounceTimer) clearTimeout(suggestDebounceTimer)
 })
 
-function handleClickOutside(e) {
-    if (addressDropdownRef.value && !addressDropdownRef.value.contains(e.target)) {
+function handlePointerOutside(e) {
+    if (!showSuggestions.value || !addressDropdownRef.value) {
+        return
+    }
+    if (!addressDropdownRef.value.contains(e.target)) {
         closeSuggestions()
     }
 }
+
+function onSuggestionsListPointerDownCapture() {}
 
 function onCenterClick() {
     centerMap()
@@ -123,7 +121,6 @@ function onCenterClick() {
                     :disabled="isGeocoding"
                     autocomplete="off"
                     @keydown.enter.prevent="onAddressSubmit"
-                    @blur="onInputBlur"
                     @keydown="onKeydown"
                 />
                 <button
@@ -137,7 +134,11 @@ function onCenterClick() {
                     <span v-else class="reporter-location-search-loading">...</span>
                 </button>
             </div>
-            <div v-if="showSuggestions" class="reporter-location-suggestions">
+            <div
+                v-if="showSuggestions"
+                class="reporter-location-suggestions"
+                @pointerdown.capture.prevent="onSuggestionsListPointerDownCapture"
+            >
                 <template v-if="loadingSuggestions">
                     <div class="reporter-location-suggestions-item reporter-location-suggestions-item--muted">Kraunama...</div>
                 </template>
@@ -147,7 +148,7 @@ function onCenterClick() {
                         :key="idx"
                         type="button"
                         class="reporter-location-suggestions-item"
-                        @mousedown.prevent="onSelectSuggestion(item)"
+                        @click="onSelectSuggestion(item)"
                     >
                         {{ item.display_name }}
                     </button>

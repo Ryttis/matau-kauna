@@ -77,8 +77,8 @@ export const LP_CSS_VARS = {
     stepsDesc: '--lp-steps-desc',
 }
 
-export const SETTINGS_CONTAINER_MAX = 640
-export const SETTINGS_INNER_MAX = 400
+export const SETTINGS_CONTAINER_MAX = 720
+export const SETTINGS_INNER_MAX = 640
 export const SETTINGS_BUTTON_WIDTH = 290
 export const SETTINGS_BUTTON_HEIGHT = 45
 export const SETTINGS_BORDER_RADIUS = 15

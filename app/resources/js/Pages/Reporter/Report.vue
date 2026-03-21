@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, watch } from 'vue'
+import { ref, computed, watch, onBeforeUnmount } from 'vue'
 import { Head, router } from '@inertiajs/vue3'
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue'
 import { useReporterApi } from '@/composables/useReporterApi'
@@ -12,6 +12,12 @@ import ReporterSuccessModal from '@/Components/Reporter/ReporterSuccessModal.vue
 import ReporterCancelConfirmModal from '@/Components/Reporter/ReporterCancelConfirmModal.vue'
 import { KAUNAS_CENTER } from '@/composables/leafletKaunas'
 import { REPORTER_WIZARD_STEPS } from '@/constants/reporterWizardSteps'
+import { useFileUploadQueue, defaultFileUploadSettings } from '@/composables/useFileUploadQueue'
+import { messageFromAxiosError } from '@/utils/laravelApiErrors'
+import {
+    fileUploadPickerLabel,
+    formatDetailedFileUploadHint,
+} from '@/utils/fileUploadClient'
 
 const props = defineProps({
     typeValues: {
@@ -26,13 +32,16 @@ const props = defineProps({
         type: Boolean,
         default: false,
     },
+    fileUpload: {
+        type: Object,
+        default: defaultFileUploadSettings,
+    },
 })
 
 const step = ref(1)
 const problemTypeId = ref('')
 const problemNatureId = ref('')
 const description = ref('')
-const fileInput = ref(null)
 const addressStep2 = ref('')
 const latStep2 = ref(null)
 const lngStep2 = ref(null)
@@ -57,6 +66,72 @@ const natureOptionsForSelectedType = computed(() => {
 })
 
 const isStep1 = computed(() => step.value === 1)
+
+const uploadRules = computed(() => ({ ...defaultFileUploadSettings(), ...props.fileUpload }))
+
+const {
+    selectedFiles,
+    fileHint,
+    fileInputRef,
+    handleFileChange,
+    removeFile,
+    triggerPicker,
+    showFileSection,
+} = useFileUploadQueue(uploadRules, {})
+
+const fileFieldLabel = computed(() => fileUploadPickerLabel(uploadRules.value))
+
+const descriptionMaxChars = computed(() => Number(uploadRules.value.description_max_chars) || 65535)
+
+const uploadHintText = computed(() =>
+    formatDetailedFileUploadHint(uploadRules.value, { includeExistingInTotal: false }),
+)
+
+const attachButtonText = computed(() => {
+    const u = uploadRules.value
+    if (u.allow_photo && !u.allow_video) {
+        return 'Prisegti nuotrauką'
+    }
+    return 'Prisegti failą'
+})
+
+const previewUrls = ref(new Map())
+
+const filePreviews = computed(() => {
+    const currentUrls = new Set()
+    const result = selectedFiles.value.map((file, idx) => {
+        const isPhoto = file.type?.startsWith('image/')
+        let previewUrl = null
+        if (isPhoto) {
+            const key = `${idx}-${file.name}-${file.size}`
+            if (!previewUrls.value.has(key)) {
+                previewUrls.value.set(key, URL.createObjectURL(file))
+            }
+            previewUrl = previewUrls.value.get(key)
+            currentUrls.add(key)
+        }
+        return {
+            file,
+            previewUrl,
+            isPhoto,
+            key: isPhoto ? `${idx}-${file.name}-${file.size}` : null,
+        }
+    })
+    previewUrls.value.forEach((url, key) => {
+        if (!currentUrls.has(key)) {
+            URL.revokeObjectURL(url)
+            previewUrls.value.delete(key)
+        }
+    })
+    return result
+})
+
+onBeforeUnmount(() => {
+    previewUrls.value.forEach((url) => {
+        URL.revokeObjectURL(url)
+    })
+    previewUrls.value.clear()
+})
 const isWizardVisible = computed(() => {
     if (wizardClosed.value) return false
     if (!isStep1.value) return false
@@ -99,15 +174,6 @@ function wizardBack() {
 
 function wizardClose() {
     dismissWizard()
-}
-
-const handleFileClick = () => {
-    fileInput.value?.click()
-}
-
-const handleFileChange = (e) => {
-    const file = e.target.files?.[0]
-    if (file) return
 }
 
 const step1Error = ref('')
@@ -191,26 +257,26 @@ function handleReviewContinue() {
 }
 
 function getSubmitErrorMessage(err) {
-    const data = err.response?.data ?? {}
-    const errors = data.errors
-
-    if (errors) {
-        const first = Object.values(errors).flat()
-        return first[0] || 'Nepavyko pateikti.'
-    }
-
-    return data.message || 'Nepavyko pateikti. Bandykite dar kartą.'
+    return messageFromAxiosError(
+        err,
+        'Nepavyko pateikti.',
+    )
 }
 
-function buildReportPayload() {
-    return {
-        problem_type_id: problemTypeId.value ? Number(problemTypeId.value) : null,
-        problem_nature_id: problemNatureId.value ? Number(problemNatureId.value) : null,
-        description: description.value,
-        address: (addressStep2.value ?? '').trim(),
-        lat: latStep2.value ?? null,
-        lng: lngStep2.value ?? null,
+function buildReportFormData() {
+    const fd = new FormData()
+    fd.append('problem_type_id', String(Number(problemTypeId.value)))
+    if (problemNatureId.value) {
+        fd.append('problem_nature_id', String(Number(problemNatureId.value)))
     }
+    fd.append('description', description.value ?? '')
+    fd.append('address', (addressStep2.value ?? '').trim())
+    if (latStep2.value != null) fd.append('lat', String(latStep2.value))
+    if (lngStep2.value != null) fd.append('lng', String(lngStep2.value))
+    selectedFiles.value.forEach((file) => {
+        fd.append('files[]', file)
+    })
+    return fd
 }
 
 function handleReviewConfirm() {
@@ -226,7 +292,7 @@ function handleReviewConfirm() {
     submitError.value = ''
     isSubmitting.value = true
 
-    api.post(route('reporter.report.store'), buildReportPayload())
+    api.postMultipart(route('reporter.report.store'), buildReportFormData())
         .then((res) => {
             termsAcceptedThisSession.value = true
             showReviewModal.value = false
@@ -339,28 +405,60 @@ function openCancelModal() {
                             class="reporter-report-textarea"
                             placeholder=""
                             rows="6"
+                            :maxlength="descriptionMaxChars"
                         />
                     </div>
 
-                    <div class="reporter-report-field">
-                        <label class="reporter-report-label">Pridėkite nuotrauką</label>
+                    <div v-if="showFileSection" class="reporter-report-field">
+                        <label class="reporter-report-label">{{ fileFieldLabel }}</label>
+                        <p class="reporter-report-file-hint">{{ uploadHintText }}</p>
                         <div
                             class="reporter-report-photo-wrap"
                             role="button"
                             tabindex="0"
-                            @click="handleFileClick"
-                            @keydown.enter="handleFileClick"
+                            @click="triggerPicker"
+                            @keydown.enter="triggerPicker"
                         >
                             <div class="reporter-report-photo-placeholder" />
-                            <span class="reporter-report-photo-text">Prisegti failą</span>
+                            <span class="reporter-report-photo-text">{{ attachButtonText }}</span>
                         </div>
                         <input
-                            ref="fileInput"
+                            ref="fileInputRef"
                             type="file"
-                            accept="image/*"
                             class="reporter-report-file-input"
+                            :accept="uploadRules.accept_attr"
+                            :multiple="
+                                (Number(uploadRules.max_photo_files_per_problem || 0) +
+                                    Number(uploadRules.max_video_files_per_problem || 0)) > 1
+                            "
                             @change="handleFileChange"
                         />
+                        <p v-if="fileHint" class="reporter-report-error reporter-report-file-error">{{ fileHint }}</p>
+                        <div v-if="selectedFiles.length" class="reporter-report-photos-grid">
+                            <div
+                                v-for="(item, idx) in filePreviews"
+                                :key="idx + item.file.name"
+                                class="reporter-report-photo-item"
+                            >
+                                <div v-if="item.isPhoto && item.previewUrl" class="reporter-report-photo-preview">
+                                    <img :src="item.previewUrl" :alt="item.file.name" class="reporter-report-photo-img" />
+                                    <button
+                                        type="button"
+                                        class="reporter-report-photo-remove"
+                                        :aria-label="`Pašalinti ${item.file.name}`"
+                                        @click.stop="removeFile(idx)"
+                                    >
+                                        ×
+                                    </button>
+                                </div>
+                                <div v-else class="reporter-report-file-item">
+                                    <span class="reporter-report-file-name">{{ item.file.name }}</span>
+                                    <button type="button" class="reporter-report-file-remove" @click.stop="removeFile(idx)">
+                                        Šalinti
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
                     </div>
 
                     <div class="reporter-report-actions">
@@ -504,14 +602,15 @@ function openCancelModal() {
 
 .reporter-report-photo-wrap {
     display: flex;
-    flex-direction: column;
+    flex-direction: row;
     align-items: center;
-    justify-content: center;
-    gap: 8px;
-    min-height: 140px;
+    justify-content: flex-start;
+    gap: 12px;
+    min-height: 0;
+    padding: 10px 14px;
     background: #fafafa;
     border: 1px solid #e0e0e0;
-    border-radius: 15px;
+    border-radius: 10px;
     cursor: pointer;
 }
 
@@ -521,16 +620,115 @@ function openCancelModal() {
 }
 
 .reporter-report-photo-placeholder {
-    width: 100%;
-    height: 100px;
-    min-height: 100px;
-    background: repeating-conic-gradient(#eee 0% 25%, #fff 0% 50%) 50% / 20px 20px;
-    border-radius: 15px;
+    width: 44px;
+    height: 44px;
+    min-width: 44px;
+    min-height: 44px;
+    flex-shrink: 0;
+    background: repeating-conic-gradient(#eee 0% 25%, #fff 0% 50%) 50% / 12px 12px;
+    border-radius: 8px;
+    border: 1px dashed #ccc;
 }
 
 .reporter-report-photo-text {
-    font-size: 16px;
+    font-size: 14px;
     color: #666;
+    text-align: left;
+    line-height: 1.3;
+}
+
+.reporter-report-file-hint {
+    font-size: 13px;
+    color: #666;
+    margin: 0 0 8px;
+    line-height: 1.4;
+}
+
+.reporter-report-file-error {
+    margin-top: 8px;
+}
+
+.reporter-report-photos-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+    gap: 10px;
+    margin: 14px 0 0;
+}
+
+.reporter-report-photo-item {
+    position: relative;
+}
+
+.reporter-report-photo-preview {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 1;
+    border-radius: 8px;
+    overflow: hidden;
+    border: 1px solid #e0e0e0;
+    background: #f5f5f5;
+}
+
+.reporter-report-photo-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+
+.reporter-report-photo-remove {
+    position: absolute;
+    top: 4px;
+    right: 4px;
+    width: 24px;
+    height: 24px;
+    border: none;
+    background: rgba(0, 0, 0, 0.6);
+    color: #fff;
+    border-radius: 50%;
+    cursor: pointer;
+    font-size: 18px;
+    line-height: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.2s;
+}
+
+.reporter-report-photo-remove:hover {
+    background: rgba(0, 0, 0, 0.8);
+}
+
+.reporter-report-file-list {
+    list-style: none;
+    margin: 10px 0 0;
+    padding: 0;
+}
+
+.reporter-report-file-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    font-size: 14px;
+    padding: 6px 0;
+    border-bottom: 1px solid #eee;
+}
+
+.reporter-report-file-name {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.reporter-report-file-remove {
+    flex-shrink: 0;
+    border: none;
+    background: none;
+    color: var(--color-primary);
+    cursor: pointer;
+    font-size: 14px;
+    text-decoration: underline;
 }
 
 .reporter-report-file-input {

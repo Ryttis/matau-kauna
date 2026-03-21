@@ -38,7 +38,11 @@ Route::middleware(['auth', 'verified', 'reporter.terms'])->group(function () {
     Route::post('/reporter/report', [ProblemController::class, 'reporterReportStore'])->name('reporter.report.store');
     Route::post('/reporter/wizard-dismissed', [ProblemController::class, 'reporterWizardDismissed'])->name('reporter.wizardDismissed');
     Route::post('/reporter/terms-accepted', [ProblemController::class, 'reporterTermsAccepted'])->name('reporter.termsAccepted');
+    Route::get('/file-upload-settings', \App\Http\Controllers\FileUploadSettingsController::class)->name('file-upload-settings');
     Route::get('/problems/{problem}/review-progress', [ProblemController::class, 'reviewProgress'])->name('problems.reviewProgress');
+    Route::post('/problems/{problem}/watch', [ProblemController::class, 'toggleProblemWatch'])->name('problems.watch.toggle');
+    Route::delete('/problems/{problem}/attachments/{attachment}', [ProblemController::class, 'destroyAttachment'])->name('problems.attachments.destroy');
+    Route::post('/problems/{problem}/attachments', [ProblemController::class, 'storeAttachments'])->name('problems.attachments.store');
 
     Route::middleware(['permission:issues.view'])->group(function () {
         Route::middleware(['automation'])->group(function () {
@@ -74,6 +78,8 @@ Route::middleware(['auth', 'verified', 'reporter.terms'])->group(function () {
         Route::delete('/problems/{problem}', [ProblemController::class, 'destroy'])->name('problems.destroy');
         Route::patch('/problems/{problem}/status', [ProblemController::class, 'updateStatus'])->name('problems.updateStatus');
         Route::post('/problems/{problem}/review-progress', [ProblemController::class, 'storeReviewProgress'])->name('problems.reviewProgress.store');
+        Route::put('/problems/{problem}/review-progress/{entry}', [ProblemController::class, 'updateReviewProgress'])->name('problems.reviewProgress.update');
+        Route::delete('/problems/{problem}/review-progress/attachments/{attachment}', [ProblemController::class, 'destroyReviewAttachment'])->name('problems.reviewProgress.attachments.destroy');
         Route::post('/problems/bulk-update-status', [ProblemController::class, 'bulkUpdateStatus'])->name('problems.bulkUpdateStatus');
         Route::patch('/problems/{problem}/publish', [ProblemController::class, 'updatePublish'])->name('problems.updatePublish');
         Route::post('/problems/bulk-update-publish', [ProblemController::class, 'bulkUpdatePublish'])->name('problems.bulkUpdatePublish');
@@ -166,6 +172,11 @@ Route::middleware(['auth', 'verified', 'reporter.terms'])->group(function () {
 
             Route::get('/public-statistics-config', [\App\Http\Controllers\Admin\PublicStatisticsConfigController::class, 'show']);
             Route::put('/public-statistics-config', [\App\Http\Controllers\Admin\PublicStatisticsConfigController::class, 'update']);
+
+            Route::get('/file-upload-settings', [\App\Http\Controllers\Admin\FileUploadSettingsController::class, 'show'])
+                ->name('admin.file-upload-settings.show');
+            Route::put('/file-upload-settings', [\App\Http\Controllers\Admin\FileUploadSettingsController::class, 'update'])
+                ->name('admin.file-upload-settings.update');
             Route::put('/archive/retention-rule', [AdminArchiveController::class, 'updateRetentionRule']);
             Route::post('/archive/users/{user}/restore', [AdminArchiveController::class, 'restoreUser']);
             Route::post('/archive/institutions/{institution}/restore', [AdminArchiveController::class, 'restoreInstitution']);
@@ -174,4 +185,4 @@ Route::middleware(['auth', 'verified', 'reporter.terms'])->group(function () {
         });
 });
 
-require __DIR__ . '/auth.php';
+require __DIR__.'/auth.php';
