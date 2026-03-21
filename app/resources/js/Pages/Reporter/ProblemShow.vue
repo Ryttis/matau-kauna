@@ -78,6 +78,12 @@ const uploadLimitsHint = computed(() =>
     formatShortFileUploadLimitsLine(uploadRules.value),
 )
 
+const reporterShowsAttachmentsColumn = computed(
+    () =>
+        showFileSection.value ||
+        (props.problem?.attachments?.length ?? 0) > 0,
+)
+
 async function onAttachInputChange(e) {
     if (!props.canUploadAttachments) return
     handleFileChange(e)
@@ -154,7 +160,10 @@ async function onAttachInputChange(e) {
                                 />
                             </div>
                         </div>
-                        <div class="reporter-desc-media-col reporter-priedai-col">
+                        <div
+                            v-if="reporterShowsAttachmentsColumn"
+                            class="reporter-desc-media-col reporter-priedai-col"
+                        >
                             <div class="reporter-desc-media-label">Priedai</div>
                             <p
                                 v-if="showFileSection && uploadLimitsHint"
