@@ -20,13 +20,13 @@ const props = defineProps({
 
 const showSuccessModal = ref(!!props.status);
 watch(() => props.status, (v) => { if (v) showSuccessModal.value = true }, { immediate: true });
-const activeRole = ref('darbuotojas');
+const activeRole = ref('pareiskejas');
 
 const form = useForm({
     email: '',
     password: '',
     remember: false,
-    login_type: 'darbuotojas',
+    login_type: 'pareiskejas',
 });
 
 watch(activeRole, (tab) => {

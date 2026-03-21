@@ -1,12 +1,20 @@
 <script setup>
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import { Head, Link, router } from '@inertiajs/vue3'
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue'
 import AppInput from '@/Components/App/AppInput.vue'
 import { ICON_LEFT_ARROW } from '@/constants/icons'
 import ProblemDetailBlocks from '@/Components/Problems/ProblemDetailBlocks.vue'
+import ProblemAttachmentsPanel from '@/Components/Problems/ProblemAttachmentsPanel.vue'
 import ProblemMergeLinks from '@/Components/Problems/ProblemMergeLinks.vue'
 import StatusBadge from '@/Components/Problems/StatusBadge.vue'
+import { useFileUploadQueue, defaultFileUploadSettings } from '@/composables/useFileUploadQueue'
+import { useReporterApi } from '@/composables/useReporterApi'
+import { messageFromAxiosError } from '@/utils/laravelApiErrors'
+import {
+    attachmentsToUploadBaseline,
+    formatShortFileUploadLimitsLine,
+} from '@/utils/fileUploadClient'
 
 const props = defineProps({
     problem: Object,
@@ -16,6 +24,11 @@ const props = defineProps({
     reviewProgressProblemId: { type: Number, default: null },
     backFrom: { type: String, default: '' },
     backOnlyMine: { type: Boolean, default: false },
+    fileUpload: {
+        type: Object,
+        default: () => ({}),
+    },
+    canUploadAttachments: { type: Boolean, default: false },
 })
 
 const formattedDate = computed(() => {
@@ -36,6 +49,52 @@ const backUrl = computed(() => {
 function goToReviewProgress() {
     const id = problemIdForReview.value
     if (id) router.visit(route('problems.reviewProgress', id))
+}
+
+const api = useReporterApi()
+
+const uploadRules = computed(() => ({
+    ...defaultFileUploadSettings(),
+    ...props.fileUpload,
+}))
+
+const appendBaseline = computed(() =>
+    attachmentsToUploadBaseline(props.problem?.attachments ?? []),
+)
+
+const {
+    selectedFiles,
+    fileHint,
+    fileInputRef,
+    handleFileChange,
+    clearQueue,
+    triggerPicker,
+    showFileSection,
+} = useFileUploadQueue(uploadRules, { appendBaseline })
+
+const isUploading = ref(false)
+
+const uploadLimitsHint = computed(() =>
+    formatShortFileUploadLimitsLine(uploadRules.value),
+)
+
+async function onAttachInputChange(e) {
+    if (!props.canUploadAttachments) return
+    handleFileChange(e)
+    if (!selectedFiles.value.length) return
+
+    isUploading.value = true
+    fileHint.value = ''
+
+    try {
+        await api.postProblemAttachments(props.problem.id, selectedFiles.value)
+        clearQueue()
+        router.reload({ preserveScroll: true })
+    } catch (err) {
+        fileHint.value = messageFromAxiosError(err, 'Įkelti nepavyko.')
+    } finally {
+        isUploading.value = false
+    }
 }
 </script>
 
@@ -85,7 +144,81 @@ function goToReviewProgress() {
                             readonly
                         />
                     </div>
-                    <ProblemDetailBlocks :description="problem?.description ?? ''" />
+                    <div class="reporter-problem-desc-media-row">
+                        <div class="reporter-desc-media-col">
+                            <div class="reporter-desc-media-label">Aprašymas</div>
+                            <div class="reporter-desc-media-box">
+                                <ProblemDetailBlocks
+                                    hide-label
+                                    :description="problem?.description ?? ''"
+                                />
+                            </div>
+                        </div>
+                        <div class="reporter-desc-media-col reporter-priedai-col">
+                            <div class="reporter-desc-media-label">Priedai</div>
+                            <p
+                                v-if="showFileSection && uploadLimitsHint"
+                                class="reporter-upload-limits-hint"
+                            >
+                                {{ uploadLimitsHint }}
+                            </p>
+                            <div class="reporter-desc-media-box">
+                                <ProblemAttachmentsPanel
+                                    compact
+                                    fill-compact-surface
+                                    hide-heading
+                                    direct-lightbox
+                                    :attachments="problem.attachments ?? []"
+                                    :problem-id="problem.id"
+                                    :can-delete="canUploadAttachments"
+                                >
+                                    <template
+                                        v-if="canUploadAttachments && showFileSection"
+                                        #add
+                                    >
+                                        <button
+                                            type="button"
+                                            class="reporter-add-cell"
+                                            :disabled="isUploading"
+                                            :aria-label="isUploading ? 'Įkeliama' : 'Pridėti failą'"
+                                            @click="triggerPicker"
+                                        >
+                                            {{ isUploading ? '…' : '+' }}
+                                        </button>
+                                    </template>
+                                    <template
+                                        v-if="
+                                            canUploadAttachments &&
+                                                showFileSection &&
+                                                !(problem.attachments?.length)
+                                        "
+                                        #empty
+                                    >
+                                        <button
+                                            type="button"
+                                            class="reporter-add-cell reporter-add-cell--fill"
+                                            :disabled="isUploading"
+                                            :aria-label="isUploading ? 'Įkeliama' : 'Pridėti failą'"
+                                            @click="triggerPicker"
+                                        >
+                                            {{ isUploading ? '…' : '+' }}
+                                        </button>
+                                    </template>
+                                </ProblemAttachmentsPanel>
+                                <input
+                                    v-if="canUploadAttachments && showFileSection"
+                                    ref="fileInputRef"
+                                    type="file"
+                                    class="reporter-problem-file-input-hidden"
+                                    multiple
+                                    :accept="uploadRules.accept_attr"
+                                    :disabled="isUploading"
+                                    @change="onAttachInputChange"
+                                >
+                            </div>
+                            <p v-if="fileHint" class="reporter-priedai-hint-error">{{ fileHint }}</p>
+                        </div>
+                    </div>
                 </div>
 
                 <div class="reporter-problem-actions">
@@ -183,6 +316,121 @@ function goToReviewProgress() {
 
 .reporter-problem-fields :deep(.app-input-group) {
     margin-bottom: 0;
+}
+
+.reporter-problem-desc-media-row {
+    --reporter-desc-block-min-h: 220px;
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 24px;
+    align-items: stretch;
+}
+
+.reporter-desc-media-col {
+    flex: 1 1 calc(50% - 12px);
+    min-width: min(100%, 280px);
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+}
+
+.reporter-desc-media-label {
+    font-size: 16px;
+    font-weight: 600;
+    color: #333;
+    margin-bottom: 8px;
+    line-height: 1.25;
+    min-height: 1.25em;
+    flex-shrink: 0;
+}
+
+.reporter-desc-media-box {
+    position: relative;
+    flex: 1 1 auto;
+    display: flex;
+    flex-direction: column;
+    min-height: var(--reporter-desc-block-min-h, 220px);
+    min-width: 0;
+}
+
+.reporter-desc-media-box :deep(.attachments-panel--compact) {
+    flex: 1 1 auto;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+}
+
+.reporter-priedai-col {
+    position: relative;
+}
+
+.reporter-problem-file-input-hidden {
+    position: absolute;
+    width: 0;
+    height: 0;
+    opacity: 0;
+    pointer-events: none;
+}
+
+.reporter-add-cell {
+    width: 96px;
+    height: 96px;
+    padding: 0;
+    box-sizing: border-box;
+    border: 1px dashed #c5c5c5;
+    border-radius: 6px;
+    background: #fff;
+    color: #666;
+    font-size: 32px;
+    font-weight: 500;
+    line-height: 1;
+    cursor: pointer;
+    font-family: inherit;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.reporter-add-cell--fill {
+    flex: 1 1 auto;
+    width: 100%;
+    align-self: stretch;
+    min-height: 0;
+    height: 100%;
+    font-size: 42px;
+}
+
+.reporter-add-cell:hover:not(:disabled) {
+    border-color: var(--color-primary, #1946a0);
+    color: var(--color-primary, #1946a0);
+    background: #f5f7fc;
+}
+
+.reporter-add-cell:disabled {
+    cursor: wait;
+    opacity: 0.65;
+}
+
+.reporter-upload-limits-hint {
+    margin: 0 0 10px;
+    font-size: 13px;
+    line-height: 1.45;
+    color: #777;
+    font-family: 'Open Sans', sans-serif;
+}
+
+.reporter-priedai-hint-error {
+    margin: 8px 0 0;
+    font-size: 12px;
+    color: #c0392b;
+    font-family: 'Open Sans', sans-serif;
+}
+
+@media (max-width: 768px) {
+    .reporter-desc-media-col {
+        flex: 1 1 100%;
+    }
 }
 
 .reporter-problem-actions {

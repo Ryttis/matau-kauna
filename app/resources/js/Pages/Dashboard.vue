@@ -547,7 +547,7 @@ onUnmounted(() => {
                     />
                     <div class="reporter-dashboard-actions">
                         <AppButton
-                            text="Stebėti"
+                            text="Stebėti eigą"
                             variant="primary"
                             as-button
                             :disabled="!reporterSelectedProblemId"

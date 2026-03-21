@@ -2,7 +2,7 @@
 import { ref, computed, onMounted } from 'vue'
 import axios from 'axios'
 import AppButton from '@/Components/App/AppButton.vue'
-import AppCheckbox from '@/Components/App/AppCheckbox.vue'
+import AppSwitch from '@/Components/App/AppSwitch.vue'
 import AppSelect from '@/Components/App/AppSelect.vue'
 import SuccessModal from '@/Components/App/SuccessModal.vue'
 
@@ -12,8 +12,6 @@ const loading = ref(true)
 const savingId = ref(null)
 const errorMessage = ref('')
 const showSuccessModal = ref(false)
-
-const reminderKeys = ['deadline_approaching', 'deadline_overdue', 'inactive_reporter_reminder']
 
 const selectedTemplate = computed(() => {
     if (selectedTemplateId.value === '' || selectedTemplateId.value === null || selectedTemplateId.value === undefined) return null
@@ -59,9 +57,21 @@ function saveTemplate(template) {
 
 function placeholderHint(key) {
     if (key === 'institution_assignment') return '{problem_list}, {institution_name}'
-    if (key === 'employee_assignment') return '{internal_number}, {description_excerpt}, {url}'
-    if (key === 'inactive_reporter_reminder') return '{user_name}, {deletion_date}, {inactivity_days}'
-    if (reminderKeys.includes(key)) return '{internal_number}, {description_excerpt}, {url}, {deadline_date}'
+    if (key === 'employee_assignment') {
+        return '{internal_number}, {description_excerpt}, {url}, {title}'
+    }
+    if (key === 'inactive_reporter_reminder') {
+        return '{user_name}, {deletion_date}, {inactivity_days}'
+    }
+    if (key === 'reporter_status_change') {
+        return '{internal_number}, {description_excerpt}, {url}, {old_status}, {new_status}, {old_status_label}, {new_status_label}'
+    }
+    if (key === 'reporter_review_entry') {
+        return '{internal_number}, {description_excerpt}, {url}, {status_label}, {responsible}, {comment_excerpt}, {entry_date}'
+    }
+    if (key === 'deadline_approaching' || key === 'deadline_overdue') {
+        return '{internal_number}, {description_excerpt}, {url}, {deadline_date}, {title}'
+    }
     return ''
 }
 
@@ -98,11 +108,12 @@ onMounted(() => load())
                 <p v-if="placeholderHint(selectedTemplate.key)" class="email-notification-editor-hint">
                     {{ placeholderHint(selectedTemplate.key) }}
                 </p>
-                <div v-if="reminderKeys.includes(selectedTemplate.key)" class="email-notification-editor-row">
-                    <label class="email-notification-editor-checkbox-label">
-                        <AppCheckbox v-model="selectedTemplate.is_enabled" />
-                        <span>Siųsti šį priminimą</span>
-                    </label>
+                <div class="email-notification-editor-row email-notification-editor-switch-row">
+                    <span class="email-notification-editor-switch-label">Siųsti šį laišką</span>
+                    <AppSwitch
+                        :model-value="selectedTemplate.is_enabled"
+                        @update:model-value="selectedTemplate.is_enabled = $event"
+                    />
                 </div>
                 <div class="email-notification-editor-field">
                     <label class="email-notification-editor-label">Tema</label>
@@ -176,13 +187,17 @@ onMounted(() => load())
 .email-notification-editor-row {
     margin-bottom: 12px;
 }
-.email-notification-editor-checkbox-label {
-    display: inline-flex;
+.email-notification-editor-switch-row {
+    display: flex;
     align-items: center;
-    gap: 8px;
-    cursor: pointer;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+.email-notification-editor-switch-label {
     font-size: 14px;
     color: #333;
+    font-weight: 500;
 }
 .email-notification-editor-field {
     margin-bottom: 12px;

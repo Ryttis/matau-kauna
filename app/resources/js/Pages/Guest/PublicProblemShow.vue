@@ -5,6 +5,7 @@ import GuestHeader from '@/Components/Landing/GuestHeader.vue'
 import LandingFooter from '@/Components/Landing/LandingFooter.vue'
 import AppInput from '@/Components/App/AppInput.vue'
 import ProblemDetailBlocks from '@/Components/Problems/ProblemDetailBlocks.vue'
+import ProblemAttachmentsPanel from '@/Components/Problems/ProblemAttachmentsPanel.vue'
 import ProblemMergeLinks from '@/Components/Problems/ProblemMergeLinks.vue'
 import StatusBadge from '@/Components/Problems/StatusBadge.vue'
 import { ICON_LEFT_ARROW } from '@/constants/icons'
@@ -69,7 +70,15 @@ const formattedDate = computed(() => {
                             readonly
                         />
                     </div>
-                    <ProblemDetailBlocks :description="problem?.description ?? ''" />
+                    <div class="public-problem-desc-media-row">
+                        <ProblemDetailBlocks :description="problem?.description ?? ''" />
+                        <ProblemAttachmentsPanel
+                            v-if="problem?.attachments?.length"
+                            class="public-problem-desc-media-row__attachments"
+                            :attachments="problem.attachments"
+                            :can-delete="false"
+                        />
+                    </div>
                 </div>
             </div>
         </main>
@@ -172,5 +181,33 @@ const formattedDate = computed(() => {
 
 .public-problem-fields :deep(.app-input-group) {
     margin-bottom: 0;
+}
+
+.public-problem-desc-media-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    gap: 24px;
+}
+
+.public-problem-desc-media-row__attachments {
+    flex: 0 1 340px;
+    min-width: min(100%, 260px);
+    max-width: 100%;
+}
+
+.public-problem-desc-media-row__attachments :deep(.attachments-panel) {
+    min-height: 0;
+}
+
+@media (max-width: 768px) {
+    .public-problem-desc-media-row {
+        flex-direction: column;
+    }
+
+    .public-problem-desc-media-row__attachments {
+        flex: 1 1 auto;
+        width: 100%;
+    }
 }
 </style>

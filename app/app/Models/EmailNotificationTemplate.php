@@ -13,10 +13,18 @@ class EmailNotificationTemplate extends Model
     ];
 
     public const KEY_INSTITUTION_ASSIGNMENT = 'institution_assignment';
+
     public const KEY_EMPLOYEE_ASSIGNMENT = 'employee_assignment';
+
     public const KEY_DEADLINE_APPROACHING = 'deadline_approaching';
+
     public const KEY_DEADLINE_OVERDUE = 'deadline_overdue';
+
     public const KEY_INACTIVE_REPORTER_REMINDER = 'inactive_reporter_reminder';
+
+    public const KEY_REPORTER_STATUS_CHANGE = 'reporter_status_change';
+
+    public const KEY_REPORTER_REVIEW_ENTRY = 'reporter_review_entry';
 
     public static function getByKey(string $key): ?self
     {
@@ -26,6 +34,7 @@ class EmailNotificationTemplate extends Model
     public static function isEnabled(string $key): bool
     {
         $template = static::getByKey($key);
+
         return $template && $template->is_enabled;
     }
 }

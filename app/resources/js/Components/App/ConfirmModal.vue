@@ -38,7 +38,11 @@ defineProps({
     maxHeight: {
         type: String,
         default: null
-    }
+    },
+    zIndex: {
+        type: Number,
+        default: 1000,
+    },
 })
 
 const emit = defineEmits(['close', 'confirm'])
@@ -52,6 +56,7 @@ const emit = defineEmits(['close', 'confirm'])
         :width="width"
         :max-height="maxHeight"
         :footer-layout="footerLayout"
+        :z-index="zIndex"
         @close="emit('close')"
     >
         <p class="confirm-modal-message">{{ message }}</p>

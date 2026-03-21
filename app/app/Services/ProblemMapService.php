@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Enums\ProblemStatus;
 use App\Models\Problem;
+use App\Models\ProblemWatch;
 use App\Models\User;
 use Illuminate\Support\Collection;
 
@@ -97,7 +98,7 @@ class ProblemMapService
             );
     }
 
-    public function getPublicProblemsForMap(?int $reportedByUserId = null): array
+    public function getPublicProblemsForMap(?int $reportedByUserId = null, ?User $currentUser = null): array
     {
         $center = config('kaunas.map_center');
         $centerLat = $center['lat'];
@@ -118,12 +119,24 @@ class ProblemMapService
 
         $index = 0;
 
-        return $query->map(function ($problem) use ($centerLat, $centerLng, &$index) {
+        $ids = $query->pluck('id')->all();
+        $watchedSet = [];
+        if ($currentUser !== null && $ids !== []) {
+            $watchedSet = ProblemWatch::query()
+                ->where('user_id', $currentUser->id)
+                ->whereIn('problem_id', $ids)
+                ->pluck('problem_id')
+                ->flip()
+                ->all();
+        }
+
+        return $query->map(function ($problem) use ($centerLat, $centerLng, &$index, $watchedSet) {
             $item = $this->mapProblemToMapItem($problem, $centerLat, $centerLng, $index);
             $index++;
             if (isset($problem->merged_into_problem_id)) {
                 $item['merged_into_problem_id'] = $problem->merged_into_problem_id;
             }
+            $item['is_watched'] = isset($watchedSet[$problem->id]);
 
             return $item;
         })->values()->all();

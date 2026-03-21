@@ -7,9 +7,12 @@ const props = defineProps({
     twoFactorEnabled: { type: Boolean, default: false },
     emailUpdatesInstitutionAdmin: { type: Boolean, default: false },
     emailNotificationsEnabled: { type: Boolean, default: false },
+    reporterEmailOwnProblems: { type: Boolean, default: true },
+    reporterEmailWatchedProblems: { type: Boolean, default: true },
     isInstitutionAdmin: { type: Boolean, default: false },
     isSystemAdmin: { type: Boolean, default: false },
     isProblemAdmin: { type: Boolean, default: false },
+    isReporterOnly: { type: Boolean, default: false },
 })
 
 const showFiveFields = computed(() =>
@@ -24,8 +27,12 @@ const emit = defineEmits([
     'update:twoFactorEnabled',
     'update:emailUpdatesInstitutionAdmin',
     'update:emailNotificationsEnabled',
+    'update:reporterEmailOwnProblems',
+    'update:reporterEmailWatchedProblems',
     'save-email-updates-admin',
     'save-email-notifications',
+    'save-reporter-email-own',
+    'save-reporter-email-watched',
     'delete-account',
 ])
 
@@ -67,6 +74,43 @@ function onSecondSwitchChange(v) {
                     <AppSwitch
                         :modelValue="twoFactorEnabled"
                         @update:modelValue="emit('update:twoFactorEnabled', $event)"
+                    />
+                </div>
+            </div>
+            <span class="privacy-text">Privatumo taisyklės</span>
+            <AppButton
+                text="Šalinti paskyrą"
+                variant="link"
+                as-button
+                class="privacy-link"
+                @click="emit('delete-account')"
+            />
+        </template>
+        <template v-else-if="isReporterOnly">
+            <div class="privacy-row privacy-row-switch privacy-row--reporter">
+                <span class="privacy-label">2 FA autentifikavimas</span>
+                <div class="privacy-row-right">
+                    <AppSwitch
+                        :modelValue="twoFactorEnabled"
+                        @update:modelValue="emit('update:twoFactorEnabled', $event)"
+                    />
+                </div>
+            </div>
+            <div class="privacy-row privacy-row-switch privacy-row--reporter">
+                <span class="privacy-label privacy-label--wrap">Informuoti el. paštu apie mano problemas</span>
+                <div class="privacy-row-right">
+                    <AppSwitch
+                        :modelValue="reporterEmailOwnProblems"
+                        @update:modelValue="(v) => { emit('update:reporterEmailOwnProblems', v); emit('save-reporter-email-own', v) }"
+                    />
+                </div>
+            </div>
+            <div class="privacy-row privacy-row-switch privacy-row--reporter">
+                <span class="privacy-label privacy-label--wrap">Informuoti el. paštu apie mano stebimas problemas</span>
+                <div class="privacy-row-right">
+                    <AppSwitch
+                        :modelValue="reporterEmailWatchedProblems"
+                        @update:modelValue="(v) => { emit('update:reporterEmailWatchedProblems', v); emit('save-reporter-email-watched', v) }"
                     />
                 </div>
             </div>
@@ -129,12 +173,21 @@ function onSecondSwitchChange(v) {
 
 .privacy-row.privacy-row-switch {
     display: grid;
-    grid-template-columns: 1fr auto;
+    grid-template-columns: minmax(0, 1fr) auto;
     align-items: center;
     gap: 12px;
     width: 100%;
     min-height: 32px;
     box-sizing: border-box;
+}
+
+.privacy-row--reporter.privacy-row-switch {
+    align-items: flex-start;
+    gap: 16px;
+}
+
+.privacy-row--reporter .privacy-row-right {
+    padding-top: 2px;
 }
 
 .privacy-label {
@@ -145,6 +198,13 @@ function onSecondSwitchChange(v) {
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+}
+
+.privacy-label--wrap {
+    white-space: normal;
+    overflow: visible;
+    text-overflow: clip;
+    line-height: 1.35;
 }
 
 .privacy-row-right {

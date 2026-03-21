@@ -3,10 +3,10 @@
 namespace App\Models;
 
 use Illuminate\Auth\MustVerifyEmail as MustVerifyEmailTrait;
-use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 
@@ -29,6 +29,8 @@ class User extends Authenticatable implements MustVerifyEmail
         'archived_at',
         'last_login_at',
         'inactive_reporter_reminder_sent_at',
+        'reporter_email_own_problems',
+        'reporter_email_watched_problems',
     ];
 
     protected $hidden = [
@@ -50,6 +52,8 @@ class User extends Authenticatable implements MustVerifyEmail
             'archived_at' => 'datetime',
             'last_login_at' => 'datetime',
             'inactive_reporter_reminder_sent_at' => 'datetime',
+            'reporter_email_own_problems' => 'boolean',
+            'reporter_email_watched_problems' => 'boolean',
         ];
     }
 
@@ -85,12 +89,18 @@ class User extends Authenticatable implements MustVerifyEmail
         if ($isAdmin) {
             return $user->email_updates_institution_admin === true;
         }
+
         return $user->email_notifications_enabled === true;
     }
 
     public function institution(): BelongsTo
     {
         return $this->belongsTo(Institution::class);
+    }
+
+    public function watchedProblems(): BelongsToMany
+    {
+        return $this->belongsToMany(Problem::class, 'problem_watches')->withTimestamps();
     }
 
     public function roles(): BelongsToMany

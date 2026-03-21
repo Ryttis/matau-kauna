@@ -9,6 +9,7 @@ import AdminClassifiers from '@/Pages/Admin/Tabs/AdminClassifiers.vue'
 import AdminAudits from '@/Pages/Admin/Tabs/AdminAudits.vue'
 import AdminArchive from '@/Pages/Admin/Tabs/AdminArchive.vue'
 import AdminPublicStatistics from '@/Pages/Admin/Tabs/AdminPublicStatistics.vue'
+import AdminFiles from '@/Pages/Admin/Tabs/AdminFiles.vue'
 import AppTabNavigation from '@/Components/App/AppTabNavigation.vue'
 
 const tabs = [
@@ -16,6 +17,7 @@ const tabs = [
     { key: 'institutions', label: 'Įstaigos', component: AdminInstitutions },
     { key: 'rules', label: 'Taisyklės ir turinys', component: AdminRules },
     { key: 'classifiers', label: 'Klasifikatoriai ir terminai', component: AdminClassifiers },
+    { key: 'files', label: 'Failai', component: AdminFiles },
     { key: 'archive', label: 'Archyvavimas', component: AdminArchive },
     { key: 'public-statistics', label: 'Vieša statistika', component: AdminPublicStatistics },
     { key: 'audits', label: 'Auditai', component: AdminAudits }

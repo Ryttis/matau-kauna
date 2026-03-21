@@ -1,4 +1,5 @@
 <script setup>
+import FlashError from '@/Components/App/FlashError.vue'
 import Header from '@/Components/App/Header.vue'
 </script>
 
@@ -6,6 +7,7 @@ import Header from '@/Components/App/Header.vue'
     <div class="wrapper">
         <Header />
         <div class="content">
+            <FlashError />
             <slot />
         </div>
     </div>

@@ -11,6 +11,7 @@ import { useSuccessModal } from '@/composables/useSuccessModal'
 import AppInput from '@/Components/App/AppInput.vue'
 import AppBackButton from '@/Components/App/AppBackButton.vue'
 import ProblemMergeLinks from '@/Components/Problems/ProblemMergeLinks.vue'
+import ProblemAttachmentsPanel from '@/Components/Problems/ProblemAttachmentsPanel.vue'
 import StatusBadge from '@/Components/Problems/StatusBadge.vue'
 import { useAuth } from '@/composables/useAuth'
 import { ICON_RIGHT_ARROW } from '@/constants/icons'
@@ -22,6 +23,10 @@ const props = defineProps({
     mergedSiblings: { type: Array, default: () => [] },
     statusOptions: Array,
     categories: Array,
+    fileUpload: {
+        type: Object,
+        default: () => ({}),
+    },
 })
 
 const {
@@ -156,9 +161,11 @@ const mergeTargetId = computed(() =>
                     />
 
                     <div class="problem-media">
-                        <div class="media-placeholder">
-                            <span>Nuotrauka</span>
-                        </div>
+                        <ProblemAttachmentsPanel
+                            :attachments="problem.attachments ?? []"
+                            :problem-id="problem.id"
+                            :can-delete="canEditProblem"
+                        />
                     </div>
                 </div>
             </div>
@@ -270,6 +277,7 @@ const mergeTargetId = computed(() =>
                 :show="showEditModal"
                 :problem="problem"
                 :categories="categories"
+                :file-upload="fileUpload"
                 @close="closeEditModal"
             />
 

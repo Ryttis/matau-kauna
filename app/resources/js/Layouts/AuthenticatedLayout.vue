@@ -1,4 +1,5 @@
 <script setup>
+import FlashError from '@/Components/App/FlashError.vue'
 import Header from '@/Components/App/Header.vue'
 import Sidebar from '@/Components/App/Sidebar.vue'
 </script>
@@ -11,6 +12,7 @@ import Sidebar from '@/Components/App/Sidebar.vue'
             <Sidebar />
 
             <main class="content">
+                <FlashError />
                 <slot />
             </main>
         </div>

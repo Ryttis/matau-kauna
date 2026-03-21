@@ -308,8 +308,15 @@ const toggleStatistics = () => {
 .sidebar-title {
     text-align: center;
     font-weight: bold;
-    padding: 40px 0;
+    padding: 40px 24px;
     border-bottom: 1px solid var(--color-border);
+    box-sizing: border-box;
+}
+
+.sidebar-title span {
+    display: block;
+    line-height: 1.35;
+    word-break: break-word;
 }
 
 .nav {

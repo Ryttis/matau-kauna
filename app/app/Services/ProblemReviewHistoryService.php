@@ -11,12 +11,13 @@ use App\Models\User;
 class ProblemReviewHistoryService
 {
     public function __construct(
-        private ProblemScopeService $scopeService
+        private ProblemScopeService $scopeService,
+        private ProblemReporterStatusNotifier $reporterStatusNotifier
     ) {}
 
     public function visibleEntriesForProblem(Problem $problem, User $user, bool $reporterOnlyView): array
     {
-        $problem->loadMissing('reviewHistory');
+        $problem->loadMissing('reviewHistory.reviewAttachments');
 
         $rows = $problem->reviewHistory;
         if ($reporterOnlyView) {
@@ -31,6 +32,8 @@ class ProblemReviewHistoryService
 
     public function entryToArray(ProblemReviewHistory $entry): array
     {
+        $entry->loadMissing('reviewAttachments');
+
         return [
             'id' => $entry->id,
             'date' => $entry->created_at->toISOString(),
@@ -38,6 +41,7 @@ class ProblemReviewHistoryService
             'responsible' => $entry->responsible ?? '',
             'comment' => $entry->comment ?? '',
             'visibility' => $entry->visibility ?? ProblemReviewCommentVisibility::Public->value,
+            'attachments' => $entry->reviewAttachments->map(fn ($a) => $a->toPublicPayload())->values()->all(),
         ];
     }
 
@@ -66,18 +70,82 @@ class ProblemReviewHistoryService
             $commentNormalized = null;
         }
 
-        return ProblemReviewHistory::create([
+        $entry = ProblemReviewHistory::create([
             'problem_id' => $problem->id,
             'status' => $status,
             'responsible' => $this->responsibleLabel($user),
             'comment' => $commentNormalized,
             'visibility' => $visibility->value,
         ]);
+
+        if ($visibility === ProblemReviewCommentVisibility::Public) {
+            $main = Problem::find($problem->merged_into_problem_id ?? $problem->id);
+            if ($main) {
+                $this->reporterStatusNotifier->notifyPublicReviewEntry($main, $entry);
+            }
+        }
+
+        return $entry;
+    }
+
+    public function updateEntry(
+        Problem $problem,
+        ProblemReviewHistory $entry,
+        User $user,
+        string $status,
+        ?string $comment,
+        ProblemReviewCommentVisibility $visibility,
+    ): void {
+        $this->scopeService->authorizeProblemAccess($user, $problem);
+
+        if (! $user->hasPermission('issues.view')) {
+            abort(403);
+        }
+
+        if ((int) $entry->problem_id !== (int) $problem->id) {
+            abort(404);
+        }
+
+        $statusEnum = ProblemStatus::tryFrom($status);
+        if ($statusEnum === null || $statusEnum === ProblemStatus::UNREGISTERED) {
+            abort(422, 'Netinkama būsena');
+        }
+
+        $commentNormalized = $comment !== null ? trim($comment) : null;
+        if ($commentNormalized === '') {
+            $commentNormalized = null;
+        }
+
+        $oldStatus = $entry->status;
+        $oldVisibility = $entry->visibility;
+
+        $latestId = (int) $problem->reviewHistory()->max('id');
+        $isLatest = (int) $entry->id === $latestId;
+
+        $entry->update([
+            'status' => $status,
+            'comment' => $commentNormalized,
+            'visibility' => $visibility->value,
+        ]);
+
+        if ($isLatest && $oldStatus !== $status) {
+            $this->applyStatusToProblemAndMerged($problem, $user, $status);
+        }
+
+        if ($visibility === ProblemReviewCommentVisibility::Public
+            && $oldVisibility !== ProblemReviewCommentVisibility::Public->value) {
+            $main = Problem::find($problem->merged_into_problem_id ?? $problem->id);
+            if ($main) {
+                $this->reporterStatusNotifier->notifyPublicReviewEntry($main, $entry->fresh());
+            }
+        }
     }
 
     private function applyStatusToProblemAndMerged(Problem $problem, User $user, string $status): void
     {
         $ids = $problem->getMergeGroupIds();
+        $mainId = $problem->merged_into_problem_id ?? $problem->id;
+        $oldMainStatus = Problem::where('id', $mainId)->value('status');
         $query = Problem::whereIn('id', $ids);
         $this->scopeService->scopeProblemsForUser($query, $user);
         $this->scopeService->ensureScopeMatchesCount($query, count($ids));
@@ -85,6 +153,13 @@ class ProblemReviewHistoryService
             'status' => $status,
             'status_updated_at' => now(),
         ]);
+
+        if ($oldMainStatus !== null && $oldMainStatus !== $status) {
+            $main = Problem::find($mainId);
+            if ($main) {
+                $this->reporterStatusNotifier->notifyReportersAndWatchersWhenStatusChanges($main, $oldMainStatus, $status);
+            }
+        }
     }
 
     private function responsibleLabel(User $user): string

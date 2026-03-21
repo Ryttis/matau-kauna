@@ -9,20 +9,30 @@ use App\Exports\StatisticsReportExport;
 use App\Http\Requests\StoreProblemReviewHistoryRequest;
 use App\Models\ClassifierValue;
 use App\Models\Employee;
+use App\Models\FileUploadSettings;
 use App\Models\Institution;
 use App\Models\Problem;
+use App\Models\ProblemAttachment;
+use App\Models\ProblemReviewAttachment;
+use App\Models\ProblemReviewHistory;
+use App\Models\ProblemWatch;
 use App\Models\User;
 use App\Models\UserRole;
 use App\Services\ProblemAssignmentNotifier;
 use App\Services\ProblemAutoAssignmentService;
 use App\Services\ProblemMapService;
 use App\Services\ProblemMergeContextService;
+use App\Services\ProblemReporterStatusNotifier;
 use App\Services\ProblemResolutionTermService;
 use App\Services\ProblemReviewHistoryService;
 use App\Services\ProblemScopeService;
+use App\Services\ReporterFileUploadService;
+use App\Services\ReviewEntryFileUploadService;
 use App\Services\StatisticsService;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Mail;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -37,7 +47,10 @@ class ProblemController extends Controller
         private ProblemAssignmentNotifier $assignmentNotifier,
         private ProblemAutoAssignmentService $autoAssignmentService,
         private ProblemResolutionTermService $resolutionTermService,
-        private ProblemReviewHistoryService $reviewHistoryService
+        private ProblemReviewHistoryService $reviewHistoryService,
+        private ProblemReporterStatusNotifier $reporterStatusNotifier,
+        private ReporterFileUploadService $reporterFileUploadService,
+        private ReviewEntryFileUploadService $reviewEntryFileUploadService
     ) {}
 
     public function index(Request $request): Response
@@ -50,7 +63,7 @@ class ProblemController extends Controller
             return Inertia::render('Dashboard', [
                 'reporterView' => true,
                 'onlyMine' => $onlyMine,
-                'problems' => $this->mapService->getPublicProblemsForMap($onlyMine ? $user->id : null),
+                'problems' => $this->mapService->getPublicProblemsForMap($onlyMine ? $user->id : null, $user),
             ]);
         }
 
@@ -133,6 +146,8 @@ class ProblemController extends Controller
         ]);
 
         $ids = $problem->getMergeGroupIds();
+        $mainId = $problem->merged_into_problem_id ?? $problem->id;
+        $oldMainStatus = Problem::where('id', $mainId)->value('status');
         $query = Problem::whereIn('id', $ids);
         $this->scopeService->scopeProblemsForUser($query, $user);
         $this->scopeService->ensureScopeMatchesCount($query, count($ids));
@@ -140,6 +155,13 @@ class ProblemController extends Controller
             'status' => $validated['status'],
             'status_updated_at' => now(),
         ]);
+
+        if ($oldMainStatus !== null && $oldMainStatus !== $validated['status']) {
+            $main = Problem::find($mainId);
+            if ($main) {
+                $this->reporterStatusNotifier->notifyReportersAndWatchersWhenStatusChanges($main, $oldMainStatus, $validated['status']);
+            }
+        }
 
         $message = count($ids) > 1
             ? 'Būsena atnaujinta visoms apjungtoms problemoms.'
@@ -160,10 +182,34 @@ class ProblemController extends Controller
         $query = Problem::whereIn('id', $validated['problem_ids']);
         $this->scopeService->scopeProblemsForUser($query, $user);
         $this->scopeService->ensureScopeMatchesCount($query, count($validated['problem_ids']));
+
+        $uniqueMainIds = [];
+        foreach ($validated['problem_ids'] as $pid) {
+            $p = Problem::query()->find($pid);
+            if ($p === null) {
+                continue;
+            }
+            $mid = $p->merged_into_problem_id ?? $p->id;
+            $uniqueMainIds[$mid] = true;
+        }
+        $oldByMain = [];
+        foreach (array_keys($uniqueMainIds) as $mainId) {
+            $oldByMain[$mainId] = Problem::where('id', $mainId)->value('status');
+        }
+
         $query->update([
             'status' => $validated['status'],
             'status_updated_at' => now(),
         ]);
+
+        foreach ($oldByMain as $mainId => $oldStatus) {
+            if ($oldStatus !== null && $oldStatus !== $validated['status']) {
+                $main = Problem::find($mainId);
+                if ($main) {
+                    $this->reporterStatusNotifier->notifyReportersAndWatchersWhenStatusChanges($main, $oldStatus, $validated['status']);
+                }
+            }
+        }
 
         return redirect()->back()->with('success', 'Būsenos atnaujintos');
     }
@@ -222,6 +268,7 @@ class ProblemController extends Controller
 
         $problem->load('mergedProblems:id,internal_number,merged_into_problem_id');
         $problem->load('mergedInto:id,internal_number');
+        $problem->load('attachments');
 
         $mergeContext = $this->mergeContextService->forProblem($problem);
 
@@ -232,7 +279,74 @@ class ProblemController extends Controller
             'mergedSiblings' => $mergeContext['mergedSiblings'],
             'statusOptions' => ProblemStatus::selectableOptions(),
             'categories' => $categories,
+            'fileUpload' => FileUploadSettings::getChannelForClient(FileUploadSettings::CHANNEL_WEB),
         ]);
+    }
+
+    public function storeAttachments(Request $request, Problem $problem): JsonResponse|RedirectResponse
+    {
+        $user = $request->user();
+        $reporterOwn = $user->isReporterOnly() && (int) $problem->reported_by_user_id === (int) $user->id;
+        if ($user->canEditProblemClassification()) {
+            $this->scopeService->authorizeProblemAccess($user, $problem);
+        } elseif (! $reporterOwn) {
+            abort(403);
+        }
+
+        $request->validate(
+            [
+                'files' => 'required|array|min:1',
+                'files.*' => 'file',
+            ],
+            [
+                'files.required' => 'Pasirinkite failą.',
+                'files.min' => 'Pasirinkite failą.',
+                'files.*.file' => 'Failas per didelis arba nepriimtas.',
+            ]
+        );
+
+        $channel = FileUploadSettings::resolveUploadChannel($request->header('X-Upload-Channel'));
+
+        $this->reporterFileUploadService->validateAndStore(
+            $problem,
+            $this->normalizedUploadedFiles($request),
+            $channel,
+            true,
+            false
+        );
+
+        if ($request->expectsJson()) {
+            return response()->json(['ok' => true]);
+        }
+
+        return redirect()->back()->with('success', 'Failai įkelti.');
+    }
+
+    public function destroyAttachment(Request $request, Problem $problem, ProblemAttachment $attachment): JsonResponse|RedirectResponse
+    {
+        $user = $request->user();
+        if ($user->canEditProblemClassification()) {
+            $this->scopeService->authorizeProblemAccess($user, $problem);
+        } elseif (! $user->isReporterOnly() || (int) $problem->reported_by_user_id !== (int) $user->id) {
+            abort(403);
+        }
+
+        if ((int) $attachment->problem_id !== (int) $problem->id) {
+            abort(404);
+        }
+
+        $absolute = public_path(ltrim($attachment->path, '/'));
+        if ($absolute !== '' && File::exists($absolute)) {
+            File::delete($absolute);
+        }
+
+        $attachment->delete();
+
+        if ($request->expectsJson()) {
+            return response()->json(['ok' => true]);
+        }
+
+        return redirect()->back()->with('success', 'Priedas pašalintas.');
     }
 
     public function update(Request $request, Problem $problem): RedirectResponse
@@ -321,9 +435,34 @@ class ProblemController extends Controller
         if (! empty($validated['status'])) {
             $update['status'] = $validated['status'];
             $update['status_updated_at'] = now();
-        }
 
-        Problem::whereIn('id', $validated['problem_ids'])->update($update);
+            $uniqueMainIds = [];
+            foreach ($validated['problem_ids'] as $pid) {
+                $p = Problem::query()->find($pid);
+                if ($p === null) {
+                    continue;
+                }
+                $mid = $p->merged_into_problem_id ?? $p->id;
+                $uniqueMainIds[$mid] = true;
+            }
+            $oldByMain = [];
+            foreach (array_keys($uniqueMainIds) as $mainId) {
+                $oldByMain[$mainId] = Problem::where('id', $mainId)->value('status');
+            }
+
+            Problem::whereIn('id', $validated['problem_ids'])->update($update);
+
+            foreach ($oldByMain as $mainId => $oldStatus) {
+                if ($oldStatus !== null && $oldStatus !== $validated['status']) {
+                    $main = Problem::find($mainId);
+                    if ($main) {
+                        $this->reporterStatusNotifier->notifyReportersAndWatchersWhenStatusChanges($main, $oldStatus, $validated['status']);
+                    }
+                }
+            }
+        } else {
+            Problem::whereIn('id', $validated['problem_ids'])->update($update);
+        }
 
         if (! empty($validated['institution_id'])) {
             foreach (Problem::whereIn('id', $validated['problem_ids'])->get() as $p) {
@@ -456,19 +595,78 @@ class ProblemController extends Controller
 
         $canAddEntry = ! $reporterBackToDashboard;
 
+        $showWatchToggle = false;
+        $isWatched = false;
+        $watchProblemId = $problem->merged_into_problem_id ?? $problem->id;
+        if ($user && $this->reporterCanToggleWatch($user, $problem)) {
+            $showWatchToggle = true;
+            $isWatched = $this->problemIsWatchedByUser($user, $problem);
+        }
+
+        $canDeleteReviewAttachments = $user && $canAddEntry
+            ? $this->userCanDeleteReviewAttachment($user, $problem)
+            : false;
+
         return Inertia::render('Problems/ReviewProgress', [
             'problem' => $problem,
             'reviewEntries' => $reviewEntries,
             'backUrl' => $reporterBackToDashboard ? route('dashboard') : route('problems.show', $problem->id),
             'canAddEntry' => $canAddEntry,
+            'canDeleteReviewAttachments' => $canDeleteReviewAttachments,
             'showReviewVisibilityLabels' => $canAddEntry,
+            'showWatchToggle' => $showWatchToggle,
+            'isWatched' => $isWatched,
+            'watchProblemId' => $watchProblemId,
+            'fileUpload' => FileUploadSettings::getChannelForClient(FileUploadSettings::CHANNEL_WEB),
         ]);
+    }
+
+    private function userCanDeleteReviewAttachment(User $user, Problem $problem): bool
+    {
+        if ($user->hasRole(UserRole::ROLE_SYSTEM_ADMIN)) {
+            return true;
+        }
+
+        $employeeId = $this->scopeService->employeeIdForUser($user);
+        if (! $employeeId || ! $problem->assigned_employee_id) {
+            return false;
+        }
+
+        return (int) $problem->assigned_employee_id === (int) $employeeId;
+    }
+
+    private function reporterCanToggleWatch(User $user, Problem $problem): bool
+    {
+        if (! $user->isReporterOnly()) {
+            return false;
+        }
+
+        $problem->loadMissing('mergedInto');
+        $mainId = $problem->merged_into_problem_id ?? $problem->id;
+        $main = Problem::query()->find($mainId);
+        $groupIds = $problem->getMergeGroupIds();
+        $ownsReport = Problem::query()
+            ->whereIn('id', $groupIds)
+            ->where('reported_by_user_id', $user->id)
+            ->exists();
+
+        return $ownsReport || ($main && $main->is_published_publicly);
+    }
+
+    private function problemIsWatchedByUser(User $user, Problem $problem): bool
+    {
+        $groupIds = $problem->getMergeGroupIds();
+
+        return ProblemWatch::query()
+            ->where('user_id', $user->id)
+            ->whereIn('problem_id', $groupIds)
+            ->exists();
     }
 
     public function storeReviewProgress(StoreProblemReviewHistoryRequest $request, Problem $problem): RedirectResponse
     {
         $validated = $request->validated();
-        $this->reviewHistoryService->storeEntry(
+        $entry = $this->reviewHistoryService->storeEntry(
             $problem,
             $request->user(),
             $validated['status'],
@@ -476,7 +674,70 @@ class ProblemController extends Controller
             ProblemReviewCommentVisibility::from($validated['visibility'])
         );
 
+        $files = $this->normalizedUploadedFiles($request);
+        if ($files !== []) {
+            $channel = FileUploadSettings::resolveUploadChannel($request->header('X-Upload-Channel'));
+            $this->reviewEntryFileUploadService->validateAndStore($problem, $entry, $files, $channel);
+        }
+
         return redirect()->back()->with('success', 'Įrašas išsaugotas.');
+    }
+
+    public function updateReviewProgress(StoreProblemReviewHistoryRequest $request, Problem $problem, ProblemReviewHistory $entry): RedirectResponse
+    {
+        if ((int) $entry->problem_id !== (int) $problem->id) {
+            abort(404);
+        }
+
+        $validated = $request->validated();
+        $this->reviewHistoryService->updateEntry(
+            $problem,
+            $entry,
+            $request->user(),
+            $validated['status'],
+            $validated['comment'] ?? null,
+            ProblemReviewCommentVisibility::from($validated['visibility'])
+        );
+
+        $files = $this->normalizedUploadedFiles($request);
+        if ($files !== []) {
+            $channel = FileUploadSettings::resolveUploadChannel($request->header('X-Upload-Channel'));
+            $entry->refresh();
+            $this->reviewEntryFileUploadService->validateAndStore($problem, $entry, $files, $channel);
+        }
+
+        return redirect()->back()->with('success', 'Įrašas atnaujintas.');
+    }
+
+    public function destroyReviewAttachment(Request $request, Problem $problem, ProblemReviewAttachment $attachment): JsonResponse|RedirectResponse
+    {
+        $user = $request->user();
+        if (! $user->hasPermission('issues.view')) {
+            abort(403);
+        }
+        $this->scopeService->authorizeProblemAccess($user, $problem);
+
+        if (! $this->userCanDeleteReviewAttachment($user, $problem)) {
+            abort(403);
+        }
+
+        $attachment->loadMissing('reviewHistory');
+        if (! $attachment->reviewHistory || (int) $attachment->reviewHistory->problem_id !== (int) $problem->id) {
+            abort(404);
+        }
+
+        $absolute = public_path(ltrim($attachment->path, '/'));
+        if ($absolute !== '' && File::exists($absolute)) {
+            File::delete($absolute);
+        }
+
+        $attachment->delete();
+
+        if ($request->expectsJson()) {
+            return response()->json(['ok' => true]);
+        }
+
+        return redirect()->back()->with('success', 'Priedas pašalintas.');
     }
 
     public function assignInstitution(Problem $problem): Response
@@ -1048,6 +1309,7 @@ class ProblemController extends Controller
             'typeValues' => $typeValues,
             'showReporterWizard' => ! $user->reporter_wizard_completed_at,
             'hasAcceptedReportTerms' => $user->reporter_report_terms_accepted_at !== null,
+            'fileUpload' => FileUploadSettings::getReporterReportChannelForClient(),
         ]);
     }
 
@@ -1055,7 +1317,7 @@ class ProblemController extends Controller
     {
         $user = $request->user();
         if (! $user || ! $user->hasRole(UserRole::ROLE_REPORTER) || $user->hasPermission('issues.view')) {
-            return response()->json(['message' => 'Unauthorized'], 403);
+            return response()->json(['message' => 'Nėra leidimo.'], 403);
         }
         $user->update(['reporter_wizard_completed_at' => now()]);
 
@@ -1066,7 +1328,7 @@ class ProblemController extends Controller
     {
         $user = $request->user();
         if (! $user || ! $user->hasRole(UserRole::ROLE_REPORTER) || $user->hasPermission('issues.view')) {
-            return response()->json(['message' => 'Unauthorized'], 403);
+            return response()->json(['message' => 'Nėra leidimo.'], 403);
         }
         $user->update(['reporter_report_terms_accepted_at' => now()]);
 
@@ -1078,31 +1340,55 @@ class ProblemController extends Controller
         $user = $request->user();
 
         if (! $user?->hasRole(UserRole::ROLE_REPORTER)) {
-            return response()->json(['message' => 'Unauthorized'], 403);
+            return response()->json(['message' => 'Nėra leidimo.'], 403);
         }
 
-        $validated = $request->validate([
-            'problem_type_id' => 'required|integer|exists:classifier_values,id',
-            'problem_nature_id' => 'nullable|integer|exists:classifier_values,id',
-            'description' => 'required|string|max:65535',
-            'address' => 'required|string|max:500',
-            'lat' => 'nullable|numeric',
-            'lng' => 'nullable|numeric',
-        ]);
+        $channel = FileUploadSettings::resolveUploadChannel($request->header('X-Upload-Channel'));
+
+        $uploadConfig = FileUploadSettings::getChannel($channel);
+        $maxDesc = (int) $uploadConfig['description_max_chars'];
+
+        $validated = $request->validate(
+            [
+                'problem_type_id' => 'required|integer|exists:classifier_values,id',
+                'problem_nature_id' => 'nullable|integer|exists:classifier_values,id',
+                'description' => 'required|string|max:'.$maxDesc,
+                'address' => 'required|string|max:500',
+                'lat' => 'nullable|numeric',
+                'lng' => 'nullable|numeric',
+                'files' => 'nullable|array',
+                'files.*' => 'file',
+            ],
+            [
+                'problem_type_id.required' => 'Pasirinkite problemos rūšį.',
+                'problem_type_id.integer' => 'Netinkama problemos rūšis.',
+                'problem_type_id.exists' => 'Netinkama problemos rūšis.',
+                'problem_nature_id.integer' => 'Netinkamas problemos pobūdis.',
+                'problem_nature_id.exists' => 'Netinkamas problemos pobūdis.',
+                'description.required' => 'Įveskite aprašymą.',
+                'description.max' => 'Aprašymas per ilgas.',
+                'address.required' => 'Įveskite adresą.',
+                'address.max' => 'Adresas per ilgas.',
+                'lat.numeric' => 'Netinkama vieta žemėlapyje.',
+                'lng.numeric' => 'Netinkama vieta žemėlapyje.',
+                'files.array' => 'Netinkami priedai.',
+                'files.*.file' => 'Failas per didelis arba nepriimtas.',
+            ]
+        );
 
         $typeId = (int) $validated['problem_type_id'];
         $natureId = isset($validated['problem_nature_id']) ? (int) $validated['problem_nature_id'] : null;
         $typeValue = ClassifierValue::where('id', $typeId)->whereNull('parent_id')->first();
 
         if (! $typeValue) {
-            return response()->json(['message' => 'Invalid classifier value.'], 422);
+            return response()->json(['message' => 'Netinkama problemos kategorija.'], 422);
         }
 
         if ($natureId !== null) {
             $natureValue = ClassifierValue::where('id', $natureId)->where('parent_id', $typeId)->first();
 
             if (! $natureValue) {
-                return response()->json(['message' => 'Invalid classifier value.'], 422);
+                return response()->json(['message' => 'Netinkama problemos pobūdis.'], 422);
             }
         }
 
@@ -1121,10 +1407,51 @@ class ProblemController extends Controller
         ]);
 
         $problem->refresh();
+
+        $this->reporterFileUploadService->validateAndStore(
+            $problem,
+            $this->normalizedUploadedFiles($request),
+            $channel,
+            false,
+            true
+        );
+
         $this->autoAssignmentService->applyRules($problem);
         $problem->refresh();
 
         return response()->json(['ok' => true, 'problem_id' => $problem->id]);
+    }
+
+    public function toggleProblemWatch(Request $request, Problem $problem): JsonResponse
+    {
+        if ($problem->is_archived) {
+            abort(404);
+        }
+
+        $user = $request->user();
+        if (! $this->reporterCanToggleWatch($user, $problem)) {
+            abort(404);
+        }
+
+        $mainId = $problem->merged_into_problem_id ?? $problem->id;
+
+        $existing = ProblemWatch::query()
+            ->where('user_id', $user->id)
+            ->where('problem_id', $mainId)
+            ->first();
+
+        if ($existing) {
+            $existing->delete();
+
+            return response()->json(['watched' => false]);
+        }
+
+        ProblemWatch::create([
+            'user_id' => $user->id,
+            'problem_id' => $mainId,
+        ]);
+
+        return response()->json(['watched' => true]);
     }
 
     public function publicShow(Request $request, Problem $problem): Response
@@ -1142,6 +1469,8 @@ class ProblemController extends Controller
             abort(404);
         }
 
+        $problem->load('attachments');
+
         $problemData = [
             'id' => $problem->id,
             'internal_number' => $problem->internal_number,
@@ -1151,6 +1480,7 @@ class ProblemController extends Controller
             'description' => $problem->description,
             'created_at' => $problem->created_at?->toIso8601String(),
             'is_published_publicly' => $problem->is_published_publicly,
+            'attachments' => $this->attachmentsPayload($problem),
         ];
 
         $mergeContext = $this->mergeContextService->forProblem($problem);
@@ -1167,6 +1497,8 @@ class ProblemController extends Controller
                 'reviewProgressProblemId' => $reviewProgressProblemId,
                 'backFrom' => $request->query('from'),
                 'backOnlyMine' => $request->boolean('only_mine'),
+                'fileUpload' => FileUploadSettings::getChannelForClient(FileUploadSettings::CHANNEL_WEB),
+                'canUploadAttachments' => $isReporterOwnProblem,
             ]);
         }
 
@@ -1285,5 +1617,20 @@ class ProblemController extends Controller
             new StatisticsReportExport($analytics, $period, $institutionLabel, $categoryLabel),
             $filename
         );
+    }
+
+    private function attachmentsPayload(Problem $problem): array
+    {
+        return $problem->attachments->map(fn (ProblemAttachment $a) => $a->toPublicPayload())->values()->all();
+    }
+
+    private function normalizedUploadedFiles(Request $request): array
+    {
+        $uploadedFiles = $request->file('files');
+        if ($uploadedFiles === null) {
+            return [];
+        }
+
+        return is_array($uploadedFiles) ? $uploadedFiles : [$uploadedFiles];
     }
 }
