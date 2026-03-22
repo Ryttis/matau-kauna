@@ -52,6 +52,8 @@ const updateProfile = () => {
     profileForm.patch(route('settings.profile'), { preserveScroll: true })
 }
 
+const passwordManagerUsername = computed(() => user.value?.email ?? '')
+
 const updatePassword = () => {
     passwordForm.put(route('settings.password'), {
         preserveScroll: true,
@@ -72,9 +74,25 @@ const updatePassword = () => {
                         @toggle="toggleSection('profile')"
                     >
                         <form @submit.prevent="updateProfile" class="form-grid">
-                            <AppInput v-model="profileForm.name" placeholder="Vardas" :show-icon="true" />
-                            <AppInput v-model="profileForm.surname" placeholder="Pavardė" :show-icon="true" />
-                            <AppInput v-model="profileForm.email" type="email" placeholder="El. paštas" :show-icon="true" />
+                            <AppInput
+                                v-model="profileForm.name"
+                                placeholder="Vardas"
+                                :show-icon="true"
+                                autocomplete="given-name"
+                            />
+                            <AppInput
+                                v-model="profileForm.surname"
+                                placeholder="Pavardė"
+                                :show-icon="true"
+                                autocomplete="family-name"
+                            />
+                            <AppInput
+                                v-model="profileForm.email"
+                                type="email"
+                                placeholder="El. paštas"
+                                :show-icon="true"
+                                autocomplete="email"
+                            />
                             <AppButton
                                 text="Saugoti"
                                 variant="primary"
@@ -88,24 +106,40 @@ const updatePassword = () => {
                         :open="sections.password"
                         @toggle="toggleSection('password')"
                     >
-                        <form @submit.prevent="updatePassword" class="form-grid">
+                        <form @submit.prevent="updatePassword" class="form-grid form-grid--password">
+                            <label class="password-form-sr-only" for="profile-password-username"
+                                >Paskyros el. paštas (slaptažodžių tvarkyklei)</label
+                            >
+                            <input
+                                id="profile-password-username"
+                                type="text"
+                                name="username"
+                                autocomplete="username"
+                                :value="passwordManagerUsername"
+                                readonly
+                                tabindex="-1"
+                                class="password-form-username-field"
+                            />
                             <AppInput
                                 v-model="passwordForm.current_password"
                                 type="password"
                                 placeholder="Esamas slaptažodis"
                                 :show-icon="true"
+                                autocomplete="current-password"
                             />
                             <AppInput
                                 v-model="passwordForm.password"
                                 type="password"
                                 placeholder="Naujas slaptažodis"
                                 :show-icon="true"
+                                autocomplete="new-password"
                             />
                             <AppInput
                                 v-model="passwordForm.password_confirmation"
                                 type="password"
                                 placeholder="Pakartoti slaptažodį"
                                 :show-icon="true"
+                                autocomplete="new-password"
                             />
                             <div v-if="passwordForm.errors.password" class="form-error">
                                 {{ passwordForm.errors.password }}
@@ -193,5 +227,35 @@ const updatePassword = () => {
 .form-error {
     font-size: 14px;
     color: var(--color-error, #c62828);
+}
+
+.form-grid--password {
+    position: relative;
+}
+
+.password-form-sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+}
+
+.password-form-username-field {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+    opacity: 0;
+    pointer-events: none;
 }
 </style>

@@ -65,6 +65,8 @@ const emit = defineEmits([
 
 const selectAll = ref(false)
 
+const safeItems = computed(() => (Array.isArray(props.items) ? props.items : []))
+
 const getRowKey = (row) => {
     if (typeof props.rowKey === 'function') {
         return props.rowKey(row)
@@ -73,17 +75,17 @@ const getRowKey = (row) => {
     return row?.[props.rowKey]
 }
 
-const itemKeys = computed(() => props.items.map(getRowKey).filter(Boolean))
+const itemKeys = computed(() => safeItems.value.map(getRowKey).filter(Boolean))
 
 watch(
     () => props.selectedKeys,
     (newVal) => {
-    if (!props.selectable || props.singleSelect) {
-        selectAll.value = false
-        return
-    }
+        if (!props.selectable || props.singleSelect) {
+            selectAll.value = false
+            return
+        }
 
-        if (props.items.length === 0) {
+        if (safeItems.value.length === 0) {
             selectAll.value = false
             return
         }
@@ -94,14 +96,14 @@ watch(
 )
 
 watch(
-    () => props.items,
+    () => safeItems.value,
     () => {
-    if (!props.selectable || props.singleSelect) {
-        selectAll.value = false
-        return
-    }
+        if (!props.selectable || props.singleSelect) {
+            selectAll.value = false
+            return
+        }
 
-        if (props.items.length === 0) {
+        if (safeItems.value.length === 0) {
             selectAll.value = false
             return
         }
@@ -165,6 +167,7 @@ const sortArrow = (key) => {
 </script>
 
 <template>
+    <div class="entity-table-scroll">
     <table>
         <thead>
             <tr>
@@ -192,7 +195,7 @@ const sortArrow = (key) => {
 
         <tbody>
             <tr
-                v-for="row in items"
+                v-for="row in safeItems"
                 :key="getRowKey(row)"
                 :class="[
                     { 'row-clickable': rowClickable, 'row-selected': hideRowCheckboxes && isSelected(row) },
@@ -229,21 +232,44 @@ const sortArrow = (key) => {
             </tr>
         </tbody>
     </table>
+    </div>
 </template>
 
 <style scoped>
-table {
+.entity-table-scroll {
     width: 100%;
-    margin-top: 40px;
-    font-family: 'Inter', sans-serif;
+    max-width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    margin-top: 8px;
+    padding-bottom: 4px;
+    scrollbar-gutter: stable;
+}
+
+table {
+    width: max-content;
+    min-width: 100%;
+    margin-top: 16px;
+    font-family: 'Open Sans', sans-serif;
     border-collapse: collapse;
+    table-layout: auto;
+}
+
+@media (min-width: 1024px) {
+    table {
+        margin-top: 24px;
+    }
+
+    .entity-table-scroll {
+        margin-top: 0;
+    }
 }
 
 th {
     font-size: var(--table-header-font-size);
     font-weight: var(--table-header-font-weight);
-    line-height: 1.4;
-    letter-spacing: -1.1%;
+    line-height: 1.35;
+    letter-spacing: normal;
     color: var(--table-header-text);
     background: var(--table-header-bg);
     text-align: left;
@@ -251,6 +277,13 @@ th {
     border-bottom: 1px solid var(--color-border, #e5e5e5);
     vertical-align: middle;
     box-sizing: border-box;
+}
+
+@media (min-width: 768px) {
+    td {
+        padding: 12px 10px;
+        font-size: 12px;
+    }
 }
 
 th.sortable {
@@ -263,11 +296,11 @@ th.sortable:hover {
 }
 
 td {
-    padding: 12px 10px;
-    font-size: 12px;
+    padding: 10px 8px;
+    font-size: 13px;
     font-weight: 400;
-    line-height: 1.4;
-    letter-spacing: -1.1%;
+    line-height: 1.35;
+    letter-spacing: normal;
     color: var(--table-header-text);
     border-bottom: 1px solid var(--color-border, #e5e5e5);
     vertical-align: middle;

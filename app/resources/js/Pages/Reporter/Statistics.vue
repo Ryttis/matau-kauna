@@ -7,10 +7,8 @@ import ReporterStatisticsProblemTable from '@/Components/Reporter/ReporterStatis
 import ReporterStatisticsKpiCards from '@/Components/Reporter/ReporterStatisticsKpiCards.vue'
 import ReporterStatisticsMonthlyChart from '@/Components/Reporter/ReporterStatisticsMonthlyChart.vue'
 import ReporterStatisticsCategoryBreakdown from '@/Components/Reporter/ReporterStatisticsCategoryBreakdown.vue'
-import {
-    useReporterStatisticsFilters,
-    REPORTER_STATS_PERIOD_OPTIONS,
-} from '@/composables/useReporterStatisticsFilters'
+import { REPORTER_STATS_PERIOD_OPTIONS } from '@/constants/reporterStatistics'
+import { useReporterStatisticsFilters } from '@/composables/useReporterStatisticsFilters'
 
 const props = defineProps({
     categories: { type: Array, default: () => [] },

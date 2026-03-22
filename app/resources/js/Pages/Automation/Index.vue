@@ -611,9 +611,20 @@ watch(
 
 <style scoped>
 .automation-page {
+    box-sizing: border-box;
+    width: 100%;
+    min-width: 0;
     max-width: 1000px;
     margin: 0;
     padding: 24px 32px;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+@media (max-width: 640px) {
+    .automation-page {
+        padding: 16px 12px;
+    }
 }
 .automation-section-select-wrap {
     margin-bottom: 24px;

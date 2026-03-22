@@ -348,16 +348,21 @@ const assignmentInfo = computed(() => {
 .problem-detail {
     max-width: 1200px;
     margin: 0 auto;
+    width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
 }
 
 .problem-header {
     display: flex;
     align-items: center;
-    gap: 24px;
-    margin-bottom: 32px;
+    flex-wrap: wrap;
+    gap: 16px;
+    margin-bottom: 24px;
     padding-bottom: 16px;
     border-bottom: 1px solid #e0e0e0;
     width: 100%;
+    min-width: 0;
 }
 
 .header-spacer {
@@ -392,6 +397,13 @@ const assignmentInfo = computed(() => {
     flex-direction: column;
     gap: 20px;
     margin-bottom: 32px;
+    width: 100%;
+    min-width: 0;
+}
+
+.problem-content :deep(.app-input-group) {
+    min-width: 0;
+    max-width: 100%;
 }
 
 .problem-fields-top {
@@ -399,6 +411,7 @@ const assignmentInfo = computed(() => {
     flex-direction: column;
     gap: 20px;
     max-width: 600px;
+    width: 100%;
 }
 
 .problem-fields-top .app-input-group {
@@ -408,11 +421,13 @@ const assignmentInfo = computed(() => {
 
 .problem-content-bottom {
     display: grid;
-    grid-template-columns: 1fr 400px;
+    grid-template-columns: 1fr minmax(0, 400px);
     grid-template-rows: auto;
     gap: 32px;
     margin-top: 20px;
     align-items: start;
+    width: 100%;
+    min-width: 0;
 }
 
 .problem-content-bottom .app-input-group {
@@ -449,6 +464,18 @@ const assignmentInfo = computed(() => {
 
 .problem-media {
     height: 150px;
+    min-width: 0;
+    width: 100%;
+    max-width: 100%;
+}
+
+.problem-media :deep(.attachments-panel) {
+    max-width: 100%;
+}
+
+.problem-media :deep(.media-placeholder) {
+    max-width: 100%;
+    box-sizing: border-box;
 }
 
 .media-placeholder {
@@ -495,15 +522,17 @@ const assignmentInfo = computed(() => {
 
 .problem-actions {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    align-items: center;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    align-items: stretch;
     gap: var(--button-grid-gap);
     margin-top: 40px;
     width: 100%;
+    min-width: 0;
 }
 
 .problem-actions > * {
     margin-bottom: 0 !important;
+    min-width: 0;
 }
 
 .problem-actions :deep(.action-btn) {
@@ -521,9 +550,64 @@ const assignmentInfo = computed(() => {
     font-size: 16px;
     font-weight: 400;
     line-height: 1.4;
-    letter-spacing: -0.011em;
+    letter-spacing: normal;
     text-align: center;
     white-space: normal;
     word-break: break-word;
+}
+
+@media (max-width: 900px) {
+    .problem-content-bottom {
+        grid-template-columns: 1fr;
+        gap: 20px;
+    }
+
+    .problem-media {
+        height: auto;
+        min-height: 140px;
+    }
+
+    .problem-content-bottom :deep(.app-input-group textarea.app-input-edit) {
+        max-height: none;
+        min-height: 140px;
+        height: auto;
+    }
+
+    .problem-fields-top {
+        max-width: 100%;
+    }
+
+    .problem-actions {
+        grid-template-columns: 1fr;
+    }
+
+    .problem-actions :deep(.action-btn),
+    .problem-actions :deep(.app-button) {
+        width: 100% !important;
+        max-width: 100%;
+    }
+
+    .problem-header {
+        gap: 12px;
+    }
+
+    .header-spacer {
+        display: none;
+    }
+
+    .header-info-right {
+        margin-left: auto;
+    }
+}
+
+@media (max-width: 480px) {
+    .problem-header {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .header-info-right {
+        margin-left: 0;
+    }
 }
 </style>

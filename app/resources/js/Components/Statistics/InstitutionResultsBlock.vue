@@ -53,15 +53,39 @@ defineProps({
 .institution-item {
     display: flex;
     justify-content: space-between;
-    align-items: center;
+    align-items: flex-start;
+    gap: 10px;
     padding: 10px;
     font-size: 14px;
     color: #333;
     font-family: 'Open Sans', sans-serif;
+    min-width: 0;
+}
+
+.institution-item > span:first-child {
+    min-width: 0;
+    flex: 1;
+    word-break: break-word;
+    line-height: 1.35;
 }
 
 .institution-stats {
     font-size: 13px;
     color: #666;
+    flex-shrink: 0;
+    text-align: right;
+    white-space: nowrap;
+}
+
+@media (max-width: 400px) {
+    .institution-item {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .institution-stats {
+        text-align: left;
+        white-space: normal;
+    }
 }
 </style>

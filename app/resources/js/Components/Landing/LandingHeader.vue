@@ -4,11 +4,21 @@
             <div class="landing-header-fixed-bar">
                 <div class="landing-header-inner landing-header-inner--nav">
                     <Link :href="route('landing')" class="landing-logo">Matau Kauną</Link>
-                    <nav class="landing-nav">
+                    <button
+                        type="button"
+                        class="landing-menu-btn landing-menu-btn--on-dark"
+                        aria-label="Meniu"
+                        :aria-expanded="navOpen"
+                        @click="navOpen = !navOpen"
+                    >
+                        <span class="landing-menu-icon" aria-hidden="true" />
+                    </button>
+                    <nav class="landing-nav" :class="{ 'landing-nav--open': navOpen }">
                         <Link
                             :href="route('reports')"
                             class="landing-link"
                             :class="{ 'landing-link--active': activeLink === 'reports' }"
+                            @click="navOpen = false"
                         >
                             Pranešimai
                         </Link>
@@ -16,10 +26,11 @@
                             :href="route('public.statistics')"
                             class="landing-link"
                             :class="{ 'landing-link--active': activeLink === 'statistics' }"
+                            @click="navOpen = false"
                         >
                             Statistika
                         </Link>
-                        <a :href="route('login')" class="landing-link landing-link--btn">Prisijungti</a>
+                        <a :href="route('login')" class="landing-link landing-link--btn" @click="navOpen = false">Prisijungti</a>
                     </nav>
                 </div>
             </div>
@@ -30,11 +41,21 @@
             <div class="landing-header-fixed-bar landing-header-fixed-bar--light">
                 <div class="landing-header-inner landing-header-inner--nav landing-header-inner--light">
                     <Link :href="route('landing')" class="landing-logo">Matau Kauną</Link>
-                    <nav class="landing-nav">
+                    <button
+                        type="button"
+                        class="landing-menu-btn"
+                        aria-label="Meniu"
+                        :aria-expanded="navOpen"
+                        @click="navOpen = !navOpen"
+                    >
+                        <span class="landing-menu-icon landing-menu-icon--dark" aria-hidden="true" />
+                    </button>
+                    <nav class="landing-nav" :class="{ 'landing-nav--open': navOpen }">
                         <Link
                             :href="route('reports')"
                             class="landing-link"
                             :class="{ 'landing-link--active': activeLink === 'reports' }"
+                            @click="navOpen = false"
                         >
                             Pranešimai
                         </Link>
@@ -42,10 +63,11 @@
                             :href="route('public.statistics')"
                             class="landing-link"
                             :class="{ 'landing-link--active': activeLink === 'statistics' }"
+                            @click="navOpen = false"
                         >
                             Statistika
                         </Link>
-                        <a :href="route('login')" class="landing-link landing-link--btn">Prisijungti</a>
+                        <a :href="route('login')" class="landing-link landing-link--btn" @click="navOpen = false">Prisijungti</a>
                     </nav>
                 </div>
             </div>
@@ -56,12 +78,15 @@
 </template>
 
 <script setup>
+import { ref } from 'vue'
 import { Link } from '@inertiajs/vue3'
 
 defineProps({
     activeLink: { type: String, default: '' },
     variant: { type: String, default: '' },
 })
+
+const navOpen = ref(false)
 </script>
 
 <style scoped>
@@ -120,8 +145,10 @@ defineProps({
     display: flex;
     align-items: center;
     justify-content: space-between;
+    gap: 8px;
     min-height: 80px;
     padding: 1rem 1rem;
+    position: relative;
 }
 
 .landing-header-inner--light .landing-logo {
@@ -143,10 +170,112 @@ defineProps({
     text-decoration: none;
 }
 
+.landing-menu-btn {
+    display: none;
+    flex-shrink: 0;
+    width: 44px;
+    height: 44px;
+    align-items: center;
+    justify-content: center;
+    border: none;
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.2);
+    cursor: pointer;
+    padding: 0;
+}
+
+.landing-menu-btn--on-dark {
+    background: rgba(255, 255, 255, 0.2);
+}
+
+.landing-header-fixed-bar--light .landing-menu-btn {
+    background: rgba(0, 0, 0, 0.06);
+}
+
+.landing-menu-icon,
+.landing-menu-icon::before,
+.landing-menu-icon::after {
+    display: block;
+    width: 20px;
+    height: 2px;
+    background: #fff;
+    border-radius: 1px;
+    position: relative;
+}
+
+.landing-menu-icon--dark,
+.landing-menu-icon--dark::before,
+.landing-menu-icon--dark::after {
+    background: #000;
+}
+
+.landing-menu-icon::before,
+.landing-menu-icon::after {
+    content: '';
+    position: absolute;
+    left: 0;
+}
+
+.landing-menu-icon::before {
+    top: -7px;
+}
+
+.landing-menu-icon::after {
+    top: 7px;
+}
+
 .landing-nav {
     display: flex;
     align-items: center;
     gap: 2.5rem;
+}
+
+@media (max-width: 767px) {
+    .landing-menu-btn {
+        display: inline-flex;
+    }
+
+    .landing-nav {
+        display: none;
+        position: absolute;
+        top: 100%;
+        left: 0;
+        right: 0;
+        flex-direction: column;
+        align-items: stretch;
+        gap: 0;
+        padding: 8px 0 16px;
+        background: var(--lp-primary, #1946a0);
+        box-shadow: 0 12px 24px rgba(0, 0, 0, 0.15);
+        z-index: 1001;
+    }
+
+    .landing-header-fixed-bar--light .landing-nav {
+        background: #fff;
+    }
+
+    .landing-nav--open {
+        display: flex;
+    }
+
+    .landing-link {
+        padding: 14px 1rem;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+    }
+
+    .landing-header-fixed-bar--light .landing-link {
+        border-bottom-color: rgba(0, 0, 0, 0.06);
+    }
+
+    .landing-link--btn {
+        margin: 12px 1rem 0;
+        text-align: center;
+    }
+
+    .landing-link--active {
+        border-bottom: none;
+        padding-bottom: 14px;
+    }
 }
 
 .landing-link {

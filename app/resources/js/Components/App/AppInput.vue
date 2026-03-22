@@ -2,7 +2,7 @@
 import { computed, ref } from 'vue'
 import { ICON_PENCIL } from '@/constants/icons'
 
-const datalistId = ref(`datalist-${Math.random().toString(36).substr(2, 9)}`)
+const datalistId = ref(`datalist-${Math.random().toString(36).slice(2, 11)}`)
 
 const props = defineProps({
     modelValue: {
@@ -53,7 +53,11 @@ const props = defineProps({
     readonly: {
         type: Boolean,
         default: false
-    }
+    },
+    autocomplete: {
+        type: String,
+        default: undefined,
+    },
 })
 
 const emit = defineEmits(['update:modelValue'])
@@ -93,6 +97,7 @@ const wrapperClass = computed(() => {
                     :class="inputClass"
                     :list="options.length > 0 ? datalistId : undefined"
                     :readonly="readonly"
+                    :autocomplete="autocomplete"
                     class="app-input-filter-field"
                 />
                 <datalist v-if="options.length > 0" :id="datalistId">
@@ -112,6 +117,7 @@ const wrapperClass = computed(() => {
                     :class="inputClass"
                     :list="options.length > 0 ? datalistId : undefined"
                     :readonly="readonly"
+                    :autocomplete="autocomplete"
                 />
                 <datalist v-if="options.length > 0" :id="datalistId">
                     <option v-for="option in options" :key="option" :value="option" />
@@ -127,6 +133,7 @@ const wrapperClass = computed(() => {
                 :rows="rows"
                 :class="inputClass"
                 :readonly="readonly"
+                :autocomplete="autocomplete"
             ></textarea>
             <img v-if="showIcon" :src="iconSrc" :alt="iconAlt" class="app-input-icon app-input-icon-textarea" />
         </div>

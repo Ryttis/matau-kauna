@@ -1,6 +1,12 @@
 <script setup>
+import { onMounted } from 'vue'
 import FlashError from '@/Components/App/FlashError.vue'
 import Header from '@/Components/App/Header.vue'
+import { useAppShell } from '@/composables/useAppShell'
+
+onMounted(() => {
+    useAppShell().closeSidebar()
+})
 </script>
 
 <template>
@@ -46,6 +52,11 @@ import Header from '@/Components/App/Header.vue'
     align-items: center;
     justify-content: center;
     flex: 1;
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+    padding: 16px max(16px, env(safe-area-inset-right)) 24px max(16px, env(safe-area-inset-left));
     min-height: calc(100vh - var(--app-header-height, 66px));
 }
 </style>

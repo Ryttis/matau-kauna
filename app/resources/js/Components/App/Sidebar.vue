@@ -246,7 +246,8 @@ const toggleStatistics = () => {
 
 <style scoped>
 .sidebar {
-    width: 450px;
+    width: 100%;
+    box-sizing: border-box;
     background: #F6F7F9;
     color: black;
     display: flex;
@@ -397,5 +398,22 @@ const toggleStatistics = () => {
 .submenu-link.active {
     background: var(--color-primary);
     color: var(--color-white, #fff);
+}
+
+@media (max-width: 1023px) {
+    .sidebar-title {
+        padding: 24px 16px;
+    }
+
+    .nav-link {
+        padding: 12px 20px;
+        gap: 16px;
+        font-size: 16px;
+    }
+
+    .submenu-link {
+        padding: 8px 20px;
+        font-size: 15px;
+    }
 }
 </style>

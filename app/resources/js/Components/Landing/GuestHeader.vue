@@ -3,11 +3,22 @@
         <div class="guest-header-fixed" :class="{ 'guest-header-fixed--dark': variant === 'dark' }">
             <div class="guest-header-inner">
                 <Link :href="route('landing')" class="guest-logo">Matau Kauną</Link>
-                <nav class="guest-nav">
+                <button
+                    type="button"
+                    class="guest-menu-btn"
+                    :class="{ 'guest-menu-btn--dark': variant === 'dark' }"
+                    aria-label="Meniu"
+                    :aria-expanded="navOpen"
+                    @click="navOpen = !navOpen"
+                >
+                    <span class="guest-menu-icon" aria-hidden="true" />
+                </button>
+                <nav class="guest-nav" :class="{ 'guest-nav--open': navOpen }">
                     <Link
                         :href="route('reports')"
                         class="guest-link"
                         :class="{ 'guest-link--active': activeLink === 'reports' }"
+                        @click="navOpen = false"
                     >
                         Pranešimai
                     </Link>
@@ -15,10 +26,11 @@
                         :href="route('public.statistics')"
                         class="guest-link"
                         :class="{ 'guest-link--active': activeLink === 'statistics' }"
+                        @click="navOpen = false"
                     >
                         Statistika
                     </Link>
-                    <a :href="route('login')" class="guest-link guest-link--btn">Prisijungti</a>
+                    <a :href="route('login')" class="guest-link guest-link--btn" @click="navOpen = false">Prisijungti</a>
                 </nav>
             </div>
         </div>
@@ -28,12 +40,15 @@
 </template>
 
 <script setup>
+import { ref } from 'vue'
 import { Link } from '@inertiajs/vue3'
 
 defineProps({
     activeLink: { type: String, default: '' },
     variant: { type: String, default: '' },
 })
+
+const navOpen = ref(false)
 </script>
 
 <style scoped>
@@ -66,12 +81,14 @@ defineProps({
     display: flex;
     align-items: center;
     justify-content: space-between;
+    gap: 8px;
     height: 80px;
     margin: 0 auto;
     max-width: 1200px;
     width: 100%;
     padding: 0 1rem;
     box-sizing: border-box;
+    position: relative;
 }
 
 @media (min-width: 768px) {
@@ -93,10 +110,103 @@ defineProps({
     color: #fff;
 }
 
+.guest-menu-btn {
+    display: none;
+    flex-shrink: 0;
+    width: 44px;
+    height: 44px;
+    align-items: center;
+    justify-content: center;
+    border: none;
+    border-radius: 10px;
+    background: rgba(0, 0, 0, 0.06);
+    cursor: pointer;
+    padding: 0;
+}
+
+.guest-menu-btn--dark {
+    background: rgba(255, 255, 255, 0.2);
+}
+
+.guest-menu-icon,
+.guest-menu-icon::before,
+.guest-menu-icon::after {
+    display: block;
+    width: 20px;
+    height: 2px;
+    background: #000;
+    border-radius: 1px;
+    position: relative;
+}
+
+.guest-header-fixed--dark .guest-menu-icon,
+.guest-header-fixed--dark .guest-menu-icon::before,
+.guest-header-fixed--dark .guest-menu-icon::after {
+    background: #fff;
+}
+
+.guest-menu-icon::before,
+.guest-menu-icon::after {
+    content: '';
+    position: absolute;
+    left: 0;
+}
+
+.guest-menu-icon::before {
+    top: -7px;
+}
+
+.guest-menu-icon::after {
+    top: 7px;
+}
+
 .guest-nav {
     display: flex;
     align-items: center;
     gap: 2.5rem;
+}
+
+@media (max-width: 767px) {
+    .guest-menu-btn {
+        display: inline-flex;
+    }
+
+    .guest-nav {
+        display: none;
+        position: absolute;
+        top: 100%;
+        left: 0;
+        right: 0;
+        flex-direction: column;
+        align-items: stretch;
+        gap: 0;
+        padding: 8px 0 16px;
+        background: #fff;
+        box-shadow: 0 12px 24px rgba(0, 0, 0, 0.12);
+        z-index: 1001;
+    }
+
+    .guest-header-fixed--dark .guest-nav {
+        background: #1946a0;
+    }
+
+    .guest-nav--open {
+        display: flex;
+    }
+
+    .guest-link {
+        padding: 14px 1rem;
+        border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+    }
+
+    .guest-header-fixed--dark .guest-link:not(.guest-link--btn) {
+        border-bottom-color: rgba(255, 255, 255, 0.12);
+    }
+
+    .guest-link--btn {
+        margin: 12px 1rem 0;
+        text-align: center;
+    }
 }
 
 .guest-link {
