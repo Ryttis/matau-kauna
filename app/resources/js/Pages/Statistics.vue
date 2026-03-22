@@ -262,16 +262,28 @@ const downloadReport = () => {
 
 <style scoped>
 .statistics-page {
+    box-sizing: border-box;
+    width: 100%;
+    min-width: 0;
     padding: 40px;
     max-width: 1400px;
     margin: 0 auto;
     min-height: calc(100vh - 120px);
+    overflow-x: clip;
+}
+
+@media (max-width: 640px) {
+    .statistics-page {
+        padding: 16px 12px;
+    }
 }
 
 .page-header {
     display: flex;
+    flex-wrap: wrap;
     justify-content: space-between;
     align-items: center;
+    gap: 12px;
     margin-bottom: 30px;
 }
 
@@ -311,14 +323,16 @@ const downloadReport = () => {
 
 .filters-section {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 20px;
     margin-bottom: 30px;
     width: 100%;
+    min-width: 0;
 }
 
 .filters-section .app-select-group {
     width: 100%;
+    min-width: 0;
 }
 
 .chart-filter {
@@ -335,12 +349,14 @@ const downloadReport = () => {
     grid-template-columns: 2fr 1fr;
     gap: 20px;
     margin-bottom: 30px;
+    min-width: 0;
 }
 
 .kpi-grid {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 20px;
+    min-width: 0;
 }
 
 .kpi-card {
@@ -383,6 +399,7 @@ const downloadReport = () => {
     padding: 20px;
     border-radius: 8px;
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    min-width: 0;
 }
 
 .chart-header {
@@ -403,6 +420,7 @@ const downloadReport = () => {
 .chart-container {
     height: 300px;
     padding: 20px 0;
+    max-width: 100%;
 }
 
 .bar-chart {
@@ -410,6 +428,8 @@ const downloadReport = () => {
     height: 100%;
     gap: 10px;
     align-items: flex-end;
+    width: 100%;
+    min-width: 0;
 }
 
 .chart-y-axis {
@@ -432,7 +452,8 @@ const downloadReport = () => {
 }
 
 .bar-wrapper {
-    flex: 1;
+    flex: 1 1 0;
+    min-width: 0;
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -452,20 +473,113 @@ const downloadReport = () => {
     margin-top: 8px;
     font-size: 12px;
     color: #666;
+    text-align: center;
+    line-height: 1.2;
+    max-width: 100%;
+    word-break: break-word;
 }
 
 .category-stats-grid {
     display: grid;
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 20px;
     margin-bottom: 30px;
+    min-width: 0;
 }
-
 
 .bottom-stats-grid {
     display: grid;
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 20px;
+    min-width: 0;
+}
+
+@media (max-width: 1100px) {
+    .kpi-chart-row {
+        grid-template-columns: 1fr;
+    }
+
+    .kpi-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 900px) {
+    .filters-section {
+        grid-template-columns: 1fr;
+        gap: 12px;
+    }
+
+    .category-stats-grid,
+    .bottom-stats-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .chart-container {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .bar-chart {
+        min-width: 440px;
+    }
+}
+
+@media (max-width: 640px) {
+    .page-header {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .page-title {
+        font-size: 20px;
+    }
+
+    .download-header-btn {
+        width: 100%;
+        justify-content: center;
+        box-sizing: border-box;
+    }
+
+    .kpi-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .kpi-card {
+        padding: 16px;
+    }
+
+    .kpi-value {
+        font-size: 24px;
+    }
+
+    .chart-header {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 12px;
+    }
+
+    .chart-title {
+        font-size: 16px;
+    }
+
+    .chart-filter {
+        width: 100%;
+        min-width: 0;
+    }
+
+    .chart-container {
+        height: 260px;
+        padding: 12px 0;
+    }
+
+    .bar-chart {
+        min-width: 400px;
+    }
+
+    .bar-label {
+        font-size: 10px;
+    }
 }
 
 </style>

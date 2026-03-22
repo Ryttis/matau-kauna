@@ -4,9 +4,16 @@ import EntityTable from '@/Components/App/Tables/EntityTable.vue'
 import ProblemTableUnmergeCell from '@/Components/Problems/ProblemTableUnmergeCell.vue'
 import ProblemTablePublishCell from '@/Components/Problems/ProblemTablePublishCell.vue'
 
+function normalizeProblemList(problems) {
+    if (problems == null) return []
+    if (Array.isArray(problems)) return problems
+    if (Array.isArray(problems.data)) return problems.data
+    return []
+}
+
 const props = defineProps({
     problems: {
-        type: Array,
+        type: [Array, Object],
         default: null
     },
     displayRows: {
@@ -42,8 +49,9 @@ const props = defineProps({
 const emit = defineEmits(['sort', 'select-all', 'select-item'])
 
 const items = computed(() => {
-    if (props.displayRows && props.displayRows.length > 0) return props.displayRows
-    return props.problems || []
+    const dr = props.displayRows
+    if (Array.isArray(dr) && dr.length > 0) return dr
+    return normalizeProblemList(props.problems)
 })
 
 const useRowProblem = computed(() => Boolean(props.displayRows && props.displayRows.length > 0))
@@ -58,61 +66,71 @@ const truncate = (str, maxLen = 28) => {
 
 const columns = computed(() => {
     const base = [
-    {
-        key: 'internal_number',
-        label: 'Nr.',
-        sortable: true,
-        value: (row) => getRowData(row).internal_number
-    },
-    {
-        key: 'status',
-        label: 'Būsena',
-        sortable: true,
-        value: (row) => props.statusLabels[getRowData(row).status] || getRowData(row).status
-    },
-    {
-        key: 'created_at',
-        label: 'Data',
-        sortable: true,
-        value: (row) => new Date(getRowData(row).created_at).toLocaleDateString('lt-LT')
-    },
-    {
-        key: 'category',
-        label: 'Kategorija',
-        sortable: false,
-        value: (row) => truncate(getRowData(row).category, 18)
-    },
-    {
-        key: 'address',
-        label: 'Adresas',
-        sortable: false,
-        value: (row) => truncate(getRowData(row).address, 28)
-    },
-    ...(useRowProblem.value && props.canPublish
-        ? [{
-            key: 'publish',
-            label: 'Viešai',
+        {
+            key: 'internal_number',
+            label: 'Nr.',
+            sortable: true,
+            headerClass: 'problem-col-nr',
+            class: 'problem-col-nr',
+            value: (row) => getRowData(row).internal_number
+        },
+        {
+            key: 'status',
+            label: 'Būsena',
+            sortable: true,
+            headerClass: 'problem-col-status',
+            class: 'problem-col-status',
+            value: (row) => props.statusLabels[getRowData(row).status] || getRowData(row).status
+        },
+        {
+            key: 'created_at',
+            label: 'Data',
+            sortable: true,
+            headerClass: 'problem-col-date',
+            class: 'problem-col-date',
+            value: (row) => new Date(getRowData(row).created_at).toLocaleDateString('lt-LT')
+        },
+        {
+            key: 'category',
+            label: 'Kategorija',
             sortable: false,
-            cellComponent: ProblemTablePublishCell,
-            cellProps: (row) => ({
-                problem: getRowData(row),
-                canPublish: props.canPublish,
-                showPublishToggle: row.isGroupMain === true,
-            })
-        }]
-        : []),
-    ...(useRowProblem.value
-        ? [{
-            key: 'actions',
-            label: 'Veiksmai',
+            headerClass: 'problem-col-category',
+            class: 'problem-col-category',
+            value: (row) => truncate(getRowData(row).category, 18)
+        },
+        {
+            key: 'address',
+            label: 'Adresas',
             sortable: false,
-            cellComponent: ProblemTableUnmergeCell,
-            cellProps: (row) => ({
-                problemId: getRowData(row).id,
-                isMerged: !row.isGroupMain
-            })
-        }]
-        : [])
+            headerClass: 'problem-col-address',
+            class: 'problem-col-address',
+            value: (row) => truncate(getRowData(row).address, 28)
+        },
+        ...(useRowProblem.value && props.canPublish
+            ? [{
+                key: 'publish',
+                label: 'Viešai',
+                sortable: false,
+                cellComponent: ProblemTablePublishCell,
+                cellProps: (row) => ({
+                    problem: getRowData(row),
+                    canPublish: props.canPublish,
+                    showPublishToggle: row.isGroupMain === true,
+                })
+            }]
+            : []),
+        ...(useRowProblem.value
+            ? [{
+                key: 'actions',
+                label: 'Veiksmai',
+                sortable: false,
+                cellComponent: ProblemTableUnmergeCell,
+                cellProps: (row) => ({
+                    problemId: getRowData(row).id,
+                    isMerged: !row.isGroupMain
+                })
+            }]
+            : [])
     ]
     return base
 })
@@ -174,5 +192,32 @@ function problemTableRowClass(row) {
 
 :deep(.problem-table-group-end td) {
     border-bottom: 2px solid #e0e0e0;
+}
+
+:deep(.problem-col-nr) {
+    white-space: nowrap;
+    min-width: 7.25rem;
+    max-width: 9rem;
+}
+
+:deep(.problem-col-status) {
+    white-space: nowrap;
+    min-width: 8.5rem;
+}
+
+:deep(.problem-col-date) {
+    white-space: nowrap;
+    min-width: 5.5rem;
+}
+
+:deep(.problem-col-category) {
+    min-width: 7rem;
+    max-width: 10rem;
+}
+
+:deep(.problem-col-address) {
+    min-width: 8rem;
+    max-width: 14rem;
+    word-break: break-word;
 }
 </style>

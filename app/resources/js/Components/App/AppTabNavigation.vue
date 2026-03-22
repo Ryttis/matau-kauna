@@ -35,15 +35,23 @@ const setTab = (key) => {
 <style scoped>
 .app-tab-navigation {
     display: flex;
+    flex-wrap: nowrap;
     width: 100%;
+    max-width: 100%;
     background: #ffffff;
-    overflow: hidden;
+    overflow-x: auto;
+    overflow-y: hidden;
+    -webkit-overflow-scrolling: touch;
+    gap: 0;
+    scrollbar-width: thin;
 }
 
 .app-tab-navigation .nav-item {
-    flex: 1;
+    flex: 1 0 auto;
+    min-width: min(100%, max-content);
     padding: var(--admin-spacing, 12px) 16px;
     text-align: center;
+    white-space: nowrap;
     background: transparent;
     border: none;
     cursor: pointer;
@@ -59,5 +67,17 @@ const setTab = (key) => {
 .app-tab-navigation .nav-item.active {
     background-color: #1946A0;
     color: #ffffff;
+}
+
+@media (min-width: 1024px) {
+    .app-tab-navigation {
+        overflow-x: hidden;
+    }
+
+    .app-tab-navigation .nav-item {
+        flex: 1;
+        min-width: 0;
+        white-space: normal;
+    }
 }
 </style>

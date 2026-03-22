@@ -50,11 +50,20 @@
     --control-width: var(--button-width);
 }
 
+html {
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+}
+
+body {
+    overflow-x: hidden;
+}
+
 * {
     margin: 0;
     padding: 0;
     box-sizing: border-box;
-    font-family: 'Open Sans';
-    line-height: 150%;
-    letter-spacing: -1.1%;
+    font-family: 'Open Sans', sans-serif;
+    line-height: 1.5;
+    letter-spacing: normal;
 }

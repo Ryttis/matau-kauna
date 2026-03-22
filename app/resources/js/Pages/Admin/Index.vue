@@ -51,7 +51,9 @@ const activeComponent = computed(() => {
         <AppTabNavigation :tabs="tabs" :active-tab="activeTab" @set-tab="setTab" />
 
         <div class="admin-content">
-            <component :is="activeComponent" />
+            <div class="admin-tab-panel-scroll">
+                <component :is="activeComponent" />
+            </div>
         </div>
     </AuthenticatedLayout>
 </template>
@@ -60,5 +62,13 @@ const activeComponent = computed(() => {
 .admin-content {
     background: var(--color-white);
     padding: var(--admin-spacing, 12px) 16px 24px;
+    min-width: 0;
+}
+
+.admin-tab-panel-scroll {
+    width: 100%;
+    max-width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
 }
 </style>

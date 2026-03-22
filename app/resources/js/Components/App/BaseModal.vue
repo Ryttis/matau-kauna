@@ -1,6 +1,10 @@
 <script setup>
-import { computed } from 'vue'
+import { computed, useAttrs } from 'vue'
 import { ICON_CLOSE } from '@/constants/icons'
+
+defineOptions({ inheritAttrs: false })
+
+const attrs = useAttrs()
 
 const props = defineProps({
     title: {
@@ -82,7 +86,7 @@ const handleOverlayClick = (event) => {
 <template>
     <Teleport to="body">
         <div v-if="isOpen" class="modal-overlay" :style="{ zIndex: props.zIndex }" @click="handleOverlayClick">
-            <div class="modal" :style="modalStyle" @click.stop>
+            <div class="modal" v-bind="attrs" :style="modalStyle" @click.stop>
                 <div v-if="$slots.header || title || showCloseButton" class="modal-header">
                     <slot name="header">
                         <div v-if="title" class="modal-title">{{ title }}</div>
@@ -132,11 +136,28 @@ const handleOverlayClick = (event) => {
     border-radius: 15px;
     overflow: hidden;
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
-    max-height: min(85vh, calc(100vh - 40px));
+    max-height: min(85vh, 85dvh, calc(100vh - 40px), calc(100dvh - 40px));
     display: flex;
     flex-direction: column;
     margin: auto;
     flex-shrink: 0;
+}
+
+@media (max-width: 640px) {
+    .modal-overlay {
+        padding: 12px;
+        align-items: stretch;
+    }
+
+    .modal {
+        width: 100% !important;
+        max-width: 100% !important;
+        min-width: 0 !important;
+        margin-top: auto;
+        margin-bottom: auto;
+        max-height: min(92vh, 92dvh, calc(100vh - 24px), calc(100dvh - 24px));
+        border-radius: 12px;
+    }
 }
 
 .modal-header {

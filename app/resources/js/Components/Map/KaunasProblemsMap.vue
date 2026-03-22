@@ -85,13 +85,16 @@ useKaunasMap(mapContainer, problemsToShow, {
     overflow-y: auto;
 }
 
-.kaunas-map-container :deep(.kaunas-map-popup-open-problem) {
-    color: var(--color-primary, #1946A0);
-    text-decoration: none;
+.kaunas-map-container :deep(.leaflet-popup-content .kaunas-map-popup-open-problem),
+.kaunas-map-container :deep(.leaflet-popup-content .kaunas-map-popup-open-problem:hover),
+.kaunas-map-container :deep(.leaflet-popup-content .kaunas-map-popup-open-problem:visited),
+.kaunas-map-container :deep(.leaflet-popup-content .kaunas-map-popup-open-problem:focus) {
+    color: var(--color-primary, #1946a0);
+    text-decoration: none !important;
 }
 
-.kaunas-map-container :deep(.kaunas-map-popup-open-problem:hover) {
-    text-decoration: underline;
+.kaunas-map-container :deep(.leaflet-popup-content .kaunas-map-popup-open-problem:hover) {
+    opacity: 0.88;
 }
 
 .kaunas-map-container :deep(.kaunas-map-popup-more) {

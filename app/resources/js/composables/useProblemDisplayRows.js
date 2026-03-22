@@ -5,7 +5,7 @@ export function useProblemDisplayRows(problemsListRef) {
         const list = problemsListRef.value || []
         const rows = []
         list.forEach((main) => {
-            const merged = main.merged_problems || []
+            const merged = main.merged_problems || main.mergedProblems || []
             const groupIds = [main.id, ...merged.map((m) => m.id)]
             const mergedCount = merged.length
             const isLastMain = mergedCount === 0

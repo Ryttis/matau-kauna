@@ -81,19 +81,28 @@ function barWidth(category) {
 .category-info {
     display: flex;
     justify-content: space-between;
-    align-items: center;
+    align-items: flex-start;
+    gap: 10px;
+    min-width: 0;
 }
 
 .category-name {
     font-size: 14px;
     color: #333;
     font-family: 'Open Sans', sans-serif;
+    min-width: 0;
+    flex: 1;
+    word-break: break-word;
+    line-height: 1.35;
 }
 
 .category-percentage {
     font-size: 14px;
     color: #666;
     font-family: 'Open Sans', sans-serif;
+    flex-shrink: 0;
+    text-align: right;
+    max-width: 42%;
 }
 
 .progress-bar {
