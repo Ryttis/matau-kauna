@@ -656,7 +656,7 @@ watch(
     font-weight: 600;
     color: var(--color-text, #333);
     margin: 0 0 8px 0;
-    font-family: 'Inter', sans-serif;
+    font-family: var(--font-family-base, 'Open Sans', sans-serif);
 }
 .automation-desc {
     font-size: 14px;
@@ -669,7 +669,7 @@ watch(
     font-weight: 600;
     color: var(--color-text, #333);
     margin: 32px 0 8px 0;
-    font-family: 'Inter', sans-serif;
+    font-family: var(--font-family-base, 'Open Sans', sans-serif);
 }
 .automation-toolbar {
     margin-bottom: 20px;

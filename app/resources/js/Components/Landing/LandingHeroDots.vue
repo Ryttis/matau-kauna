@@ -24,6 +24,12 @@
     pointer-events: none;
 }
 
+@media (max-width: 767px) {
+    .landing-hero-dots {
+        z-index: 1;
+    }
+}
+
 .landing-hero-dot {
     position: absolute;
     border-radius: 50%;

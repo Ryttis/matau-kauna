@@ -10,6 +10,7 @@ import SuccessModal from '@/Components/App/SuccessModal.vue'
 import KaunasProblemsMap from '@/Components/Map/KaunasProblemsMap.vue'
 import { useSuccessModal } from '@/composables/useSuccessModal'
 import { KAUNAS_CENTER } from '@/composables/leafletKaunas'
+import { PROBLEM_STATUS } from '@/constants/problemStatus'
 import { ICON_ARROW } from '@/constants/icons'
 
 const props = defineProps({
@@ -93,7 +94,7 @@ const problemsForMap = computed(() => {
             internal_number: p.internal_number,
             description_preview: desc.slice(0, 200),
             description: desc,
-            status: p.status || 'nauja',
+            status: p.status || PROBLEM_STATUS.NEW,
             lat: hasCoords ? Number(p.lat) : centerLat + (offset * 0.1),
             lng: hasCoords ? Number(p.lng) : centerLng + (offset * 0.1),
         }
@@ -132,7 +133,7 @@ const selectedProblemIds = computed(() => {
 
 const allProblems = computed(() => {
     const problems = [props.problem, ...props.similarProblems]
-    return problems.filter(p => p.status !== 'neuzregistruota')
+    return problems.filter((p) => p.status !== PROBLEM_STATUS.UNREGISTERED)
 })
 
 const filteredProblems = computed(() => {
@@ -530,18 +531,18 @@ onUnmounted(() => {
     align-items: center;
     gap: 8px;
     padding: 8px 12px;
-    background-color: #1946A0;
-    color: #ffffff;
-    border: 1px solid #1946A0;
+    background-color: var(--color-primary, #1946A0);
+    color: var(--color-white, #ffffff);
+    border: 1px solid var(--color-primary, #1946A0);
     border-radius: 5px;
     font-size: 14px;
-    font-family: 'Inter', sans-serif;
+    font-family: var(--font-family-base, 'Open Sans', sans-serif);
     cursor: pointer;
     transition: background-color 0.2s;
 }
 
 .merge-category-btn:hover {
-    background-color: #1a3d95;
+    background-color: var(--color-primary-hover, #1a3d95);
 }
 
 .merge-dropdown-icon {
@@ -579,8 +580,8 @@ onUnmounted(() => {
     border: none;
     cursor: pointer;
     font-size: 16px;
-    font-family: 'Inter', sans-serif;
-    color: #333;
+    font-family: var(--font-family-base, 'Open Sans', sans-serif);
+    color: var(--color-text, #333);
     transition: background-color 0.2s;
 }
 
@@ -607,7 +608,7 @@ onUnmounted(() => {
     width: 100%;
     height: 480px;
     min-height: 480px;
-    border: 1px solid #e0e0e0;
+    border: 1px solid var(--color-border, #e0e0e0);
     border-radius: 5px;
     overflow: hidden;
 }
@@ -639,8 +640,8 @@ onUnmounted(() => {
     min-width: 200px;
     padding: 10px 14px;
     font-size: 14px;
-    font-family: 'Inter', sans-serif;
-    border: 1px solid #e0e0e0;
+    font-family: var(--font-family-base, 'Open Sans', sans-serif);
+    border: 1px solid var(--color-border, #e0e0e0);
     border-radius: 5px;
     box-sizing: border-box;
 }
@@ -663,7 +664,7 @@ onUnmounted(() => {
     text-align: center;
     font-size: 14px;
     color: #666;
-    font-family: 'Inter', sans-serif;
+    font-family: var(--font-family-base, 'Open Sans', sans-serif);
 }
 
 .merge-list-title {
@@ -702,9 +703,9 @@ onUnmounted(() => {
 
 .merge-unmerge-btn {
     font-size: 12px;
-    color: #1946A0;
+    color: var(--color-primary, #1946A0);
     background: none;
-    border: 1px solid #1946A0;
+    border: 1px solid var(--color-primary, #1946A0);
     border-radius: 4px;
     padding: 6px 12px;
     cursor: pointer;
@@ -718,7 +719,7 @@ onUnmounted(() => {
 .merge-problems-list-scroll {
     max-height: calc(10 * 4rem);
     overflow-y: auto;
-    border: 1px solid #e0e0e0;
+    border: 1px solid var(--color-border, #e0e0e0);
     border-radius: 5px;
     -webkit-overflow-scrolling: touch;
 }
@@ -733,15 +734,15 @@ onUnmounted(() => {
     display: flex;
     flex-direction: column;
     gap: 0;
-    border: 1px solid #e0e0e0;
+    border: 1px solid var(--color-border, #e0e0e0);
     border-radius: 5px;
     overflow: hidden;
 }
 
 .merge-problem-item {
     padding: 16px;
-    border-bottom: 1px solid #e0e0e0;
-    background: #fff;
+    border-bottom: 1px solid var(--color-border, #e0e0e0);
+    background: var(--color-white, #fff);
     transition: background-color 0.2s;
 }
 
@@ -758,7 +759,7 @@ onUnmounted(() => {
 }
 
 .merge-problem-item.merge-group-end-current {
-    border-bottom: 2px solid #1946A0 !important;
+    border-bottom: 2px solid var(--color-primary, #1946A0) !important;
 }
 
 .merge-problem-item:hover {
@@ -767,7 +768,7 @@ onUnmounted(() => {
 
 .merge-problem-item-current-group {
     background-color: #e8eef7;
-    border-left: 4px solid #1946A0;
+    border-left: 4px solid var(--color-primary, #1946A0);
 }
 
 .merge-problem-item-current-group:hover {
@@ -784,8 +785,8 @@ onUnmounted(() => {
 
 .merge-problem-text {
     font-size: 16px;
-    color: #333;
-    font-family: 'Inter', sans-serif;
+    color: var(--color-text, #333);
+    font-family: var(--font-family-base, 'Open Sans', sans-serif);
     line-height: 1.5;
     font-weight: 400;
 }
@@ -807,8 +808,8 @@ onUnmounted(() => {
 
 .merge-select-all-text {
     font-size: 16px;
-    color: #333;
-    font-family: 'Inter', sans-serif;
+    color: var(--color-text, #333);
+    font-family: var(--font-family-base, 'Open Sans', sans-serif);
     font-weight: 400;
 }
 

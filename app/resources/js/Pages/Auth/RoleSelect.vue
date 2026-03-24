@@ -60,7 +60,7 @@ const selectRole = (roleId) => {
 .role-btn {
     width: 100%;
     padding: 14px 20px;
-    background: #1946a0;
+    background: var(--color-primary, #1946A0);
     color: #fff;
     border: none;
     border-radius: 10px;

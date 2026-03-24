@@ -231,8 +231,31 @@ const navOpen = ref(false)
 }
 
 @media (max-width: 767px) {
+    .landing-logo {
+        font-size: clamp(1.5rem, 4.5vw, 1.85rem);
+        letter-spacing: -0.01em;
+    }
+
     .landing-menu-btn {
         display: inline-flex;
+        width: 56px;
+        height: 56px;
+        border-radius: 14px;
+    }
+
+    .landing-menu-icon,
+    .landing-menu-icon::before,
+    .landing-menu-icon::after {
+        width: 24px;
+        height: 2.5px;
+    }
+
+    .landing-menu-icon::before {
+        top: -8px;
+    }
+
+    .landing-menu-icon::after {
+        top: 8px;
     }
 
     .landing-nav {
@@ -244,7 +267,7 @@ const navOpen = ref(false)
         flex-direction: column;
         align-items: stretch;
         gap: 0;
-        padding: 8px 0 16px;
+        padding: 10px 0 16px;
         background: var(--lp-primary, #1946a0);
         box-shadow: 0 12px 24px rgba(0, 0, 0, 0.15);
         z-index: 1001;
@@ -259,8 +282,9 @@ const navOpen = ref(false)
     }
 
     .landing-link {
-        padding: 14px 1rem;
+        padding: 16px 1rem;
         border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+        font-size: 1.05rem;
     }
 
     .landing-header-fixed-bar--light .landing-link {

@@ -39,7 +39,15 @@ export function useKaunasMap(containerRef, problemsToShowRef, options = {}) {
     let markersLayer = null
     let initialized = false
     let removeNavListener = null
+    let resizeObserver = null
     const markersById = {}
+
+    function scheduleInvalidateSize() {
+        if (!map) return
+        requestAnimationFrame(() => {
+            if (map) map.invalidateSize({ animate: false })
+        })
+    }
 
     const getMergedSet = () => {
         const raw = unref(mergedProblemIds)
@@ -158,10 +166,20 @@ export function useKaunasMap(containerRef, problemsToShowRef, options = {}) {
         map.on('zoomend', zoomHandler)
         removeZoomListener = () => { if (map) map.off('zoomend', zoomHandler) }
         updateMarkers()
-        setTimeout(() => { if (map) map.invalidateSize() }, invalidateSizeDelay)
+        setTimeout(scheduleInvalidateSize, invalidateSizeDelay)
+        setTimeout(scheduleInvalidateSize, 400)
+
+        if (typeof ResizeObserver !== 'undefined' && containerRef.value) {
+            resizeObserver = new ResizeObserver(() => scheduleInvalidateSize())
+            resizeObserver.observe(containerRef.value)
+        }
     }
 
     function cleanup() {
+        if (resizeObserver) {
+            resizeObserver.disconnect()
+            resizeObserver = null
+        }
         if (removeZoomListener) {
             removeZoomListener()
             removeZoomListener = null

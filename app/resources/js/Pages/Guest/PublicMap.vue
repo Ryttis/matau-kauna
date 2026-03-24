@@ -129,11 +129,16 @@ function openProblemView(problemId) {
 <style scoped>
 .landing {
     height: 100vh;
+    height: 100dvh;
     display: flex;
     flex-direction: column;
     background: #fff;
-    font-family: 'Open Sans', sans-serif;
+    font-family: var(--font-family-base, 'Open Sans', sans-serif);
     overflow: hidden;
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
 }
 
 .public-map-toolbar {
@@ -199,6 +204,7 @@ function openProblemView(problemId) {
     grid-template-rows: 1fr;
     gap: 1rem;
     min-height: 0;
+    min-width: 0;
     max-width: 1200px;
     margin: 0 auto;
     width: 100%;
@@ -208,8 +214,10 @@ function openProblemView(problemId) {
 
 @media (max-width: 900px) {
     .public-map-layout {
-        grid-template-columns: 1fr;
+        grid-template-columns: minmax(0, 1fr);
         max-width: none;
+        padding-left: max(1rem, env(safe-area-inset-left));
+        padding-right: max(1rem, env(safe-area-inset-right));
     }
 }
 
@@ -217,7 +225,11 @@ function openProblemView(problemId) {
     display: flex;
     flex-direction: column;
     min-height: 0;
+    min-width: 0;
+    width: 100%;
+    max-width: 100%;
     background: #fafafa;
+    overflow: hidden;
 }
 
 .public-map-wrap :deep(.kaunas-map-container) {
@@ -225,10 +237,34 @@ function openProblemView(problemId) {
 }
 
 .public-map-list {
-    background: #f6f7f9;
+    background: var(--color-bg-subtle, #f6f7f9);
     padding: 1.25rem 1rem 1.5rem;
     overflow-y: auto;
+    overflow-x: hidden;
     min-height: 0;
+    min-width: 0;
+    width: 100%;
+    max-width: 100%;
     box-sizing: border-box;
+}
+
+@media (max-width: 767px) {
+    .public-map-toolbar-inner {
+        padding-left: max(1rem, env(safe-area-inset-left));
+        padding-right: max(1rem, env(safe-area-inset-right));
+    }
+
+    .public-map-search {
+        max-width: none;
+    }
+
+    .public-map-layout {
+        gap: 0.75rem;
+        padding-bottom: 0;
+    }
+
+    .public-map-wrap :deep(.kaunas-map-container) {
+        max-height: min(50vh, 420px);
+    }
 }
 </style>

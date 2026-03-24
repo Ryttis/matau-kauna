@@ -47,7 +47,7 @@
     min-height: 420px;
     width: 100%;
     max-width: 100%;
-    margin: calc(88px - 293px) auto 0;
+    margin: calc(80px - 293px) auto 0;
     margin-bottom: 0.5rem;
     box-sizing: border-box;
     opacity: 1;
@@ -55,7 +55,7 @@
 
 @media (min-width: 1280px) {
     .landing-hero-block {
-        margin-top: calc(88px - 293px);
+        margin-top: calc(80px - 293px);
         margin-left: 3.75rem;
         margin-right: 5rem;
         width: calc(100% - 3.75rem - 5rem);
@@ -74,7 +74,7 @@
 
 @media (min-width: 900px) and (max-height: 900px) {
     .landing-hero-block {
-        margin-top: calc(88px - 260px);
+        margin-top: calc(80px - 260px);
     }
 }
 
@@ -87,7 +87,7 @@
         max-width: calc(100% - 3.75rem - 5rem);
         height: 563px;
         min-height: 563px;
-        margin-top: calc(88px - 293px);
+        margin-top: calc(80px - 293px);
         margin-left: 3.75rem;
         margin-right: 5rem;
     }
@@ -322,6 +322,67 @@
         height: 42px;
         max-width: 237px;
         object-fit: contain;
+    }
+}
+
+@media (max-width: 767px) {
+    .landing-hero-block {
+        border-radius: 28px;
+        padding: 2rem 1rem 2rem;
+        min-height: 0;
+    }
+
+    .landing-hero-phone {
+        max-width: 280px;
+        width: 78%;
+    }
+
+    .landing-hero-phone-wrap {
+        min-height: 240px;
+    }
+
+    .landing-hero-taglines-wrap {
+        position: relative;
+        z-index: 4;
+        width: 100%;
+        gap: 0.9rem;
+    }
+
+    .landing-hero-tagline {
+        min-width: 0;
+        max-width: none;
+        width: 100%;
+        padding: 1rem 1.25rem;
+        font-size: 1.35rem;
+        font-weight: 600;
+    }
+
+    .landing-hero-title {
+        font-size: clamp(1.65rem, 6.5vw, 2.1rem);
+        line-height: 1.2;
+    }
+
+    .landing-hero-desc {
+        font-size: 1.0625rem;
+        line-height: 1.45;
+        max-width: 100%;
+    }
+
+    .landing-hero-content-bottom,
+    .landing-hero-buttons {
+        width: 100%;
+        align-items: center;
+    }
+
+    .landing-dl-btn {
+        width: 100%;
+        display: flex;
+        justify-content: center;
+    }
+
+    .landing-dl-btn-img {
+        max-width: 250px;
+        height: 62px;
     }
 }
 </style>

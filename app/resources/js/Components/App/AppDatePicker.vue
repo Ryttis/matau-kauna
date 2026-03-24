@@ -238,7 +238,7 @@ defineExpose({ open, close })
     font-size: 16px;
     font-weight: 600;
     color: #333;
-    font-family: 'Inter', sans-serif;
+    font-family: var(--font-family-base, 'Open Sans', sans-serif);
 }
 
 .app-date-picker-trigger-wrap {
@@ -255,7 +255,7 @@ defineExpose({ open, close })
     border: 1px solid #e0e0e0;
     border-radius: 15px;
     font-size: 16px;
-    font-family: 'Inter', sans-serif;
+    font-family: var(--font-family-base, 'Open Sans', sans-serif);
     color: #333;
     background-color: #f9f9f9;
     box-sizing: border-box;
@@ -318,7 +318,7 @@ defineExpose({ open, close })
     box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
     padding: 12px;
     min-width: 240px;
-    font-family: 'Inter', sans-serif;
+    font-family: var(--font-family-base, 'Open Sans', sans-serif);
 }
 
 .app-date-picker-nav {

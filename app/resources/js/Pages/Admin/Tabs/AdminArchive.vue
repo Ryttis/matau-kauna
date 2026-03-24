@@ -384,9 +384,9 @@ onMounted(load)
     color: #333;
 }
 .tab.active {
-    color: #1946a0;
+    color: var(--color-primary, #1946A0);
     font-weight: 600;
-    border-bottom-color: #1946a0;
+    border-bottom-color: var(--color-primary, #1946A0);
 }
 .table-wrap {
     overflow-x: auto;

@@ -301,7 +301,7 @@ function confirmDeleteReviewAttachment() {
     height: var(--button-height);
     padding: 9px 24px;
     border-radius: var(--button-border-radius);
-    font-family: 'Open Sans', sans-serif;
+    font-family: var(--font-family-base, 'Open Sans', sans-serif);
 }
 
 .review-progress-header-info {
@@ -324,14 +324,14 @@ function confirmDeleteReviewAttachment() {
 .review-progress-header-label {
     font-size: 14px;
     color: #666;
-    font-family: 'Inter', sans-serif;
+    font-family: var(--font-family-base, 'Open Sans', sans-serif);
 }
 
 .review-progress-header-value {
     font-size: 16px;
     font-weight: 600;
     color: #333;
-    font-family: 'Inter', sans-serif;
+    font-family: var(--font-family-base, 'Open Sans', sans-serif);
 }
 
 .review-progress-status-section {
@@ -383,14 +383,14 @@ function confirmDeleteReviewAttachment() {
     font-size: 16px;
     font-weight: 600;
     color: #333;
-    font-family: 'Inter', sans-serif;
+    font-family: var(--font-family-base, 'Open Sans', sans-serif);
     margin-bottom: 12px;
 }
 
 .review-progress-description-text {
     font-size: 16px;
     color: #333;
-    font-family: 'Inter', sans-serif;
+    font-family: var(--font-family-base, 'Open Sans', sans-serif);
     line-height: 1.5;
     white-space: pre-wrap;
 }
@@ -401,7 +401,7 @@ function confirmDeleteReviewAttachment() {
     font-weight: 400;
     color: #333333;
     margin: 0;
-    font-family: 'Inter', sans-serif;
+    font-family: var(--font-family-base, 'Open Sans', sans-serif);
 }
 
 .review-progress-content {
@@ -438,8 +438,8 @@ function confirmDeleteReviewAttachment() {
     padding: 0;
     font-size: 15px;
     font-weight: 600;
-    color: var(--color-primary, #1946a0);
-    font-family: 'Inter', sans-serif;
+    color: var(--color-primary, #1946A0);
+    font-family: var(--font-family-base, 'Open Sans', sans-serif);
     cursor: pointer;
     text-decoration: none;
 }
@@ -451,14 +451,14 @@ function confirmDeleteReviewAttachment() {
 .review-progress-date {
     font-size: 16px;
     color: #333333;
-    font-family: 'Inter', sans-serif;
+    font-family: var(--font-family-base, 'Open Sans', sans-serif);
     font-weight: 400;
 }
 
 .review-progress-time {
     font-size: 16px;
     color: #333333;
-    font-family: 'Inter', sans-serif;
+    font-family: var(--font-family-base, 'Open Sans', sans-serif);
     font-weight: 400;
 }
 
@@ -471,14 +471,14 @@ function confirmDeleteReviewAttachment() {
 .review-progress-status {
     font-size: 16px;
     color: #333333;
-    font-family: 'Inter', sans-serif;
+    font-family: var(--font-family-base, 'Open Sans', sans-serif);
     font-weight: 400;
 }
 
 .review-progress-responsible {
     font-size: 16px;
     color: #333333;
-    font-family: 'Inter', sans-serif;
+    font-family: var(--font-family-base, 'Open Sans', sans-serif);
     font-weight: 400;
 }
 
@@ -521,14 +521,14 @@ function confirmDeleteReviewAttachment() {
 .review-progress-comment-label {
     font-size: 16px;
     color: #333333;
-    font-family: 'Inter', sans-serif;
+    font-family: var(--font-family-base, 'Open Sans', sans-serif);
     font-weight: 400;
 }
 
 .review-progress-comment-text {
     font-size: 16px;
     color: #333333;
-    font-family: 'Inter', sans-serif;
+    font-family: var(--font-family-base, 'Open Sans', sans-serif);
     font-weight: 400;
     min-height: 20px;
     padding-bottom: 4px;
@@ -545,7 +545,7 @@ function confirmDeleteReviewAttachment() {
     font-weight: 600;
     color: #333;
     margin-bottom: 10px;
-    font-family: 'Inter', sans-serif;
+    font-family: var(--font-family-base, 'Open Sans', sans-serif);
 }
 
 .review-progress-attachments-grid {
@@ -568,7 +568,7 @@ function confirmDeleteReviewAttachment() {
     padding: 4px 10px;
     font-size: 12px;
     font-weight: 600;
-    font-family: 'Inter', sans-serif;
+    font-family: var(--font-family-base, 'Open Sans', sans-serif);
     color: #fff;
     background: rgba(0, 0, 0, 0.65);
     border: none;
@@ -613,7 +613,7 @@ function confirmDeleteReviewAttachment() {
     padding: 40px;
     color: #999;
     font-size: 16px;
-    font-family: 'Inter', sans-serif;
+    font-family: var(--font-family-base, 'Open Sans', sans-serif);
 }
 
 </style>

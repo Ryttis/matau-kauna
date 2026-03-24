@@ -198,12 +198,12 @@ onMounted(async () => {
 }
 
 .subtab:hover {
-    color: #1946a0;
+    color: var(--color-primary, #1946A0);
 }
 
 .subtab.active {
-    color: #1946a0;
-    box-shadow: 0 2px 0 0 #1946a0;
+    color: var(--color-primary, #1946A0);
+    box-shadow: 0 2px 0 0 var(--color-primary, #1946A0);
 }
 
 .panel {

@@ -151,7 +151,7 @@ const wrapperClass = computed(() => {
     font-size: 16px;
     font-weight: 600;
     color: #333;
-    font-family: 'Inter', sans-serif;
+    font-family: var(--font-family-base, 'Open Sans', sans-serif);
 }
 
 .app-input-wrapper-edit {

@@ -79,11 +79,11 @@ const subTabs = [
     border-bottom: 3px solid transparent;
 }
 .subtab:hover {
-    color: #1946a0;
+    color: var(--color-primary, #1946A0);
 }
 .subtab.active {
-    color: #1946a0;
-    border-bottom-color: #1946a0;
+    color: var(--color-primary, #1946A0);
+    border-bottom-color: var(--color-primary, #1946A0);
 }
 .panel {
     background: #ffffff;

@@ -56,7 +56,7 @@ const emit = defineEmits(['close'])
     font-size: 18px;
     font-weight: 600;
     color: var(--color-text-muted, #333);
-    font-family: 'Inter', sans-serif;
+    font-family: var(--font-family-base, 'Open Sans', sans-serif);
     line-height: 1.4;
 }
 </style>

@@ -92,7 +92,11 @@ const formattedDate = computed(() => {
     display: flex;
     flex-direction: column;
     background: var(--color-white, #fff);
-    font-family: 'Open Sans', sans-serif;
+    font-family: var(--font-family-base, 'Open Sans', sans-serif);
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
 }
 
 .public-problem-main {
@@ -100,7 +104,8 @@ const formattedDate = computed(() => {
     max-width: 1200px;
     margin: 0 auto;
     width: 100%;
-    padding: 2rem 1rem 3rem;
+    min-width: 0;
+    padding: 2rem max(1rem, env(safe-area-inset-left)) 3rem max(1rem, env(safe-area-inset-right));
     box-sizing: border-box;
 }
 

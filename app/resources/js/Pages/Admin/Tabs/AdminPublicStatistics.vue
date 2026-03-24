@@ -179,7 +179,7 @@ onMounted(load)
     margin: 0 0 24px 0;
 }
 .intro a {
-    color: #1946a0;
+    color: var(--color-primary, #1946A0);
 }
 .error {
     color: #b91c1c;

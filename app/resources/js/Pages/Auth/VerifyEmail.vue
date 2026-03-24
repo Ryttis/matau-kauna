@@ -51,7 +51,7 @@ const resend = () => {
     display: flex;
     flex-direction: column;
     background: #fff;
-    font-family: 'Open Sans', sans-serif;
+    font-family: var(--font-family-base, 'Open Sans', sans-serif);
 }
 
 .verify-email-main {

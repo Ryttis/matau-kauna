@@ -29,7 +29,7 @@ defineProps({
     width: 100%;
     border-collapse: collapse;
     font-size: var(--table-header-font-size);
-    font-family: 'Inter', sans-serif;
+    font-family: var(--font-family-base, 'Open Sans', sans-serif);
 }
 
 .app-data-table :deep(th),

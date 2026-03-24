@@ -1,13 +1,13 @@
 <script setup>
 import { computed } from 'vue'
-import { PROBLEM_STATUS_LABELS, getStatusBadgeStyle } from '@/constants/problemStatus'
+import { PROBLEM_STATUS, PROBLEM_STATUS_LABELS, getStatusBadgeStyle } from '@/constants/problemStatus'
 
 const props = defineProps({
     status: { type: String, default: '' },
 })
 
 const label = computed(() => PROBLEM_STATUS_LABELS[props.status] || 'Neužregistruota')
-const badgeStyle = computed(() => getStatusBadgeStyle(props.status || 'neuzregistruota'))
+const badgeStyle = computed(() => getStatusBadgeStyle(props.status || PROBLEM_STATUS.UNREGISTERED))
 </script>
 
 <template>

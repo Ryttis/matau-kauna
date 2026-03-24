@@ -88,4 +88,33 @@ import { ICON_QUESTION } from '@/constants/icons'
     color: #fff;
     text-align: right;
 }
+
+@media (max-width: 767px) {
+    .landing-footer {
+        padding-left: max(0, env(safe-area-inset-left));
+        padding-right: max(0, env(safe-area-inset-right));
+    }
+
+    .landing-footer-inner {
+        flex-direction: column;
+        align-items: flex-start;
+        padding-left: max(1rem, env(safe-area-inset-left));
+        padding-right: max(1rem, env(safe-area-inset-right));
+    }
+
+    .landing-footer-right {
+        align-items: flex-start;
+        width: 100%;
+    }
+
+    .landing-footer-nav {
+        justify-content: flex-start;
+        column-gap: 1rem;
+        row-gap: 0.75rem;
+    }
+
+    .landing-footer-copy {
+        text-align: left;
+    }
+}
 </style>

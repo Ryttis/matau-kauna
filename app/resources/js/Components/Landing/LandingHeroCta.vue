@@ -83,4 +83,23 @@ import { Link } from '@inertiajs/vue3'
 .landing-hero-cta__btn:hover {
     opacity: 0.9;
 }
+
+@media (max-width: 767px) {
+    .landing-hero-cta {
+        height: auto;
+        min-height: 100px;
+        padding: 0.75rem 1rem;
+        border-radius: 28px;
+    }
+
+    .landing-hero-cta__btn {
+        width: 100%;
+        max-width: 560px;
+        padding: 14px 20px;
+        text-align: center;
+        font-size: clamp(1.05rem, 4.2vw, 1.35rem);
+        font-weight: 600;
+        line-height: 1.15;
+    }
+}
 </style>
