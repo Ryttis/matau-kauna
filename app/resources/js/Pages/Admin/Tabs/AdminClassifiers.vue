@@ -602,7 +602,7 @@ async function removeNature(nature) {
 .link-btn {
     background: none;
     border: none;
-    color: #1946A0;
+    color: var(--color-primary, #1946A0);
     cursor: pointer;
     text-decoration: underline;
     font-size: 14px;

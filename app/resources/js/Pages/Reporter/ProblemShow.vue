@@ -249,7 +249,7 @@ async function onAttachInputChange(e) {
     max-width: 1200px;
     margin: 0 auto;
     width: 100%;
-    font-family: 'Open Sans', sans-serif;
+    font-family: var(--font-family-base, 'Open Sans', sans-serif);
 }
 
 .reporter-problem-detail {
@@ -411,8 +411,8 @@ async function onAttachInputChange(e) {
 }
 
 .reporter-add-cell:hover:not(:disabled) {
-    border-color: var(--color-primary, #1946a0);
-    color: var(--color-primary, #1946a0);
+    border-color: var(--color-primary, #1946A0);
+    color: var(--color-primary, #1946A0);
     background: #f5f7fc;
 }
 
@@ -426,14 +426,14 @@ async function onAttachInputChange(e) {
     font-size: 13px;
     line-height: 1.45;
     color: #777;
-    font-family: 'Open Sans', sans-serif;
+    font-family: var(--font-family-base, 'Open Sans', sans-serif);
 }
 
 .reporter-priedai-hint-error {
     margin: 8px 0 0;
     font-size: 12px;
     color: #c0392b;
-    font-family: 'Open Sans', sans-serif;
+    font-family: var(--font-family-base, 'Open Sans', sans-serif);
 }
 
 @media (max-width: 768px) {

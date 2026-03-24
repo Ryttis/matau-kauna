@@ -203,7 +203,7 @@ const updatePassword = () => {
     align-items: center !important;
     justify-content: center !important;
     align-self: flex-start !important;
-    font-family: 'Open Sans', sans-serif !important;
+    font-family: var(--font-family-base, 'Open Sans', sans-serif) !important;
     font-weight: 400 !important;
 }
 

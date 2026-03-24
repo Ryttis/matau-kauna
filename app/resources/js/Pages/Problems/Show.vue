@@ -378,14 +378,14 @@ const assignmentInfo = computed(() => {
 .header-label {
     font-size: 14px;
     color: #666;
-    font-family: 'Inter', sans-serif;
+    font-family: var(--font-family-base, 'Open Sans', sans-serif);
 }
 
 .header-value {
     font-size: 16px;
     font-weight: 600;
     color: #333;
-    font-family: 'Inter', sans-serif;
+    font-family: var(--font-family-base, 'Open Sans', sans-serif);
 }
 
 .problem-status-section {
@@ -458,7 +458,7 @@ const assignmentInfo = computed(() => {
     font-size: 16px;
     font-weight: 600;
     color: #333;
-    font-family: 'Inter', sans-serif;
+    font-family: var(--font-family-base, 'Open Sans', sans-serif);
 }
 
 
@@ -489,7 +489,7 @@ const assignmentInfo = computed(() => {
     justify-content: center;
     color: #999;
     font-size: 16px;
-    font-family: 'Inter', sans-serif;
+    font-family: var(--font-family-base, 'Open Sans', sans-serif);
 }
 
 .review-progress-section {
@@ -510,7 +510,7 @@ const assignmentInfo = computed(() => {
     font-size: 16px;
     font-weight: 400;
     color: #333333;
-    font-family: 'Inter', sans-serif;
+    font-family: var(--font-family-base, 'Open Sans', sans-serif);
 }
 
 .review-progress-arrow {
@@ -546,7 +546,7 @@ const assignmentInfo = computed(() => {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    font-family: 'Open Sans', sans-serif;
+    font-family: var(--font-family-base, 'Open Sans', sans-serif);
     font-size: 16px;
     font-weight: 400;
     line-height: 1.4;

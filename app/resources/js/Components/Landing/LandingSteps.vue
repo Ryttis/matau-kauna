@@ -106,4 +106,25 @@
     margin: 0;
     line-height: 1.55;
 }
+
+@media (max-width: 767px) {
+    .landing-section-title {
+        font-size: clamp(1.5rem, 5.5vw, 1.85rem);
+        line-height: 1.25;
+    }
+
+    .landing-section-desc {
+        font-size: clamp(1.05rem, 3.8vw, 1.15rem);
+        line-height: 1.45;
+        margin-bottom: 2rem;
+    }
+
+    .landing-step-title {
+        font-size: 1.0625rem;
+    }
+
+    .landing-step-desc {
+        font-size: 1rem;
+    }
+}
 </style>

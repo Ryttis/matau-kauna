@@ -205,7 +205,7 @@ watch([periodFilter, categoryFilter], fetchData)
     display: flex;
     flex-direction: column;
     background: #f5f5f5;
-    font-family: 'Open Sans', sans-serif;
+    font-family: var(--font-family-base, 'Open Sans', sans-serif);
 }
 
 .public-statistics-main {
@@ -393,5 +393,22 @@ watch([periodFilter, categoryFilter], fetchData)
     margin-top: 6px;
     font-size: 0.75rem;
     color: #666;
+}
+
+@media (max-width: 767px) {
+    .public-statistics-inner {
+        padding-left: max(1rem, env(safe-area-inset-left));
+        padding-right: max(1rem, env(safe-area-inset-right));
+    }
+
+    .filters-section {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .filter-select {
+        min-width: 0;
+        width: 100%;
+    }
 }
 </style>

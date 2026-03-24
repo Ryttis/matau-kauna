@@ -109,7 +109,7 @@ const submit = () => {
     display: flex;
     flex-direction: column;
     background: #f5f6f8;
-    font-family: 'Open Sans', sans-serif;
+    font-family: var(--font-family-base, 'Open Sans', sans-serif);
 }
 
 .login-page-main {
@@ -123,7 +123,7 @@ const submit = () => {
 
 .login-status {
     margin-bottom: 1rem;
-    color: #1946A0;
+    color: var(--color-primary, #1946A0);
     font-size: 0.95rem;
 }
 
@@ -171,7 +171,7 @@ const submit = () => {
 }
 
 .login-form-forgot:hover {
-    color: #1946A0;
+    color: var(--color-primary, #1946A0);
 }
 
 .login-form-el-vartai {

@@ -6,12 +6,7 @@ import AppCheckbox from '@/Components/App/AppCheckbox.vue'
 import AppInput from '@/Components/App/AppInput.vue'
 import AppSelect from '@/Components/App/AppSelect.vue'
 import AppDatePicker from '@/Components/App/AppDatePicker.vue'
-
-const PUBLIC_STATUS_OPTIONS = [
-    { value: 'nauja', label: 'Nauja' },
-    { value: 'nagrinejama', label: 'Nagrinėjama' },
-    { value: 'isspresta', label: 'Išspręsta' },
-]
+import { PUBLIC_PROBLEM_STATUS_OPTIONS } from '@/constants/problemStatus'
 
 const props = defineProps({
     show: Boolean,
@@ -132,7 +127,7 @@ const handleClose = () => {
                 <label class="filter-label">Būsena</label>
                 <div class="filter-status-checkboxes">
                     <label
-                        v-for="opt in PUBLIC_STATUS_OPTIONS"
+                        v-for="opt in PUBLIC_PROBLEM_STATUS_OPTIONS"
                         :key="opt.value"
                         class="filter-checkbox-label"
                     >
@@ -230,7 +225,7 @@ const handleClose = () => {
     font-size: 16px;
     font-weight: 600;
     color: #333333;
-    font-family: 'Inter', sans-serif;
+    font-family: var(--font-family-base, 'Open Sans', sans-serif);
     line-height: 1.5;
 }
 

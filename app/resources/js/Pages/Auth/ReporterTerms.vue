@@ -86,7 +86,7 @@ const submit = () => {
     display: flex;
     flex-direction: column;
     background: #fff;
-    font-family: 'Open Sans', sans-serif;
+    font-family: var(--font-family-base, 'Open Sans', sans-serif);
 }
 
 .reporter-terms-main {
@@ -150,7 +150,7 @@ const submit = () => {
 }
 
 .reporter-terms-link:hover {
-    color: #1946A0;
+    color: var(--color-primary, #1946A0);
 }
 
 .reporter-terms-form {
@@ -172,7 +172,7 @@ const submit = () => {
     margin-top: 0.2rem;
     width: 18px;
     height: 18px;
-    accent-color: #1946A0;
+    accent-color: var(--color-primary, #1946A0);
 }
 
 .reporter-terms-checkbox-text {

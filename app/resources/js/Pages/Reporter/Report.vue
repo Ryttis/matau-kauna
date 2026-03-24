@@ -508,7 +508,7 @@ function openCancelModal() {
 .reporter-report-page {
     min-height: 60vh;
     padding: 24px;
-    font-family: 'Open Sans', sans-serif;
+    font-family: var(--font-family-base, 'Open Sans', sans-serif);
 }
 
 .reporter-report-card {
@@ -600,7 +600,7 @@ function openCancelModal() {
 
 .reporter-report-textarea:focus {
     outline: none;
-    border-color: #1946a0;
+    border-color: var(--color-primary, #1946A0);
 }
 
 .reporter-report-photo-wrap {
@@ -618,7 +618,7 @@ function openCancelModal() {
 }
 
 .reporter-report-photo-wrap:hover {
-    border-color: #1946a0;
+    border-color: var(--color-primary, #1946A0);
     background: #f9fafb;
 }
 

@@ -85,7 +85,7 @@ const value = computed({
     font-size: 16px;
     font-weight: 600;
     color: #333333;
-    font-family: 'Inter', sans-serif;
+    font-family: var(--font-family-base, 'Open Sans', sans-serif);
     line-height: 1.5;
     margin-bottom: 0;
 }
@@ -102,7 +102,7 @@ const value = computed({
     border: none;
     border-radius: 15px;
     font-size: 16px;
-    font-family: 'Inter', sans-serif;
+    font-family: var(--font-family-base, 'Open Sans', sans-serif);
     color: var(--color-white, #ffffff);
     background-color: var(--color-primary);
     cursor: pointer;

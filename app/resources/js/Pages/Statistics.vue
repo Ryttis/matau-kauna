@@ -139,7 +139,7 @@ const downloadReport = () => {
                             <svg width="100" height="20" viewBox="0 0 100 20">
                                 <polyline points="0,15 20,12 40,10 60,8 80,5 100,3"
                                     fill="none"
-                                    stroke="#1946A0"
+                                    stroke="currentColor"
                                     stroke-width="2"/>
                             </svg>
                         </div>
@@ -152,7 +152,7 @@ const downloadReport = () => {
                             <svg width="100" height="20" viewBox="0 0 100 20">
                                 <polyline points="0,15 20,12 40,10 60,8 80,5 100,3"
                                     fill="none"
-                                    stroke="#1946A0"
+                                    stroke="currentColor"
                                     stroke-width="2"/>
                             </svg>
                         </div>
@@ -165,7 +165,7 @@ const downloadReport = () => {
                             <svg width="100" height="20" viewBox="0 0 100 20">
                                 <polyline points="0,15 20,12 40,10 60,8 80,5 100,3"
                                     fill="none"
-                                    stroke="#1946A0"
+                                    stroke="currentColor"
                                     stroke-width="2"/>
                             </svg>
                         </div>
@@ -178,7 +178,7 @@ const downloadReport = () => {
                             <svg width="100" height="20" viewBox="0 0 100 20">
                                 <polyline points="0,15 20,12 40,10 60,8 80,5 100,3"
                                     fill="none"
-                                    stroke="#1946A0"
+                                    stroke="currentColor"
                                     stroke-width="2"/>
                             </svg>
                         </div>
@@ -191,7 +191,7 @@ const downloadReport = () => {
                             <svg width="100" height="20" viewBox="0 0 100 20">
                                 <polyline points="0,15 20,12 40,10 60,8 80,5 100,3"
                                     fill="none"
-                                    stroke="#1946A0"
+                                    stroke="currentColor"
                                     stroke-width="2"/>
                             </svg>
                         </div>
@@ -204,7 +204,7 @@ const downloadReport = () => {
                             <svg width="100" height="20" viewBox="0 0 100 20">
                                 <polyline points="0,15 20,12 40,10 60,8 80,5 100,3"
                                     fill="none"
-                                    stroke="#1946A0"
+                                    stroke="currentColor"
                                     stroke-width="2"/>
                             </svg>
                         </div>
@@ -292,7 +292,7 @@ const downloadReport = () => {
     font-weight: 600;
     color: #333;
     margin: 0;
-    font-family: 'Open Sans', sans-serif;
+    font-family: var(--font-family-base, 'Open Sans', sans-serif);
 }
 
 .download-header-btn {
@@ -301,12 +301,12 @@ const downloadReport = () => {
     gap: 8px;
     padding: 8px 16px;
     background: transparent;
-    border: 1px solid #1946A0;
+    border: 1px solid var(--color-primary, #1946A0);
     border-radius: 5px;
     color: #333333;
     font-size: 14px;
     cursor: pointer;
-    font-family: 'Open Sans', sans-serif;
+    font-family: var(--font-family-base, 'Open Sans', sans-serif);
     transition: all 0.2s;
 }
 
@@ -371,7 +371,7 @@ const downloadReport = () => {
     color: #666;
     margin: 0 0 12px 0;
     font-weight: 400;
-    font-family: 'Open Sans', sans-serif;
+    font-family: var(--font-family-base, 'Open Sans', sans-serif);
 }
 
 .kpi-value {
@@ -379,7 +379,7 @@ const downloadReport = () => {
     font-weight: 600;
     color: #333;
     margin: 0 0 8px 0;
-    font-family: 'Open Sans', sans-serif;
+    font-family: var(--font-family-base, 'Open Sans', sans-serif);
 }
 
 .kpi-mini-chart {
@@ -387,6 +387,7 @@ const downloadReport = () => {
     height: 20px;
     display: flex;
     align-items: flex-end;
+    color: var(--color-primary, #1946A0);
 }
 
 .kpi-mini-chart svg {
@@ -413,7 +414,7 @@ const downloadReport = () => {
     font-size: 18px;
     font-weight: 600;
     margin: 0;
-    font-family: 'Open Sans', sans-serif;
+    font-family: var(--font-family-base, 'Open Sans', sans-serif);
     color: #333;
 }
 
@@ -463,7 +464,7 @@ const downloadReport = () => {
 
 .bar {
     width: 100%;
-    background: #1946A0;
+    background: var(--color-primary, #1946A0);
     border-radius: 4px 4px 0 0;
     min-height: 2px;
     transition: height 0.3s ease;

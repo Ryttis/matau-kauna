@@ -95,7 +95,7 @@ const submit = () => {
     width: 100%;
     padding: 12px;
     margin-top: 12px;
-    background: #1946a0;
+    background: var(--color-primary, #1946A0);
     color: #fff;
     border: none;
     border-radius: 8px;

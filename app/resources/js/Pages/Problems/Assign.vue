@@ -311,6 +311,9 @@ const toggleStatus = () => {
     max-width: 1200px;
     margin: 0 auto;
     padding: 20px;
+    min-width: 0;
+    width: 100%;
+    box-sizing: border-box;
 }
 
 .assign-header {
@@ -319,7 +322,7 @@ const toggleStatus = () => {
     gap: 16px;
     margin-bottom: 40px;
     padding-bottom: 20px;
-    border-bottom: 1px solid #e0e0e0;
+    border-bottom: 1px solid var(--color-border, #e0e0e0);
 }
 
 
@@ -328,20 +331,15 @@ const toggleStatus = () => {
     align-items: center;
     gap: 8px;
     flex: 1;
-}
-
-.assign-header {
-    display: flex;
-    align-items: center;
-    gap: 16px;
+    min-width: 0;
 }
 
 .assign-title {
     font-size: 24px;
     font-weight: 400;
-    color: #333333;
+    color: var(--color-text, #333333);
     margin: 0;
-    font-family: 'Inter', sans-serif;
+    min-width: 0;
 }
 
 .assign-title-icon-btn {
@@ -379,18 +377,19 @@ const toggleStatus = () => {
 .assign-empty-text {
     font-size: 16px;
     color: #999;
-    font-family: 'Inter', sans-serif;
 }
 
 .assign-content {
     display: flex;
     flex-direction: column;
     gap: 40px;
+    min-width: 0;
 }
 
 .assign-section {
     display: flex;
     flex-direction: column;
+    min-width: 0;
 }
 
 .assign-institutions-table-wrap :deep(table) {
@@ -403,7 +402,7 @@ const toggleStatus = () => {
 }
 
 .assign-institutions-table-wrap :deep(tbody tr) {
-    border-bottom: 1px solid #d0d0d0;
+    border-bottom: 1px solid var(--color-border, #d0d0d0);
 }
 
 .assign-institutions-table-wrap :deep(td) {
@@ -415,8 +414,7 @@ const toggleStatus = () => {
 .assign-institutions-table-wrap :deep(td:first-child) {
     padding-right: 12px;
     font-size: 16px;
-    color: #333333;
-    font-family: 'Inter', sans-serif;
+    color: var(--color-text, #333333);
 }
 
 .assign-institutions-table-wrap :deep(td:last-child) {
@@ -429,7 +427,7 @@ const toggleStatus = () => {
     cursor: pointer;
     width: 18px;
     height: 18px;
-    accent-color: #1946a0;
+    accent-color: var(--color-primary, #1946A0);
 }
 
 .assign-section-email {
@@ -447,8 +445,7 @@ const toggleStatus = () => {
 
 .assign-more-btn {
     font-size: 16px;
-    color: #333333;
-    font-family: 'Inter', sans-serif;
+    color: var(--color-text, #333333);
     margin-top: 12px;
     font-weight: 400;
     background: transparent;
@@ -473,8 +470,7 @@ const toggleStatus = () => {
 .assign-section-label {
     font-size: 16px;
     font-weight: 600;
-    color: #333333;
-    font-family: 'Inter', sans-serif;
+    color: var(--color-text, #333333);
     line-height: 1.5;
 }
 
@@ -505,22 +501,24 @@ const toggleStatus = () => {
     grid-template-columns: repeat(3, var(--button-width));
     gap: var(--button-grid-gap);
     margin-bottom: 20px;
+    min-width: 0;
+    width: 100%;
 }
 
 .assign-status-btn {
     width: 100%;
     padding: 9px 24px;
     min-height: var(--button-height);
-    background: #ffffff;
+    background: var(--color-white, #ffffff);
     border: 2px solid;
     border-radius: var(--button-border-radius);
     cursor: pointer;
     font-size: 16px;
-    color: #1E1C1C;
+    color: var(--color-text, #1E1C1C);
     transition: all 0.2s;
     user-select: none;
     text-align: center;
-    font-family: 'Open Sans', sans-serif;
+    font-family: var(--font-family-base, 'Open Sans', sans-serif);
     line-height: 150%;
     letter-spacing: -1.1%;
     font-weight: 400;
@@ -531,47 +529,47 @@ const toggleStatus = () => {
 }
 
 .assign-status-btn-new {
-    border-color: #D4A574;
+    border-color: var(--assign-status-new-border, #D4A574);
 }
 
 .assign-status-btn-new:hover {
-    border-color: #C8955F;
-    background-color: #FFF9F5;
+    border-color: var(--assign-status-new-active-border, #C8955F);
+    background-color: var(--assign-status-new-active-bg, #FFF9F5);
 }
 
 .assign-status-btn-new.assign-status-btn-active {
-    border-color: #C8955F;
-    background-color: #FFF9F5;
+    border-color: var(--assign-status-new-active-border, #C8955F);
+    background-color: var(--assign-status-new-active-bg, #FFF9F5);
     border-width: 3px;
 }
 
 .assign-status-btn-review {
-    border-color: #E0E0E0;
+    border-color: var(--assign-status-review-border, #E0E0E0);
 }
 
 .assign-status-btn-review:hover {
-    border-color: #BDBDBD;
-    background-color: #F5F5F5;
+    border-color: var(--assign-status-review-active-border, #BDBDBD);
+    background-color: var(--assign-status-review-active-bg, #F5F5F5);
 }
 
 .assign-status-btn-review.assign-status-btn-active {
-    border-color: #BDBDBD;
-    background-color: #F5F5F5;
+    border-color: var(--assign-status-review-active-border, #BDBDBD);
+    background-color: var(--assign-status-review-active-bg, #F5F5F5);
     border-width: 3px;
 }
 
 .assign-status-btn-returned {
-    border-color: #1946a0;
+    border-color: var(--assign-status-returned-border, #1946A0);
 }
 
 .assign-status-btn-returned:hover {
-    border-color: #153d8a;
-    background-color: #eef3fc;
+    border-color: var(--assign-status-returned-active-border, #153d8a);
+    background-color: var(--assign-status-returned-active-bg, #eef3fc);
 }
 
 .assign-status-btn-returned.assign-status-btn-active {
-    border-color: #153d8a;
-    background-color: #eef3fc;
+    border-color: var(--assign-status-returned-active-border, #153d8a);
+    background-color: var(--assign-status-returned-active-bg, #eef3fc);
     border-width: 3px;
 }
 
@@ -584,5 +582,74 @@ const toggleStatus = () => {
     height: var(--button-height);
     border-radius: var(--button-border-radius);
     padding: 9px 24px;
+}
+
+@media (max-width: 767px) {
+    .assign-page {
+        padding: 1rem max(1rem, env(safe-area-inset-right)) 1.25rem max(1rem, env(safe-area-inset-left));
+    }
+
+    .assign-header {
+        align-items: flex-start;
+        gap: 12px;
+        margin-bottom: 24px;
+        padding-bottom: 14px;
+    }
+
+    .assign-title-wrapper {
+        align-items: flex-start;
+    }
+
+    .assign-title {
+        font-size: clamp(1.55rem, 6.1vw, 2rem);
+        line-height: 1.2;
+        overflow-wrap: anywhere;
+    }
+
+    .assign-content {
+        gap: 28px;
+    }
+
+    .assign-institutions-table-wrap :deep(td:first-child) {
+        font-size: 1.125rem;
+        line-height: 1.35;
+    }
+
+    .assign-section-label {
+        font-size: clamp(1.15rem, 4.8vw, 1.5rem);
+        line-height: 1.2;
+    }
+
+    .assign-status-buttons {
+        grid-template-columns: minmax(0, 1fr);
+        gap: 12px;
+    }
+
+    .assign-status-btn {
+        min-height: var(--button-height);
+        padding: 10px 16px;
+        font-size: var(--button-font-size);
+        line-height: 1.3;
+    }
+
+    .assign-section-email {
+        gap: 14px;
+    }
+
+    .assign-section-email :deep(.app-input-label) {
+        font-size: clamp(1.15rem, 4.8vw, 1.5rem);
+        line-height: 1.25;
+    }
+
+    .assign-section-email :deep(.app-input-edit) {
+        height: var(--control-height);
+        font-size: 1.125rem;
+    }
+
+    .assign-section :deep(.assign-send-btn) {
+        width: 100%;
+        min-height: var(--button-height);
+        font-size: var(--button-font-size);
+    }
 }
 </style>

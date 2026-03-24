@@ -2,6 +2,7 @@
 
 :root {
     --app-header-height: 66px;
+    --font-family-base: 'Open Sans', sans-serif;
 
     --color-primary: #1946A0;
     --color-primary-hover: #153a8a;
@@ -48,6 +49,30 @@
     --control-height: var(--button-height);
     --control-radius: var(--button-border-radius);
     --control-width: var(--button-width);
+
+    --assign-status-new-border: #D4A574;
+    --assign-status-new-active-border: #C8955F;
+    --assign-status-new-active-bg: #FFF9F5;
+    --assign-status-review-border: #E0E0E0;
+    --assign-status-review-active-border: #BDBDBD;
+    --assign-status-review-active-bg: #F5F5F5;
+    --assign-status-returned-border: var(--color-primary);
+    --assign-status-returned-active-border: var(--color-primary-hover);
+    --assign-status-returned-active-bg: #eef3fc;
+}
+
+@media (max-width: 767px) {
+    :root {
+        --button-height: 52px;
+        --button-width: 100%;
+        --button-min-width: 0;
+        --button-border-radius: 14px;
+        --button-grid-gap: 12px;
+        --button-font-size: 18px;
+
+        --control-height: 52px;
+        --control-width: 100%;
+    }
 }
 
 html {
@@ -63,7 +88,7 @@ body {
     margin: 0;
     padding: 0;
     box-sizing: border-box;
-    font-family: 'Open Sans', sans-serif;
+    font-family: var(--font-family-base);
     line-height: 1.5;
     letter-spacing: normal;
 }

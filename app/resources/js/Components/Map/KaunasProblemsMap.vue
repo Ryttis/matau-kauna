@@ -63,13 +63,20 @@ useKaunasMap(mapContainer, problemsToShow, {
     display: flex;
     flex-direction: column;
     min-height: 0;
+    min-width: 0;
+    width: 100%;
+    max-width: 100%;
     background: #fafafa;
 }
 
 .kaunas-map-container {
     flex: 1;
     min-height: 280px;
+    min-width: 0;
     width: 100%;
+    max-width: 100%;
+    position: relative;
+    overflow: hidden;
 }
 
 .kaunas-map-container :deep(.leaflet-marker-icon.kaunas-map-marker) {

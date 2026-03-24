@@ -273,9 +273,8 @@ watch(
 .assign-institution-title {
     font-size: 24px;
     font-weight: 400;
-    color: #333;
+    color: var(--color-text, #333);
     margin: 0;
-    font-family: 'Inter', sans-serif;
 }
 
 .assign-institution-section {
@@ -285,9 +284,8 @@ watch(
 .section-title {
     font-size: 18px;
     font-weight: 600;
-    color: #333;
+    color: var(--color-text, #333);
     margin: 0 0 12px 0;
-    font-family: 'Inter', sans-serif;
 }
 
 .assign-table-scroll {
@@ -298,14 +296,13 @@ watch(
     margin-bottom: 16px;
     border: 1px solid var(--color-border, #e5e5e5);
     border-radius: 8px;
-    background: #fff;
+    background: var(--color-white, #fff);
     -webkit-overflow-scrolling: touch;
 }
 
 .assign-select-table {
     width: 100%;
     border-collapse: collapse;
-    font-family: 'Inter', sans-serif;
     font-size: 15px;
 }
 
@@ -330,7 +327,7 @@ watch(
 .assign-select-row td {
     padding: 12px 14px;
     border-bottom: 1px solid var(--color-border, #e5e5e5);
-    color: #333;
+    color: var(--color-text, #333);
     vertical-align: middle;
 }
 
@@ -343,15 +340,15 @@ watch(
 }
 
 .assign-select-row--active {
-    background: color-mix(in srgb, var(--color-primary, #1946a0) 16%, white);
+    background: color-mix(in srgb, var(--color-primary, #1946A0) 16%, white);
 }
 
 .assign-select-row--active:hover {
-    background: color-mix(in srgb, var(--color-primary, #1946a0) 22%, white);
+    background: color-mix(in srgb, var(--color-primary, #1946A0) 22%, white);
 }
 
 .assign-select-cell-muted {
-    color: #555;
+    color: var(--color-text-muted, #555);
     font-size: 14px;
 }
 
@@ -366,7 +363,6 @@ watch(
 .assign-empty-text {
     font-size: 16px;
     color: #666;
-    font-family: 'Inter', sans-serif;
 }
 
 .field-fixed-width {
@@ -395,5 +391,46 @@ watch(
 
 .btn-row .app-button {
     width: 100%;
+}
+
+@media (max-width: 767px) {
+    .assign-institution-page {
+        padding: 0 max(1rem, env(safe-area-inset-right)) 1rem max(1rem, env(safe-area-inset-left));
+        min-width: 0;
+    }
+
+    .assign-institution-header {
+        align-items: flex-start;
+        margin-bottom: 20px;
+    }
+
+    .assign-institution-title {
+        font-size: clamp(1.65rem, 6vw, 2rem);
+        line-height: 1.2;
+        overflow-wrap: anywhere;
+    }
+
+    .section-title {
+        font-size: clamp(1.2rem, 4.8vw, 1.45rem);
+        line-height: 1.3;
+    }
+
+    .assign-table-scroll {
+        max-height: 280px;
+    }
+
+    .assign-select-table {
+        font-size: 14px;
+    }
+
+    .assign-select-table thead th,
+    .assign-select-row td {
+        padding: 10px 12px;
+    }
+
+    .field-fixed-width,
+    .btn-row {
+        width: 100%;
+    }
 }
 </style>
