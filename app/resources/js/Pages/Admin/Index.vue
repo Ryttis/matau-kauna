@@ -11,10 +11,12 @@ import AdminArchive from '@/Pages/Admin/Tabs/AdminArchive.vue'
 import AdminPublicStatistics from '@/Pages/Admin/Tabs/AdminPublicStatistics.vue'
 import AdminFiles from '@/Pages/Admin/Tabs/AdminFiles.vue'
 import AppTabNavigation from '@/Components/App/AppTabNavigation.vue'
+import InstitutionTeamsManager from '@/Components/InstitutionTeams/InstitutionTeamsManager.vue'
 
 const tabs = [
     { key: 'users', label: 'Naudotojai', component: AdminUsers },
     { key: 'institutions', label: 'Įstaigos', component: AdminInstitutions },
+    { key: 'teams', label: 'Komandos (grupės)', component: InstitutionTeamsManager },
     { key: 'rules', label: 'Taisyklės ir turinys', component: AdminRules },
     { key: 'classifiers', label: 'Klasifikatoriai ir terminai', component: AdminClassifiers },
     { key: 'files', label: 'Failai', component: AdminFiles },
