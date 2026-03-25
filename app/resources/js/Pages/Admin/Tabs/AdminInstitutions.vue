@@ -233,7 +233,7 @@ onMounted(async () => {
                 <div class="field full">
                     <span class="field-label">Kontaktiniai duomenys</span>
                     <AppInput v-model="createForm.contact_phone" placeholder="Tel." />
-                    <AppInput v-model="createForm.contact_email" placeholder="El. paštas" type="email" />
+                    <AppInput v-model="createForm.contact_email" label="El. paštas *" type="email" />
                     <AppInput v-model="createForm.contact_address" placeholder="Adresas" />
                 </div>
                 <div class="field full">
@@ -254,7 +254,7 @@ onMounted(async () => {
                 <ModalFooterActions
                     cancel-text="Atšaukti"
                     primary-text="Sukurti"
-                    :primary-disabled="saving || !createForm.name"
+                    :primary-disabled="saving || !createForm.name?.trim() || !createForm.contact_email?.trim()"
                     @cancel="isCreateOpen = false"
                     @primary="createInstitution"
                 />
@@ -281,7 +281,7 @@ onMounted(async () => {
                 <div class="field full">
                     <span class="field-label">Kontaktiniai duomenys</span>
                     <AppInput v-model="editForm.contact_phone" placeholder="Tel." />
-                    <AppInput v-model="editForm.contact_email" placeholder="El. paštas" type="email" />
+                    <AppInput v-model="editForm.contact_email" label="El. paštas *" type="email" />
                     <AppInput v-model="editForm.contact_address" placeholder="Adresas" />
                 </div>
                 <div class="field full">
@@ -302,7 +302,7 @@ onMounted(async () => {
                 <ModalFooterActions
                     cancel-text="Atšaukti"
                     primary-text="Išsaugoti"
-                    :primary-disabled="saving || !editForm.name"
+                    :primary-disabled="saving || !editForm.name?.trim() || !editForm.contact_email?.trim()"
                     @cancel="isEditOpen = false"
                     @primary="updateInstitution"
                 />

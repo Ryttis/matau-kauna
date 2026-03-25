@@ -3,13 +3,14 @@ import { ref, computed, watch } from 'vue'
 import { Head, router } from '@inertiajs/vue3'
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue'
 import AppButton from '@/Components/App/AppButton.vue'
-import AppInput from '@/Components/App/AppInput.vue'
+import AppSelect from '@/Components/App/AppSelect.vue'
 import AppBackButton from '@/Components/App/AppBackButton.vue'
 import SuccessModal from '@/Components/App/SuccessModal.vue'
 import EntityTable from '@/Components/App/Tables/EntityTable.vue'
 import { useSuccessModal } from '@/composables/useSuccessModal'
 import { PROBLEM_STATUS } from '@/constants/problemStatus'
 import { ICON_ARROW } from '@/constants/icons'
+import { institutionEmailList } from '@/utils/institutionEmails'
 
 const ASSIGN_PAGE_STATUSES = [
     PROBLEM_STATUS.NEW,
@@ -41,7 +42,7 @@ const props = defineProps({
 const { showSuccessModal, successMessage, closeSuccessModal } = useSuccessModal()
 const selectedInstitutionIds = ref([])
 const selectedStatus = ref(normalizeStatusForAssignPage(props.problem?.status || PROBLEM_STATUS.NEW))
-const email = ref('')
+const selectedEmailRecipientKey = ref('')
 const displayedCount = ref(6)
 const isInstitutionsExpanded = ref(true)
 const isStatusExpanded = ref(true)
@@ -78,6 +79,38 @@ const syncInitialSelection = () => {
     selectedInstitutionIds.value = initialId ? [initialId] : []
 }
 
+const emailRecipients = computed(() => {
+    const recipients = []
+    for (const institution of props.institutions) {
+        const emails = institutionEmailList(institution)
+        for (const email of emails) {
+            recipients.push({
+                key: `${institution.id}::${email}`,
+                institutionId: institution.id,
+                institutionName: institution.name,
+                email,
+            })
+        }
+    }
+    return recipients
+})
+
+const selectedEmailRecipient = computed(() => {
+    return emailRecipients.value.find((item) => item.key === selectedEmailRecipientKey.value) || null
+})
+
+const emailSelectPlaceholder = computed(() => {
+    if (!emailRecipients.value.length) {
+        return 'Nėra įstaigų el. pašto adresų'
+    }
+    return 'Pasirinkite el. paštą'
+})
+
+const canSendAssignEmail = computed(
+    () =>
+        Boolean(selectedEmailRecipient.value)
+)
+
 watch(() => [props.problem, props.problems], () => {
     syncInitialSelection()
     if (props.problem) {
@@ -86,6 +119,14 @@ watch(() => [props.problem, props.problems], () => {
         )
     }
 }, { immediate: true, deep: true })
+
+watch(
+    () => props.institutions,
+    () => {
+        selectedEmailRecipientKey.value = emailRecipients.value[0]?.key ?? ''
+    },
+    { immediate: true, deep: true }
+)
 
 const hasMore = computed(() => {
     return props.institutions.length > displayedCount.value
@@ -142,17 +183,14 @@ const handleSendEmail = () => {
             ? [props.problem.id]
             : []
 
-    if (!email.value || !ids.length) return
+    if (!canSendAssignEmail.value || !ids.length) return
 
     router.post(route('problems.assign.email'), {
-        email: email.value,
+        email: selectedEmailRecipient.value.email,
         problem_ids: ids,
-        institution_id: selectedInstitutionId.value,
+        institution_id: selectedEmailRecipient.value.institutionId,
     }, {
         preserveScroll: true,
-        onSuccess: () => {
-            email.value = ''
-        },
     })
 }
 
@@ -283,20 +321,29 @@ const toggleStatus = () => {
                 </div>
 
                 <div class="assign-section assign-section-email">
-                    <AppInput
-                        v-model="email"
+                    <AppSelect
+                        v-model="selectedEmailRecipientKey"
                         label="Siųsti informaciją el. paštu"
-                        type="email"
-                        placeholder="El. paštas"
-                        variant="filter"
-                        class="assign-email-input"
-                    />
+                        :placeholder="emailSelectPlaceholder"
+                        variant="white"
+                        :disabled="!emailRecipients.length"
+                        class="assign-email-select"
+                    >
+                        <option
+                            v-for="recipient in emailRecipients"
+                            :key="recipient.key"
+                            :value="recipient.key"
+                        >
+                            {{ recipient.institutionName }} - {{ recipient.email }}
+                        </option>
+                    </AppSelect>
                     <div class="assign-send-btn-wrap">
                         <AppButton
                             text="Siųsti"
                             variant="primary"
                             as-button
                             @click="handleSendEmail"
+                            :disabled="!canSendAssignEmail"
                             class="assign-send-btn"
                         />
                     </div>
@@ -438,9 +485,15 @@ const toggleStatus = () => {
     width: 100%;
 }
 
-.assign-section-email .app-input-group {
-    width: var(--control-width);
+.assign-section-email .app-select-group {
+    width: min(440px, 100%);
     max-width: 100%;
+}
+
+.assign-section-email :deep(.app-select) {
+    width: 100%;
+    min-height: var(--control-height, 44px);
+    font-size: 16px;
 }
 
 .assign-more-btn {
@@ -636,13 +689,12 @@ const toggleStatus = () => {
         gap: 14px;
     }
 
-    .assign-section-email :deep(.app-input-label) {
+    .assign-section-email :deep(.app-select-label) {
         font-size: clamp(1.15rem, 4.8vw, 1.5rem);
         line-height: 1.25;
     }
 
-    .assign-section-email :deep(.app-input-edit) {
-        height: var(--control-height);
+    .assign-section-email :deep(.app-select) {
         font-size: 1.125rem;
     }
 

@@ -398,12 +398,7 @@ class ProblemController extends Controller
             abort(403);
         }
 
-        $institutions = Institution::query()
-            ->notArchived()
-            ->where('is_active', true)
-            ->orderBy('name')
-            ->get(['id', 'name'])
-            ->map(fn ($i) => ['id' => $i->id, 'name' => $i->name]);
+        $institutions = $this->institutionsForAssignInertia();
 
         $problemIds = array_filter((array) $request->get('problem_ids', []));
         $problems = $problemIds ? Problem::whereIn('id', $problemIds)->get() : collect();
@@ -508,45 +503,43 @@ class ProblemController extends Controller
             'email' => ['required', 'email'],
             'problem_ids' => ['required', 'array'],
             'problem_ids.*' => ['required', 'integer', 'exists:problems,id'],
-            'institution_id' => ['nullable', 'integer', 'exists:institutions,id'],
+            'institution_id' => ['required', 'integer', 'exists:institutions,id'],
         ]);
+
+        $institution = Institution::query()->findOrFail($validated['institution_id']);
+        $allowedEmails = array_values(array_unique(array_filter([
+            $institution->contact_email,
+            $institution->integration_email,
+        ])));
+
+        if (! in_array($validated['email'], $allowedEmails, true)) {
+            return redirect()->back()->with('error', 'Pasirinktas el. paštas nepriklauso pasirinktai įstaigai.');
+        }
 
         $problems = Problem::whereIn('id', $validated['problem_ids'])
             ->orderBy('created_at', 'desc')
-            ->get(['id', 'internal_number', 'description', 'status', 'created_at']);
+            ->get(['id', 'internal_number', 'description', 'status', 'created_at', 'completion_deadline']);
 
         if ($problems->contains(fn (Problem $p) => $p->status === ProblemStatus::RESOLVED->value)) {
             return redirect()->back()->with('error', 'Išspręstų problemų negalima priskirti.');
         }
 
-        $institutionName = null;
-        if (! empty($validated['institution_id'])) {
-            $institutionName = Institution::where('id', $validated['institution_id'])->value('name');
+        Problem::whereIn('id', $validated['problem_ids'])->update([
+            'institution_id' => $institution->id,
+            'assigned_employee_id' => null,
+        ]);
+
+        foreach ($problems as $p) {
+            $this->resolutionTermService->applyRules($p);
         }
 
-        $lines = [];
-        $lines[] = 'Priskirtų problemų sąrašas:';
-        foreach ($problems as $problem) {
-            $lines[] = sprintf(
-                '- %s | %s | %s',
-                $problem->internal_number,
-                Problem::descriptionPreview($problem->description, 120),
-                $problem->created_at?->format('Y-m-d')
-            );
-        }
-        if ($institutionName) {
-            $lines[] = '';
-            $lines[] = 'Priskirta įstaiga: '.$institutionName;
-        }
+        $mail = $this->assignmentNotifier->buildManualAssignToInstitutionEmail($institution, $problems);
 
-        $subject = 'Problemų priskyrimo informacija';
-        $body = implode("\n", $lines);
-
-        Mail::raw($body, function ($message) use ($validated, $subject) {
-            $message->to($validated['email'])->subject($subject);
+        Mail::raw($mail['body'], function ($message) use ($validated, $mail) {
+            $message->to($validated['email'])->subject($mail['subject']);
         });
 
-        return redirect()->back()->with('success', 'Informacija išsiųsta el. paštu.');
+        return redirect()->back()->with('success', 'Informacija išsiųsta el. paštu ir problema priskirta įstaigai.');
     }
 
     public function assignSingle(Problem $problem): Response|RedirectResponse
@@ -560,18 +553,30 @@ class ProblemController extends Controller
             return redirect()->route('problems.show', $problem)->with('error', 'Išspręstos problemos priskirti negalima.');
         }
 
-        $institutions = Institution::query()
-            ->notArchived()
-            ->where('is_active', true)
-            ->orderBy('name')
-            ->get(['id', 'name'])
-            ->map(fn ($i) => ['id' => $i->id, 'name' => $i->name]);
+        $institutions = $this->institutionsForAssignInertia();
 
         return Inertia::render('Problems/Assign', [
             'problem' => $problem,
             'problems' => [$problem],
             'institutions' => $institutions,
         ]);
+    }
+
+    private function institutionsForAssignInertia(): Collection
+    {
+        return Institution::query()
+            ->notArchived()
+            ->where('is_active', true)
+            ->orderBy('name')
+            ->get(['id', 'name', 'contact_email', 'integration_email'])
+            ->map(fn (Institution $i) => [
+                'id' => $i->id,
+                'name' => $i->name,
+                'emails' => array_values(array_unique(array_filter([
+                    $i->contact_email,
+                    $i->integration_email,
+                ]))),
+            ]);
     }
 
     public function reviewProgress(Problem $problem): Response

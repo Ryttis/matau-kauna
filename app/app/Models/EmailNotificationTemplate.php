@@ -14,6 +14,8 @@ class EmailNotificationTemplate extends Model
 
     public const KEY_INSTITUTION_ASSIGNMENT = 'institution_assignment';
 
+    public const KEY_MANUAL_ASSIGN_TO_INSTITUTION_EMAIL = 'manual_assign_to_institution_email';
+
     public const KEY_EMPLOYEE_ASSIGNMENT = 'employee_assignment';
 
     public const KEY_DEADLINE_APPROACHING = 'deadline_approaching';

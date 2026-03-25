@@ -1,29 +1,29 @@
 export function buildReporterProblemDisplayRows(flatList) {
-    const list = flatList || []
-    const idSet = new Set(list.map((p) => p.id))
-    const mains = list.filter((p) => {
-        const parentId = p.merged_into_problem_id
-        if (!parentId) return true
-        return !idSet.has(parentId)
+    const problemList = flatList || []
+    const problemIdSet = new Set(problemList.map((problem) => problem.id))
+    const mainProblems = problemList.filter((problem) => {
+        const mergedIntoProblemId = problem.merged_into_problem_id
+        if (!mergedIntoProblemId) return true
+        return !problemIdSet.has(mergedIntoProblemId)
     })
-    const rows = []
-    mains.forEach((main) => {
-        const merged = list.filter((p) => p.merged_into_problem_id === main.id)
-        const groupIds = [main.id, ...merged.map((m) => m.id)]
-        rows.push({
-            problem: main,
+    const displayRows = []
+    mainProblems.forEach((mainProblem) => {
+        const mergedProblems = problemList.filter((problem) => problem.merged_into_problem_id === mainProblem.id)
+        const groupIds = [mainProblem.id, ...mergedProblems.map((mergedProblem) => mergedProblem.id)]
+        displayRows.push({
+            problem: mainProblem,
             isGroupMain: true,
-            isLastInGroup: merged.length === 0,
+            isLastInGroup: mergedProblems.length === 0,
             groupIds,
         })
-        merged.forEach((m, idx) => {
-            rows.push({
-                problem: m,
+        mergedProblems.forEach((mergedProblem, mergedIndex) => {
+            displayRows.push({
+                problem: mergedProblem,
                 isGroupMain: false,
-                isLastInGroup: idx === merged.length - 1,
+                isLastInGroup: mergedIndex === mergedProblems.length - 1,
                 groupIds,
             })
         })
     })
-    return rows
+    return displayRows
 }

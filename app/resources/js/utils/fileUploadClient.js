@@ -2,9 +2,9 @@ export function attachmentsToUploadBaseline(attachments = []) {
     let photos = 0
     let videos = 0
     let totalKb = 0
-    for (const a of attachments) {
-        totalKb += (Number(a.size_bytes) || 0) / 1024
-        if (a.kind === 'photo') {
+    for (const attachment of attachments) {
+        totalKb += (Number(attachment.size_bytes) || 0) / 1024
+        if (attachment.kind === 'photo') {
             photos += 1
         } else {
             videos += 1
@@ -27,41 +27,39 @@ export function fileUploadPickerLabel(uploadRules) {
 
 export function formatDetailedFileUploadHint(uploadRules, options = {}) {
     const includeExistingInTotal = options.includeExistingInTotal === true
-    const u = uploadRules
-    const parts = []
-    const maxPhoto = Number(u.max_photo_files_per_problem) || 0
-    const maxVideo = Number(u.max_video_files_per_problem) || 0
+    const hintParts = []
+    const maxPhotoFiles = Number(uploadRules.max_photo_files_per_problem) || 0
+    const maxVideoFiles = Number(uploadRules.max_video_files_per_problem) || 0
 
-    if (u.allow_photo && maxPhoto > 0) {
-        parts.push(
-            `nuotr.: iki ${maxPhoto} vnt., po ${u.max_photo_size_kb} KB (JPEG, PNG)`,
+    if (uploadRules.allow_photo && maxPhotoFiles > 0) {
+        hintParts.push(
+            `nuotr.: iki ${maxPhotoFiles} vnt., po ${uploadRules.max_photo_size_kb} KB (JPEG, PNG)`,
         )
     }
-    if (u.allow_video && maxVideo > 0) {
-        parts.push(
-            maxVideo === 1
-                ? `1 vaizdas iki ${u.max_video_size_kb} KB`
-                : `vaizdai: iki ${maxVideo} vnt., po ${u.max_video_size_kb} KB`,
+    if (uploadRules.allow_video && maxVideoFiles > 0) {
+        hintParts.push(
+            maxVideoFiles === 1
+                ? `1 vaizdas iki ${uploadRules.max_video_size_kb} KB`
+                : `vaizdai: iki ${maxVideoFiles} vnt., po ${uploadRules.max_video_size_kb} KB`,
         )
     }
-    let totalLine = `bendra suma iki ${u.max_total_upload_kb} KB`
+    let totalLine = `bendra suma iki ${uploadRules.max_total_upload_kb} KB`
     if (includeExistingInTotal) {
         totalLine += ' (įskaitant jau įkeltus)'
     }
-    parts.push(totalLine)
-    return parts.join('; ')
+    hintParts.push(totalLine)
+    return hintParts.join('; ')
 }
 
 export function formatShortFileUploadLimitsLine(uploadRules) {
-    const u = uploadRules
-    const maxPhoto = Number(u.max_photo_files_per_problem) || 0
-    const maxVideo = Number(u.max_video_files_per_problem) || 0
-    const segments = []
-    if (u.allow_photo && maxPhoto > 0) {
-        segments.push(`Nuotraukos ${maxPhoto} max.`)
+    const maxPhotoFiles = Number(uploadRules.max_photo_files_per_problem) || 0
+    const maxVideoFiles = Number(uploadRules.max_video_files_per_problem) || 0
+    const limitSegments = []
+    if (uploadRules.allow_photo && maxPhotoFiles > 0) {
+        limitSegments.push(`Nuotraukos ${maxPhotoFiles} max.`)
     }
-    if (u.allow_video && maxVideo > 0) {
-        segments.push(`Video ${maxVideo} max.`)
+    if (uploadRules.allow_video && maxVideoFiles > 0) {
+        limitSegments.push(`Video ${maxVideoFiles} max.`)
     }
-    return segments.join(' ')
+    return limitSegments.join(' ')
 }
