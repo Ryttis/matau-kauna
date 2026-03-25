@@ -1,0 +1,347 @@
+openapi: 3.0.3
+
+info:
+  title: Kauno problemos API
+  version: 2.0.0
+  description: >
+    JSON API for this week scope: auth, problems, and info.
+    Use `/api/*` endpoints in Swagger.
+
+servers:
+  - url: http://localhost
+    description: Local app (Docker nginx)
+
+tags:
+  - name: Auth
+  - name: Problems
+  - name: Info
+
+paths:
+  /api/login:
+    post:
+      tags: [Auth]
+      summary: Login (returns Bearer token)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ApiLoginRequest'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthTokenResponse'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+
+  /api/register:
+    post:
+      tags: [Auth]
+      summary: Register reporter (returns Bearer token)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ApiRegisterRequest'
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthTokenResponse'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+
+  /api/me:
+    get:
+      tags: [Auth]
+      summary: Current user
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserSummary'
+        '401':
+          description: Unauthorized
+
+  /api/logout:
+    post:
+      tags: [Auth]
+      summary: Logout (revoke current token)
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok:
+                    type: boolean
+                    example: true
+        '401':
+          description: Unauthorized
+
+  /api/problems:
+    get:
+      tags: [Problems]
+      summary: Public problems list (JSON)
+      parameters:
+        - in: query
+          name: per_page
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+    post:
+      tags: [Problems]
+      summary: Create problem (reporter, JSON)
+      description: Requires reporter token.
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: header
+          name: X-Upload-Channel
+          required: false
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ReporterProblemCreateRequest'
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReporterProblemCreateRequest'
+      responses:
+        '200':
+          description: Created
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [ok, problem_id]
+                properties:
+                  ok:
+                    type: boolean
+                    example: true
+                  problem_id:
+                    type: integer
+                    example: 123
+        '401':
+          description: Unauthorized
+        '403':
+          description: No permission
+        '422':
+          $ref: '#/components/responses/ValidationError'
+
+  /api/problems/{problem}:
+    get:
+      tags: [Problems]
+      summary: Public problem details (JSON)
+      parameters:
+        - $ref: '#/components/parameters/problemPath'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PublicProblemResponse'
+        '404':
+          description: Problem not found / not public
+
+  /api/info/statistics:
+    get:
+      tags: [Info]
+      summary: Public statistics data (JSON)
+      parameters:
+        - in: query
+          name: period
+          required: false
+          schema:
+            type: string
+        - in: query
+          name: category
+          required: false
+          schema:
+            type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PublicStatisticsResponse'
+
+  /api/info/file-upload-settings:
+    get:
+      tags: [Info]
+      summary: File upload limits/settings (JSON)
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        '401':
+          description: Unauthorized
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: API token
+
+  parameters:
+    problemPath:
+      in: path
+      name: problem
+      required: true
+      schema:
+        type: integer
+
+  responses:
+    ValidationError:
+      description: Validation error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/LaravelValidationErrorResponse'
+
+  schemas:
+    ApiLoginRequest:
+      type: object
+      required: [email, password, login_type]
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          format: password
+        login_type:
+          type: string
+          enum: [pareiskejas, darbuotojas]
+        device_name:
+          type: string
+          example: swagger
+
+    ApiRegisterRequest:
+      type: object
+      required: [name, email, password, password_confirmation]
+      properties:
+        name:
+          type: string
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          format: password
+        password_confirmation:
+          type: string
+          format: password
+        device_name:
+          type: string
+          example: swagger
+
+    AuthTokenResponse:
+      type: object
+      required: [token, token_type, user]
+      properties:
+        token:
+          type: string
+          example: 1|verylongtoken...
+        token_type:
+          type: string
+          example: Bearer
+        user:
+          $ref: '#/components/schemas/UserSummary'
+
+    UserSummary:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        email:
+          type: string
+          format: email
+
+    ReporterProblemCreateRequest:
+      type: object
+      required: [problem_type_id, description, address]
+      properties:
+        problem_type_id:
+          type: integer
+        problem_nature_id:
+          type: integer
+          nullable: true
+        description:
+          type: string
+        address:
+          type: string
+        lat:
+          type: number
+          format: double
+          nullable: true
+        lng:
+          type: number
+          format: double
+          nullable: true
+        files:
+          type: array
+          items:
+            type: string
+            format: binary
+
+    PublicProblemResponse:
+      type: object
+      additionalProperties: true
+
+    LaravelValidationErrorResponse:
+      type: object
+      properties:
+        message:
+          type: string
+        errors:
+          type: object
+          additionalProperties:
+            oneOf:
+              - type: array
+                items:
+                  type: string
+              - type: string
+
+    PublicStatisticsResponse:
+      type: object
+      additionalProperties: true
