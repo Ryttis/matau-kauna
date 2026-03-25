@@ -8,10 +8,68 @@ use App\Models\Institution;
 use App\Models\Problem;
 use App\Models\User;
 use App\Models\UserRole;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Mail;
 
 class ProblemAssignmentNotifier
 {
+    public function buildManualAssignToInstitutionEmail(Institution $institution, Collection $problems): array
+    {
+        $first = $problems->first();
+        $excerptFirst = $first ? Problem::descriptionPreview($first->description, 200) : '';
+        $urlFirst = $first ? route('problems.show', $first->id) : '';
+        $deadlineFirst = $first?->completion_deadline?->format('Y-m-d') ?? '—';
+
+        $problemLines = [];
+        foreach ($problems as $problem) {
+            $deadline = $problem->completion_deadline?->format('Y-m-d') ?? '—';
+            $problemLines[] = sprintf(
+                '- %s | %s | %s | Terminas: %s',
+                $problem->internal_number,
+                Problem::descriptionPreview($problem->description, 120),
+                route('problems.show', $problem->id),
+                $deadline,
+            );
+        }
+        $problemList = implode("\n", $problemLines);
+
+        $template = EmailNotificationTemplate::getByKey(EmailNotificationTemplate::KEY_MANUAL_ASSIGN_TO_INSTITUTION_EMAIL);
+        if ($template && $template->is_enabled) {
+            $map = [
+                'institution_name' => $institution->name,
+                'problem_list' => $problemList,
+                'internal_number' => $first?->internal_number ?? '',
+                'description_excerpt' => $excerptFirst,
+                'url' => $urlFirst,
+                'deadline_date' => $deadlineFirst,
+                'title' => $excerptFirst,
+            ];
+
+            return [
+                'subject' => $this->replacePlaceholders($template->subject, $map),
+                'body' => $this->replacePlaceholders($template->body, $map),
+            ];
+        }
+
+        $lines = [];
+        $lines[] = 'Priskirtų problemų sąrašas:';
+        foreach ($problems as $problem) {
+            $lines[] = sprintf(
+                '- %s | %s | %s',
+                $problem->internal_number,
+                Problem::descriptionPreview($problem->description, 120),
+                $problem->created_at?->format('Y-m-d')
+            );
+        }
+        $lines[] = '';
+        $lines[] = 'Priskirta įstaiga: '.$institution->name;
+
+        return [
+            'subject' => 'Problemų priskyrimo informacija',
+            'body' => implode("\n", $lines),
+        ];
+    }
+
     private function replacePlaceholders(string $text, array $replacements): string
     {
         foreach ($replacements as $placeholder => $value) {

@@ -1,0 +1,58 @@
+export const EMAIL_NOTIFICATION_PLACEHOLDER_DOCS_BY_KEY = {
+    manual_assign_to_institution_email: [
+        { token: '{institution_name}', text: 'Įstaigos pavadinimas, pasirinktas priskyrimo puslapyje.' },
+        { token: '{problem_list}', text: 'Visų laiške įtrauktų problemų sąrašas: eilutėje – numeris, sutrumpintas aprašymas, nuoroda, atlikimo terminas.' },
+        { token: '{internal_number}', text: 'Pirmos eilutės problemos numeris; jei problema viena – jos numeris.' },
+        { token: '{description_excerpt}', text: 'Tos pačios problemos sutrumpintas aprašymas.' },
+        { token: '{url}', text: 'Nuoroda į problemos puslapį darbuotojų aplinkoje.' },
+        { token: '{deadline_date}', text: 'Atlikimo terminas formatu Y-m-d; jei nenurodytas – brūkšnys.' },
+        { token: '{title}', text: 'Trumpa antraštė; praktikoje sutampa su sutrumpintu aprašymu kaip description_excerpt.' },
+    ],
+    institution_assignment: [
+        { token: '{institution_name}', text: 'Įstaigos pavadinimas. Naudojama automatinėje žinutėje įstaigos administratoriams.' },
+        { token: '{problem_list}', text: 'Priskirtų problemų sąrašas: kelios eilutės su numeriu, aprašymu, data ir nuoroda.' },
+    ],
+    employee_assignment: [
+        { token: '{internal_number}', text: 'Problemos vidinis numeris.' },
+        { token: '{description_excerpt}', text: 'Sutrumpintas problemos aprašymas.' },
+        { token: '{url}', text: 'Nuoroda į problemos puslapį.' },
+        { token: '{title}', text: 'Trumpas tekstas antraštei; dažnai sutampa su aprašymo santrauka.' },
+    ],
+    inactive_reporter_reminder: [
+        { token: '{user_name}', text: 'Naudotojo vardas ir pavardė arba el. paštas, jei vardo nėra.' },
+        { token: '{deletion_date}', text: 'Numatoma paskyros pašalinimo data, formatu Y-m-d.' },
+        { token: '{inactivity_days}', text: 'Nebuvimo dienų skaičius pagal sistemos taisykles.' },
+    ],
+    reporter_status_change: [
+        { token: '{internal_number}', text: 'Problemos vidinis numeris.' },
+        { token: '{description_excerpt}', text: 'Sutrumpintas problemos aprašymas.' },
+        { token: '{url}', text: 'Nuoroda į problemos puslapį pareiškėjo aplinkoje.' },
+        { token: '{old_status}', text: 'Ankstesnė būsenos reikšmė sistemos kode.' },
+        { token: '{new_status}', text: 'Nauja būsenos reikšmė sistemos kode.' },
+        { token: '{old_status_label}', text: 'Ankstesnė būsena žmonėms skaitomu tekstu.' },
+        { token: '{new_status_label}', text: 'Nauja būsena žmonėms skaitomu tekstu.' },
+    ],
+    reporter_review_entry: [
+        { token: '{internal_number}', text: 'Problemos vidinis numeris.' },
+        { token: '{description_excerpt}', text: 'Sutrumpintas problemos aprašymas.' },
+        { token: '{url}', text: 'Nuoroda į problemos puslapį pareiškėjo aplinkoje.' },
+        { token: '{status_label}', text: 'Nagrinėjimo įrašo būsena žmonėms skaitomu tekstu.' },
+        { token: '{responsible}', text: 'Atsakingasis pagal įrašą arba tuščia, jei nenurodytas.' },
+        { token: '{comment_excerpt}', text: 'Viešo komentaro santrauka arba tekstas, kad komentaro nėra.' },
+        { token: '{entry_date}', text: 'Įrašo sukūrimo data ir laikas, formatu Y-m-d H:i.' },
+    ],
+    deadline_approaching: [
+        { token: '{internal_number}', text: 'Problemos vidinis numeris.' },
+        { token: '{description_excerpt}', text: 'Sutrumpintas problemos aprašymas.' },
+        { token: '{url}', text: 'Nuoroda į problemos puslapį.' },
+        { token: '{deadline_date}', text: 'Atlikimo terminas, formatu Y-m-d.' },
+        { token: '{title}', text: 'Trumpa antraštė; dažnai sutampa su aprašymo santrauka.' },
+    ],
+    deadline_overdue: [
+        { token: '{internal_number}', text: 'Problemos vidinis numeris.' },
+        { token: '{description_excerpt}', text: 'Sutrumpintas problemos aprašymas.' },
+        { token: '{url}', text: 'Nuoroda į problemos puslapį.' },
+        { token: '{deadline_date}', text: 'Atlikimo terminas, formatu Y-m-d.' },
+        { token: '{title}', text: 'Trumpa antraštė; dažnai sutampa su aprašymo santrauka.' },
+    ],
+}

@@ -5,6 +5,7 @@ import AppButton from '@/Components/App/AppButton.vue'
 import AppSwitch from '@/Components/App/AppSwitch.vue'
 import AppSelect from '@/Components/App/AppSelect.vue'
 import SuccessModal from '@/Components/App/SuccessModal.vue'
+import { EMAIL_NOTIFICATION_PLACEHOLDER_DOCS_BY_KEY } from '@/constants/emailNotificationPlaceholderDocs'
 
 const templates = ref([])
 const selectedTemplateId = ref(null)
@@ -17,6 +18,14 @@ const selectedTemplate = computed(() => {
     if (selectedTemplateId.value === '' || selectedTemplateId.value === null || selectedTemplateId.value === undefined) return null
     const id = Number(selectedTemplateId.value)
     return templates.value.find((template) => template.id === id) ?? null
+})
+
+const placeholderDocs = computed(() => {
+    const key = selectedTemplate.value?.key
+    if (!key) {
+        return []
+    }
+    return EMAIL_NOTIFICATION_PLACEHOLDER_DOCS_BY_KEY[key] ?? []
 })
 
 const selectOptions = computed(() => {
@@ -55,26 +64,6 @@ function saveTemplate(template) {
         .finally(() => { savingId.value = null })
 }
 
-function placeholderHint(key) {
-    if (key === 'institution_assignment') return '{problem_list}, {institution_name}'
-    if (key === 'employee_assignment') {
-        return '{internal_number}, {description_excerpt}, {url}, {title}'
-    }
-    if (key === 'inactive_reporter_reminder') {
-        return '{user_name}, {deletion_date}, {inactivity_days}'
-    }
-    if (key === 'reporter_status_change') {
-        return '{internal_number}, {description_excerpt}, {url}, {old_status}, {new_status}, {old_status_label}, {new_status_label}'
-    }
-    if (key === 'reporter_review_entry') {
-        return '{internal_number}, {description_excerpt}, {url}, {status_label}, {responsible}, {comment_excerpt}, {entry_date}'
-    }
-    if (key === 'deadline_approaching' || key === 'deadline_overdue') {
-        return '{internal_number}, {description_excerpt}, {url}, {deadline_date}, {title}'
-    }
-    return ''
-}
-
 onMounted(() => load())
 </script>
 
@@ -105,10 +94,20 @@ onMounted(() => load())
                 </AppSelect>
             </div>
             <div v-if="selectedTemplate" class="email-notification-editor-card">
-                <p v-if="placeholderHint(selectedTemplate.key)" class="email-notification-editor-hint">
-                    {{ placeholderHint(selectedTemplate.key) }}
-                </p>
-                <div class="email-notification-editor-row email-notification-editor-switch-row">
+                <div v-if="placeholderDocs.length" class="email-notification-editor-placeholders">
+                    <p class="email-notification-editor-placeholders-title">Kintamieji šablone</p>
+                    <ul class="email-notification-editor-placeholder-list">
+                        <li
+                            v-for="row in placeholderDocs"
+                            :key="row.token"
+                            class="email-notification-editor-placeholder-item"
+                        >
+                            <code class="email-notification-editor-code">{{ row.token }}</code>
+                            <span class="email-notification-editor-placeholder-text">{{ row.text }}</span>
+                        </li>
+                    </ul>
+                </div>
+                <div class="email-notification-editor-switch-row">
                     <span class="email-notification-editor-switch-label">Siųsti šį laišką</span>
                     <AppSwitch
                         :model-value="selectedTemplate.is_enabled"
@@ -166,7 +165,8 @@ onMounted(() => load())
 }
 .email-notification-editor-select-wrap {
     margin-bottom: 20px;
-    max-width: 400px;
+    width: 100%;
+    max-width: 480px;
 }
 .email-notification-editor-select-wrap .email-notification-editor-label {
     margin-bottom: 6px;
@@ -179,20 +179,64 @@ onMounted(() => load())
     border-radius: 8px;
     padding: 20px;
 }
-.email-notification-editor-hint {
-    margin: 0 0 12px 0;
+.email-notification-editor-placeholders {
+    margin: 0 0 16px 0;
+    padding: 12px 14px;
+    background: #f9fafb;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+}
+.email-notification-editor-placeholders-title {
+    margin: 0 0 10px 0;
+    font-size: 13px;
+    font-weight: 600;
+    color: #374151;
+}
+.email-notification-editor-placeholder-list {
+    margin: 0;
+    padding-left: 0;
+    list-style: none;
+}
+.email-notification-editor-placeholder-item {
+    display: grid;
+    grid-template-columns: minmax(0, auto) 1fr;
+    gap: 10px 14px;
+    align-items: start;
+    margin-bottom: 10px;
+    font-size: 13px;
+    line-height: 1.45;
+    color: #4b5563;
+}
+.email-notification-editor-placeholder-item:last-child {
+    margin-bottom: 0;
+}
+.email-notification-editor-code {
+    font-family: ui-monospace, monospace;
     font-size: 12px;
-    color: #888;
+    color: #1e40af;
+    background: #eff6ff;
+    padding: 2px 6px;
+    border-radius: 4px;
+    white-space: nowrap;
+}
+.email-notification-editor-placeholder-text {
+    min-width: 0;
+}
+@media (max-width: 520px) {
+    .email-notification-editor-placeholder-item {
+        grid-template-columns: 1fr;
+    }
 }
 .email-notification-editor-row {
     margin-bottom: 12px;
 }
 .email-notification-editor-switch-row {
-    display: flex;
+    display: inline-flex;
     align-items: center;
-    justify-content: space-between;
-    gap: 12px;
+    gap: 10px;
     flex-wrap: wrap;
+    margin-bottom: 16px;
+    max-width: 100%;
 }
 .email-notification-editor-switch-label {
     font-size: 14px;

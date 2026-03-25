@@ -2,21 +2,21 @@ function flattenValidationErrors(errors) {
     if (!errors || typeof errors !== 'object') {
         return []
     }
-    const out = []
-    for (const key of Object.keys(errors).sort()) {
-        const v = errors[key]
-        if (Array.isArray(v)) {
-            v.forEach((x) => {
-                const s = x != null ? String(x).trim() : ''
-                if (s) {
-                    out.push(s)
+    const messages = []
+    for (const fieldKey of Object.keys(errors).sort()) {
+        const fieldErrors = errors[fieldKey]
+        if (Array.isArray(fieldErrors)) {
+            fieldErrors.forEach((fieldError) => {
+                const message = fieldError != null ? String(fieldError).trim() : ''
+                if (message) {
+                    messages.push(message)
                 }
             })
-        } else if (typeof v === 'string' && v.trim()) {
-            out.push(v.trim())
+        } else if (typeof fieldErrors === 'string' && fieldErrors.trim()) {
+            messages.push(fieldErrors.trim())
         }
     }
-    return out
+    return messages
 }
 
 export function laravelValidationMessages(errors) {
@@ -27,19 +27,19 @@ export function firstInertiaErrorForPrefix(errors, prefix) {
     if (!errors || typeof errors !== 'object') {
         return ''
     }
-    const keys = Object.keys(errors)
-        .filter((k) => k === prefix || k.startsWith(`${prefix}.`))
+    const matchingKeys = Object.keys(errors)
+        .filter((key) => key === prefix || key.startsWith(`${prefix}.`))
         .sort()
-    for (const key of keys) {
-        const v = errors[key]
-        if (Array.isArray(v) && v.length) {
-            const s = String(v[0]).trim()
-            if (s) {
-                return s
+    for (const key of matchingKeys) {
+        const errorValue = errors[key]
+        if (Array.isArray(errorValue) && errorValue.length) {
+            const firstMessage = String(errorValue[0]).trim()
+            if (firstMessage) {
+                return firstMessage
             }
         }
-        if (typeof v === 'string' && v.trim()) {
-            return v.trim()
+        if (typeof errorValue === 'string' && errorValue.trim()) {
+            return errorValue.trim()
         }
     }
     return ''
@@ -47,57 +47,57 @@ export function firstInertiaErrorForPrefix(errors, prefix) {
 
 const GENERIC_EN_422 = /the given data was invalid/i
 
-function looksLikeEnglishServerMessage(s) {
-    if (!s || typeof s !== 'string') {
+function looksLikeEnglishServerMessage(message) {
+    if (!message || typeof message !== 'string') {
         return true
     }
-    const t = s.trim()
-    if (!t) {
+    const trimmedMessage = message.trim()
+    if (!trimmedMessage) {
         return true
     }
     return (
-        GENERIC_EN_422.test(t)
-        || /^The\s+/i.test(t)
-        || /^Unauthorized\.?$/i.test(t)
-        || /^Forbidden\.?$/i.test(t)
-        || /^Not Found\.?$/i.test(t)
-        || /^Server Error/i.test(t)
-        || /^Too Many Requests/i.test(t)
-        || /^Page Expired/i.test(t)
+        GENERIC_EN_422.test(trimmedMessage)
+        || /^The\s+/i.test(trimmedMessage)
+        || /^Unauthorized\.?$/i.test(trimmedMessage)
+        || /^Forbidden\.?$/i.test(trimmedMessage)
+        || /^Not Found\.?$/i.test(trimmedMessage)
+        || /^Server Error/i.test(trimmedMessage)
+        || /^Too Many Requests/i.test(trimmedMessage)
+        || /^Page Expired/i.test(trimmedMessage)
     )
 }
 
-export function messageFromAxiosError(err, fallback) {
-    const status = err.response?.status
-    const data = err.response?.data
+export function messageFromAxiosError(error, fallback) {
+    const status = error.response?.status
+    const responseData = error.response?.data
 
-    if (!err.response) {
+    if (!error.response) {
         return 'Nėra ryšio.'
     }
 
-    if (typeof data === 'string') {
+    if (typeof responseData === 'string') {
         return fallback
     }
 
-    if (status === 422 && data?.errors) {
-        const fromFields = laravelValidationMessages(data.errors)
-        if (fromFields) {
-            return fromFields
+    if (status === 422 && responseData?.errors) {
+        const fieldMessages = laravelValidationMessages(responseData.errors)
+        if (fieldMessages) {
+            return fieldMessages
         }
-        if (data.message && typeof data.message === 'string' && !looksLikeEnglishServerMessage(data.message)) {
-            return data.message
+        if (responseData.message && typeof responseData.message === 'string' && !looksLikeEnglishServerMessage(responseData.message)) {
+            return responseData.message
         }
         return fallback
     }
 
-    if (status === 422 && data?.message && typeof data.message === 'string') {
-        if (!looksLikeEnglishServerMessage(data.message)) {
-            return data.message
+    if (status === 422 && responseData?.message && typeof responseData.message === 'string') {
+        if (!looksLikeEnglishServerMessage(responseData.message)) {
+            return responseData.message
         }
     }
 
-    if (data?.message && typeof data.message === 'string' && !looksLikeEnglishServerMessage(data.message)) {
-        return data.message
+    if (responseData?.message && typeof responseData.message === 'string' && !looksLikeEnglishServerMessage(responseData.message)) {
+        return responseData.message
     }
 
     if (status === 413) {
