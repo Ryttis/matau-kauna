@@ -1,45 +1,30 @@
-# Dokumentacija: OpenAPI (Swagger)
+# OpenAPI / Swagger (API mode)
 
-## Kas čia yra
+`openapi.yaml` aprašo šios savaitės **JSON API** (`/api/*`), ne web (`/login`, `/reports`) puslapius.
 
-- **`openapi.yaml`** — OpenAPI 3.0 aprašas visiems Laravel maršrutams (Inertia/HTML ir JSON atsakymai).
-- Failas laikomas čia: `app/docs/openapi.yaml` (nuo repozitorijos šaknies: `kauno-problemos/app/docs/`).
+## Scope
 
-## Kaip atsidaryti Swagger UI (rekomenduojama)
+- auth: `POST /api/login`, `POST /api/register`, `GET /api/me`, `POST /api/logout`
+- problems: `GET /api/problems`, `GET /api/problems/{problem}`, `POST /api/problems`
+- info: `GET /api/info/statistics`, `GET /api/info/file-upload-settings`
 
-Naudok integraciją per pagrindinį **docker-compose** (nginx ant 80 porto, proxy į Swagger konteinerį).
-
-1. Repozitorijos šaknyje (`kauno-problemos/`, kur yra `docker-compose.yml`):
+## Paleidimas
 
 ```bash
 docker compose up -d
 docker compose restart kauno_problemos_nginx swagger
 ```
 
-2. Naršyklėje: **http://localhost/swagger/**
+Swagger UI: **http://localhost/swagger/**
 
-Swagger ir API yra tame pačiame origin (`http://localhost`), todėl „Try it out“ nėra blokuojamas dėl CORS.
+## Kaip testuoti per Swagger
 
-Po `openapi.yaml` pakeitimų pakanka perkrauti Swagger puslapį; jei spec neatsinaujina, paleisk `docker compose restart swagger`.
+1. Atidaryk `POST /api/login` ir gausi `token`.
+2. Swagger viršuje spausk **Authorize**.
+3. Įvesk: `Bearer <token>` ir patvirtink.
+4. Testuok protected endpointus (`/api/me`, `POST /api/problems`, `/api/info/file-upload-settings`).
 
-## Alternatyva: tik Swagger atskirai (8081)
+## Pastabos
 
-Jei nori tik dokumentacijos be pilno compose:
-
-```bash
-cd app
-docker run --rm -p 8081:8080 \
-  -e SWAGGER_JSON=/tmp/openapi.yaml \
-  -v "$(pwd)/docs/openapi.yaml:/tmp/openapi.yaml:ro" \
-  swaggerapi/swagger-ui
-```
-
-Tada: **http://localhost:8081**. API užklausos eina į kitą origin nei UI — reikia CORS; projekte tai dengia `app/config/cors.php` (localhost / 127.0.0.1 ant 8081). Patikimiau naudoti `/swagger/` variantą aukščiau.
-
-## Prisijungę endpointai
-
-Daliai maršrutų reikia Laravel sesijos. Tame pačiame naršyklės profilyje atidaryk aplikaciją (**http://localhost**), prisijunk, tada **http://localhost/swagger/** ir bandyk „Execute“.
-
-## Atitikimas kodui
-
-Spec turėtų sutapti su `php artisan route:list`. Po didelių maršrutų pakeitimų verta atnaujinti `openapi.yaml`.
+- Šita schema skirta API integracijai, todėl atsakymai yra JSON.
+- Jei nori sukurti vartotoją per API, naudok `POST /api/register`.

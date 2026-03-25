@@ -1,102 +1,193 @@
 openapi: 3.0.3
 
 info:
-  title: Kauno problemos (Web + API)
-  version: 1.0.0
+  title: Kauno problemos API
+  version: 2.0.0
   description: >
-    OpenAPI specification for all application endpoints (HTML/Inertia pages and JSON endpoints).
-    Authenticated endpoints use Laravel session cookie (`laravel_session`).
+    JSON API for this week scope: auth, problems, and info.
+    Use `/api/*` endpoints in Swagger.
 
 servers:
   - url: http://localhost
     description: Local app (Docker nginx)
 
 tags:
-  - name: Public
-    description: Public pages and public data
   - name: Auth
-    description: Login, registration, verification, password reset, logout
-  - name: Reporter
-    description: Reporter-only flows
   - name: Problems
-    description: Problem operations
-  - name: Map
-    description: Map and geocoding/search
-  - name: Automation
-    description: Automation rules (staff)
-  - name: Statistics
-    description: Statistics (staff) and exports
-  - name: Settings
-    description: User settings and profile
-  - name: Admin
-    description: Admin area endpoints
+  - name: Info
 
 paths:
-  /:
-    get:
-      tags: [Public]
-      summary: Landing page
-      description: Public landing page.
+  /api/login:
+    post:
+      tags: [Auth]
+      summary: Login (returns Bearer token)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ApiLoginRequest'
       responses:
         '200':
-          $ref: '#/components/responses/HtmlOk'
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthTokenResponse'
+        '422':
+          $ref: '#/components/responses/ValidationError'
 
-  /faq:
+  /api/register:
+    post:
+      tags: [Auth]
+      summary: Register reporter (returns Bearer token)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ApiRegisterRequest'
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthTokenResponse'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+
+  /api/me:
     get:
-      tags: [Public]
-      summary: FAQ page
+      tags: [Auth]
+      summary: Current user
+      security:
+        - bearerAuth: []
       responses:
         '200':
-          $ref: '#/components/responses/HtmlOk'
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserSummary'
+        '401':
+          description: Unauthorized
 
-  /privacy:
-    get:
-      tags: [Public]
-      summary: Privacy policy page
+  /api/logout:
+    post:
+      tags: [Auth]
+      summary: Logout (revoke current token)
+      security:
+        - bearerAuth: []
       responses:
         '200':
-          $ref: '#/components/responses/HtmlOk'
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok:
+                    type: boolean
+                    example: true
+        '401':
+          description: Unauthorized
 
-  /slapukai:
+  /api/problems:
     get:
-      tags: [Public]
-      summary: Cookies page
-      responses:
-        '200':
-          $ref: '#/components/responses/HtmlOk'
-
-  /contacts:
-    get:
-      tags: [Public]
-      summary: Contacts page
-      responses:
-        '200':
-          $ref: '#/components/responses/HtmlOk'
-
-  /help:
-    get:
-      tags: [Public]
-      summary: Help page
-      responses:
-        '200':
-          $ref: '#/components/responses/HtmlOk'
-
-  /statistika:
-    get:
-      tags: [Public]
-      summary: Public statistics page
-      responses:
-        '200':
-          $ref: '#/components/responses/HtmlOk'
-
-  /statistika/duomenys:
-    get:
-      tags: [Public]
-      summary: Public statistics data
-      description: Returns public statistics as JSON.
+      tags: [Problems]
+      summary: Public problems list (JSON)
       parameters:
-        - $ref: '#/components/parameters/periodQuery'
-        - $ref: '#/components/parameters/categoryQuery'
+        - in: query
+          name: per_page
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+    post:
+      tags: [Problems]
+      summary: Create problem (reporter, JSON)
+      description: Requires reporter token.
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: header
+          name: X-Upload-Channel
+          required: false
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ReporterProblemCreateRequest'
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReporterProblemCreateRequest'
+      responses:
+        '200':
+          description: Created
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [ok, problem_id]
+                properties:
+                  ok:
+                    type: boolean
+                    example: true
+                  problem_id:
+                    type: integer
+                    example: 123
+        '401':
+          description: Unauthorized
+        '403':
+          description: No permission
+        '422':
+          $ref: '#/components/responses/ValidationError'
+
+  /api/problems/{problem}:
+    get:
+      tags: [Problems]
+      summary: Public problem details (JSON)
+      parameters:
+        - $ref: '#/components/parameters/problemPath'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PublicProblemResponse'
+        '404':
+          description: Problem not found / not public
+
+  /api/info/statistics:
+    get:
+      tags: [Info]
+      summary: Public statistics data (JSON)
+      parameters:
+        - in: query
+          name: period
+          required: false
+          schema:
+            type: string
+        - in: query
+          name: category
+          required: false
+          schema:
+            type: string
       responses:
         '200':
           description: OK
@@ -105,308 +196,12 @@ paths:
               schema:
                 $ref: '#/components/schemas/PublicStatisticsResponse'
 
-  /reports:
+  /api/info/file-upload-settings:
     get:
-      tags: [Public]
-      summary: Public reports map
-      responses:
-        '200':
-          $ref: '#/components/responses/HtmlOk'
-
-  /reports/{problem}:
-    get:
-      tags: [Public]
-      summary: Public report view
-      parameters:
-        - $ref: '#/components/parameters/problemPath'
-      responses:
-        '200':
-          $ref: '#/components/responses/HtmlOk'
-        '404':
-          $ref: '#/components/responses/NotFound'
-
-  /login:
-    get:
-      tags: [Auth]
-      summary: Login page
-      responses:
-        '200':
-          $ref: '#/components/responses/HtmlOk'
-    post:
-      tags: [Auth]
-      summary: Login
-      description: Creates a Laravel session and redirects.
-      requestBody:
-        required: true
-        content:
-          application/x-www-form-urlencoded:
-            schema: { $ref: '#/components/schemas/LoginRequest' }
-          application/json:
-            schema: { $ref: '#/components/schemas/LoginRequest' }
-      responses:
-        '302':
-          $ref: '#/components/responses/Redirect'
-        '422':
-          $ref: '#/components/responses/ValidationError'
-
-  /register:
-    get:
-      tags: [Auth]
-      summary: Registration page
-      responses:
-        '200':
-          $ref: '#/components/responses/HtmlOk'
-    post:
-      tags: [Auth]
-      summary: Register
-      description: Creates a reporter user account and redirects.
-      requestBody:
-        required: true
-        content:
-          application/x-www-form-urlencoded:
-            schema: { $ref: '#/components/schemas/RegisterRequest' }
-          application/json:
-            schema: { $ref: '#/components/schemas/RegisterRequest' }
-      responses:
-        '302':
-          $ref: '#/components/responses/Redirect'
-        '422':
-          $ref: '#/components/responses/ValidationError'
-
-  /register/invite/{token}:
-    get:
-      tags: [Auth]
-      summary: Invitation registration page
-      parameters:
-        - $ref: '#/components/parameters/tokenPath'
-      responses:
-        '200':
-          $ref: '#/components/responses/HtmlOk'
-        '404':
-          $ref: '#/components/responses/NotFound'
-    post:
-      tags: [Auth]
-      summary: Complete invitation registration
-      parameters:
-        - $ref: '#/components/parameters/tokenPath'
-      responses:
-        '302':
-          $ref: '#/components/responses/Redirect'
-        '422':
-          $ref: '#/components/responses/ValidationError'
-
-  /forgot-password:
-    get:
-      tags: [Auth]
-      summary: Forgot password page
-      responses:
-        '200':
-          $ref: '#/components/responses/HtmlOk'
-    post:
-      tags: [Auth]
-      summary: Send password reset email
-      responses:
-        '302':
-          $ref: '#/components/responses/Redirect'
-        '422':
-          $ref: '#/components/responses/ValidationError'
-
-  /reset-password/{token}:
-    get:
-      tags: [Auth]
-      summary: Reset password page
-      parameters:
-        - $ref: '#/components/parameters/tokenPath'
-      responses:
-        '200':
-          $ref: '#/components/responses/HtmlOk'
-    post:
-      tags: [Auth]
-      summary: Reset password
-      requestBody:
-        required: true
-        content:
-          application/x-www-form-urlencoded:
-            schema:
-              $ref: '#/components/schemas/ResetPasswordRequest'
-          application/json:
-            schema:
-              $ref: '#/components/schemas/ResetPasswordRequest'
-      responses:
-        '302':
-          $ref: '#/components/responses/Redirect'
-        '422':
-          $ref: '#/components/responses/ValidationError'
-
-  /reset-password:
-    post:
-      tags: [Auth]
-      summary: Reset password (submit)
-      description: Submits the new password using the reset token (Laravel default).
-      requestBody:
-        required: true
-        content:
-          application/x-www-form-urlencoded:
-            schema: { $ref: '#/components/schemas/ResetPasswordRequest' }
-          application/json:
-            schema: { $ref: '#/components/schemas/ResetPasswordRequest' }
-      responses:
-        '302':
-          $ref: '#/components/responses/Redirect'
-        '422':
-          $ref: '#/components/responses/ValidationError'
-
-  /verify-email:
-    get:
-      tags: [Auth]
-      summary: Verify email notice page
-      security: [{ cookieAuth: [] }]
-      responses:
-        '200':
-          $ref: '#/components/responses/HtmlOk'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-
-  /email/verify/{id}/{hash}:
-    get:
-      tags: [Auth]
-      summary: Verify email
-      security: [{ cookieAuth: [] }]
-      parameters:
-        - $ref: '#/components/parameters/idPath'
-        - $ref: '#/components/parameters/hashPath'
-      responses:
-        '302':
-          $ref: '#/components/responses/Redirect'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-
-  /email/verification-notification:
-    post:
-      tags: [Auth]
-      summary: Resend verification email
-      security: [{ cookieAuth: [] }]
-      responses:
-        '302':
-          $ref: '#/components/responses/Redirect'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '429':
-          description: Too many requests
-
-  /role-select:
-    get:
-      tags: [Auth]
-      summary: Role select page
-      security: [{ cookieAuth: [] }]
-      responses:
-        '200':
-          $ref: '#/components/responses/HtmlOk'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-    post:
-      tags: [Auth]
-      summary: Set active role
-      security: [{ cookieAuth: [] }]
-      responses:
-        '302':
-          $ref: '#/components/responses/Redirect'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '422':
-          $ref: '#/components/responses/ValidationError'
-
-  /logout:
-    post:
-      tags: [Auth]
-      summary: Logout
-      security: [{ cookieAuth: [] }]
-      responses:
-        '302':
-          $ref: '#/components/responses/Redirect'
-
-  /reporter/terms:
-    get:
-      tags: [Reporter]
-      summary: Reporter terms page
-      security: [{ cookieAuth: [] }]
-      responses:
-        '200':
-          $ref: '#/components/responses/HtmlOk'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-    post:
-      tags: [Reporter]
-      summary: Accept reporter terms
-      security: [{ cookieAuth: [] }]
-      responses:
-        '302':
-          $ref: '#/components/responses/Redirect'
-        '422':
-          $ref: '#/components/responses/ValidationError'
-
-  /dashboard:
-    get:
-      tags: [Problems]
-      summary: Dashboard
-      security: [{ cookieAuth: [] }]
-      responses:
-        '200':
-          $ref: '#/components/responses/HtmlOk'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/Forbidden'
-
-  /reporter/sarasas:
-    get:
-      tags: [Reporter]
-      summary: Reporter list page
-      security: [{ cookieAuth: [] }]
-      responses:
-        '200':
-          $ref: '#/components/responses/HtmlOk'
-
-  /reporter/statistics:
-    get:
-      tags: [Reporter]
-      summary: Reporter statistics page
-      security: [{ cookieAuth: [] }]
-      responses:
-        '200':
-          $ref: '#/components/responses/HtmlOk'
-
-  /reporter/report:
-    get:
-      tags: [Reporter]
-      summary: Report problem page
-      security: [{ cookieAuth: [] }]
-      responses:
-        '200':
-          $ref: '#/components/responses/HtmlOk'
-    post:
-      tags: [Reporter]
-      summary: Create problem (reporter)
-      description: Creates a problem and returns JSON.
-      security: [{ cookieAuth: [] }]
-      parameters:
-        - $ref: '#/components/parameters/uploadChannelHeader'
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema: { $ref: '#/components/schemas/ReporterProblemCreateRequest' }
-          application/x-www-form-urlencoded:
-            schema: { $ref: '#/components/schemas/ReporterProblemCreateRequest' }
-          multipart/form-data:
-            schema:
-              allOf:
-                - $ref: '#/components/schemas/ReporterProblemCreateRequest'
-                - type: object
-                  properties:
-                    files:
-                      type: array
-                      items: { type: string, format: binary }
+      tags: [Info]
+      summary: File upload limits/settings (JSON)
+      security:
+        - bearerAuth: []
       responses:
         '200':
           description: OK
@@ -414,1484 +209,139 @@ paths:
             application/json:
               schema:
                 type: object
-                required: [ok, problem_id]
-                properties:
-                  ok: { type: boolean, example: true }
-                  problem_id: { type: integer, example: 123 }
-        '403':
-          $ref: '#/components/responses/ForbiddenJson'
-        '422':
-          $ref: '#/components/responses/ValidationError'
-
-  /reporter/wizard-dismissed:
-    post:
-      tags: [Reporter]
-      summary: Dismiss reporter wizard
-      security: [{ cookieAuth: [] }]
-      responses:
-        '200':
-          description: OK
-          content:
-            application/json:
-              schema: { $ref: '#/components/schemas/OkResponse' }
-        '403':
-          $ref: '#/components/responses/ForbiddenJson'
-
-  /reporter/terms-accepted:
-    post:
-      tags: [Reporter]
-      summary: Mark terms accepted (JSON)
-      security: [{ cookieAuth: [] }]
-      responses:
-        '200':
-          description: OK
-          content:
-            application/json:
-              schema: { $ref: '#/components/schemas/OkResponse' }
-        '403':
-          $ref: '#/components/responses/ForbiddenJson'
-
-  /file-upload-settings:
-    get:
-      tags: [Settings]
-      summary: File upload settings (JSON)
-      security: [{ cookieAuth: [] }]
-      responses:
-        '200':
-          description: OK
-          content:
-            application/json:
-              schema: { type: object, additionalProperties: true }
+                additionalProperties: true
         '401':
-          $ref: '#/components/responses/Unauthorized'
-
-  /problems/{problem}/review-progress:
-    get:
-      tags: [Problems]
-      summary: Review progress page
-      security: [{ cookieAuth: [] }]
-      parameters:
-        - $ref: '#/components/parameters/problemPath'
-      responses:
-        '200':
-          $ref: '#/components/responses/HtmlOk'
-        '403':
-          $ref: '#/components/responses/Forbidden'
-        '404':
-          $ref: '#/components/responses/NotFound'
-    post:
-      tags: [Problems]
-      summary: Add review progress entry
-      security: [{ cookieAuth: [] }]
-      parameters:
-        - $ref: '#/components/parameters/problemPath'
-      responses:
-        '302':
-          $ref: '#/components/responses/Redirect'
-        '422':
-          $ref: '#/components/responses/ValidationError'
-
-  /problems/{problem}/watch:
-    post:
-      tags: [Problems]
-      summary: Toggle watch (JSON)
-      security: [{ cookieAuth: [] }]
-      parameters:
-        - $ref: '#/components/parameters/problemPath'
-      responses:
-        '200':
-          description: OK
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  watched: { type: boolean }
-        '404':
-          $ref: '#/components/responses/NotFound'
-
-  /problems/{problem}/attachments:
-    post:
-      tags: [Problems]
-      summary: Upload attachments
-      security: [{ cookieAuth: [] }]
-      parameters:
-        - $ref: '#/components/parameters/problemPath'
-        - $ref: '#/components/parameters/uploadChannelHeader'
-      requestBody:
-        required: true
-        content:
-          multipart/form-data:
-            schema:
-              type: object
-              required: [files]
-              properties:
-                files:
-                  type: array
-                  items: { type: string, format: binary }
-      responses:
-        '200':
-          description: OK (JSON)
-          content:
-            application/json:
-              schema: { $ref: '#/components/schemas/OkResponse' }
-        '302':
-          $ref: '#/components/responses/Redirect'
-        '403':
-          $ref: '#/components/responses/Forbidden'
-        '422':
-          $ref: '#/components/responses/ValidationError'
-
-  /problems/{problem}/attachments/{attachment}:
-    delete:
-      tags: [Problems]
-      summary: Delete attachment
-      security: [{ cookieAuth: [] }]
-      parameters:
-        - $ref: '#/components/parameters/problemPath'
-        - $ref: '#/components/parameters/attachmentPath'
-      responses:
-        '200':
-          description: OK (JSON)
-          content:
-            application/json:
-              schema: { $ref: '#/components/schemas/OkResponse' }
-        '302':
-          $ref: '#/components/responses/Redirect'
-        '403':
-          $ref: '#/components/responses/Forbidden'
-        '404':
-          $ref: '#/components/responses/NotFound'
-
-  /automation:
-    get:
-      tags: [Automation]
-      summary: Automation rules page
-      security: [{ cookieAuth: [] }]
-      responses:
-        '200':
-          $ref: '#/components/responses/HtmlOk'
-        '403':
-          $ref: '#/components/responses/Forbidden'
-    post:
-      tags: [Automation]
-      summary: Create automation rule
-      security: [{ cookieAuth: [] }]
-      requestBody:
-        required: false
-        content:
-          application/json:
-            schema: { type: object, additionalProperties: true }
-          application/x-www-form-urlencoded:
-            schema: { type: object, additionalProperties: true }
-      responses:
-        '302':
-          $ref: '#/components/responses/Redirect'
-        '422':
-          $ref: '#/components/responses/ValidationError'
-
-  /automation/inactive-reporter-setting:
-    put:
-      tags: [Automation]
-      summary: Update inactive reporter setting
-      security: [{ cookieAuth: [] }]
-      requestBody:
-        required: false
-        content:
-          application/json:
-            schema: { type: object, additionalProperties: true }
-      responses:
-        '302':
-          $ref: '#/components/responses/Redirect'
-        '422':
-          $ref: '#/components/responses/ValidationError'
-
-  /automation/{rule}:
-    put:
-      tags: [Automation]
-      summary: Update automation rule
-      security: [{ cookieAuth: [] }]
-      parameters:
-        - $ref: '#/components/parameters/rulePath'
-      responses:
-        '302':
-          $ref: '#/components/responses/Redirect'
-    delete:
-      tags: [Automation]
-      summary: Delete automation rule
-      security: [{ cookieAuth: [] }]
-      parameters:
-        - $ref: '#/components/parameters/rulePath'
-      responses:
-        '302':
-          $ref: '#/components/responses/Redirect'
-
-  /automation/publish-rules:
-    post:
-      tags: [Automation]
-      summary: Create publish rule
-      security: [{ cookieAuth: [] }]
-      responses:
-        '302':
-          $ref: '#/components/responses/Redirect'
-
-  /automation/publish-rules/{publish_rule}:
-    put:
-      tags: [Automation]
-      summary: Update publish rule
-      security: [{ cookieAuth: [] }]
-      parameters:
-        - $ref: '#/components/parameters/publishRulePath'
-      responses:
-        '302':
-          $ref: '#/components/responses/Redirect'
-    delete:
-      tags: [Automation]
-      summary: Delete publish rule
-      security: [{ cookieAuth: [] }]
-      parameters:
-        - $ref: '#/components/parameters/publishRulePath'
-      responses:
-        '302':
-          $ref: '#/components/responses/Redirect'
-
-  /automation/resolution-term-rules:
-    post:
-      tags: [Automation]
-      summary: Create resolution term rule
-      security: [{ cookieAuth: [] }]
-      responses:
-        '302':
-          $ref: '#/components/responses/Redirect'
-
-  /automation/resolution-term-rules/{resolution_term_rule}:
-    put:
-      tags: [Automation]
-      summary: Update resolution term rule
-      security: [{ cookieAuth: [] }]
-      parameters:
-        - $ref: '#/components/parameters/resolutionTermRulePath'
-      responses:
-        '302':
-          $ref: '#/components/responses/Redirect'
-    delete:
-      tags: [Automation]
-      summary: Delete resolution term rule
-      security: [{ cookieAuth: [] }]
-      parameters:
-        - $ref: '#/components/parameters/resolutionTermRulePath'
-      responses:
-        '302':
-          $ref: '#/components/responses/Redirect'
-
-  /map:
-    get:
-      tags: [Map]
-      summary: Map page
-      security: [{ cookieAuth: [] }]
-      responses:
-        '200':
-          $ref: '#/components/responses/HtmlOk'
-        '403':
-          $ref: '#/components/responses/Forbidden'
-
-  /map/address-search:
-    get:
-      tags: [Map]
-      summary: Address search (JSON)
-      security: [{ cookieAuth: [] }]
-      parameters:
-        - in: query
-          name: q
-          required: false
-          schema: { type: string }
-          description: Search query.
-        - in: query
-          name: mode
-          required: false
-          schema: { type: string, enum: [all, number, address] }
-          description: Search mode.
-      responses:
-        '200':
-          description: OK
-          content:
-            application/json:
-              schema:
-                type: array
-                items: { type: object, additionalProperties: true }
-        '403':
-          $ref: '#/components/responses/ForbiddenJson'
-
-  /problems/assign:
-    get:
-      tags: [Problems]
-      summary: Assign problems page
-      security: [{ cookieAuth: [] }]
-      responses:
-        '200': { $ref: '#/components/responses/HtmlOk' }
-        '403': { $ref: '#/components/responses/Forbidden' }
-    post:
-      tags: [Problems]
-      summary: Assign problems (bulk)
-      security: [{ cookieAuth: [] }]
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema: { $ref: '#/components/schemas/AssignProblemsRequest' }
-          application/x-www-form-urlencoded:
-            schema: { $ref: '#/components/schemas/AssignProblemsRequest' }
-      responses:
-        '302': { $ref: '#/components/responses/Redirect' }
-        '422': { $ref: '#/components/responses/ValidationError' }
-
-  /problems/assign/email:
-    post:
-      tags: [Problems]
-      summary: Send manual assign email
-      security: [{ cookieAuth: [] }]
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema: { type: object, additionalProperties: true }
-          application/x-www-form-urlencoded:
-            schema: { type: object, additionalProperties: true }
-      responses:
-        '302': { $ref: '#/components/responses/Redirect' }
-        '422': { $ref: '#/components/responses/ValidationError' }
-
-  /problems/export:
-    get:
-      tags: [Problems]
-      summary: Export problems (xlsx)
-      security: [{ cookieAuth: [] }]
-      parameters:
-        - in: query
-          name: scope
-          required: false
-          schema: { type: string, enum: [current_page, all] }
-      responses:
-        '200':
-          description: XLSX file
-          content:
-            application/vnd.openxmlformats-officedocument.spreadsheetml.sheet:
-              schema: { type: string, format: binary }
-        '403': { $ref: '#/components/responses/Forbidden' }
-
-  /problems/bulk-update-status:
-    post:
-      tags: [Problems]
-      summary: Bulk update status
-      security: [{ cookieAuth: [] }]
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema: { type: object, additionalProperties: true }
-      responses:
-        '302': { $ref: '#/components/responses/Redirect' }
-        '422': { $ref: '#/components/responses/ValidationError' }
-
-  /problems/bulk-update-publish:
-    post:
-      tags: [Problems]
-      summary: Bulk update publish flag
-      security: [{ cookieAuth: [] }]
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema: { type: object, additionalProperties: true }
-      responses:
-        '302': { $ref: '#/components/responses/Redirect' }
-        '422': { $ref: '#/components/responses/ValidationError' }
-
-  /problems/{problem}/assign:
-    get:
-      tags: [Problems]
-      summary: Assign single problem page
-      security: [{ cookieAuth: [] }]
-      parameters:
-        - $ref: '#/components/parameters/problemPath'
-      responses:
-        '200': { $ref: '#/components/responses/HtmlOk' }
-        '403': { $ref: '#/components/responses/Forbidden' }
-
-  /problems/{problem}/assign-institution:
-    get:
-      tags: [Problems]
-      summary: Assign institution page
-      security: [{ cookieAuth: [] }]
-      parameters:
-        - $ref: '#/components/parameters/problemPath'
-      responses:
-        '200': { $ref: '#/components/responses/HtmlOk' }
-        '403': { $ref: '#/components/responses/Forbidden' }
-    post:
-      tags: [Problems]
-      summary: Assign institution
-      security: [{ cookieAuth: [] }]
-      parameters:
-        - $ref: '#/components/parameters/problemPath'
-      responses:
-        '302': { $ref: '#/components/responses/Redirect' }
-        '422': { $ref: '#/components/responses/ValidationError' }
-
-  /problems/{problem}/send-assign-email:
-    post:
-      tags: [Problems]
-      summary: Send assignment email (institution)
-      security: [{ cookieAuth: [] }]
-      parameters:
-        - $ref: '#/components/parameters/problemPath'
-      responses:
-        '302': { $ref: '#/components/responses/Redirect' }
-        '422': { $ref: '#/components/responses/ValidationError' }
-
-  /problems/{problem}/return:
-    patch:
-      tags: [Problems]
-      summary: Return problem to admin
-      security: [{ cookieAuth: [] }]
-      parameters:
-        - $ref: '#/components/parameters/problemPath'
-      responses:
-        '302': { $ref: '#/components/responses/Redirect' }
-        '403': { $ref: '#/components/responses/Forbidden' }
-
-  /problems/{problem}/reassign-institution:
-    post:
-      tags: [Problems]
-      summary: Reassign institution
-      security: [{ cookieAuth: [] }]
-      parameters:
-        - $ref: '#/components/parameters/problemPath'
-      responses:
-        '302': { $ref: '#/components/responses/Redirect' }
-        '422': { $ref: '#/components/responses/ValidationError' }
-
-  /problems/{problem}/merge:
-    get:
-      tags: [Problems]
-      summary: Merge page
-      security: [{ cookieAuth: [] }]
-      parameters:
-        - $ref: '#/components/parameters/problemPath'
-      responses:
-        '200': { $ref: '#/components/responses/HtmlOk' }
-        '403': { $ref: '#/components/responses/Forbidden' }
-    post:
-      tags: [Problems]
-      summary: Merge problems
-      security: [{ cookieAuth: [] }]
-      parameters:
-        - $ref: '#/components/parameters/problemPath'
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema: { type: object, additionalProperties: true }
-          application/x-www-form-urlencoded:
-            schema: { type: object, additionalProperties: true }
-      responses:
-        '302': { $ref: '#/components/responses/Redirect' }
-        '422': { $ref: '#/components/responses/ValidationError' }
-
-  /problems/{problem}/unmerge:
-    patch:
-      tags: [Problems]
-      summary: Unmerge a problem
-      security: [{ cookieAuth: [] }]
-      parameters:
-        - $ref: '#/components/parameters/problemPath'
-      responses:
-        '302': { $ref: '#/components/responses/Redirect' }
-
-  /problems/{problem}:
-    get:
-      tags: [Problems]
-      summary: Problem details page
-      security: [{ cookieAuth: [] }]
-      parameters:
-        - $ref: '#/components/parameters/problemPath'
-      responses:
-        '200': { $ref: '#/components/responses/HtmlOk' }
-        '403': { $ref: '#/components/responses/Forbidden' }
-        '404': { $ref: '#/components/responses/NotFound' }
-    put:
-      tags: [Problems]
-      summary: Update problem
-      security: [{ cookieAuth: [] }]
-      parameters:
-        - $ref: '#/components/parameters/problemPath'
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema: { type: object, additionalProperties: true }
-          application/x-www-form-urlencoded:
-            schema: { type: object, additionalProperties: true }
-      responses:
-        '302': { $ref: '#/components/responses/Redirect' }
-        '422': { $ref: '#/components/responses/ValidationError' }
-    delete:
-      tags: [Problems]
-      summary: Archive problem
-      security: [{ cookieAuth: [] }]
-      parameters:
-        - $ref: '#/components/parameters/problemPath'
-      responses:
-        '302': { $ref: '#/components/responses/Redirect' }
-        '403': { $ref: '#/components/responses/Forbidden' }
-
-  /problems/{problem}/status:
-    patch:
-      tags: [Problems]
-      summary: Update status
-      security: [{ cookieAuth: [] }]
-      parameters:
-        - $ref: '#/components/parameters/problemPath'
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema: { type: object, additionalProperties: true }
-          application/x-www-form-urlencoded:
-            schema: { type: object, additionalProperties: true }
-      responses:
-        '302': { $ref: '#/components/responses/Redirect' }
-        '422': { $ref: '#/components/responses/ValidationError' }
-
-  /problems/{problem}/publish:
-    patch:
-      tags: [Problems]
-      summary: Update publish flag
-      security: [{ cookieAuth: [] }]
-      parameters:
-        - $ref: '#/components/parameters/problemPath'
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema: { type: object, additionalProperties: true }
-          application/x-www-form-urlencoded:
-            schema: { type: object, additionalProperties: true }
-      responses:
-        '302': { $ref: '#/components/responses/Redirect' }
-        '422': { $ref: '#/components/responses/ValidationError' }
-
-  /problems/{problem}/review-progress/{entry}:
-    put:
-      tags: [Problems]
-      summary: Update review entry
-      security: [{ cookieAuth: [] }]
-      parameters:
-        - $ref: '#/components/parameters/problemPath'
-        - $ref: '#/components/parameters/entryPath'
-      responses:
-        '302': { $ref: '#/components/responses/Redirect' }
-        '422': { $ref: '#/components/responses/ValidationError' }
-
-  /problems/{problem}/review-progress/attachments/{attachment}:
-    delete:
-      tags: [Problems]
-      summary: Delete review attachment
-      security: [{ cookieAuth: [] }]
-      parameters:
-        - $ref: '#/components/parameters/problemPath'
-        - $ref: '#/components/parameters/attachmentPath'
-      responses:
-        '200':
-          description: OK (JSON)
-          content:
-            application/json:
-              schema: { $ref: '#/components/schemas/OkResponse' }
-        '302': { $ref: '#/components/responses/Redirect' }
-        '403': { $ref: '#/components/responses/Forbidden' }
-
-  /statistics:
-    get:
-      tags: [Statistics]
-      summary: Statistics page
-      security: [{ cookieAuth: [] }]
-      responses:
-        '200': { $ref: '#/components/responses/HtmlOk' }
-        '403': { $ref: '#/components/responses/Forbidden' }
-
-  /statistics/export:
-    get:
-      tags: [Statistics]
-      summary: Export statistics (xlsx)
-      security: [{ cookieAuth: [] }]
-      responses:
-        '200':
-          description: XLSX file
-          content:
-            application/vnd.openxmlformats-officedocument.spreadsheetml.sheet:
-              schema: { type: string, format: binary }
-        '403': { $ref: '#/components/responses/Forbidden' }
-
-  /statistics/resolution-terms:
-    get:
-      tags: [Statistics]
-      summary: Resolution terms page
-      security: [{ cookieAuth: [] }]
-      responses:
-        '200': { $ref: '#/components/responses/HtmlOk' }
-        '403': { $ref: '#/components/responses/Forbidden' }
-
-  /profile:
-    get:
-      tags: [Settings]
-      summary: Profile page
-      security: [{ cookieAuth: [] }]
-      responses:
-        '200': { $ref: '#/components/responses/HtmlOk' }
-
-  /settings:
-    get:
-      tags: [Settings]
-      summary: Settings page
-      security: [{ cookieAuth: [] }]
-      responses:
-        '200': { $ref: '#/components/responses/HtmlOk' }
-    delete:
-      tags: [Settings]
-      summary: Delete account
-      security: [{ cookieAuth: [] }]
-      responses:
-        '302': { $ref: '#/components/responses/Redirect' }
-
-  /settings/change-password:
-    get:
-      tags: [Settings]
-      summary: Change password page
-      security: [{ cookieAuth: [] }]
-      responses:
-        '200': { $ref: '#/components/responses/HtmlOk' }
-
-  /settings/password:
-    put:
-      tags: [Settings]
-      summary: Update password
-      security: [{ cookieAuth: [] }]
-      requestBody:
-        required: false
-        content:
-          application/json:
-            schema: { type: object, additionalProperties: true }
-          application/x-www-form-urlencoded:
-            schema: { type: object, additionalProperties: true }
-      responses:
-        '302': { $ref: '#/components/responses/Redirect' }
-        '422': { $ref: '#/components/responses/ValidationError' }
-
-  /settings/profile:
-    patch:
-      tags: [Settings]
-      summary: Update profile
-      security: [{ cookieAuth: [] }]
-      requestBody:
-        required: false
-        content:
-          application/json:
-            schema: { type: object, additionalProperties: true }
-          application/x-www-form-urlencoded:
-            schema: { type: object, additionalProperties: true }
-      responses:
-        '302': { $ref: '#/components/responses/Redirect' }
-        '422': { $ref: '#/components/responses/ValidationError' }
-
-  /settings/employees:
-    post:
-      tags: [Settings]
-      summary: Add employee
-      security: [{ cookieAuth: [] }]
-      responses:
-        '302': { $ref: '#/components/responses/Redirect' }
-        '422': { $ref: '#/components/responses/ValidationError' }
-
-  /settings/teams:
-    post:
-      tags: [Settings]
-      summary: Create team
-      security: [{ cookieAuth: [] }]
-      responses:
-        '302': { $ref: '#/components/responses/Redirect' }
-        '422': { $ref: '#/components/responses/ValidationError' }
-
-  /settings/teams/{team}:
-    put:
-      tags: [Settings]
-      summary: Update team
-      security: [{ cookieAuth: [] }]
-      parameters:
-        - $ref: '#/components/parameters/teamPath'
-      responses:
-        '302': { $ref: '#/components/responses/Redirect' }
-    delete:
-      tags: [Settings]
-      summary: Delete team
-      security: [{ cookieAuth: [] }]
-      parameters:
-        - $ref: '#/components/parameters/teamPath'
-      responses:
-        '302': { $ref: '#/components/responses/Redirect' }
-
-  /settings/teams/{team}/members:
-    post:
-      tags: [Settings]
-      summary: Sync team members
-      security: [{ cookieAuth: [] }]
-      parameters:
-        - $ref: '#/components/parameters/teamPath'
-      responses:
-        '302': { $ref: '#/components/responses/Redirect' }
-
-  /settings/institution:
-    patch:
-      tags: [Settings]
-      summary: Update institution settings
-      security: [{ cookieAuth: [] }]
-      responses:
-        '302': { $ref: '#/components/responses/Redirect' }
-
-  /settings/privacy:
-    patch:
-      tags: [Settings]
-      summary: Update privacy settings
-      security: [{ cookieAuth: [] }]
-      responses:
-        '302': { $ref: '#/components/responses/Redirect' }
-
-  /settings/password/email:
-    post:
-      tags: [Settings]
-      summary: Send reset password link (from settings)
-      security: [{ cookieAuth: [] }]
-      responses:
-        '302': { $ref: '#/components/responses/Redirect' }
-
-  /invitations:
-    post:
-      tags: [Admin]
-      summary: Create invitation
-      security: [{ cookieAuth: [] }]
-      responses:
-        '302': { $ref: '#/components/responses/Redirect' }
-        '403': { $ref: '#/components/responses/Forbidden' }
-
-  /admin:
-    get:
-      tags: [Admin]
-      summary: Admin dashboard
-      security: [{ cookieAuth: [] }]
-      responses:
-        '200': { $ref: '#/components/responses/HtmlOk' }
-        '403': { $ref: '#/components/responses/Forbidden' }
-
-  /admin/rbac/users:
-    get:
-      tags: [Admin]
-      summary: RBAC users (list)
-      security: [{ cookieAuth: [] }]
-      responses:
-        '200': { $ref: '#/components/responses/JsonOk' }
-    post:
-      tags: [Admin]
-      summary: RBAC create user
-      security: [{ cookieAuth: [] }]
-      responses:
-        '200': { $ref: '#/components/responses/JsonOk' }
-
-  /admin/rbac/users/{user}:
-    put:
-      tags: [Admin]
-      summary: RBAC update user
-      security: [{ cookieAuth: [] }]
-      parameters:
-        - $ref: '#/components/parameters/userPath'
-      responses:
-        '200': { $ref: '#/components/responses/JsonOk' }
-    delete:
-      tags: [Admin]
-      summary: RBAC delete user
-      security: [{ cookieAuth: [] }]
-      parameters:
-        - $ref: '#/components/parameters/userPath'
-      responses:
-        '200': { $ref: '#/components/responses/JsonOk' }
-
-  /admin/rbac/users/{user}/roles:
-    post:
-      tags: [Admin]
-      summary: RBAC sync user roles
-      security: [{ cookieAuth: [] }]
-      parameters:
-        - $ref: '#/components/parameters/userPath'
-      responses:
-        '200': { $ref: '#/components/responses/JsonOk' }
-
-  /admin/rbac/roles:
-    get:
-      tags: [Admin]
-      summary: RBAC roles (list)
-      security: [{ cookieAuth: [] }]
-      responses:
-        '200': { $ref: '#/components/responses/JsonOk' }
-    post:
-      tags: [Admin]
-      summary: RBAC create role
-      security: [{ cookieAuth: [] }]
-      responses:
-        '200': { $ref: '#/components/responses/JsonOk' }
-
-  /admin/rbac/roles/{role}:
-    delete:
-      tags: [Admin]
-      summary: RBAC delete role
-      security: [{ cookieAuth: [] }]
-      parameters:
-        - $ref: '#/components/parameters/rolePath'
-      responses:
-        '200': { $ref: '#/components/responses/JsonOk' }
-
-  /admin/rbac/roles/{role}/groups:
-    post:
-      tags: [Admin]
-      summary: RBAC sync role groups
-      security: [{ cookieAuth: [] }]
-      parameters:
-        - $ref: '#/components/parameters/rolePath'
-      responses:
-        '200': { $ref: '#/components/responses/JsonOk' }
-
-  /admin/rbac/groups:
-    get:
-      tags: [Admin]
-      summary: RBAC groups (list)
-      security: [{ cookieAuth: [] }]
-      responses:
-        '200': { $ref: '#/components/responses/JsonOk' }
-    post:
-      tags: [Admin]
-      summary: RBAC create group
-      security: [{ cookieAuth: [] }]
-      responses:
-        '200': { $ref: '#/components/responses/JsonOk' }
-
-  /admin/rbac/groups/{group}:
-    delete:
-      tags: [Admin]
-      summary: RBAC delete group
-      security: [{ cookieAuth: [] }]
-      parameters:
-        - $ref: '#/components/parameters/groupPath'
-      responses:
-        '200': { $ref: '#/components/responses/JsonOk' }
-
-  /admin/rbac/groups/{group}/permissions:
-    post:
-      tags: [Admin]
-      summary: RBAC sync group permissions
-      security: [{ cookieAuth: [] }]
-      parameters:
-        - $ref: '#/components/parameters/groupPath'
-      responses:
-        '200': { $ref: '#/components/responses/JsonOk' }
-
-  /admin/rbac/permissions:
-    get:
-      tags: [Admin]
-      summary: RBAC permissions (list)
-      security: [{ cookieAuth: [] }]
-      responses:
-        '200': { $ref: '#/components/responses/JsonOk' }
-    post:
-      tags: [Admin]
-      summary: RBAC create permission
-      security: [{ cookieAuth: [] }]
-      responses:
-        '200': { $ref: '#/components/responses/JsonOk' }
-
-  /admin/rbac/permissions/{permission}:
-    delete:
-      tags: [Admin]
-      summary: RBAC delete permission
-      security: [{ cookieAuth: [] }]
-      parameters:
-        - $ref: '#/components/parameters/permissionPath'
-      responses:
-        '200': { $ref: '#/components/responses/JsonOk' }
-
-  /admin/invitations:
-    get:
-      tags: [Admin]
-      summary: Invitations page/data
-      security: [{ cookieAuth: [] }]
-      responses:
-        '200': { $ref: '#/components/responses/JsonOk' }
-
-  /admin/invitations/{invitation}/resend:
-    post:
-      tags: [Admin]
-      summary: Resend invitation
-      security: [{ cookieAuth: [] }]
-      parameters:
-        - $ref: '#/components/parameters/invitationPath'
-      responses:
-        '200': { $ref: '#/components/responses/JsonOk' }
-
-  /admin/password-policy:
-    get:
-      tags: [Admin]
-      summary: Password policy
-      security: [{ cookieAuth: [] }]
-      responses:
-        '200': { $ref: '#/components/responses/JsonOk' }
-    put:
-      tags: [Admin]
-      summary: Update password policy
-      security: [{ cookieAuth: [] }]
-      responses:
-        '200': { $ref: '#/components/responses/JsonOk' }
-
-  /admin/login-history:
-    get:
-      tags: [Admin]
-      summary: Login history
-      security: [{ cookieAuth: [] }]
-      responses:
-        '200': { $ref: '#/components/responses/JsonOk' }
-
-  /admin/audit-logs:
-    get:
-      tags: [Admin]
-      summary: Audit logs
-      security: [{ cookieAuth: [] }]
-      responses:
-        '200': { $ref: '#/components/responses/JsonOk' }
-
-  /admin/audit-logs/export:
-    get:
-      tags: [Admin]
-      summary: Export audit logs
-      security: [{ cookieAuth: [] }]
-      responses:
-        '200':
-          description: Export file
-          content:
-            application/octet-stream:
-              schema: { type: string, format: binary }
-
-  /admin/audit-settings:
-    get:
-      tags: [Admin]
-      summary: Audit settings
-      security: [{ cookieAuth: [] }]
-      responses:
-        '200': { $ref: '#/components/responses/JsonOk' }
-    put:
-      tags: [Admin]
-      summary: Update audit settings
-      security: [{ cookieAuth: [] }]
-      responses:
-        '200': { $ref: '#/components/responses/JsonOk' }
-
-  /admin/institutions:
-    get:
-      tags: [Admin]
-      summary: Institutions
-      security: [{ cookieAuth: [] }]
-      responses:
-        '200': { $ref: '#/components/responses/JsonOk' }
-    post:
-      tags: [Admin]
-      summary: Create institution
-      security: [{ cookieAuth: [] }]
-      responses:
-        '200': { $ref: '#/components/responses/JsonOk' }
-
-  /admin/institutions/list:
-    get:
-      tags: [Admin]
-      summary: Institutions list
-      security: [{ cookieAuth: [] }]
-      responses:
-        '200': { $ref: '#/components/responses/JsonOk' }
-
-  /admin/institutions/{institution}:
-    put:
-      tags: [Admin]
-      summary: Update institution
-      security: [{ cookieAuth: [] }]
-      parameters:
-        - $ref: '#/components/parameters/institutionPath'
-      responses:
-        '200': { $ref: '#/components/responses/JsonOk' }
-    delete:
-      tags: [Admin]
-      summary: Delete institution
-      security: [{ cookieAuth: [] }]
-      parameters:
-        - $ref: '#/components/parameters/institutionPath'
-      responses:
-        '200': { $ref: '#/components/responses/JsonOk' }
-
-  /admin/classifiers:
-    get:
-      tags: [Admin]
-      summary: Classifiers
-      security: [{ cookieAuth: [] }]
-      responses:
-        '200': { $ref: '#/components/responses/JsonOk' }
-
-  /admin/classifiers/types/{type}/natures:
-    get:
-      tags: [Admin]
-      summary: Classifier natures for type
-      security: [{ cookieAuth: [] }]
-      parameters:
-        - $ref: '#/components/parameters/typePath'
-      responses:
-        '200': { $ref: '#/components/responses/JsonOk' }
-
-  /admin/classifiers/values:
-    post:
-      tags: [Admin]
-      summary: Create classifier value
-      security: [{ cookieAuth: [] }]
-      responses:
-        '200': { $ref: '#/components/responses/JsonOk' }
-
-  /admin/classifiers/values/{value}:
-    put:
-      tags: [Admin]
-      summary: Update classifier value
-      security: [{ cookieAuth: [] }]
-      parameters:
-        - $ref: '#/components/parameters/valuePath'
-      responses:
-        '200': { $ref: '#/components/responses/JsonOk' }
-    delete:
-      tags: [Admin]
-      summary: Delete classifier value
-      security: [{ cookieAuth: [] }]
-      parameters:
-        - $ref: '#/components/parameters/valuePath'
-      responses:
-        '200': { $ref: '#/components/responses/JsonOk' }
-
-  /admin/archive:
-    get:
-      tags: [Admin]
-      summary: Archive page/data
-      security: [{ cookieAuth: [] }]
-      responses:
-        '200': { $ref: '#/components/responses/JsonOk' }
-
-  /admin/email-notifications:
-    get:
-      tags: [Admin]
-      summary: Email notifications
-      security: [{ cookieAuth: [] }]
-      responses:
-        '200': { $ref: '#/components/responses/JsonOk' }
-
-  /admin/email-notifications/{emailNotification}:
-    put:
-      tags: [Admin]
-      summary: Update email notification
-      security: [{ cookieAuth: [] }]
-      parameters:
-        - $ref: '#/components/parameters/emailNotificationPath'
-      responses:
-        '200': { $ref: '#/components/responses/JsonOk' }
-
-  /admin/content-versions:
-    get:
-      tags: [Admin]
-      summary: Content versions
-      security: [{ cookieAuth: [] }]
-      responses:
-        '200': { $ref: '#/components/responses/JsonOk' }
-    post:
-      tags: [Admin]
-      summary: Create content version
-      security: [{ cookieAuth: [] }]
-      responses:
-        '200': { $ref: '#/components/responses/JsonOk' }
-
-  /admin/content-versions/{contentVersion}:
-    put:
-      tags: [Admin]
-      summary: Update content version
-      security: [{ cookieAuth: [] }]
-      parameters:
-        - $ref: '#/components/parameters/contentVersionPath'
-      responses:
-        '200': { $ref: '#/components/responses/JsonOk' }
-    delete:
-      tags: [Admin]
-      summary: Delete content version
-      security: [{ cookieAuth: [] }]
-      parameters:
-        - $ref: '#/components/parameters/contentVersionPath'
-      responses:
-        '200': { $ref: '#/components/responses/JsonOk' }
-
-  /admin/content-versions/{contentVersion}/publish:
-    post:
-      tags: [Admin]
-      summary: Publish content version
-      security: [{ cookieAuth: [] }]
-      parameters:
-        - $ref: '#/components/parameters/contentVersionPath'
-      responses:
-        '200': { $ref: '#/components/responses/JsonOk' }
-
-  /admin/content-versions/{contentVersion}/unpublish:
-    post:
-      tags: [Admin]
-      summary: Unpublish content version
-      security: [{ cookieAuth: [] }]
-      parameters:
-        - $ref: '#/components/parameters/contentVersionPath'
-      responses:
-        '200': { $ref: '#/components/responses/JsonOk' }
-
-  /admin/public-statistics-config:
-    get:
-      tags: [Admin]
-      summary: Public statistics config
-      security: [{ cookieAuth: [] }]
-      responses:
-        '200': { $ref: '#/components/responses/JsonOk' }
-    put:
-      tags: [Admin]
-      summary: Update public statistics config
-      security: [{ cookieAuth: [] }]
-      responses:
-        '200': { $ref: '#/components/responses/JsonOk' }
-
-  /admin/file-upload-settings:
-    get:
-      tags: [Admin]
-      summary: Admin file upload settings
-      security: [{ cookieAuth: [] }]
-      responses:
-        '200': { $ref: '#/components/responses/JsonOk' }
-    put:
-      tags: [Admin]
-      summary: Update admin file upload settings
-      security: [{ cookieAuth: [] }]
-      responses:
-        '200': { $ref: '#/components/responses/JsonOk' }
-
-  /admin/archive/retention-rule:
-    put:
-      tags: [Admin]
-      summary: Update retention rule
-      security: [{ cookieAuth: [] }]
-      responses:
-        '200': { $ref: '#/components/responses/JsonOk' }
-
-  /admin/archive/users/{user}/restore:
-    post:
-      tags: [Admin]
-      summary: Restore user
-      security: [{ cookieAuth: [] }]
-      parameters:
-        - $ref: '#/components/parameters/userPath'
-      responses:
-        '200': { $ref: '#/components/responses/JsonOk' }
-
-  /admin/archive/institutions/{institution}/restore:
-    post:
-      tags: [Admin]
-      summary: Restore institution
-      security: [{ cookieAuth: [] }]
-      parameters:
-        - $ref: '#/components/parameters/institutionPath'
-      responses:
-        '200': { $ref: '#/components/responses/JsonOk' }
-
-  /admin/archive/problems/{problem}/restore:
-    post:
-      tags: [Admin]
-      summary: Restore problem
-      security: [{ cookieAuth: [] }]
-      parameters:
-        - $ref: '#/components/parameters/problemPath'
-      responses:
-        '200': { $ref: '#/components/responses/JsonOk' }
-
-  /admin/archive/classifier-values/{classifier_value}/restore:
-    post:
-      tags: [Admin]
-      summary: Restore classifier value
-      security: [{ cookieAuth: [] }]
-      parameters:
-        - in: path
-          name: classifier_value
-          required: true
-          schema: { type: integer }
-      responses:
-        '200': { $ref: '#/components/responses/JsonOk' }
-
-  /sanctum/csrf-cookie:
-    get:
-      tags: [Auth]
-      summary: Get CSRF cookie (Sanctum)
-      description: Sets `XSRF-TOKEN` cookie (used by Sanctum SPA auth flows).
-      responses:
-        '204':
-          description: No Content
-
-  /storage/{path}:
-    get:
-      tags: [Public]
-      summary: Public storage file
-      description: Serves a file from local storage (framework route).
-      parameters:
-        - in: path
-          name: path
-          required: true
-          schema: { type: string }
-      responses:
-        '200':
-          description: File content
-          content:
-            application/octet-stream:
-              schema: { type: string, format: binary }
-        '404':
-          $ref: '#/components/responses/NotFound'
-
-  /up:
-    get:
-      tags: [Public]
-      summary: Health check
-      description: Application health check endpoint.
-      responses:
-        '200':
-          description: OK
-          content:
-            text/plain:
-              schema: { type: string }
+          description: Unauthorized
 
 components:
   securitySchemes:
-    cookieAuth:
-      type: apiKey
-      in: cookie
-      name: laravel_session
-      description: Laravel session cookie.
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: API token
 
   parameters:
     problemPath:
       in: path
       name: problem
       required: true
-      schema: { type: integer }
-    attachmentPath:
-      in: path
-      name: attachment
-      required: true
-      schema: { type: integer }
-    entryPath:
-      in: path
-      name: entry
-      required: true
-      schema: { type: integer }
-    teamPath:
-      in: path
-      name: team
-      required: true
-      schema: { type: integer }
-    userPath:
-      in: path
-      name: user
-      required: true
-      schema: { type: integer }
-    institutionPath:
-      in: path
-      name: institution
-      required: true
-      schema: { type: integer }
-    tokenPath:
-      in: path
-      name: token
-      required: true
-      schema: { type: string }
-    idPath:
-      in: path
-      name: id
-      required: true
-      schema: { type: integer }
-    hashPath:
-      in: path
-      name: hash
-      required: true
-      schema: { type: string }
-    rulePath:
-      in: path
-      name: rule
-      required: true
-      schema: { type: integer }
-    publishRulePath:
-      in: path
-      name: publish_rule
-      required: true
-      schema: { type: integer }
-    resolutionTermRulePath:
-      in: path
-      name: resolution_term_rule
-      required: true
-      schema: { type: integer }
-    invitationPath:
-      in: path
-      name: invitation
-      required: true
-      schema: { type: integer }
-    rolePath:
-      in: path
-      name: role
-      required: true
-      schema: { type: integer }
-    groupPath:
-      in: path
-      name: group
-      required: true
-      schema: { type: integer }
-    permissionPath:
-      in: path
-      name: permission
-      required: true
-      schema: { type: integer }
-    typePath:
-      in: path
-      name: type
-      required: true
-      schema: { type: integer }
-    valuePath:
-      in: path
-      name: value
-      required: true
-      schema: { type: integer }
-    emailNotificationPath:
-      in: path
-      name: emailNotification
-      required: true
-      schema: { type: integer }
-    contentVersionPath:
-      in: path
-      name: contentVersion
-      required: true
-      schema: { type: integer }
-    uploadChannelHeader:
-      in: header
-      name: X-Upload-Channel
-      required: false
-      schema: { type: string }
-    periodQuery:
-      in: query
-      name: period
-      required: false
-      schema: { type: string }
-    categoryQuery:
-      in: query
-      name: category
-      required: false
-      schema: { type: string }
+      schema:
+        type: integer
 
   responses:
-    HtmlOk:
-      description: HTML/Inertia response
-      content:
-        text/html:
-          schema: { type: string }
-    JsonOk:
-      description: JSON response
-      content:
-        application/json:
-          schema: { type: object, additionalProperties: true }
-    Redirect:
-      description: Redirect
-    Unauthorized:
-      description: Unauthorized
-    Forbidden:
-      description: Forbidden
-    ForbiddenJson:
-      description: Forbidden (JSON)
-      content:
-        application/json:
-          schema: { $ref: '#/components/schemas/MessageResponse' }
-    NotFound:
-      description: Not Found
     ValidationError:
       description: Validation error
       content:
         application/json:
-          schema: { $ref: '#/components/schemas/LaravelValidationErrorResponse' }
+          schema:
+            $ref: '#/components/schemas/LaravelValidationErrorResponse'
 
   schemas:
-    OkResponse:
-      type: object
-      properties:
-        ok: { type: boolean, example: true }
-    MessageResponse:
-      type: object
-      properties:
-        message: { type: string }
-    LoginRequest:
+    ApiLoginRequest:
       type: object
       required: [email, password, login_type]
       properties:
-        email: { type: string, format: email }
-        password: { type: string, format: password }
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          format: password
         login_type:
           type: string
           enum: [pareiskejas, darbuotojas]
-        remember: { type: boolean }
-    RegisterRequest:
+        device_name:
+          type: string
+          example: swagger
+
+    ApiRegisterRequest:
       type: object
       required: [name, email, password, password_confirmation]
       properties:
-        name: { type: string }
-        email: { type: string, format: email }
-        password: { type: string, format: password }
-        password_confirmation: { type: string, format: password }
-    ResetPasswordRequest:
+        name:
+          type: string
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          format: password
+        password_confirmation:
+          type: string
+          format: password
+        device_name:
+          type: string
+          example: swagger
+
+    AuthTokenResponse:
       type: object
-      additionalProperties: true
+      required: [token, token_type, user]
+      properties:
+        token:
+          type: string
+          example: 1|verylongtoken...
+        token_type:
+          type: string
+          example: Bearer
+        user:
+          $ref: '#/components/schemas/UserSummary'
+
+    UserSummary:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        email:
+          type: string
+          format: email
+
     ReporterProblemCreateRequest:
       type: object
       required: [problem_type_id, description, address]
       properties:
-        problem_type_id: { type: integer }
-        problem_nature_id: { type: integer, nullable: true }
-        description: { type: string }
-        address: { type: string }
-        lat: { type: number, format: double, nullable: true }
-        lng: { type: number, format: double, nullable: true }
+        problem_type_id:
+          type: integer
+        problem_nature_id:
+          type: integer
+          nullable: true
+        description:
+          type: string
+        address:
+          type: string
+        lat:
+          type: number
+          format: double
+          nullable: true
+        lng:
+          type: number
+          format: double
+          nullable: true
         files:
           type: array
-          items: { type: string, format: binary }
-    AssignProblemsRequest:
+          items:
+            type: string
+            format: binary
+
+    PublicProblemResponse:
       type: object
       additionalProperties: true
+
     LaravelValidationErrorResponse:
       type: object
       properties:
-        message: { type: string }
+        message:
+          type: string
         errors:
           type: object
           additionalProperties:
             oneOf:
               - type: array
-                items: { type: string }
+                items:
+                  type: string
               - type: string
+
     PublicStatisticsResponse:
       type: object
       additionalProperties: true

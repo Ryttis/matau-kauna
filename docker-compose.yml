@@ -16,7 +16,7 @@ services:
             - swagger
 
     swagger:
-        image: swaggerapi/swagger-ui:latest
+        image: swaggerapi/swagger-ui:v5.18.2
         container_name: kauno-problemos-swagger
         restart: always
         environment:
