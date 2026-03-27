@@ -12,6 +12,7 @@ import {
 } from '@/constants/icons'
 import {
     ROLE_SYSTEM_ADMIN,
+    ROLE_INSTITUTION_ADMIN,
     ROLE_REPORTER,
     ROLE_PROBLEM_ADMIN,
 } from '@/constants/roles'
@@ -41,6 +42,7 @@ const activeRole = computed(() => {
     return auth?.activeRole ?? auth?.active_role ?? (roles.value?.length === 1 ? roles.value[0] : null)
 })
 const isSystemAdmin = computed(() => (activeRole.value?.role ?? '') === ROLE_SYSTEM_ADMIN)
+const isInstitutionAdmin = computed(() => (roles.value || []).some((r) => r.role === ROLE_INSTITUTION_ADMIN))
 const isReporterOnly = computed(() => (activeRole.value?.role ?? '') === ROLE_REPORTER)
 
 const canAccessIssues = computed(() =>
@@ -230,6 +232,14 @@ const toggleStatistics = () => {
                     :class="{ active: isActive('/admin') }"
                 >
                     <span>Sistemos Administravimas</span>
+                </Link>
+                <Link
+                    v-if="isInstitutionAdmin"
+                    :href="route('institution-admin')"
+                    class="nav-link"
+                    :class="{ active: isActive('/institution-admin') }"
+                >
+                    <span>Įstaigos administratorius</span>
                 </Link>
                 <Link
                     href="/settings"

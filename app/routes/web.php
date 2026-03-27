@@ -8,6 +8,7 @@ use App\Http\Controllers\Admin\RbacController;
 use App\Http\Controllers\AutomationController;
 use App\Http\Controllers\ProblemController;
 use App\Http\Controllers\SettingsController;
+use App\Http\Controllers\InstitutionAdminController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
@@ -97,6 +98,7 @@ Route::middleware(['auth', 'verified', 'reporter.terms'])->group(function () {
     Route::put('/settings/password', [SettingsController::class, 'updatePassword'])->name('settings.password');
     Route::patch('/settings/profile', [SettingsController::class, 'updateProfile'])->name('settings.profile');
     Route::post('/settings/employees', [SettingsController::class, 'storeEmployee'])->name('settings.employees');
+    Route::get('/settings/teams', [SettingsController::class, 'listTeams'])->name('settings.teams.list');
     Route::post('/settings/teams', [SettingsController::class, 'storeTeam'])->name('settings.teams');
     Route::put('/settings/teams/{team}', [SettingsController::class, 'updateTeam'])->name('settings.teams.update');
     Route::delete('/settings/teams/{team}', [SettingsController::class, 'destroyTeam'])->name('settings.teams.destroy');
@@ -105,6 +107,8 @@ Route::middleware(['auth', 'verified', 'reporter.terms'])->group(function () {
     Route::patch('/settings/privacy', [SettingsController::class, 'updatePrivacy'])->name('settings.privacy');
     Route::post('/settings/password/email', [SettingsController::class, 'sendPasswordResetLink'])->name('settings.password.email');
     Route::delete('/settings', [SettingsController::class, 'destroy'])->name('settings.destroy');
+
+    Route::get('/institution-admin', [InstitutionAdminController::class, 'index'])->name('institution-admin');
 
     Route::post('/invitations', [AdminInvitationController::class, 'store']);
 

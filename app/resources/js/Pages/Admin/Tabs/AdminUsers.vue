@@ -6,7 +6,6 @@ import SuccessModal from '@/Components/App/SuccessModal.vue'
 import { useSuccessModal } from '@/composables/useSuccessModal'
 import UsersTab from '@/Pages/Admin/Tabs/Rbac/UsersTab.vue'
 import RolesTab from '@/Pages/Admin/Tabs/Rbac/RolesTab.vue'
-import GroupsTab from '@/Pages/Admin/Tabs/Rbac/GroupsTab.vue'
 import PermissionsTab from '@/Pages/Admin/Tabs/Rbac/PermissionsTab.vue'
 import PasswordPolicyTab from '@/Pages/Admin/Tabs/Rbac/PasswordPolicyTab.vue'
 import HistoryTab from '@/Pages/Admin/Tabs/Rbac/HistoryTab.vue'
@@ -74,10 +73,6 @@ const setTab = async (tab) => {
             await Promise.all([loadRoles(), loadGroups()])
         }
 
-        if (tab === 'groups') {
-            await Promise.all([loadGroups(), loadPermissions()])
-        }
-
         if (tab === 'permissions') {
             await loadPermissions()
         }
@@ -101,9 +96,6 @@ onMounted(async () => {
             </button>
             <button type="button" class="subtab" :class="{ active: activeSubTab === 'roles' }" @click="setTab('roles')">
                 Rolės
-            </button>
-            <button type="button" class="subtab" :class="{ active: activeSubTab === 'groups' }" @click="setTab('groups')">
-                Grupės
             </button>
             <button type="button" class="subtab" :class="{ active: activeSubTab === 'permissions' }" @click="setTab('permissions')">
                 Teisės
@@ -144,16 +136,6 @@ onMounted(async () => {
                 :groups="groups"
                 @set-saving="saving = $event"
                 @refresh="setTab('roles')"
-                @show-success="showWithMessage($event)"
-            />
-
-            <GroupsTab
-                v-else-if="activeSubTab === 'groups'"
-                :saving="saving"
-                :groups="groups"
-                :permissions="permissions"
-                @set-saving="saving = $event"
-                @refresh="setTab('groups')"
                 @show-success="showWithMessage($event)"
             />
 
