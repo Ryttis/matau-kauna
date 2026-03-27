@@ -234,21 +234,20 @@ const toggleStatistics = () => {
                     <span>Sistemos Administravimas</span>
                 </Link>
                 <Link
-                    href="/settings"
-                    class="nav-link"
-                    :class="{ active: isActive('/settings') }"
-                >
-                    <img :src="ICON_SETTINGS" class="nav-icon" alt="" />
-                    <span>Nustatymai</span>
-                </Link>
-
-                <Link
                     v-if="isInstitutionAdmin"
                     :href="route('institution-admin')"
                     class="nav-link"
                     :class="{ active: isActive('/institution-admin') }"
                 >
                     <span>Įstaigos administratorius</span>
+                </Link>
+                <Link
+                    href="/settings"
+                    class="nav-link"
+                    :class="{ active: isActive('/settings') }"
+                >
+                    <img :src="ICON_SETTINGS" class="nav-icon" alt="" />
+                    <span>Nustatymai</span>
                 </Link>
             </div>
         </nav>

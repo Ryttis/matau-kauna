@@ -227,6 +227,7 @@ const canRender = computed(() => {
                     <td class="actions">
                         <span class="actions-row">
                             <button type="button" class="link-btn" @click="openMembersModal(t)">Nariai</button>
+                            <span class="actions-separator" aria-hidden="true">|</span>
                             <button type="button" class="link-btn link-btn--danger" @click="openDelete(t)">
                                 Trinti
                             </button>
@@ -392,7 +393,33 @@ const canRender = computed(() => {
 
 .actions-row {
     display: inline-flex;
+    align-items: center;
     gap: 10px;
+}
+
+.actions-separator {
+    color: var(--color-gray-400);
+}
+
+.link-btn {
+    border: 0;
+    background: transparent;
+    padding: 0;
+    font-size: 13px;
+    color: var(--color-primary);
+    cursor: pointer;
+}
+
+.link-btn:hover {
+    text-decoration: none;
+}
+
+.link-btn--danger {
+    color: #c62828;
+}
+
+.link-btn--danger:hover {
+    color: var(--color-primary-hover);
 }
 </style>
 
