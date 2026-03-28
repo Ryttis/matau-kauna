@@ -1,6 +1,6 @@
 <script setup>
 import BaseModal from '@/Components/App/BaseModal.vue'
-import { ICON_SUCCESS } from '@/constants/icons'
+import { ICON_SUCCESS } from '@/constants/ui/icons'
 
 defineProps({
     show: Boolean,

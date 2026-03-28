@@ -47,4 +47,3 @@ class ProblemApiController extends Controller
         ]);
     }
 }
-

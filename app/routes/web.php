@@ -4,15 +4,32 @@ use App\Http\Controllers\Admin\ArchiveController as AdminArchiveController;
 use App\Http\Controllers\Admin\ClassifierController as AdminClassifierController;
 use App\Http\Controllers\Admin\InstitutionController as AdminInstitutionController;
 use App\Http\Controllers\Admin\InvitationController as AdminInvitationController;
-use App\Http\Controllers\Admin\RbacController;
+use App\Http\Controllers\Admin\RbacPermissionController;
+use App\Http\Controllers\Admin\RbacPermissionGroupController;
+use App\Http\Controllers\Admin\RbacRoleController;
+use App\Http\Controllers\Admin\RbacUserController;
+use App\Http\Controllers\AutomationAssignmentRuleController;
 use App\Http\Controllers\AutomationController;
-use App\Http\Controllers\ProblemController;
-use App\Http\Controllers\SettingsController;
+use App\Http\Controllers\AutomationPublishRuleController;
+use App\Http\Controllers\AutomationResolutionTermRuleController;
+use App\Http\Controllers\GuestProblemController;
 use App\Http\Controllers\InstitutionAdminController;
+use App\Http\Controllers\ProblemAdminAssignController;
+use App\Http\Controllers\ProblemAttachmentController;
+use App\Http\Controllers\ProblemController;
+use App\Http\Controllers\ProblemInstitutionAssignmentController;
+use App\Http\Controllers\ProblemMapController;
+use App\Http\Controllers\ProblemMergeController;
+use App\Http\Controllers\ProblemReviewController;
+use App\Http\Controllers\ProblemStatisticsController;
+use App\Http\Controllers\ProblemWatchController;
+use App\Http\Controllers\ReporterProblemController;
+use App\Http\Controllers\SettingsController;
+use App\Http\Controllers\SettingsTeamController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
-Route::get('/', [ProblemController::class, 'landing'])->name('landing');
+Route::get('/', [GuestProblemController::class, 'landing'])->name('landing');
 
 Route::get('/faq', [\App\Http\Controllers\GuestContentController::class, 'faq'])->name('faq');
 Route::get('/privacy', [\App\Http\Controllers\GuestContentController::class, 'privacy'])->name('privacy');
@@ -23,8 +40,8 @@ Route::get('/help', fn () => Inertia::render('Guest/Help'))->name('help');
 Route::get('/statistika', fn () => Inertia::render('Guest/PublicStatistics'))->name('public.statistics');
 Route::get('/statistika/duomenys', [\App\Http\Controllers\PublicStatisticsController::class, 'data'])->name('public.statistics.data');
 
-Route::get('/reports', [ProblemController::class, 'publicMap'])->name('reports');
-Route::get('/reports/{problem}', [ProblemController::class, 'publicShow'])->name('reports.show');
+Route::get('/reports', [GuestProblemController::class, 'publicMap'])->name('reports');
+Route::get('/reports/{problem}', [GuestProblemController::class, 'publicShow'])->name('reports.show');
 
 Route::middleware(['auth', 'verified', 'reporter.terms'])->group(function () {
     Route::get('/reporter/terms', [\App\Http\Controllers\Auth\ReporterTermsController::class, 'show'])
@@ -33,63 +50,63 @@ Route::middleware(['auth', 'verified', 'reporter.terms'])->group(function () {
         ->name('reporter.terms.store');
 
     Route::get('/dashboard', [ProblemController::class, 'index'])->name('dashboard');
-    Route::get('/reporter/sarasas', [ProblemController::class, 'reporterSarasas'])->name('reporter.sarasas');
-    Route::get('/reporter/statistics', [ProblemController::class, 'reporterStatistics'])->name('reporter.statistics');
-    Route::get('/reporter/report', [ProblemController::class, 'reporterReport'])->name('reporter.report');
-    Route::post('/reporter/report', [ProblemController::class, 'reporterReportStore'])->name('reporter.report.store');
-    Route::post('/reporter/wizard-dismissed', [ProblemController::class, 'reporterWizardDismissed'])->name('reporter.wizardDismissed');
-    Route::post('/reporter/terms-accepted', [ProblemController::class, 'reporterTermsAccepted'])->name('reporter.termsAccepted');
+    Route::get('/reporter/sarasas', [ReporterProblemController::class, 'reporterSarasas'])->name('reporter.sarasas');
+    Route::get('/reporter/statistics', [ReporterProblemController::class, 'reporterStatistics'])->name('reporter.statistics');
+    Route::get('/reporter/report', [ReporterProblemController::class, 'reporterReport'])->name('reporter.report');
+    Route::post('/reporter/report', [ReporterProblemController::class, 'reporterReportStore'])->name('reporter.report.store');
+    Route::post('/reporter/wizard-dismissed', [ReporterProblemController::class, 'reporterWizardDismissed'])->name('reporter.wizardDismissed');
+    Route::post('/reporter/terms-accepted', [ReporterProblemController::class, 'reporterTermsAccepted'])->name('reporter.termsAccepted');
     Route::get('/file-upload-settings', \App\Http\Controllers\FileUploadSettingsController::class)->name('file-upload-settings');
-    Route::get('/problems/{problem}/review-progress', [ProblemController::class, 'reviewProgress'])->name('problems.reviewProgress');
-    Route::post('/problems/{problem}/watch', [ProblemController::class, 'toggleProblemWatch'])->name('problems.watch.toggle');
-    Route::delete('/problems/{problem}/attachments/{attachment}', [ProblemController::class, 'destroyAttachment'])->name('problems.attachments.destroy');
-    Route::post('/problems/{problem}/attachments', [ProblemController::class, 'storeAttachments'])->name('problems.attachments.store');
+    Route::get('/problems/{problem}/review-progress', [ProblemReviewController::class, 'reviewProgress'])->name('problems.reviewProgress');
+    Route::post('/problems/{problem}/watch', [ProblemWatchController::class, 'toggle'])->name('problems.watch.toggle');
+    Route::delete('/problems/{problem}/attachments/{attachment}', [ProblemAttachmentController::class, 'destroyAttachment'])->name('problems.attachments.destroy');
+    Route::post('/problems/{problem}/attachments', [ProblemAttachmentController::class, 'storeAttachments'])->name('problems.attachments.store');
 
     Route::middleware(['permission:issues.view'])->group(function () {
         Route::middleware(['automation'])->group(function () {
             Route::get('/automation', [AutomationController::class, 'index'])->name('automation.index');
-            Route::post('/automation', [AutomationController::class, 'store'])->name('automation.store');
+            Route::post('/automation', [AutomationAssignmentRuleController::class, 'store'])->name('automation.store');
             Route::put('/automation/inactive-reporter-setting', [AutomationController::class, 'updateInactiveReporterSetting'])->name('automation.inactiveReporterSetting.update');
-            Route::put('/automation/{rule}', [AutomationController::class, 'update'])->name('automation.update');
-            Route::delete('/automation/{rule}', [AutomationController::class, 'destroy'])->name('automation.destroy');
-            Route::post('/automation/publish-rules', [AutomationController::class, 'storePublishRule'])->name('automation.publishRules.store');
-            Route::put('/automation/publish-rules/{publish_rule}', [AutomationController::class, 'updatePublishRule'])->name('automation.publishRules.update');
-            Route::delete('/automation/publish-rules/{publish_rule}', [AutomationController::class, 'destroyPublishRule'])->name('automation.publishRules.destroy');
-            Route::post('/automation/resolution-term-rules', [AutomationController::class, 'storeResolutionTermRule'])->name('automation.resolutionTermRules.store');
-            Route::put('/automation/resolution-term-rules/{resolution_term_rule}', [AutomationController::class, 'updateResolutionTermRule'])->name('automation.resolutionTermRules.update');
-            Route::delete('/automation/resolution-term-rules/{resolution_term_rule}', [AutomationController::class, 'destroyResolutionTermRule'])->name('automation.resolutionTermRules.destroy');
+            Route::put('/automation/{rule}', [AutomationAssignmentRuleController::class, 'update'])->name('automation.update');
+            Route::delete('/automation/{rule}', [AutomationAssignmentRuleController::class, 'destroy'])->name('automation.destroy');
+            Route::post('/automation/publish-rules', [AutomationPublishRuleController::class, 'store'])->name('automation.publishRules.store');
+            Route::put('/automation/publish-rules/{publish_rule}', [AutomationPublishRuleController::class, 'update'])->name('automation.publishRules.update');
+            Route::delete('/automation/publish-rules/{publish_rule}', [AutomationPublishRuleController::class, 'destroy'])->name('automation.publishRules.destroy');
+            Route::post('/automation/resolution-term-rules', [AutomationResolutionTermRuleController::class, 'store'])->name('automation.resolutionTermRules.store');
+            Route::put('/automation/resolution-term-rules/{resolution_term_rule}', [AutomationResolutionTermRuleController::class, 'update'])->name('automation.resolutionTermRules.update');
+            Route::delete('/automation/resolution-term-rules/{resolution_term_rule}', [AutomationResolutionTermRuleController::class, 'destroy'])->name('automation.resolutionTermRules.destroy');
         });
-        Route::get('/map', [ProblemController::class, 'map'])->name('map');
-        Route::get('/map/address-search', [ProblemController::class, 'addressSearch'])->name('map.addressSearch');
-        Route::get('/problems/assign', [ProblemController::class, 'assign'])->name('problems.assign');
-        Route::post('/problems/assign', [ProblemController::class, 'storeAssign'])->name('problems.assign.store');
-        Route::post('/problems/assign/email', [ProblemController::class, 'sendAssignEmail'])->name('problems.assign.email');
+        Route::get('/map', [ProblemMapController::class, 'map'])->name('map');
+        Route::get('/map/address-search', [ProblemMapController::class, 'addressSearch'])->name('map.addressSearch');
+        Route::get('/problems/assign', [ProblemAdminAssignController::class, 'assign'])->name('problems.assign');
+        Route::post('/problems/assign', [ProblemAdminAssignController::class, 'storeAssign'])->name('problems.assign.store');
+        Route::post('/problems/assign/email', [ProblemAdminAssignController::class, 'sendAssignEmail'])->name('problems.assign.email');
         Route::get('/problems/export', [ProblemController::class, 'export'])->name('problems.export');
-        Route::get('/problems/{problem}/assign', [ProblemController::class, 'assignSingle'])->name('problems.assign.single');
-        Route::get('/problems/{problem}/assign-institution', [ProblemController::class, 'assignInstitution'])->name('problems.assignInstitution');
-        Route::post('/problems/{problem}/assign-institution', [ProblemController::class, 'storeAssignInstitution'])->name('problems.assignInstitution.store');
-        Route::post('/problems/{problem}/send-assign-email', [ProblemController::class, 'sendAssignInstitutionEmail'])->name('problems.assignInstitution.sendEmail');
-        Route::patch('/problems/{problem}/return', [ProblemController::class, 'returnToAdmin'])->name('problems.return');
-        Route::post('/problems/{problem}/reassign-institution', [ProblemController::class, 'reassignInstitution'])->name('problems.reassignInstitution');
-        Route::get('/problems/{problem}/merge', [ProblemController::class, 'merge'])->name('problems.merge');
-        Route::post('/problems/{problem}/merge', [ProblemController::class, 'storeMerge'])->name('problems.merge.store');
-        Route::patch('/problems/{problem}/unmerge', [ProblemController::class, 'unmerge'])->name('problems.unmerge');
+        Route::get('/problems/{problem}/assign', [ProblemAdminAssignController::class, 'assignSingle'])->name('problems.assign.single');
+        Route::get('/problems/{problem}/assign-institution', [ProblemInstitutionAssignmentController::class, 'assignInstitution'])->name('problems.assignInstitution');
+        Route::post('/problems/{problem}/assign-institution', [ProblemInstitutionAssignmentController::class, 'storeAssignInstitution'])->name('problems.assignInstitution.store');
+        Route::post('/problems/{problem}/send-assign-email', [ProblemInstitutionAssignmentController::class, 'sendAssignInstitutionEmail'])->name('problems.assignInstitution.sendEmail');
+        Route::patch('/problems/{problem}/return', [ProblemInstitutionAssignmentController::class, 'returnToAdmin'])->name('problems.return');
+        Route::post('/problems/{problem}/reassign-institution', [ProblemInstitutionAssignmentController::class, 'reassignInstitution'])->name('problems.reassignInstitution');
+        Route::get('/problems/{problem}/merge', [ProblemMergeController::class, 'merge'])->name('problems.merge');
+        Route::post('/problems/{problem}/merge', [ProblemMergeController::class, 'storeMerge'])->name('problems.merge.store');
+        Route::patch('/problems/{problem}/unmerge', [ProblemMergeController::class, 'unmerge'])->name('problems.unmerge');
         Route::get('/problems/{problem}', [ProblemController::class, 'show'])->name('problems.show');
         Route::put('/problems/{problem}', [ProblemController::class, 'update'])->name('problems.update');
         Route::delete('/problems/{problem}', [ProblemController::class, 'destroy'])->name('problems.destroy');
         Route::patch('/problems/{problem}/status', [ProblemController::class, 'updateStatus'])->name('problems.updateStatus');
-        Route::post('/problems/{problem}/review-progress', [ProblemController::class, 'storeReviewProgress'])->name('problems.reviewProgress.store');
-        Route::put('/problems/{problem}/review-progress/{entry}', [ProblemController::class, 'updateReviewProgress'])->name('problems.reviewProgress.update');
-        Route::delete('/problems/{problem}/review-progress/attachments/{attachment}', [ProblemController::class, 'destroyReviewAttachment'])->name('problems.reviewProgress.attachments.destroy');
+        Route::post('/problems/{problem}/review-progress', [ProblemReviewController::class, 'storeReviewProgress'])->name('problems.reviewProgress.store');
+        Route::put('/problems/{problem}/review-progress/{entry}', [ProblemReviewController::class, 'updateReviewProgress'])->name('problems.reviewProgress.update');
+        Route::delete('/problems/{problem}/review-progress/attachments/{attachment}', [ProblemReviewController::class, 'destroyReviewAttachment'])->name('problems.reviewProgress.attachments.destroy');
         Route::post('/problems/bulk-update-status', [ProblemController::class, 'bulkUpdateStatus'])->name('problems.bulkUpdateStatus');
         Route::patch('/problems/{problem}/publish', [ProblemController::class, 'updatePublish'])->name('problems.updatePublish');
         Route::post('/problems/bulk-update-publish', [ProblemController::class, 'bulkUpdatePublish'])->name('problems.bulkUpdatePublish');
     });
 
     Route::middleware(['permission:statistics.view'])->group(function () {
-        Route::get('/statistics', [ProblemController::class, 'statistics'])->name('statistics');
-        Route::get('/statistics/export', [ProblemController::class, 'statisticsExport'])->name('statistics.export');
-        Route::get('/statistics/resolution-terms', [ProblemController::class, 'statistics'])->name('statistics.resolution-terms');
+        Route::get('/statistics', [ProblemStatisticsController::class, 'statistics'])->name('statistics');
+        Route::get('/statistics/export', [ProblemStatisticsController::class, 'statisticsExport'])->name('statistics.export');
+        Route::get('/statistics/resolution-terms', [ProblemStatisticsController::class, 'statistics'])->name('statistics.resolution-terms');
     });
 
     Route::get('/profile', [SettingsController::class, 'profile'])->name('profile');
@@ -98,11 +115,11 @@ Route::middleware(['auth', 'verified', 'reporter.terms'])->group(function () {
     Route::put('/settings/password', [SettingsController::class, 'updatePassword'])->name('settings.password');
     Route::patch('/settings/profile', [SettingsController::class, 'updateProfile'])->name('settings.profile');
     Route::post('/settings/employees', [SettingsController::class, 'storeEmployee'])->name('settings.employees');
-    Route::get('/settings/teams', [SettingsController::class, 'listTeams'])->name('settings.teams.list');
-    Route::post('/settings/teams', [SettingsController::class, 'storeTeam'])->name('settings.teams');
-    Route::put('/settings/teams/{team}', [SettingsController::class, 'updateTeam'])->name('settings.teams.update');
-    Route::delete('/settings/teams/{team}', [SettingsController::class, 'destroyTeam'])->name('settings.teams.destroy');
-    Route::post('/settings/teams/{team}/members', [SettingsController::class, 'syncTeamMembers'])->name('settings.teams.members');
+    Route::get('/settings/teams', [SettingsTeamController::class, 'listTeams'])->name('settings.teams.list');
+    Route::post('/settings/teams', [SettingsTeamController::class, 'storeTeam'])->name('settings.teams');
+    Route::put('/settings/teams/{team}', [SettingsTeamController::class, 'updateTeam'])->name('settings.teams.update');
+    Route::delete('/settings/teams/{team}', [SettingsTeamController::class, 'destroyTeam'])->name('settings.teams.destroy');
+    Route::post('/settings/teams/{team}/members', [SettingsTeamController::class, 'syncTeamMembers'])->name('settings.teams.members');
     Route::patch('/settings/institution', [SettingsController::class, 'updateInstitution'])->name('settings.institution');
     Route::patch('/settings/privacy', [SettingsController::class, 'updatePrivacy'])->name('settings.privacy');
     Route::post('/settings/password/email', [SettingsController::class, 'sendPasswordResetLink'])->name('settings.password.email');
@@ -117,25 +134,25 @@ Route::middleware(['auth', 'verified', 'reporter.terms'])->group(function () {
         ->group(function () {
             Route::get('/', fn () => Inertia::render('Admin/Index'))->name('admin');
 
-            Route::get('/rbac/users', [RbacController::class, 'users']);
-            Route::post('/rbac/users', [RbacController::class, 'createUser']);
-            Route::put('/rbac/users/{user}', [RbacController::class, 'updateUser']);
-            Route::delete('/rbac/users/{user}', [RbacController::class, 'deleteUser']);
-            Route::post('/rbac/users/{user}/roles', [RbacController::class, 'syncUserRoles']);
+            Route::get('/rbac/users', [RbacUserController::class, 'users']);
+            Route::post('/rbac/users', [RbacUserController::class, 'createUser']);
+            Route::put('/rbac/users/{user}', [RbacUserController::class, 'updateUser']);
+            Route::delete('/rbac/users/{user}', [RbacUserController::class, 'deleteUser']);
+            Route::post('/rbac/users/{user}/roles', [RbacUserController::class, 'syncUserRoles']);
 
-            Route::get('/rbac/roles', [RbacController::class, 'roles']);
-            Route::post('/rbac/roles', [RbacController::class, 'createRole']);
-            Route::delete('/rbac/roles/{role}', [RbacController::class, 'deleteRole']);
-            Route::post('/rbac/roles/{role}/groups', [RbacController::class, 'syncRoleGroups']);
+            Route::get('/rbac/roles', [RbacRoleController::class, 'roles']);
+            Route::post('/rbac/roles', [RbacRoleController::class, 'createRole']);
+            Route::delete('/rbac/roles/{role}', [RbacRoleController::class, 'deleteRole']);
+            Route::post('/rbac/roles/{role}/groups', [RbacRoleController::class, 'syncRoleGroups']);
 
-            Route::get('/rbac/groups', [RbacController::class, 'groups']);
-            Route::post('/rbac/groups', [RbacController::class, 'createGroup']);
-            Route::delete('/rbac/groups/{group}', [RbacController::class, 'deleteGroup']);
-            Route::post('/rbac/groups/{group}/permissions', [RbacController::class, 'syncGroupPermissions']);
+            Route::get('/rbac/groups', [RbacPermissionGroupController::class, 'groups']);
+            Route::post('/rbac/groups', [RbacPermissionGroupController::class, 'createGroup']);
+            Route::delete('/rbac/groups/{group}', [RbacPermissionGroupController::class, 'deleteGroup']);
+            Route::post('/rbac/groups/{group}/permissions', [RbacPermissionGroupController::class, 'syncGroupPermissions']);
 
-            Route::get('/rbac/permissions', [RbacController::class, 'permissions']);
-            Route::post('/rbac/permissions', [RbacController::class, 'createPermission']);
-            Route::delete('/rbac/permissions/{permission}', [RbacController::class, 'deletePermission']);
+            Route::get('/rbac/permissions', [RbacPermissionController::class, 'permissions']);
+            Route::post('/rbac/permissions', [RbacPermissionController::class, 'createPermission']);
+            Route::delete('/rbac/permissions/{permission}', [RbacPermissionController::class, 'deletePermission']);
 
             Route::get('/invitations', [AdminInvitationController::class, 'index']);
             Route::post('/invitations/{invitation}/resend', [AdminInvitationController::class, 'resend']);

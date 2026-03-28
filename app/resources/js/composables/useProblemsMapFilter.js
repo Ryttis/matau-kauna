@@ -1,4 +1,5 @@
 import { ref, computed } from 'vue'
+import { parseDateFilterInput } from '@/utils/parseDateFilterInput'
 
 const DEFAULT_FILTER_STATE = {
     reportNumber: '',
@@ -8,16 +9,7 @@ const DEFAULT_FILTER_STATE = {
     dateTo: '',
 }
 
-export function parseDateFilter(str) {
-    if (!str || !str.trim()) return null
-    const s = str.trim()
-    const ddmmyy = s.match(/^(\d{1,2})[\/.-](\d{1,2})[\/.-](\d{4})$/)
-    if (ddmmyy) return new Date(+ddmmyy[3], +ddmmyy[2] - 1, +ddmmyy[1])
-    const iso = new Date(s)
-    return isNaN(iso.getTime()) ? null : iso
-}
-
-function isInDateRange(createdAt, dateFrom, dateTo) {
+function isCreatedAtInRange(createdAt, dateFrom, dateTo) {
     const created = createdAt ? new Date(createdAt) : null
     if (!created) return false
     if (dateFrom && created < dateFrom) return false
@@ -33,9 +25,11 @@ export function useProblemsMapFilter(problemsSource) {
     const categoryOptions = computed(() => {
         const list = problemsSource.value
         const arr = Array.isArray(list) ? list : []
-        const set = new Set()
-        arr.forEach((p) => { if (p?.category) set.add(p.category) })
-        return [...set].sort()
+        const categories = new Set()
+        arr.forEach((problem) => {
+            if (problem?.category) categories.add(problem.category)
+        })
+        return [...categories].sort()
     })
 
     const filteredProblems = computed(() => {
@@ -43,30 +37,30 @@ export function useProblemsMapFilter(problemsSource) {
         let result = list
         const reportNum = (filterState.value.reportNumber || '').trim().toLowerCase()
         if (reportNum) {
-            result = result.filter((p) =>
-                (p.internal_number || '').toLowerCase().includes(reportNum)
+            result = result.filter((problem) =>
+                (problem.internal_number || '').toLowerCase().includes(reportNum)
             )
         }
-        const q = (searchQuery.value || '').trim().toLowerCase()
-        if (q) {
+        const query = (searchQuery.value || '').trim().toLowerCase()
+        if (query) {
             result = result.filter(
-                (p) =>
-                    (p.description || '').toLowerCase().includes(q) ||
-                    (p.description_preview || '').toLowerCase().includes(q) ||
-                    (p.internal_number || '').toLowerCase().includes(q) ||
-                    (p.address || '').toLowerCase().includes(q)
+                (problem) =>
+                    (problem.description || '').toLowerCase().includes(query) ||
+                    (problem.description_preview || '').toLowerCase().includes(query) ||
+                    (problem.internal_number || '').toLowerCase().includes(query) ||
+                    (problem.address || '').toLowerCase().includes(query)
             )
         }
         if ((filterState.value.statuses || []).length > 0) {
-            result = result.filter((p) => filterState.value.statuses.includes(p.status))
+            result = result.filter((problem) => filterState.value.statuses.includes(problem.status))
         }
         if (filterState.value.problemType && filterState.value.problemType !== 'all') {
-            result = result.filter((p) => p.category === filterState.value.problemType)
+            result = result.filter((problem) => problem.category === filterState.value.problemType)
         }
-        const from = parseDateFilter(filterState.value.dateFrom)
-        const to = parseDateFilter(filterState.value.dateTo)
+        const from = parseDateFilterInput(filterState.value.dateFrom)
+        const to = parseDateFilterInput(filterState.value.dateTo)
         if (from || to) {
-            result = result.filter((p) => isInDateRange(p.created_at, from, to))
+            result = result.filter((problem) => isCreatedAtInRange(problem.created_at, from, to))
         }
         return result
     })
@@ -74,13 +68,13 @@ export function useProblemsMapFilter(problemsSource) {
     const problemsToShowOnMap = computed(() => {
         const list = filteredProblems.value
         if (selectedIds.value.size === 0) return list
-        return list.filter((p) => selectedIds.value.has(p.id))
+        return list.filter((problem) => selectedIds.value.has(problem.id))
     })
 
-    function toggle(id) {
+    function toggle(problemId) {
         const next = new Set(selectedIds.value)
-        if (next.has(id)) next.delete(id)
-        else next.add(id)
+        if (next.has(problemId)) next.delete(problemId)
+        else next.add(problemId)
         selectedIds.value = next
     }
 

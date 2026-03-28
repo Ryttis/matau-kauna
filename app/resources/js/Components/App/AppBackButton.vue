@@ -1,5 +1,5 @@
 <script setup>
-import { ICON_LEFT_ARROW } from '@/constants/icons'
+import { ICON_LEFT_ARROW } from '@/constants/ui/icons'
 
 const props = defineProps({
     to: {

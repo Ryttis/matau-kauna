@@ -8,13 +8,19 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class AuditLog extends Model
 {
     public const ACTOR_USER = 'user';
+
     public const ACTOR_SYSTEM = 'system';
 
     public const EVENT_LOGIN = 'login';
+
     public const EVENT_LOGOUT = 'logout';
+
     public const EVENT_USER_ACTION = 'user_action';
+
     public const EVENT_INTEGRATION = 'integration';
+
     public const EVENT_SYSTEM = 'system';
+
     public const EVENT_AUDIT_CONFIG = 'audit_config';
 
     protected $fillable = [
@@ -68,7 +74,8 @@ class AuditLog extends Model
         if (! $q || ! trim($q)) {
             return $query;
         }
-        $q = '%' . trim($q) . '%';
+        $q = '%'.trim($q).'%';
+
         return $query->where(function ($qry) use ($q) {
             $qry->where('action', 'ilike', $q)
                 ->orWhere('message', 'ilike', $q)

@@ -3,6 +3,7 @@ import { ref, watch } from 'vue'
 import axios from 'axios'
 import AppDataTable from '@/Components/App/AppDataTable.vue'
 import AppInput from '@/Components/App/AppInput.vue'
+import { adminApi } from '@/constants/api/adminApi'
 
 const activeType = ref('internal')
 const search = ref('')
@@ -21,7 +22,7 @@ async function load() {
         params.set('type', activeType.value)
         if (search.value.trim()) params.set('search', search.value.trim())
         params.set('page', String(currentPage.value))
-        const { data: res } = await axios.get('/admin/login-history?' + params.toString())
+        const { data: res } = await axios.get(`${adminApi.loginHistory}?${params.toString()}`)
         data.value = res.data ?? []
         currentPage.value = res.current_page ?? 1
         lastPage.value = res.last_page ?? 1

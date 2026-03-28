@@ -1,7 +1,7 @@
 <script setup>
 import { Head, router } from '@inertiajs/vue3'
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue'
-import { PROBLEM_STATUS_LABELS } from '@/constants/problemStatus'
+import { PROBLEM_STATUS_LABELS } from '@/constants/domain/problemStatus'
 
 defineProps({
     approaching: { type: Array, default: () => [] },

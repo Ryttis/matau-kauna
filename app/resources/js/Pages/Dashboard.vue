@@ -9,7 +9,7 @@ import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue'
 import { Head } from '@inertiajs/vue3'
 import { useSuccessModal } from '@/composables/useSuccessModal'
 import { useDashboardReporter } from '@/composables/useDashboardReporter'
-import { ICON_FILTER, ICON_SEARCH } from '@/constants/icons'
+import { ICON_FILTER, ICON_SEARCH } from '@/constants/ui/icons'
 
 const props = defineProps({
     reporterView: {

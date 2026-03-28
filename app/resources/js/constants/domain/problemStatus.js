@@ -1,4 +1,4 @@
-import { COLOR_PRIMARY, COLOR_PRIMARY_HOVER } from '@/constants/theme'
+import { COLOR_PRIMARY, COLOR_PRIMARY_HOVER } from '@/constants/ui/theme'
 
 export const PROBLEM_STATUS = {
     UNREGISTERED: 'neuzregistruota',

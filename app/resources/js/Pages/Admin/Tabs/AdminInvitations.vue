@@ -4,6 +4,7 @@ import axios from 'axios'
 import SuccessModal from '@/Components/App/SuccessModal.vue'
 import AppDataTable from '@/Components/App/AppDataTable.vue'
 import AppButton from '@/Components/App/AppButton.vue'
+import { adminApi } from '@/constants/api/adminApi'
 import { useSuccessModal } from '@/composables/useSuccessModal'
 
 const invitationsPage = ref(null)
@@ -16,7 +17,7 @@ const loadInvitations = async () => {
     loading.value = true
     errorMessage.value = ''
     try {
-        const { data } = await axios.get('/admin/invitations')
+        const { data } = await axios.get(adminApi.invitations)
         invitationsPage.value = data
     } catch (e) {
         errorMessage.value = 'Nepavyko užkrauti pakvietimų.'
@@ -28,7 +29,7 @@ const loadInvitations = async () => {
 const resendInvite = async (invite) => {
     resendError.value = ''
     try {
-        await axios.post(`/admin/invitations/${invite.id}/resend`)
+        await axios.post(adminApi.invitationResend(invite.id))
         showWithMessage('Pakvietimas išsiųstas iš naujo.')
         await loadInvitations()
     } catch (e) {

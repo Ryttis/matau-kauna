@@ -1,6 +1,6 @@
 <script setup>
 import { computed } from 'vue'
-import { PROBLEM_STATUS, PROBLEM_STATUS_LABELS, getStatusBadgeStyle } from '@/constants/problemStatus'
+import { PROBLEM_STATUS, PROBLEM_STATUS_LABELS, getStatusBadgeStyle } from '@/constants/domain/problemStatus'
 
 const props = defineProps({
     status: { type: String, default: '' },

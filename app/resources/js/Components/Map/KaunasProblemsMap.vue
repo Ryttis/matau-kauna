@@ -1,7 +1,7 @@
 <script setup>
 import { ref, computed } from 'vue'
 import { useKaunasMap } from '@/composables/useKaunasMap'
-import { PROBLEM_STATUS, MARKER_COLOR_BY_STATUS } from '@/constants/problemStatus'
+import { PROBLEM_STATUS, MARKER_COLOR_BY_STATUS } from '@/constants/domain/problemStatus'
 
 const props = defineProps({
     problems: { type: Array, default: () => [] },

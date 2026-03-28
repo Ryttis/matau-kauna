@@ -5,7 +5,8 @@ import AppButton from '@/Components/App/AppButton.vue'
 import AppSwitch from '@/Components/App/AppSwitch.vue'
 import AppSelect from '@/Components/App/AppSelect.vue'
 import SuccessModal from '@/Components/App/SuccessModal.vue'
-import { EMAIL_NOTIFICATION_PLACEHOLDER_DOCS_BY_KEY } from '@/constants/emailNotificationPlaceholderDocs'
+import { adminApi } from '@/constants/api/adminApi'
+import { EMAIL_NOTIFICATION_PLACEHOLDER_DOCS_BY_KEY } from '@/constants/content/emailNotificationPlaceholderDocs'
 
 const templates = ref([])
 const selectedTemplateId = ref(null)
@@ -38,7 +39,7 @@ const selectOptions = computed(() => {
 function load() {
     loading.value = true
     errorMessage.value = ''
-    axios.get('/admin/email-notifications')
+    axios.get(adminApi.emailNotifications)
         .then((response) => {
             templates.value = response.data.templates ?? []
             if (templates.value.length && !selectedTemplateId.value) {
@@ -52,7 +53,7 @@ function load() {
 function saveTemplate(template) {
     savingId.value = template.id
     errorMessage.value = ''
-    axios.put(`/admin/email-notifications/${template.id}`, {
+    axios.put(adminApi.emailNotification(template.id), {
         subject: template.subject,
         body: template.body,
         is_enabled: template.is_enabled,

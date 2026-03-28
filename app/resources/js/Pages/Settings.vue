@@ -5,30 +5,24 @@ import SettingsPrivacyBlock from '@/Components/App/SettingsPrivacyBlock.vue'
 import AppInput from '@/Components/App/AppInput.vue'
 import AppButton from '@/Components/App/AppButton.vue'
 import DeleteAccountModal from '@/Components/App/DeleteAccountModal.vue'
-import { Head, router, useForm, usePage } from '@inertiajs/vue3'
+import { Head, router, useForm } from '@inertiajs/vue3'
 import { ref, computed, watch, onMounted } from 'vue'
-import { ROLE_SYSTEM_ADMIN, ROLE_INSTITUTION_ADMIN, ROLE_PROBLEM_ADMIN, ROLE_REPORTER } from '@/constants/roles'
-import { SETTINGS_PAGE_STYLE } from '@/constants/theme'
+import { ROLE_INSTITUTION_ADMIN, ROLE_REPORTER } from '@/constants/domain/roles'
+import { SETTINGS_PAGE_STYLE } from '@/constants/ui/theme'
+import { useAuth } from '@/composables/useAuth'
 
-const page = usePage()
-const user = computed(() => page.props.auth?.user ?? null)
-const authPermissions = computed(() => page.props.auth?.permissions || [])
-const authRoles = computed(() => page.props.auth?.roles || [])
-const activeRole = computed(() => {
-    const auth = page.props.auth
-    const roles = authRoles.value
-    return auth?.activeRole ?? auth?.active_role ?? (roles?.length === 1 ? roles[0] : null)
-})
-const isSystemAdmin = computed(() => (activeRole.value?.role ?? '') === ROLE_SYSTEM_ADMIN)
-const isProblemAdmin = computed(() => (activeRole.value?.role ?? '') === ROLE_PROBLEM_ADMIN)
+const {
+    user,
+    permissions,
+    hasAssignedRole,
+    isSystemAdmin,
+    isProblemAdmin,
+} = useAuth()
 
-const isInstitutionAdmin = computed(() =>
-    authRoles.value.some((r) => r.role === ROLE_INSTITUTION_ADMIN)
-)
+const isInstitutionAdmin = computed(() => hasAssignedRole(ROLE_INSTITUTION_ADMIN))
 
-const isReporterOnly = computed(() =>
-    authRoles.value.some((r) => r.role === ROLE_REPORTER)
-    && !authPermissions.value.includes('issues.view')
+const isReporterOnly = computed(
+    () => hasAssignedRole(ROLE_REPORTER) && !permissions.value.includes('issues.view')
 )
 
 const institutionForm = useForm({

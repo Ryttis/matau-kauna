@@ -1,6 +1,6 @@
 <script setup>
 import { computed, ref } from 'vue'
-import { ICON_PENCIL } from '@/constants/icons'
+import { ICON_PENCIL } from '@/constants/ui/icons'
 
 const datalistId = ref(`datalist-${Math.random().toString(36).slice(2, 11)}`)
 

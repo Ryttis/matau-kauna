@@ -129,7 +129,7 @@ class AutomationService
 
             $list[] = [
                 'id' => $user->id,
-                'name' => trim($user->name . ' ' . ($user->surname ?? '')) ?: $user->email,
+                'name' => trim($user->name.' '.($user->surname ?? '')) ?: $user->email,
                 'email' => $user->email,
                 'last_login_at' => $lastLoginAt?->format('Y-m-d H:i'),
                 'inactive_days' => $inactiveDays,

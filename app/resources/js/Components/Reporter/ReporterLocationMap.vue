@@ -1,8 +1,8 @@
 <script setup>
 import { ref, watch, onMounted, onUnmounted } from 'vue'
-import { KAUNAS_CENTER } from '@/composables/leafletKaunas'
+import { KAUNAS_CENTER } from '@/utils/leafletKaunas'
 import { useKaunasMapLocationPicker } from '@/composables/useKaunasMapLocationPicker'
-import { ICON_SEARCH } from '@/constants/icons'
+import { ICON_SEARCH } from '@/constants/ui/icons'
 
 const props = defineProps({
     initialLat: { type: Number, default: () => KAUNAS_CENTER[0] },

@@ -20,9 +20,9 @@
 
 <script setup>
 import { ref, watch, onMounted, onUnmounted, nextTick } from 'vue'
-import { loadLeaflet, createBaseMap, KAUNAS_CENTER, MAP_MAX_ZOOM } from '@/composables/leafletKaunas'
-import { getMarkerColorForStatus } from '@/constants/problemStatus'
-import { MAP_CLUSTER_COLOR } from '@/constants/theme'
+import { loadLeaflet, createBaseMap, KAUNAS_CENTER, MAP_MAX_ZOOM } from '@/utils/leafletKaunas'
+import { getMarkerColorForStatus } from '@/constants/domain/problemStatus'
+import { MAP_CLUSTER_COLOR } from '@/constants/ui/theme'
 import { clusterProblems } from '@/utils/mapClustering'
 
 const CLUSTER_SIZE = 28

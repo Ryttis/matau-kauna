@@ -6,7 +6,7 @@ export function useProblemDisplayRows(problemsListRef) {
         const rows = []
         list.forEach((main) => {
             const merged = main.merged_problems || main.mergedProblems || []
-            const groupIds = [main.id, ...merged.map((m) => m.id)]
+            const groupIds = [main.id, ...merged.map((mergedProblem) => mergedProblem.id)]
             const mergedCount = merged.length
             const isLastMain = mergedCount === 0
             rows.push({
@@ -16,13 +16,13 @@ export function useProblemDisplayRows(problemsListRef) {
                 mergedCount,
                 isLastInGroup: isLastMain,
             })
-            merged.forEach((m, idx) => {
+            merged.forEach((mergedProblem, mergedIndex) => {
                 rows.push({
-                    problem: m,
+                    problem: mergedProblem,
                     isGroupMain: false,
                     groupIds,
                     mergedCount: 0,
-                    isLastInGroup: idx === merged.length - 1,
+                    isLastInGroup: mergedIndex === merged.length - 1,
                 })
             })
         })

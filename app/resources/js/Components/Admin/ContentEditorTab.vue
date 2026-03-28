@@ -7,6 +7,7 @@ import SuccessModal from '@/Components/App/SuccessModal.vue'
 import ConfirmModal from '@/Components/App/ConfirmModal.vue'
 import BaseModal from '@/Components/App/BaseModal.vue'
 import ModalFooterActions from '@/Components/App/ModalFooterActions.vue'
+import { adminApi } from '@/constants/api/adminApi'
 
 const props = defineProps({
     type: { type: String, required: true },
@@ -31,7 +32,7 @@ const isTerms = () => props.type === 'terms'
 function loadVersions() {
     loading.value = true
     errorMessage.value = ''
-    axios.get('/admin/content-versions', { params: { type: props.type } })
+    axios.get(adminApi.contentVersions, { params: { type: props.type } })
         .then(res => { versions.value = res.data.versions })
         .catch(() => { errorMessage.value = 'Nepavyko gauti versijų' })
         .finally(() => { loading.value = false })
@@ -84,8 +85,8 @@ function save() {
     successMessage.value = ''
     errorMessage.value = ''
     const promise = editingId.value
-        ? axios.put(`/admin/content-versions/${editingId.value}`, { title: form.value.title, body: form.value.body })
-        : axios.post('/admin/content-versions', { type: props.type, title: form.value.title, body: form.value.body })
+        ? axios.put(adminApi.contentVersion(editingId.value), { title: form.value.title, body: form.value.body })
+        : axios.post(adminApi.contentVersions, { type: props.type, title: form.value.title, body: form.value.body })
     promise
         .then(() => {
             successMessage.value = editingId.value ? 'Versija atnaujinta sėkmingai.' : 'Nauja versija sukurta sėkmingai.'
@@ -126,7 +127,7 @@ function doUnpublish() {
     if (!v) return
     saving.value = true
     errorMessage.value = ''
-    axios.post(`/admin/content-versions/${v.id}/unpublish`)
+    axios.post(adminApi.contentVersionUnpublish(v.id))
         .then(() => {
             closeUnpublishModal()
             successMessage.value = 'Skelbimas atšauktas. Versija dabar kaip juodraštis.'
@@ -142,7 +143,7 @@ function doDeleteVersion() {
     if (!v) return
     saving.value = true
     errorMessage.value = ''
-    axios.delete(`/admin/content-versions/${v.id}`)
+    axios.delete(adminApi.contentVersion(v.id))
         .then(() => {
             if (editingId.value === v.id) startNew()
             closeDeleteModal()
@@ -163,7 +164,7 @@ function confirmPublish() {
     const id = publishModalVersion.value.id
     saving.value = true
     errorMessage.value = ''
-    axios.post(`/admin/content-versions/${id}/publish`, { require_reconsent: requireReconsent.value })
+    axios.post(adminApi.contentVersionPublish(id), { require_reconsent: requireReconsent.value })
         .then(() => {
             successMessage.value = requireReconsent.value
                 ? 'Versija paskelbta sėkmingai. Pareiškėjams bus reikalaujama dar kartą sutikti su taisyklėmis.'

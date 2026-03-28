@@ -4,6 +4,7 @@ import axios from 'axios'
 import AppButton from '@/Components/App/AppButton.vue'
 import AppCheckbox from '@/Components/App/AppCheckbox.vue'
 import SuccessModal from '@/Components/App/SuccessModal.vue'
+import { adminApi } from '@/constants/api/adminApi'
 
 const loading = ref(true)
 const saving = ref(false)
@@ -64,7 +65,7 @@ async function load() {
     loading.value = true
     errorMessage.value = ''
     try {
-        const { data } = await axios.get('/admin/public-statistics-config')
+        const { data } = await axios.get(adminApi.publicStatisticsConfig)
         config.value = { ...config.value, ...data.config }
         selectedKpis.value = [...(data.config.kpis || [])]
         periodOptionsSelected.value = [...(data.config.period_options || ['year', 'all'])]
@@ -80,7 +81,7 @@ async function save() {
     errorMessage.value = ''
     successMessage.value = ''
     try {
-        await axios.put('/admin/public-statistics-config', {
+        await axios.put(adminApi.publicStatisticsConfig, {
             config: {
                 kpis: selectedKpis.value,
                 default_period: config.value.default_period,

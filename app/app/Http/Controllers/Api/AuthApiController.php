@@ -122,4 +122,3 @@ class AuthApiController extends Controller
         return response()->json(['ok' => true]);
     }
 }
-

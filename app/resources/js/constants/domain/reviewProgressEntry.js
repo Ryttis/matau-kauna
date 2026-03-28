@@ -1,4 +1,4 @@
-import { PROBLEM_STATUS } from '@/constants/problemStatus'
+import { PROBLEM_STATUS } from '@/constants/domain/problemStatus'
 
 export const REVIEW_ENTRY_VISIBILITY = {
     PUBLIC: 'public',

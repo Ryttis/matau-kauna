@@ -8,8 +8,11 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class ContentVersion extends Model
 {
     public const TYPE_TERMS = 'terms';
+
     public const TYPE_PRIVACY = 'privacy';
+
     public const TYPE_FAQ = 'faq';
+
     public const TYPE_COOKIES = 'cookies';
 
     protected $fillable = [

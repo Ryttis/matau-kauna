@@ -10,7 +10,7 @@ import SuccessModal from '@/Components/App/SuccessModal.vue'
 import BaseModal from '@/Components/App/BaseModal.vue'
 import ConfirmModal from '@/Components/App/ConfirmModal.vue'
 import { useSuccessModal } from '@/composables/useSuccessModal'
-import { AUTOMATION_SECTIONS, INACTIVITY_DAYS_FALLBACK } from '@/constants/automation'
+import { AUTOMATION_SECTIONS, INACTIVITY_DAYS_FALLBACK } from '@/constants/domain/automation'
 
 const { showSuccessModal, successMessage, closeSuccessModal } = useSuccessModal()
 

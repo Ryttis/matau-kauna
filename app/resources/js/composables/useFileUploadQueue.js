@@ -21,21 +21,21 @@ export function useFileUploadQueue(uploadRulesRef, options = {}) {
     const fileHint = ref('')
     const fileInputRef = ref(null)
 
-    function mimeAllowed(mime) {
-        const u = unref(uploadRulesRef)
+    function mimeAllowed(mimeType) {
+        const rules = unref(uploadRulesRef)
         const photo = ['image/jpeg', 'image/png']
         const video = ['video/mp4', 'video/webm', 'video/quicktime']
-        if (photo.includes(mime) && u.allow_photo) return 'photo'
-        if (video.includes(mime) && u.allow_video) return 'video'
+        if (photo.includes(mimeType) && rules.allow_photo) return 'photo'
+        if (video.includes(mimeType) && rules.allow_video) return 'video'
         return null
     }
 
     function currentTotalKb(files) {
-        return files.reduce((s, f) => s + f.size / 1024, 0)
+        return files.reduce((sumKb, file) => sumKb + file.size / 1024, 0)
     }
 
     function countByKind(files, kind) {
-        return files.filter((f) => mimeAllowed(f.type) === kind).length
+        return files.filter((file) => mimeAllowed(file.type) === kind).length
     }
 
     function baseline() {
@@ -47,18 +47,18 @@ export function useFileUploadQueue(uploadRulesRef, options = {}) {
         }
     }
 
-    function handleFileChange(e) {
+    function handleFileChange(event) {
         fileHint.value = ''
-        const input = e.target
+        const input = event.target
         const picked = input.files ? Array.from(input.files) : []
         input.value = ''
 
         if (!picked.length) return
 
-        const u = unref(uploadRulesRef)
-        const maxPhoto = Math.max(0, Number(u.max_photo_files_per_problem) || 0)
-        const maxVideo = Math.max(0, Number(u.max_video_files_per_problem) || 0)
-        const maxTotal = Number(u.max_total_upload_kb) || 0
+        const rules = unref(uploadRulesRef)
+        const maxPhoto = Math.max(0, Number(rules.max_photo_files_per_problem) || 0)
+        const maxVideo = Math.max(0, Number(rules.max_video_files_per_problem) || 0)
+        const maxTotal = Number(rules.max_total_upload_kb) || 0
         const base = baseline()
         const existing = selectedFiles.value.slice()
         const next = [...existing]
@@ -79,7 +79,7 @@ export function useFileUploadQueue(uploadRulesRef, options = {}) {
                 fileHint.value = 'Per daug vaizdų.'
                 break
             }
-            const maxKb = kind === 'photo' ? Number(u.max_photo_size_kb) : Number(u.max_video_size_kb)
+            const maxKb = kind === 'photo' ? Number(rules.max_photo_size_kb) : Number(rules.max_video_size_kb)
             if (file.size / 1024 > maxKb) {
                 fileHint.value = 'Failas per didelis.'
                 break
@@ -98,7 +98,7 @@ export function useFileUploadQueue(uploadRulesRef, options = {}) {
 
     function removeFile(index) {
         fileHint.value = ''
-        selectedFiles.value = selectedFiles.value.filter((_, i) => i !== index)
+        selectedFiles.value = selectedFiles.value.filter((file, fileIndex) => fileIndex !== index)
     }
 
     function clearQueue() {
@@ -112,10 +112,10 @@ export function useFileUploadQueue(uploadRulesRef, options = {}) {
     }
 
     const showFileSection = computed(() => {
-        const u = unref(uploadRulesRef)
-        const maxP = Number(u.max_photo_files_per_problem) || 0
-        const maxV = Number(u.max_video_files_per_problem) || 0
-        return (maxP > 0 && u.allow_photo) || (maxV > 0 && u.allow_video)
+        const rules = unref(uploadRulesRef)
+        const maxP = Number(rules.max_photo_files_per_problem) || 0
+        const maxV = Number(rules.max_video_files_per_problem) || 0
+        return (maxP > 0 && rules.allow_photo) || (maxV > 0 && rules.allow_video)
     })
 
     return {

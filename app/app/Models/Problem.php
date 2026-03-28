@@ -285,4 +285,28 @@ class Problem extends Model
 
         return $out->unique()->values()->map(fn ($id) => (int) $id)->all();
     }
+
+    public static function rootIdsMapFromProblemIds(array $problemIds): array
+    {
+        $map = [];
+        foreach ($problemIds as $pid) {
+            $p = static::query()->find((int) $pid);
+            if ($p === null) {
+                continue;
+            }
+            $map[$p->merged_into_problem_id ?? $p->id] = true;
+        }
+
+        return $map;
+    }
+
+    public static function statusesByRootId(array $rootIdsMap): array
+    {
+        $out = [];
+        foreach (array_keys($rootIdsMap) as $mainId) {
+            $out[$mainId] = static::query()->where('id', $mainId)->value('status');
+        }
+
+        return $out;
+    }
 }

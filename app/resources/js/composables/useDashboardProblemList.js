@@ -2,7 +2,7 @@ import { ref, watch, computed, onMounted, onUnmounted } from 'vue'
 import { router } from '@inertiajs/vue3'
 import { debounce } from 'lodash-es'
 import { useProblemDisplayRows } from '@/composables/useProblemDisplayRows'
-import { PROBLEM_STATUS, PROBLEM_STATUS_OPTIONS } from '@/constants/problemStatus'
+import { PROBLEM_STATUS, PROBLEM_STATUS_OPTIONS } from '@/constants/domain/problemStatus'
 
 export function useDashboardProblemList(props) {
     const search = ref(props.filters?.search || '')
@@ -29,8 +29,8 @@ export function useDashboardProblemList(props) {
         const out = []
         for (const main of list) {
             out.push(main)
-            for (const m of main.merged_problems || main.mergedProblems || []) {
-                out.push(m)
+            for (const mergedProblem of main.merged_problems || main.mergedProblems || []) {
+                out.push(mergedProblem)
             }
         }
         return out
@@ -115,9 +115,9 @@ export function useDashboardProblemList(props) {
             preserveState: true,
             preserveScroll: true,
             only: ['problems'],
-            onSuccess: (pageObj) => {
-                if (pageObj.props.problems?.data) {
-                    const newItems = pageObj.props.problems.data.slice(0, 6)
+            onSuccess: (inertiaPage) => {
+                if (inertiaPage.props.problems?.data) {
+                    const newItems = inertiaPage.props.problems.data.slice(0, 6)
                     const existingIds = new Set(problemsList.value.map((p) => p.id))
                     const uniqueNewItems = newItems.filter((item) => !existingIds.has(item.id))
                     problemsList.value = [...problemsList.value, ...uniqueNewItems]

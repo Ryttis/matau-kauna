@@ -12,8 +12,7 @@ class StatisticsReportExport implements FromArray, WithColumnWidths
         protected string $period,
         protected ?string $institution,
         protected ?string $category
-    ) {
-    }
+    ) {}
 
     public function array(): array
     {
@@ -27,7 +26,7 @@ class StatisticsReportExport implements FromArray, WithColumnWidths
             ['Kategorija:', $this->category === 'all' || ! $this->category ? 'Visos' : $this->category],
             [],
             ['Rodiklis', 'Reikšmė'],
-            ['Aktyvūs naudotojai (periodas)', ($a['activeUsers']['current'] ?? 0) . ' / ' . ($a['activeUsers']['total'] ?? 0)],
+            ['Aktyvūs naudotojai (periodas)', ($a['activeUsers']['current'] ?? 0).' / '.($a['activeUsers']['total'] ?? 0)],
             ['Gauti pranešimai', $a['receivedReports'] ?? 0],
             ['Vidutinis sprendimo laikas (d.)', $a['averageResolutionTime'] ?? 0],
             ['Išspręstos problemos (%)', $a['resolvedProblems'] ?? 0],

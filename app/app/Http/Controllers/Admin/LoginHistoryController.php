@@ -32,7 +32,7 @@ class LoginHistoryController extends Controller
                 'total' => $logs->total(),
             ]);
         } catch (Throwable $e) {
-            Log::error('Prisijungimų istorija: ' . $e->getMessage(), [
+            Log::error('Prisijungimų istorija: '.$e->getMessage(), [
                 'exception' => $e,
                 'trace' => $e->getTraceAsString(),
             ]);

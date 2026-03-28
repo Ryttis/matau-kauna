@@ -5,6 +5,7 @@ import AppButton from '@/Components/App/AppButton.vue'
 import AppInput from '@/Components/App/AppInput.vue'
 import AppCheckbox from '@/Components/App/AppCheckbox.vue'
 import SuccessModal from '@/Components/App/SuccessModal.vue'
+import { adminApi } from '@/constants/api/adminApi'
 
 const loading = ref(true)
 const errorMessage = ref('')
@@ -65,7 +66,7 @@ const load = async () => {
     loading.value = true
     errorMessage.value = ''
     try {
-        const { data } = await axios.get('/admin/archive')
+        const { data } = await axios.get(adminApi.archive)
         retentionRules.value = data.retentionRules || {
             user: null,
             institution: null,
@@ -91,7 +92,7 @@ const saveSettings = async () => {
     try {
         const entityType = TAB_ENTITY_MAP[activeTab.value]
         const days = settingsForm.value.retention_days ? Number(settingsForm.value.retention_days) : null
-        await axios.put('/admin/archive/retention-rule', {
+        await axios.put(adminApi.archiveRetentionRule, {
             entity_type: entityType,
             retention_days: days,
             is_active: settingsForm.value.is_active,
@@ -114,10 +115,10 @@ const formatDate = (str) => {
 const restoring = ref(null)
 
 const RESTORE_CONFIG = {
-    users: { path: (id) => `/admin/archive/users/${id}/restore`, key: 'user', successMsg: 'Naudotojas atkurtas.' },
-    institutions: { path: (id) => `/admin/archive/institutions/${id}/restore`, key: 'institution', successMsg: 'Įstaiga atkurta.' },
-    problems: { path: (id) => `/admin/archive/problems/${id}/restore`, key: 'problem', successMsg: 'Problema atkurta.' },
-    classifiers: { path: (id) => `/admin/archive/classifier-values/${id}/restore`, key: 'classifier', successMsg: 'Klasifikatorius atkurtas.' },
+    users: { path: adminApi.archiveRestoreUser, key: 'user', successMsg: 'Naudotojas atkurtas.' },
+    institutions: { path: adminApi.archiveRestoreInstitution, key: 'institution', successMsg: 'Įstaiga atkurta.' },
+    problems: { path: adminApi.archiveRestoreProblem, key: 'problem', successMsg: 'Problema atkurta.' },
+    classifiers: { path: adminApi.archiveRestoreClassifierValue, key: 'classifier', successMsg: 'Klasifikatorius atkurtas.' },
 }
 
 async function restore(type, item) {

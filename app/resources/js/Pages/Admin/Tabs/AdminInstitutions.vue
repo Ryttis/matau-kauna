@@ -8,7 +8,8 @@ import AppButton from '@/Components/App/AppButton.vue'
 import { useSuccessModal } from '@/composables/useSuccessModal'
 import AppInput from '@/Components/App/AppInput.vue'
 import ModalFooterActions from '@/Components/App/ModalFooterActions.vue'
-import { INSTITUTION_TYPES } from '@/constants/institutionTypes'
+import { adminApi } from '@/constants/api/adminApi'
+import { INSTITUTION_TYPES } from '@/constants/domain/institutionTypes'
 
 function emptyInstitutionForm() {
     return {
@@ -45,7 +46,7 @@ const deleteConfirmMessage = computed(() => {
 })
 
 const loadInstitutions = async () => {
-    const { data } = await axios.get('/admin/institutions')
+    const { data } = await axios.get(adminApi.institutions)
     institutionsPage.value = data
 }
 
@@ -87,7 +88,7 @@ const deleteInstitution = async () => {
     errorMessage.value = ''
     saving.value = true
     try {
-        await axios.delete(`/admin/institutions/${institutionToDelete.value.id}`)
+        await axios.delete(adminApi.institution(institutionToDelete.value.id))
         closeDeleteModal()
         await loadInstitutions()
     } catch (e) {
@@ -101,7 +102,7 @@ const createInstitution = async () => {
     errorMessage.value = ''
     saving.value = true
     try {
-        await axios.post('/admin/institutions', {
+        await axios.post(adminApi.institutions, {
             ...createForm.value,
             integration_email: createForm.value.contact_email || null,
             is_email_only: createForm.value.is_email_only ?? false,
@@ -120,7 +121,7 @@ const updateInstitution = async () => {
     errorMessage.value = ''
     saving.value = true
     try {
-        await axios.put(`/admin/institutions/${editForm.value.id}`, {
+        await axios.put(adminApi.institution(editForm.value.id), {
             name: editForm.value.name,
             code: editForm.value.code || null,
             type: editForm.value.type || null,

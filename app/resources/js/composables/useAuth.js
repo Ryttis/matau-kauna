@@ -5,30 +5,41 @@ import {
     ROLE_INSTITUTION_ADMIN,
     ROLE_MUNICIPALITY_REP,
     ROLE_EMPLOYEE,
-} from '@/constants/roles'
+    ROLE_REPORTER,
+} from '@/constants/domain/roles'
 
 export function useAuth() {
     const page = usePage()
 
     const user = computed(() => page.props.auth?.user ?? null)
     const roles = computed(() => page.props.auth?.roles ?? [])
+    const permissions = computed(() => page.props.auth?.permissions ?? [])
+
     const activeRole = computed(() => {
         const auth = page.props.auth
         if (auth?.activeRole) return auth.activeRole
         if (auth?.active_role) return auth.active_role
-        const r = auth?.roles ?? []
+        const r = roles.value
         return r.length === 1 ? r[0] : null
     })
-    const permissions = computed(() => page.props.auth?.permissions ?? [])
+
     const isSystemAdmin = computed(() => !!page.props.auth?.isSystemAdmin)
 
-    const hasRole = (roleConstant) =>
-        activeRole.value
+    function hasAssignedRole(roleConstant) {
+        return roles.value.some((r) => r.role === roleConstant)
+    }
+
+    function hasRole(roleConstant) {
+        return activeRole.value
             ? activeRole.value.role === roleConstant
             : roles.value.some((r) => r.role === roleConstant)
+    }
 
-    const hasPermission = (permission) =>
-        isSystemAdmin.value || permissions.value.includes(permission)
+    function hasPermission(permission) {
+        return isSystemAdmin.value || permissions.value.includes(permission)
+    }
+
+    const isActiveRoleReporter = computed(() => (activeRole.value?.role ?? '') === ROLE_REPORTER)
 
     const isProblemAdmin = computed(() => hasRole(ROLE_PROBLEM_ADMIN))
     const isInstitutionAdmin = computed(() => hasRole(ROLE_INSTITUTION_ADMIN))
@@ -41,9 +52,7 @@ export function useAuth() {
     const canSeeInstitutionAdminButtons = computed(
         () => isInstitutionAdmin.value || isSystemAdmin.value
     )
-    const canExport = computed(
-        () => isProblemAdmin.value || isSystemAdmin.value
-    )
+    const canExport = computed(() => isProblemAdmin.value || isSystemAdmin.value)
     const canDeleteProblem = computed(() => isSystemAdmin.value)
     const canEditProblem = computed(
         () =>
@@ -62,7 +71,12 @@ export function useAuth() {
         user,
         roles,
         permissions,
+        activeRole,
         isSystemAdmin,
+        hasAssignedRole,
+        hasRole,
+        hasPermission,
+        isActiveRoleReporter,
         isProblemAdmin,
         isInstitutionAdmin,
         isEmployee,

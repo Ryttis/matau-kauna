@@ -2,10 +2,12 @@
 import { computed, ref } from 'vue'
 import axios from 'axios'
 import BaseModal from '@/Components/App/BaseModal.vue'
+import { adminRbacApi } from '@/constants/api/adminRbacApi'
+import { invitationsApi } from '@/constants/api/invitationsApi'
 import ConfirmModal from '@/Components/App/ConfirmModal.vue'
 import AppButton from '@/Components/App/AppButton.vue'
 import AppInput from '@/Components/App/AppInput.vue'
-import { ROLE_INSTITUTION_ADMIN, ROLE_EMPLOYEE } from '@/constants/roles'
+import { ROLE_INSTITUTION_ADMIN, ROLE_EMPLOYEE } from '@/constants/domain/roles'
 
 const props = defineProps({
     usersPage: Object,
@@ -101,7 +103,7 @@ const inviteUser = async () => {
     }
     emit('set-saving', true)
     try {
-        await axios.post('/invitations', inviteForm.value)
+        await axios.post(invitationsApi.store, inviteForm.value)
         isInviteOpen.value = false
         emit('show-success', 'Pakvietimas išsiųstas.')
         emit('refresh')
@@ -116,7 +118,7 @@ const createUser = async () => {
     createError.value = ''
     emit('set-saving', true)
     try {
-        await axios.post('/admin/rbac/users', {
+        await axios.post(adminRbacApi.users, {
             name: createForm.value.name,
             email: createForm.value.email,
             password: createForm.value.password,
@@ -153,7 +155,7 @@ const updateUser = async () => {
             payload.password = editForm.value.password
             payload.password_confirmation = editForm.value.password_confirmation
         }
-        await axios.put(`/admin/rbac/users/${editForm.value.id}`, payload)
+        await axios.put(adminRbacApi.user(editForm.value.id), payload)
         isEditOpen.value = false
         emit('show-success', 'Naudotojas atnaujintas.')
         emit('refresh')
@@ -165,7 +167,7 @@ const updateUser = async () => {
 const deleteUser = async () => {
     emit('set-saving', true)
     try {
-        await axios.delete(`/admin/rbac/users/${deleteTarget.value.id}`)
+        await axios.delete(adminRbacApi.user(deleteTarget.value.id))
         isDeleteOpen.value = false
         emit('show-success', 'Naudotojas pašalintas.')
         emit('refresh')
@@ -191,7 +193,7 @@ const saveUserRoles = async () => {
 
     emit('set-saving', true)
     try {
-        await axios.post(`/admin/rbac/users/${selectedUser.value.id}/roles`, {
+        await axios.post(adminRbacApi.userRoles(selectedUser.value.id), {
             role_ids: selectedRoleIds.value
         })
         isAssignRolesOpen.value = false

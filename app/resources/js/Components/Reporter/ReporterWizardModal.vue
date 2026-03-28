@@ -1,7 +1,7 @@
 <script setup>
 import { computed } from 'vue'
 import BaseModal from '@/Components/App/BaseModal.vue'
-import { ICON_LEFT_ARROW, ICON_CLOSE } from '@/constants/icons'
+import { ICON_LEFT_ARROW, ICON_CLOSE } from '@/constants/ui/icons'
 
 const props = defineProps({
     show: Boolean,

@@ -8,7 +8,7 @@ import AppButton from '@/Components/App/AppButton.vue'
 import AddEntryModal from '@/Components/App/Modals/AddEntryModal.vue'
 import ConfirmModal from '@/Components/App/ConfirmModal.vue'
 import StatusBadge from '@/Components/Problems/StatusBadge.vue'
-import { PROBLEM_STATUS_LABELS } from '@/constants/problemStatus'
+import { PROBLEM_STATUS_LABELS } from '@/constants/domain/problemStatus'
 
 const showAddEntryModal = ref(false)
 const editingEntry = ref(null)

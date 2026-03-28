@@ -131,6 +131,7 @@ class StatisticsService
         }
         if ($this->isInstitutionScoped($user)) {
             $query->where('problems.institution_id', $user->institution_id);
+
             return;
         }
         if ($this->isEmployeeScoped($user)) {

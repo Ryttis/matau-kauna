@@ -2,6 +2,7 @@
 import { ref } from 'vue'
 import axios from 'axios'
 import BaseModal from '@/Components/App/BaseModal.vue'
+import { adminRbacApi } from '@/constants/api/adminRbacApi'
 import ConfirmModal from '@/Components/App/ConfirmModal.vue'
 import AppButton from '@/Components/App/AppButton.vue'
 import AppInput from '@/Components/App/AppInput.vue'
@@ -39,7 +40,7 @@ const createPermission = async () => {
     emit('set-saving', true)
 
     try {
-        await axios.post('/admin/rbac/permissions', createForm.value)
+        await axios.post(adminRbacApi.permissions, createForm.value)
         isCreateOpen.value = false
         emit('show-success', 'Teisė sukurta.')
         emit('refresh')
@@ -52,7 +53,7 @@ const deletePermission = async () => {
     emit('set-saving', true)
 
     try {
-        await axios.delete(`/admin/rbac/permissions/${deleteTarget.value.id}`)
+        await axios.delete(adminRbacApi.permission(deleteTarget.value.id))
         isDeleteOpen.value = false
         emit('show-success', 'Teisė pašalinta.')
         emit('refresh')

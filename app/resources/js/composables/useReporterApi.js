@@ -1,21 +1,15 @@
 import axios from 'axios'
-
-function getHeaders() {
-    const token = document.cookie.match(/XSRF-TOKEN=([^;]+)/)?.[1]
-    const headers = { Accept: 'application/json' }
-    if (token) headers['X-XSRF-TOKEN'] = decodeURIComponent(token)
-    return headers
-}
+import { inertiaJsonHeaders } from '@/utils/inertiaJsonHeaders'
 
 export function useReporterApi() {
     function post(url, data = {}) {
-        return axios.post(url, data, { headers: getHeaders() })
+        return axios.post(url, data, { headers: inertiaJsonHeaders() })
     }
 
     function postMultipart(url, formData) {
         return axios.post(url, formData, {
             headers: {
-                ...getHeaders(),
+                ...inertiaJsonHeaders(),
                 'X-Upload-Channel': 'web',
             },
         })
@@ -27,7 +21,7 @@ export function useReporterApi() {
 
         return axios.post(route('problems.attachments.store', problemId), fd, {
             headers: {
-                ...getHeaders(),
+                ...inertiaJsonHeaders(),
                 'Content-Type': 'multipart/form-data',
                 'X-Upload-Channel': 'web',
                 Accept: 'application/json',

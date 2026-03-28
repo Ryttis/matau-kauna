@@ -2,7 +2,7 @@
 import { Head } from '@inertiajs/vue3'
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue'
 import InstitutionTeamsManager from '@/Components/InstitutionTeams/InstitutionTeamsManager.vue'
-import { SETTINGS_PAGE_STYLE } from '@/constants/theme'
+import { SETTINGS_PAGE_STYLE } from '@/constants/ui/theme'
 
 defineProps({
     initialInstitutionId: {

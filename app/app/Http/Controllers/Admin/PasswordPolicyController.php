@@ -41,6 +41,7 @@ class PasswordPolicyController extends Controller
             }
             PasswordPolicy::clearCache();
             $this->auditLogService->logUserAction($request->user(), 'password_policy.update', 'PasswordPolicy', $row->id, AuditLogResult::Success);
+
             return response()->json(['ok' => true]);
         } catch (\Throwable $e) {
             $this->auditLogService->logUserAction($request->user(), 'password_policy.update', 'PasswordPolicy', null, AuditLogResult::Error, $e->getMessage());
