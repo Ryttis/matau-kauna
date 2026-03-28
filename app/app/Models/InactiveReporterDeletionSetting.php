@@ -7,7 +7,9 @@ use Illuminate\Database\Eloquent\Model;
 class InactiveReporterDeletionSetting extends Model
 {
     public const INACTIVITY_DAYS_MIN = 30;
+
     public const INACTIVITY_DAYS_MAX = 3650;
+
     public const INACTIVITY_DAYS_DEFAULT = 180;
 
     protected $fillable = ['inactivity_days', 'is_active'];
@@ -27,6 +29,7 @@ class InactiveReporterDeletionSetting extends Model
         if ($row) {
             return $row;
         }
+
         return static::create([
             'inactivity_days' => static::INACTIVITY_DAYS_DEFAULT,
             'is_active' => false,

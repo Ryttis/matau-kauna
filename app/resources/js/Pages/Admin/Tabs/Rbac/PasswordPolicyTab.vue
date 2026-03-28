@@ -5,6 +5,7 @@ import AppButton from '@/Components/App/AppButton.vue'
 import AppCheckbox from '@/Components/App/AppCheckbox.vue'
 import AppInput from '@/Components/App/AppInput.vue'
 import SuccessModal from '@/Components/App/SuccessModal.vue'
+import { adminApi } from '@/constants/api/adminApi'
 
 const loading = ref(true)
 const saving = ref(false)
@@ -25,7 +26,7 @@ async function load() {
     loading.value = true
     errorMessage.value = ''
     try {
-        const { data } = await axios.get('/admin/password-policy')
+        const { data } = await axios.get(adminApi.passwordPolicy)
         form.value = { ...form.value, ...data }
     } catch (e) {
         errorMessage.value = e.response?.data?.message ?? 'Nepavyko užkrauti.'
@@ -39,7 +40,7 @@ async function save() {
     errorMessage.value = ''
     successMessage.value = ''
     try {
-        await axios.put('/admin/password-policy', form.value)
+        await axios.put(adminApi.passwordPolicy, form.value)
         successMessage.value = 'Nustatymai išsaugoti.'
         showSuccessModal.value = true
     } catch (e) {

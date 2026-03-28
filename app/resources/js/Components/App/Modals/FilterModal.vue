@@ -6,7 +6,7 @@ import AppCheckbox from '@/Components/App/AppCheckbox.vue'
 import AppInput from '@/Components/App/AppInput.vue'
 import AppSelect from '@/Components/App/AppSelect.vue'
 import AppDatePicker from '@/Components/App/AppDatePicker.vue'
-import { PUBLIC_PROBLEM_STATUS_OPTIONS } from '@/constants/problemStatus'
+import { PUBLIC_PROBLEM_STATUS_OPTIONS } from '@/constants/domain/problemStatus'
 
 const props = defineProps({
     show: Boolean,

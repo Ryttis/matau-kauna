@@ -15,6 +15,7 @@ class InactiveReporterDeletionCommand extends Command
     {
         $result = $service->runRemindersAndDeletions();
         $this->info(sprintf('Priminimai išsiųsti: %d, paskyros pašalintos: %d.', $result['reminded'], $result['deleted']));
+
         return self::SUCCESS;
     }
 }

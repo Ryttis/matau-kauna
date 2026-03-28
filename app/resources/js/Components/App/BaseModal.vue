@@ -1,6 +1,6 @@
 <script setup>
 import { computed, useAttrs } from 'vue'
-import { ICON_CLOSE } from '@/constants/icons'
+import { ICON_CLOSE } from '@/constants/ui/icons'
 
 defineOptions({ inheritAttrs: false })
 

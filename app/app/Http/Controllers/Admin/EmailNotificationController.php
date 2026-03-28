@@ -12,6 +12,7 @@ class EmailNotificationController extends Controller
     public function index(): JsonResponse
     {
         $templates = EmailNotificationTemplate::orderBy('key')->get();
+
         return response()->json(['templates' => $templates]);
     }
 

@@ -1,6 +1,7 @@
 <script setup>
 import { Link, usePage } from '@inertiajs/vue3'
 import { computed, ref } from 'vue'
+import { useAuth } from '@/composables/useAuth'
 import {
     ICON_MAP,
     ICON_PENCIL,
@@ -9,16 +10,19 @@ import {
     ICON_STATE,
     ICON_ARROW,
     ICON_SETTINGS,
-} from '@/constants/icons'
-import {
-    ROLE_SYSTEM_ADMIN,
-    ROLE_INSTITUTION_ADMIN,
-    ROLE_REPORTER,
-    ROLE_PROBLEM_ADMIN,
-} from '@/constants/roles'
-import { SIDEBAR_DASHBOARD_STATUS_ENTRIES } from '@/constants/dashboardSidebarNav'
+} from '@/constants/ui/icons'
+import { ROLE_INSTITUTION_ADMIN, ROLE_PROBLEM_ADMIN } from '@/constants/domain/roles'
+import { SIDEBAR_DASHBOARD_STATUS_ENTRIES } from '@/constants/ui/dashboardSidebarNav'
 
 const page = usePage()
+
+const {
+    permissions,
+    activeRole,
+    isSystemAdmin,
+    hasAssignedRole,
+    isActiveRoleReporter,
+} = useAuth()
 
 const dashboardStatusParam = computed(() => {
     if (!page.url.startsWith('/dashboard')) return ''
@@ -34,23 +38,14 @@ const dashboardStatusParam = computed(() => {
 const isStatusLinkActive = (status) => dashboardStatusParam.value === status
 const isVisosActive = () => isActive('/dashboard') && !dashboardStatusParam.value
 
-const user = computed(() => page.props.auth?.user ?? null)
-const roles = computed(() => page.props.auth?.roles ?? [])
-const permissions = computed(() => page.props.auth?.permissions ?? [])
-const activeRole = computed(() => {
-    const auth = page.props.auth
-    return auth?.activeRole ?? auth?.active_role ?? (roles.value?.length === 1 ? roles.value[0] : null)
-})
-const isSystemAdmin = computed(() => (activeRole.value?.role ?? '') === ROLE_SYSTEM_ADMIN)
-const isInstitutionAdmin = computed(() => (roles.value || []).some((r) => r.role === ROLE_INSTITUTION_ADMIN))
-const isReporterOnly = computed(() => (activeRole.value?.role ?? '') === ROLE_REPORTER)
+const isInstitutionAdmin = computed(() => hasAssignedRole(ROLE_INSTITUTION_ADMIN))
 
 const canAccessIssues = computed(() =>
     isSystemAdmin.value || permissions.value.includes('issues.view')
 )
 
-const canAccessAutomation = computed(() =>
-    isSystemAdmin.value || (roles.value || []).some((r) => r.role === ROLE_PROBLEM_ADMIN)
+const canAccessAutomation = computed(
+    () => isSystemAdmin.value || hasAssignedRole(ROLE_PROBLEM_ADMIN)
 )
 
 const canAccessStatistics = computed(() =>
@@ -90,7 +85,7 @@ const toggleStatistics = () => {
 
         <nav class="nav">
             <div class="nav-top">
-                <template v-if="isReporterOnly">
+                <template v-if="isActiveRoleReporter">
                     <Link
                         :href="route('reporter.sarasas')"
                         class="nav-link"

@@ -1,6 +1,6 @@
 import { toValue } from 'vue'
 import { useForm } from '@inertiajs/vue3'
-import { REVIEW_ENTRY_VISIBILITY } from '@/constants/reviewProgressEntry'
+import { REVIEW_ENTRY_VISIBILITY } from '@/constants/domain/reviewProgressEntry'
 
 export function useReviewProgressEntryForm(problemId, { onSuccess, getFiles, getEntryId } = {}) {
     const form = useForm({
@@ -17,7 +17,7 @@ export function useReviewProgressEntryForm(problemId, { onSuccess, getFiles, get
         const pid = toValue(problemId)
         const entryId = typeof getEntryId === 'function' ? getEntryId() : null
 
-        const resetTransform = () => form.transform((d) => d)
+        const resetTransform = () => form.transform((data) => data)
 
         const options = {
             preserveScroll: true,
@@ -34,7 +34,7 @@ export function useReviewProgressEntryForm(problemId, { onSuccess, getFiles, get
         if (entryId) {
             const url = route('problems.reviewProgress.update', { problem: pid, entry: entryId })
             if (files.length > 0) {
-                form.transform((d) => ({ ...d, _method: 'put' }))
+                form.transform((data) => ({ ...data, _method: 'put' }))
                 form.post(url, options)
             } else {
                 form.put(url, options)

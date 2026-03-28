@@ -5,7 +5,7 @@ import AppInput from '@/Components/App/AppInput.vue'
 import AppButton from '@/Components/App/AppButton.vue'
 import { Head, useForm, usePage } from '@inertiajs/vue3'
 import { ref, computed, watch } from 'vue'
-import { SETTINGS_PAGE_STYLE } from '@/constants/theme'
+import { SETTINGS_PAGE_STYLE } from '@/constants/ui/theme'
 
 const page = usePage()
 const user = computed(() => page.props.auth?.user ?? null)

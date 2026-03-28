@@ -28,6 +28,19 @@ class ProblemReporterStatusNotifier
         return $enum ? $enum->label() : $status;
     }
 
+    public function notifyRootsAfterStatusChange(array $oldStatusByRootId, string $newStatus): void
+    {
+        foreach ($oldStatusByRootId as $rootId => $oldStatus) {
+            if ($oldStatus === null || $oldStatus === $newStatus) {
+                continue;
+            }
+            $main = Problem::find($rootId);
+            if ($main) {
+                $this->notifyReportersAndWatchersWhenStatusChanges($main, $oldStatus, $newStatus);
+            }
+        }
+    }
+
     public function notifyReportersAndWatchersWhenStatusChanges(Problem $mainProblem, string $oldStatus, string $newStatus): void
     {
         if ($oldStatus === $newStatus) {

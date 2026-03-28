@@ -18,8 +18,8 @@ class InactiveReporterSettingRequest extends FormRequest
             'inactivity_days' => [
                 'required',
                 'integer',
-                'min:' . InactiveReporterDeletionSetting::INACTIVITY_DAYS_MIN,
-                'max:' . InactiveReporterDeletionSetting::INACTIVITY_DAYS_MAX,
+                'min:'.InactiveReporterDeletionSetting::INACTIVITY_DAYS_MIN,
+                'max:'.InactiveReporterDeletionSetting::INACTIVITY_DAYS_MAX,
             ],
             'is_active' => ['sometimes', 'boolean'],
         ];

@@ -9,9 +9,9 @@ import AppCheckbox from '@/Components/App/AppCheckbox.vue'
 import SuccessModal from '@/Components/App/SuccessModal.vue'
 import KaunasProblemsMap from '@/Components/Map/KaunasProblemsMap.vue'
 import { useSuccessModal } from '@/composables/useSuccessModal'
-import { KAUNAS_CENTER } from '@/composables/leafletKaunas'
-import { PROBLEM_STATUS } from '@/constants/problemStatus'
-import { ICON_ARROW } from '@/constants/icons'
+import { KAUNAS_CENTER } from '@/utils/leafletKaunas'
+import { PROBLEM_STATUS } from '@/constants/domain/problemStatus'
+import { ICON_ARROW } from '@/constants/ui/icons'
 
 const props = defineProps({
     problem: Object,

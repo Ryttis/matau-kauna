@@ -1,6 +1,6 @@
 <script setup>
 import { computed } from 'vue'
-import { ICON_ARROW } from '@/constants/icons'
+import { ICON_ARROW } from '@/constants/ui/icons'
 
 const props = defineProps({
     modelValue: {

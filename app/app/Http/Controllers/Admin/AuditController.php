@@ -6,7 +6,6 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\AuditExportRequest;
 use App\Http\Requests\Admin\AuditIndexRequest;
 use App\Http\Requests\Admin\AuditUpdateSettingsRequest;
-use App\Models\AuditLog;
 use App\Services\AuditService;
 use Illuminate\Http\JsonResponse;
 use Symfony\Component\HttpFoundation\StreamedResponse;
@@ -36,7 +35,7 @@ class AuditController extends Controller
     public function export(AuditExportRequest $request): StreamedResponse
     {
         $query = $this->auditService->buildExportQuery($request->validated());
-        $filename = 'audito-zurnalas-' . now()->format('Y-m-d-His') . '.csv';
+        $filename = 'audito-zurnalas-'.now()->format('Y-m-d-His').'.csv';
 
         return response()->streamDownload(function () use ($query) {
             $handle = fopen('php://output', 'w');
@@ -51,7 +50,7 @@ class AuditController extends Controller
                     $log->actor_identifier ?? '',
                     $log->event_type,
                     $log->action ?? '',
-                    ($log->subject_type ?? '') . ($log->subject_id ? '#' . $log->subject_id : ''),
+                    ($log->subject_type ?? '').($log->subject_id ? '#'.$log->subject_id : ''),
                     $log->result,
                     $log->message ?? '',
                     $log->metadata ? json_encode($log->metadata, JSON_UNESCAPED_UNICODE) : '',

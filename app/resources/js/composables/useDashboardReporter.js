@@ -6,9 +6,11 @@ import { buildReporterProblemDisplayRows } from '@/utils/reporterProblemRows'
 export function useDashboardReporter(props) {
     const reporterProblems = computed(() => {
         if (!props.reporterView) return []
-        const p = props.problems
-        if (Array.isArray(p)) return p
-        if (p && typeof p === 'object' && !p.data && !p.current_page) return Object.values(p)
+        const raw = props.problems
+        if (Array.isArray(raw)) return raw
+        if (raw && typeof raw === 'object' && !raw.data && !raw.current_page) {
+            return Object.values(raw)
+        }
         return []
     })
 
@@ -58,7 +60,7 @@ export function useDashboardReporter(props) {
         if (ids.size === 1) return [...ids][0]
         const rows = reporterDisplayRows.value
         const fullGroups = rows.filter(
-            (r) => r.isGroupMain && r.groupIds?.length && r.groupIds.every((id) => ids.has(id))
+            (row) => row.isGroupMain && row.groupIds?.length && row.groupIds.every((id) => ids.has(id))
         )
         return fullGroups.length === 1 ? fullGroups[0].problem.id : null
     })
@@ -69,8 +71,8 @@ export function useDashboardReporter(props) {
     }
 
     const showOnlyMyReports = ref(props.onlyMine ?? false)
-    watch(() => props.onlyMine, (v) => {
-        showOnlyMyReports.value = !!v
+    watch(() => props.onlyMine, (onlyMine) => {
+        showOnlyMyReports.value = !!onlyMine
     })
 
     function reporterToggleOnlyMine() {

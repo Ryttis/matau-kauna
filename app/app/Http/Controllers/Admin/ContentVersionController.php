@@ -56,6 +56,7 @@ class ContentVersionController extends Controller
         if ($contentVersion->is_published) {
             $msg = 'Publikuotos versijos redaguoti negalima.';
             $this->auditLogService->logUserAction($request->user(), 'content_version.update', 'ContentVersion', $contentVersion->id, AuditLogResult::Error, $msg);
+
             return response()->json(['message' => $msg], 422);
         }
 
@@ -66,6 +67,7 @@ class ContentVersionController extends Controller
                 'body' => $data['body'] ?? $contentVersion->body,
             ]);
             $this->auditLogService->logUserAction($request->user(), 'content_version.update', 'ContentVersion', $contentVersion->id, AuditLogResult::Success);
+
             return response()->json(['ok' => true]);
         } catch (\Throwable $e) {
             $this->auditLogService->logUserAction($request->user(), 'content_version.update', 'ContentVersion', $contentVersion->id, AuditLogResult::Error, $e->getMessage());
@@ -79,6 +81,7 @@ class ContentVersionController extends Controller
         try {
             $this->contentVersionService->publish($contentVersion, $requireReconsent);
             $this->auditLogService->logUserAction($request->user(), 'content_version.publish', 'ContentVersion', $contentVersion->id, AuditLogResult::Success, null, ['type' => $contentVersion->type]);
+
             return response()->json(['ok' => true]);
         } catch (\Throwable $e) {
             $this->auditLogService->logUserAction($request->user(), 'content_version.publish', 'ContentVersion', $contentVersion->id, AuditLogResult::Error, $e->getMessage(), ['type' => $contentVersion->type]);
@@ -91,12 +94,14 @@ class ContentVersionController extends Controller
         if (! $contentVersion->is_published) {
             $msg = 'Versija nėra paskelbta.';
             $this->auditLogService->logUserAction($request->user(), 'content_version.unpublish', 'ContentVersion', $contentVersion->id, AuditLogResult::Error, $msg);
+
             return response()->json(['message' => $msg], 422);
         }
 
         try {
             $contentVersion->update(['is_published' => false]);
             $this->auditLogService->logUserAction($request->user(), 'content_version.unpublish', 'ContentVersion', $contentVersion->id, AuditLogResult::Success);
+
             return response()->json(['ok' => true]);
         } catch (\Throwable $e) {
             $this->auditLogService->logUserAction($request->user(), 'content_version.unpublish', 'ContentVersion', $contentVersion->id, AuditLogResult::Error, $e->getMessage());
@@ -109,6 +114,7 @@ class ContentVersionController extends Controller
         if ($contentVersion->is_published) {
             $msg = 'Publikuotos versijos pašalinti negalima.';
             $this->auditLogService->logUserAction($request->user(), 'content_version.destroy', 'ContentVersion', $contentVersion->id, AuditLogResult::Error, $msg);
+
             return response()->json(['message' => $msg], 422);
         }
 
@@ -116,6 +122,7 @@ class ContentVersionController extends Controller
         try {
             $contentVersion->delete();
             $this->auditLogService->logUserAction($request->user(), 'content_version.destroy', 'ContentVersion', $id, AuditLogResult::Success);
+
             return response()->json(['ok' => true]);
         } catch (\Throwable $e) {
             $this->auditLogService->logUserAction($request->user(), 'content_version.destroy', 'ContentVersion', $id, AuditLogResult::Error, $e->getMessage());

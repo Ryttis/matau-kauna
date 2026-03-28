@@ -2,7 +2,7 @@
 import { router } from '@inertiajs/vue3'
 import BaseModal from '@/Components/App/BaseModal.vue'
 import AppButton from '@/Components/App/AppButton.vue'
-import { ICON_SUCCESS } from '@/constants/icons'
+import { ICON_SUCCESS } from '@/constants/ui/icons'
 
 const props = defineProps({
     show: Boolean,

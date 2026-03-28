@@ -1,4 +1,4 @@
-import { PROBLEM_STATUS } from '@/constants/problemStatus'
+import { PROBLEM_STATUS } from '@/constants/domain/problemStatus'
 
 export const SIDEBAR_DASHBOARD_STATUS_ENTRIES = [
     { key: 'all', status: null, label: 'Visos' },

@@ -23,7 +23,7 @@
 <script setup>
 import { Link } from '@inertiajs/vue3'
 import CookieConsentBanner from '@/Components/Landing/CookieConsentBanner.vue'
-import { ICON_QUESTION } from '@/constants/icons'
+import { ICON_QUESTION } from '@/constants/ui/icons'
 </script>
 
 <style scoped>

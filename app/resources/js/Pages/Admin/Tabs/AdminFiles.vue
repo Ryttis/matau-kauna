@@ -4,6 +4,7 @@ import axios from 'axios'
 import AppButton from '@/Components/App/AppButton.vue'
 import AppCheckbox from '@/Components/App/AppCheckbox.vue'
 import SuccessModal from '@/Components/App/SuccessModal.vue'
+import { adminApi } from '@/constants/api/adminApi'
 
 const CHANNEL = {
     web: 'Naršyklė',
@@ -41,7 +42,7 @@ async function load() {
     loading.value = true
     errorMessage.value = ''
     try {
-        const { data } = await axios.get('/admin/file-upload-settings')
+        const { data } = await axios.get(adminApi.fileUploadSettings)
         const b = defaultChannel()
         config.value = {
             web: mergeChannel(b, data.config?.web),
@@ -62,7 +63,7 @@ async function save() {
         const payload = { web: { ...config.value.web }, mobile: { ...config.value.mobile } }
         payload.web.max_video_files_per_problem = 1
         payload.mobile.max_video_files_per_problem = 1
-        await axios.put('/admin/file-upload-settings', { config: payload })
+        await axios.put(adminApi.fileUploadSettings, { config: payload })
         successMessage.value = 'Nustatymai išsaugoti.'
         showSuccessModal.value = true
         await load()

@@ -8,8 +8,8 @@ import AppBackButton from '@/Components/App/AppBackButton.vue'
 import SuccessModal from '@/Components/App/SuccessModal.vue'
 import EntityTable from '@/Components/App/Tables/EntityTable.vue'
 import { useSuccessModal } from '@/composables/useSuccessModal'
-import { PROBLEM_STATUS } from '@/constants/problemStatus'
-import { ICON_ARROW } from '@/constants/icons'
+import { PROBLEM_STATUS } from '@/constants/domain/problemStatus'
+import { ICON_ARROW } from '@/constants/ui/icons'
 import { institutionEmailList } from '@/utils/institutionEmails'
 
 const ASSIGN_PAGE_STATUSES = [
@@ -46,6 +46,8 @@ const selectedEmailRecipientKey = ref('')
 const displayedCount = ref(6)
 const isInstitutionsExpanded = ref(true)
 const isStatusExpanded = ref(true)
+const isAssigningInstitution = ref(false)
+const isSendingInstitutionEmail = ref(false)
 
 const displayedInstitutions = computed(() => {
     return props.institutions.slice(0, displayedCount.value)
@@ -157,7 +159,9 @@ const handleStatusSelect = (status) => {
 }
 
 const handleSend = () => {
-    if (!selectedInstitutionIds.value.length) return
+    if (!selectedInstitutionIds.value.length || isAssigningInstitution.value || isSendingInstitutionEmail.value) {
+        return
+    }
 
     const ids = props.problems?.length
         ? props.problems.map((p) => p.id)
@@ -167,12 +171,16 @@ const handleSend = () => {
 
     if (!ids.length) return
 
+    isAssigningInstitution.value = true
     router.post(route('problems.assign.store'), {
         problem_ids: ids,
         institution_id: selectedInstitutionIds.value[0],
         status: selectedStatus.value,
     }, {
         preserveScroll: true,
+        onFinish: () => {
+            isAssigningInstitution.value = false
+        },
     })
 }
 
@@ -183,14 +191,20 @@ const handleSendEmail = () => {
             ? [props.problem.id]
             : []
 
-    if (!canSendAssignEmail.value || !ids.length) return
+    if (!canSendAssignEmail.value || !ids.length || isSendingInstitutionEmail.value || isAssigningInstitution.value) {
+        return
+    }
 
+    isSendingInstitutionEmail.value = true
     router.post(route('problems.assign.email'), {
         email: selectedEmailRecipient.value.email,
         problem_ids: ids,
         institution_id: selectedEmailRecipient.value.institutionId,
     }, {
         preserveScroll: true,
+        onFinish: () => {
+            isSendingInstitutionEmail.value = false
+        },
     })
 }
 
@@ -313,7 +327,8 @@ const toggleStatus = () => {
                                 variant="primary"
                                 as-button
                                 @click="handleSend"
-                                :disabled="selectedInstitutionIds.length === 0"
+                                :disabled="selectedInstitutionIds.length === 0 || isSendingInstitutionEmail"
+                                :loading="isAssigningInstitution"
                                 class="assign-send-btn"
                             />
                         </div>
@@ -343,7 +358,8 @@ const toggleStatus = () => {
                             variant="primary"
                             as-button
                             @click="handleSendEmail"
-                            :disabled="!canSendAssignEmail"
+                            :disabled="!canSendAssignEmail || isAssigningInstitution"
+                            :loading="isSendingInstitutionEmail"
                             class="assign-send-btn"
                         />
                     </div>

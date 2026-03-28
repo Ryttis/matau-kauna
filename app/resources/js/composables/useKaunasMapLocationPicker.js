@@ -1,5 +1,5 @@
 import { ref, onMounted, onUnmounted, nextTick } from 'vue'
-import { loadLeaflet, createBaseMap, KAUNAS_CENTER, KAUNAS_BOUNDS } from '@/composables/leafletKaunas'
+import { loadLeaflet, createBaseMap, KAUNAS_CENTER, KAUNAS_BOUNDS } from '@/utils/leafletKaunas'
 
 const NOMINATIM_DELAY_MS = 1100
 const NOMINATIM_HEADERS = { Accept: 'application/json', 'Accept-Language': 'lt' }
@@ -11,7 +11,7 @@ try {
         const [[minLat, minLon], [maxLat, maxLon]] = KAUNAS_BOUNDS
         NOMINATIM_VIEWBOX = `${minLon},${maxLat},${maxLon},${minLat}`
     }
-} catch (_) {}
+} catch {}
 
 function isInKaunasBounds(lat, lng) {
     if (!KAUNAS_BOUNDS || KAUNAS_BOUNDS.length < 2) return true
@@ -21,7 +21,7 @@ function isInKaunasBounds(lat, lng) {
 
 function rateLimitWait() {
     const wait = Math.max(0, NOMINATIM_DELAY_MS - (Date.now() - lastGeocodeAt))
-    return wait ? new Promise((r) => setTimeout(r, wait)) : Promise.resolve()
+    return wait ? new Promise((resolve) => setTimeout(resolve, wait)) : Promise.resolve()
 }
 
 function shortenQuery(raw, maxLen, fallbackLen) {
@@ -43,7 +43,7 @@ async function nominatimSearch(params) {
     await rateLimitWait()
     lastGeocodeAt = Date.now()
     const url = new URL('https://nominatim.openstreetmap.org/search')
-    Object.entries(params).forEach(([k, v]) => url.searchParams.set(k, v))
+    Object.entries(params).forEach(([key, value]) => url.searchParams.set(key, value))
     const res = await fetch(url, { headers: NOMINATIM_HEADERS })
     const data = await res.json()
     return Array.isArray(data) ? data : []
@@ -60,7 +60,7 @@ async function geocodeAddress(query) {
         bounded: 0,
     })
     if (!data.length) return null
-    const first = data.find((i) => isInKaunasBounds(parseFloat(i.lat), parseFloat(i.lon))) || data[0]
+    const first = data.find((row) => isInKaunasBounds(parseFloat(row.lat), parseFloat(row.lon))) || data[0]
     return {
         lat: parseFloat(first.lat),
         lng: parseFloat(first.lon),
@@ -80,7 +80,10 @@ async function fetchAddressSuggestions(query) {
         viewbox: NOMINATIM_VIEWBOX,
         bounded: 0,
     })
-    return data.map(parseNominatimItem).filter((i) => isInKaunasBounds(i.lat, i.lng)).slice(0, 8)
+    return data
+        .map(parseNominatimItem)
+        .filter((suggestion) => isInKaunasBounds(suggestion.lat, suggestion.lng))
+        .slice(0, 8)
 }
 
 async function reverseGeocode(lat, lng) {
@@ -162,15 +165,15 @@ export function useKaunasMapLocationPicker(containerRef, options = {}) {
             try {
                 const addr = await reverseGeocode(pos.lat, pos.lng)
                 if (addr) address.value = addr
-            } catch (_) {}
+            } catch {}
         })
-        map.on('click', async (e) => {
-            const { lat: newLat, lng: newLng } = e.latlng
+        map.on('click', async (event) => {
+            const { lat: newLat, lng: newLng } = event.latlng
             setMarkerPosition(newLat, newLng)
             try {
                 const addr = await reverseGeocode(newLat, newLng)
                 if (addr) address.value = addr
-            } catch (_) {}
+            } catch {}
         })
         initialized = true
         setTimeout(() => map?.invalidateSize(), invalidateSizeDelay)

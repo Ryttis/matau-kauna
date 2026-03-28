@@ -80,7 +80,7 @@ class InactiveReporterDeletionService
             return;
         }
         $deletionDate = $user->last_login_at->copy()->addDays($setting->inactivity_days);
-        $userName = trim($user->name . ' ' . ($user->surname ?? ''));
+        $userName = trim($user->name.' '.($user->surname ?? ''));
         if ($userName === '') {
             $userName = $user->email;
         }

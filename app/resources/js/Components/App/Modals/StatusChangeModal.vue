@@ -1,8 +1,8 @@
 <script setup>
 import { ref, watch } from 'vue'
-import { PROBLEM_STATUS_OPTIONS, getStatusModalVars } from '@/constants/problemStatus'
+import { PROBLEM_STATUS_OPTIONS, getStatusModalVars } from '@/constants/domain/problemStatus'
 import BaseModal from '@/Components/App/BaseModal.vue'
-import { MODAL_BUTTON_HEIGHT, MODAL_BUTTON_MIN_WIDTH } from '@/constants/theme'
+import { MODAL_BUTTON_HEIGHT, MODAL_BUTTON_MIN_WIDTH } from '@/constants/ui/theme'
 
 const props = defineProps({
     show: Boolean,

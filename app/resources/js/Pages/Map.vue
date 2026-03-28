@@ -8,8 +8,8 @@ import StatusChangeModal from '@/Components/App/Modals/StatusChangeModal.vue'
 import KaunasProblemsMap from '@/Components/Map/KaunasProblemsMap.vue'
 import MapAddressAutocomplete from '@/Components/Map/MapAddressAutocomplete.vue'
 import { useAuth } from '@/composables/useAuth'
-import { ICON_FILTER } from '@/constants/icons'
-import { PROBLEM_STATUS, MARKER_COLOR_BY_STATUS } from '@/constants/problemStatus'
+import { ICON_FILTER } from '@/constants/ui/icons'
+import { PROBLEM_STATUS, MARKER_COLOR_BY_STATUS } from '@/constants/domain/problemStatus'
 
 const props = defineProps({
     categories: Array,

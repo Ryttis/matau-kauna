@@ -28,4 +28,3 @@ class InfoApiController extends Controller
         ]);
     }
 }
-

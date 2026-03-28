@@ -21,6 +21,7 @@ class AuditLogService
         if (in_array($eventType, self::ALWAYS_LOG_EVENTS, true)) {
             return true;
         }
+
         return AuditSetting::isEnabled();
     }
 

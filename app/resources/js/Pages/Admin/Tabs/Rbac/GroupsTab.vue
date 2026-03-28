@@ -2,6 +2,7 @@
 import { ref } from 'vue'
 import axios from 'axios'
 import BaseModal from '@/Components/App/BaseModal.vue'
+import { adminRbacApi } from '@/constants/api/adminRbacApi'
 import ConfirmModal from '@/Components/App/ConfirmModal.vue'
 import AppInput from '@/Components/App/AppInput.vue'
 import AppButton from '@/Components/App/AppButton.vue'
@@ -62,7 +63,7 @@ const createGroup = async () => {
     emit('set-saving', true)
 
     try {
-        await axios.post('/admin/rbac/groups', createForm.value)
+        await axios.post(adminRbacApi.groups, createForm.value)
         isCreateOpen.value = false
         emit('show-success', 'Grupė sukurta.')
         emit('refresh')
@@ -75,7 +76,7 @@ const deleteGroup = async () => {
     emit('set-saving', true)
 
     try {
-        await axios.delete(`/admin/rbac/groups/${deleteTarget.value.id}`)
+        await axios.delete(adminRbacApi.group(deleteTarget.value.id))
         isDeleteOpen.value = false
         emit('show-success', 'Grupė pašalinta.')
         emit('refresh')
@@ -90,7 +91,7 @@ const saveGroupPermissions = async () => {
     emit('set-saving', true)
 
     try {
-        await axios.post(`/admin/rbac/groups/${selectedGroup.value.id}/permissions`, {
+        await axios.post(adminRbacApi.groupPermissions(selectedGroup.value.id), {
             permission_ids: selectedPermissionIds.value
         })
 

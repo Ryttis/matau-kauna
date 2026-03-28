@@ -2,12 +2,12 @@
 import { ref, computed, watch } from 'vue'
 import BaseModal from '@/Components/App/BaseModal.vue'
 import AppButton from '@/Components/App/AppButton.vue'
-import { ICON_PENCIL } from '@/constants/icons'
+import { ICON_PENCIL } from '@/constants/ui/icons'
 import {
     REVIEW_PROGRESS_MODAL_STATUS_TAGS,
     REVIEW_ENTRY_VISIBILITY,
     reviewModalTagKeyForStatus,
-} from '@/constants/reviewProgressEntry'
+} from '@/constants/domain/reviewProgressEntry'
 import { useReviewProgressEntryForm } from '@/composables/useReviewProgressEntryForm'
 import { useFileUploadQueue, defaultFileUploadSettings } from '@/composables/useFileUploadQueue'
 import { firstInertiaErrorForPrefix } from '@/utils/laravelApiErrors'

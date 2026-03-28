@@ -1,34 +1,27 @@
 <script setup>
-    import { computed, ref, inject } from 'vue'
-    import { Link, usePage, router } from '@inertiajs/vue3'
-    import { ICON_USER, ICON_BELL, ICON_LOGOUT } from '@/constants/icons'
+import { computed, ref, inject } from 'vue'
+import { Link, router } from '@inertiajs/vue3'
+import { ICON_USER, ICON_BELL, ICON_LOGOUT } from '@/constants/ui/icons'
+import { useAuth } from '@/composables/useAuth'
 
-    const page = usePage()
-    const roleDropdownOpen = ref(false)
-    const appShell = inject('appShell', null)
+const roleDropdownOpen = ref(false)
+const appShell = inject('appShell', null)
 
-    const user = computed(() => page.props.auth?.user ?? null)
-    const roles = computed(() => page.props.auth?.roles ?? [])
-    const activeRole = computed(() => {
-        const auth = page.props.auth
-        if (auth?.activeRole) return auth.activeRole
-        if (auth?.active_role) return auth.active_role
-        const r = auth?.roles ?? []
-        return r.length === 1 ? r[0] : null
-    })
-    const isAuthenticated = computed(() => !!user.value)
-    const showRoleSwitcher = computed(() => roles.value.length > 1)
+const { user, roles, activeRole } = useAuth()
 
-    const logout = () => {
-        router.post('/logout')
-    }
+const isAuthenticated = computed(() => !!user.value)
+const showRoleSwitcher = computed(() => roles.value.length > 1)
 
-    const switchRole = (roleId) => {
-        roleDropdownOpen.value = false
-        router.post(route('role.select.store'), { role_id: roleId }, { preserveState: false })
-    }
+const logout = () => {
+    router.post('/logout')
+}
 
-    const showNavToggle = computed(() => isAuthenticated.value && !!appShell?.toggleSidebar)
+const switchRole = (roleId) => {
+    roleDropdownOpen.value = false
+    router.post(route('role.select.store'), { role_id: roleId }, { preserveState: false })
+}
+
+const showNavToggle = computed(() => isAuthenticated.value && !!appShell?.toggleSidebar)
 </script>
 
 <template>

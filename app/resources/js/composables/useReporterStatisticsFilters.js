@@ -1,12 +1,12 @@
 import { ref, watch, nextTick } from 'vue'
 import { router } from '@inertiajs/vue3'
-import { buildReporterStatisticsParams } from '@/constants/reporterStatistics'
+import { buildReporterStatisticsParams } from '@/constants/domain/reporterStatistics'
 
 export {
     REPORTER_STATS_PERIOD_OPTIONS,
     getDateRangeForPeriod,
     buildReporterStatisticsParams,
-} from '@/constants/reporterStatistics'
+} from '@/constants/domain/reporterStatistics'
 
 export function useReporterStatisticsFilters(getFilters) {
     const periodFilter = ref('all')

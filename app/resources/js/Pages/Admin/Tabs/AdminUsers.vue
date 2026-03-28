@@ -3,6 +3,8 @@ import { onMounted, ref } from 'vue'
 import axios from 'axios'
 
 import SuccessModal from '@/Components/App/SuccessModal.vue'
+import { adminApi } from '@/constants/api/adminApi'
+import { adminRbacApi } from '@/constants/api/adminRbacApi'
 import { useSuccessModal } from '@/composables/useSuccessModal'
 import UsersTab from '@/Pages/Admin/Tabs/Rbac/UsersTab.vue'
 import RolesTab from '@/Pages/Admin/Tabs/Rbac/RolesTab.vue'
@@ -30,27 +32,27 @@ const clearError = () => {
 }
 
 const loadUsers = async () => {
-    const { data } = await axios.get('/admin/rbac/users')
+    const { data } = await axios.get(adminRbacApi.users)
     usersPage.value = data
 }
 
 const loadRoles = async () => {
-    const { data } = await axios.get('/admin/rbac/roles')
+    const { data } = await axios.get(adminRbacApi.roles)
     roles.value = data
 }
 
 const loadInstitutions = async () => {
-    const { data } = await axios.get('/admin/institutions/list')
+    const { data } = await axios.get(adminApi.institutionsList)
     institutions.value = data
 }
 
 const loadGroups = async () => {
-    const { data } = await axios.get('/admin/rbac/groups')
+    const { data } = await axios.get(adminRbacApi.groups)
     groups.value = data
 }
 
 const loadPermissions = async () => {
-    const { data } = await axios.get('/admin/rbac/permissions')
+    const { data } = await axios.get(adminRbacApi.permissions)
     permissions.value = data
 }
 

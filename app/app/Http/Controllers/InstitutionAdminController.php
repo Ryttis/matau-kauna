@@ -15,7 +15,7 @@ class InstitutionAdminController extends Controller
     {
         $user = Auth::user();
 
-        if (!($user instanceof User) || ! $user->hasAnyRole([
+        if (! ($user instanceof User) || ! $user->hasAnyRole([
             UserRole::ROLE_INSTITUTION_ADMIN,
             UserRole::ROLE_SYSTEM_ADMIN,
         ])) {
@@ -45,4 +45,3 @@ class InstitutionAdminController extends Controller
         ]);
     }
 }
-

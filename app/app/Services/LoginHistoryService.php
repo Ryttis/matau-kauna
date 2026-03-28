@@ -23,8 +23,8 @@ class LoginHistoryService
         if ($search !== '') {
             $searchLower = mb_strtolower($search);
             $query->whereHas('user', function ($q) use ($searchLower) {
-                $q->whereRaw('LOWER(name) LIKE ?', ['%' . $searchLower . '%'])
-                    ->orWhereRaw('LOWER(email) LIKE ?', ['%' . $searchLower . '%']);
+                $q->whereRaw('LOWER(name) LIKE ?', ['%'.$searchLower.'%'])
+                    ->orWhereRaw('LOWER(email) LIKE ?', ['%'.$searchLower.'%']);
             });
         }
 

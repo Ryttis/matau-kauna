@@ -8,7 +8,9 @@ use Carbon\Carbon;
 class ProblemDeadlineMonitorService
 {
     public const STATUS_APPROACHING = 'approaching';
+
     public const STATUS_OVERDUE = 'overdue';
+
     public const REMIND_DAYS_BEFORE = 2;
 
     public function __construct(
@@ -80,6 +82,7 @@ class ProblemDeadlineMonitorService
         if ($problem->deadline_reminder_sent_at === null) {
             return true;
         }
+
         return $problem->deadline_reminder_sent_at->lt($sentTodayStart);
     }
 

@@ -2,6 +2,7 @@
 import { ref } from 'vue'
 import axios from 'axios'
 import BaseModal from '@/Components/App/BaseModal.vue'
+import { adminRbacApi } from '@/constants/api/adminRbacApi'
 import ConfirmModal from '@/Components/App/ConfirmModal.vue'
 import AppButton from '@/Components/App/AppButton.vue'
 import AppInput from '@/Components/App/AppInput.vue'
@@ -53,7 +54,7 @@ const createRole = async () => {
     emit('set-saving', true)
 
     try {
-        await axios.post('/admin/rbac/roles', createForm.value)
+        await axios.post(adminRbacApi.roles, createForm.value)
         isCreateOpen.value = false
         emit('show-success', 'Rolė sukurta.')
         emit('refresh')
@@ -66,7 +67,7 @@ const deleteRole = async () => {
     emit('set-saving', true)
 
     try {
-        await axios.delete(`/admin/rbac/roles/${deleteTarget.value.id}`)
+        await axios.delete(adminRbacApi.role(deleteTarget.value.id))
         isDeleteOpen.value = false
         emit('show-success', 'Rolė pašalinta.')
         emit('refresh')
@@ -81,7 +82,7 @@ const saveRoleGroups = async () => {
     emit('set-saving', true)
 
     try {
-        await axios.post(`/admin/rbac/roles/${selectedRole.value.id}/groups`, {
+        await axios.post(adminRbacApi.roleGroups(selectedRole.value.id), {
             group_ids: selectedGroupIds.value
         })
 

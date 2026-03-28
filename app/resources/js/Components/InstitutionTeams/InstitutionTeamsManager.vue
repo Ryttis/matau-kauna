@@ -10,8 +10,10 @@ import AppButton from '@/Components/App/AppButton.vue'
 import AppCheckbox from '@/Components/App/AppCheckbox.vue'
 import AppInput from '@/Components/App/AppInput.vue'
 import ModalFooterActions from '@/Components/App/ModalFooterActions.vue'
+import { adminApi } from '@/constants/api/adminApi'
+import { settingsApi } from '@/constants/api/settingsApi'
 import { useSuccessModal } from '@/composables/useSuccessModal'
-import { ROLE_SYSTEM_ADMIN } from '@/constants/roles'
+import { ROLE_SYSTEM_ADMIN } from '@/constants/domain/roles'
 
 const props = defineProps({
     initialInstitutionId: {
@@ -47,7 +49,7 @@ const deleteTarget = ref(null)
 const employeeFullName = (e) => [e.name, e.surname].filter(Boolean).join(' ')
 
 const loadInstitutions = async () => {
-    const { data } = await axios.get('/admin/institutions/list')
+    const { data } = await axios.get(adminApi.institutionsList)
     institutions.value = data || []
 
     if (!selectedInstitutionId.value && institutions.value.length) {
@@ -71,7 +73,7 @@ const loadTeams = async () => {
             params.institution_id = selectedInstitutionId.value
         }
 
-        const { data } = await axios.get('/settings/teams', { params })
+        const { data } = await axios.get(settingsApi.teams, { params })
         employees.value = data?.employees ?? []
         teams.value = data?.teams ?? []
     } catch (e) {
@@ -100,7 +102,7 @@ const createTeam = async () => {
             ? { name: createForm.value.name, institution_id: selectedInstitutionId.value }
             : { name: createForm.value.name }
 
-        await axios.post('/settings/teams', payload)
+        await axios.post(settingsApi.teams, payload)
         isCreateOpen.value = false
         showWithMessage('Komanda sukurta.')
         await loadTeams()
@@ -130,7 +132,7 @@ const saveMembers = async () => {
     saving.value = true
 
     try {
-        const { data } = await axios.post(`/settings/teams/${selectedTeam.value.id}/members`, {
+        const { data } = await axios.post(settingsApi.teamMembers(selectedTeam.value.id), {
             employee_ids: selectedEmployeeIds.value,
         })
 
@@ -155,7 +157,7 @@ const deleteTeam = async () => {
     saving.value = true
 
     try {
-        await axios.delete(`/settings/teams/${deleteTarget.value.id}`)
+        await axios.delete(settingsApi.team(deleteTarget.value.id))
         isDeleteOpen.value = false
         deleteTarget.value = null
         showWithMessage('Komanda pašalinta.')

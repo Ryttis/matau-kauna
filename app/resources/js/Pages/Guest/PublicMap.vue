@@ -8,7 +8,7 @@ import KaunasProblemsMap from '@/Components/Map/KaunasProblemsMap.vue'
 import ProblemsMapList from '@/Components/Map/ProblemsMapList.vue'
 import { useProblemsMapFilter } from '@/composables/useProblemsMapFilter'
 import { useProblemDisplayRows } from '@/composables/useProblemDisplayRows'
-import { ICON_FILTER } from '@/constants/icons'
+import { ICON_FILTER } from '@/constants/ui/icons'
 
 const props = defineProps({
     problems: { type: Array, default: () => [] },
@@ -31,17 +31,22 @@ const {
 
 const groupedForList = computed(() => {
     const list = filteredProblems.value || []
-    const mains = list.filter((p) => !p.merged_into_problem_id)
-    const children = list.filter((p) => p.merged_into_problem_id)
-    const parentIds = new Set(mains.map((m) => m.id))
-    const byParent = {}
-    children.forEach((p) => {
-        const pid = p.merged_into_problem_id
-        if (!byParent[pid]) byParent[pid] = []
-        byParent[pid].push(p)
+    const mainProblems = list.filter((problem) => !problem.merged_into_problem_id)
+    const mergedChildren = list.filter((problem) => problem.merged_into_problem_id)
+    const parentIds = new Set(mainProblems.map((problem) => problem.id))
+    const mergedByParentId = {}
+    mergedChildren.forEach((problem) => {
+        const parentId = problem.merged_into_problem_id
+        if (!mergedByParentId[parentId]) mergedByParentId[parentId] = []
+        mergedByParentId[parentId].push(problem)
     })
-    const grouped = mains.map((m) => ({ ...m, merged_problems: byParent[m.id] || [] }))
-    const orphanChildren = children.filter((p) => !parentIds.has(p.merged_into_problem_id))
+    const grouped = mainProblems.map((problem) => ({
+        ...problem,
+        merged_problems: mergedByParentId[problem.id] || [],
+    }))
+    const orphanChildren = mergedChildren.filter(
+        (problem) => !parentIds.has(problem.merged_into_problem_id)
+    )
     orphanChildren.forEach((orphan) => {
         grouped.push({ ...orphan, merged_into_problem_id: null, merged_problems: [] })
     })

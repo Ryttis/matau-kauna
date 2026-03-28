@@ -7,6 +7,7 @@ import AppButton from '@/Components/App/AppButton.vue'
 import AppInput from '@/Components/App/AppInput.vue'
 import AppCheckbox from '@/Components/App/AppCheckbox.vue'
 import ModalFooterActions from '@/Components/App/ModalFooterActions.vue'
+import { adminApi } from '@/constants/api/adminApi'
 
 const loading = ref(false)
 const saving = ref(false)
@@ -36,7 +37,7 @@ const successMessage = ref('')
 const loadClassifiers = async () => {
     loading.value = true
     try {
-        const { data } = await axios.get('/admin/classifiers')
+        const { data } = await axios.get(adminApi.classifiers)
         types.value = data.types ?? []
     } finally {
         loading.value = false
@@ -70,7 +71,7 @@ async function submitAddType() {
     saving.value = true
     errorMessage.value = ''
     try {
-        await axios.post('/admin/classifiers/values', {
+        await axios.post(adminApi.classifierValues, {
             name,
         })
         showAddTypeModal.value = false
@@ -93,7 +94,7 @@ async function submitEditType() {
     saving.value = true
     errorMessage.value = ''
     try {
-        await axios.put(`/admin/classifiers/values/${editTypeForm.value.id}`, {
+        await axios.put(adminApi.classifierValue(editTypeForm.value.id), {
             name,
             is_active: editTypeForm.value.is_active,
         })
@@ -110,7 +111,7 @@ async function submitEditType() {
 
 async function toggleTypeActive(type) {
     try {
-        await axios.put(`/admin/classifiers/values/${type.id}`, {
+        await axios.put(adminApi.classifierValue(type.id), {
             is_active: !type.is_active,
         })
         await loadClassifiers()
@@ -138,7 +139,7 @@ async function deleteType() {
     successMessage.value = ''
     saving.value = true
     try {
-        await axios.delete(`/admin/classifiers/values/${t.id}`)
+        await axios.delete(adminApi.classifierValue(t.id))
         closeDeleteConfirmModal()
         await loadClassifiers()
         successMessage.value = 'Rūšis sėkmingai pašalinta.'
@@ -163,7 +164,7 @@ async function openNatures(type) {
 async function loadNaturesForType(typeId) {
     naturesLoading.value = true
     try {
-        const { data } = await axios.get(`/admin/classifiers/types/${typeId}/natures`)
+        const { data } = await axios.get(adminApi.classifierTypeNatures(typeId))
         naturesList.value = data.natures ?? []
     } catch {
         naturesList.value = []
@@ -182,7 +183,7 @@ async function submitAddNature() {
     if (!name) return
     saving.value = true
     try {
-        await axios.post('/admin/classifiers/values', {
+        await axios.post(adminApi.classifierValues, {
             parent_id: selectedTypeForNatures.value.id,
             name,
             is_active: addNatureForm.value.is_active,
@@ -212,7 +213,7 @@ async function submitEditNature() {
     if (!name) return
     saving.value = true
     try {
-        await axios.put(`/admin/classifiers/values/${editNatureForm.value.id}`, {
+        await axios.put(adminApi.classifierValue(editNatureForm.value.id), {
             name,
             is_active: editNatureForm.value.is_active,
         })
@@ -229,7 +230,7 @@ async function submitEditNature() {
 
 async function toggleNatureActive(nature) {
     try {
-        await axios.put(`/admin/classifiers/values/${nature.id}`, {
+        await axios.put(adminApi.classifierValue(nature.id), {
             is_active: !nature.is_active,
         })
         await loadNaturesForType(selectedTypeForNatures.value.id)
@@ -242,7 +243,7 @@ async function toggleNatureActive(nature) {
 
 async function removeNature(nature) {
     try {
-        await axios.put(`/admin/classifiers/values/${nature.id}`, {
+        await axios.put(adminApi.classifierValue(nature.id), {
             is_active: false,
         })
         await loadNaturesForType(selectedTypeForNatures.value.id)

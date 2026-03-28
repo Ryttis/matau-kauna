@@ -7,7 +7,7 @@ import AppSelect from '@/Components/App/AppSelect.vue'
 import CategoryStatsBlock from '@/Components/Statistics/CategoryStatsBlock.vue'
 import EmployeeActivityBlock from '@/Components/Statistics/EmployeeActivityBlock.vue'
 import InstitutionResultsBlock from '@/Components/Statistics/InstitutionResultsBlock.vue'
-import { ICON_DOWNLOAD } from '@/constants/icons'
+import { ICON_DOWNLOAD } from '@/constants/ui/icons'
 
 const props = defineProps({
     categories: { type: Array, default: () => [] },

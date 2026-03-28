@@ -8,7 +8,7 @@ import ProblemDetailBlocks from '@/Components/Problems/ProblemDetailBlocks.vue'
 import ProblemAttachmentsPanel from '@/Components/Problems/ProblemAttachmentsPanel.vue'
 import ProblemMergeLinks from '@/Components/Problems/ProblemMergeLinks.vue'
 import StatusBadge from '@/Components/Problems/StatusBadge.vue'
-import { ICON_LEFT_ARROW } from '@/constants/icons'
+import { ICON_LEFT_ARROW } from '@/constants/ui/icons'
 
 const props = defineProps({
     problem: Object,

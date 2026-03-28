@@ -14,8 +14,8 @@ import ProblemMergeLinks from '@/Components/Problems/ProblemMergeLinks.vue'
 import ProblemAttachmentsPanel from '@/Components/Problems/ProblemAttachmentsPanel.vue'
 import StatusBadge from '@/Components/Problems/StatusBadge.vue'
 import { useAuth } from '@/composables/useAuth'
-import { ICON_RIGHT_ARROW } from '@/constants/icons'
-import { PROBLEM_STATUS } from '@/constants/problemStatus'
+import { ICON_RIGHT_ARROW } from '@/constants/ui/icons'
+import { PROBLEM_STATUS } from '@/constants/domain/problemStatus'
 
 const props = defineProps({
     problem: Object,

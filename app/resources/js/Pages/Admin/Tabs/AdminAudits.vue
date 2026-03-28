@@ -6,6 +6,7 @@ import AppCheckbox from '@/Components/App/AppCheckbox.vue'
 import AppDatePicker from '@/Components/App/AppDatePicker.vue'
 import AppInput from '@/Components/App/AppInput.vue'
 import SuccessModal from '@/Components/App/SuccessModal.vue'
+import { adminApi } from '@/constants/api/adminApi'
 
 const EVENT_TYPE_LABELS = {
     login: 'Prisijungimas',
@@ -45,7 +46,7 @@ const exporting = ref(false)
 
 async function loadSettings() {
     try {
-        const { data: res } = await axios.get('/admin/audit-settings')
+        const { data: res } = await axios.get(adminApi.auditSettings)
         settings.value = {
             enabled: res.enabled ?? true,
             retention_days: res.retention_days ?? 365,
@@ -67,7 +68,7 @@ async function load() {
         if (filters.value.event_type) params.set('event_type', filters.value.event_type)
         if (filters.value.result) params.set('result', filters.value.result)
         if (filters.value.search?.trim()) params.set('search', filters.value.search.trim())
-        const { data: res } = await axios.get('/admin/audit-logs?' + params.toString())
+        const { data: res } = await axios.get(`${adminApi.auditLogs}?${params.toString()}`)
         data.value = res.data ?? []
         currentPage.value = res.current_page ?? 1
         lastPage.value = res.last_page ?? 1
@@ -84,7 +85,7 @@ async function saveSettings() {
     errorMessage.value = ''
     successMessage.value = ''
     try {
-        await axios.put('/admin/audit-settings', {
+        await axios.put(adminApi.auditSettings, {
             enabled: settingsForm.value.enabled,
             retention_days: settingsForm.value.retention_days ? Number(settingsForm.value.retention_days) : null,
             retention_is_active: settingsForm.value.retention_is_active,
@@ -106,7 +107,7 @@ function exportCsv() {
     if (filters.value.event_type) params.set('event_type', filters.value.event_type)
     if (filters.value.result) params.set('result', filters.value.result)
     if (filters.value.search?.trim()) params.set('search', filters.value.search.trim())
-    window.location.href = '/admin/audit-logs/export?' + params.toString()
+    window.location.href = `${adminApi.auditLogsExport}?${params.toString()}`
 }
 
 function formatDate(str) {

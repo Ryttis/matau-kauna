@@ -29,9 +29,11 @@ class PasswordPolicy extends Model
     public static function get(): self
     {
         $key = 'password_policy';
+
         return Cache::remember($key, 300, function () {
             try {
                 $row = static::query()->first();
+
                 return $row ?? new static([
                     'min_length' => 8,
                     'require_lowercase' => true,
@@ -60,7 +62,7 @@ class PasswordPolicy extends Model
 
     public function rules(): array
     {
-        $r = ['required', 'string', 'min:' . $this->min_length, 'confirmed'];
+        $r = ['required', 'string', 'min:'.$this->min_length, 'confirmed'];
         if ($this->require_lowercase) {
             $r[] = 'regex:/[a-z]/';
         }
@@ -70,6 +72,7 @@ class PasswordPolicy extends Model
         if ($this->require_special) {
             $r[] = 'regex:/[^A-Za-z0-9]/';
         }
+
         return $r;
     }
 
@@ -93,6 +96,7 @@ class PasswordPolicy extends Model
                 return false;
             }
         }
+
         return true;
     }
 }

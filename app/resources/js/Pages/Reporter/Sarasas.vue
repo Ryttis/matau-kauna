@@ -6,8 +6,8 @@ import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue'
 import EntityTable from '@/Components/App/Tables/EntityTable.vue'
 import TableViewLink from '@/Components/Reporter/TableViewLink.vue'
 import FilterModal from '@/Components/App/Modals/FilterModal.vue'
-import { ICON_FILTER, ICON_SEARCH } from '@/constants/icons'
-import { PROBLEM_STATUS_LABELS } from '@/constants/problemStatus'
+import { ICON_FILTER, ICON_SEARCH } from '@/constants/ui/icons'
+import { PROBLEM_STATUS_LABELS } from '@/constants/domain/problemStatus'
 import { buildReporterProblemDisplayRows } from '@/utils/reporterProblemRows'
 
 const props = defineProps({

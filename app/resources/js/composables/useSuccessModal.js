@@ -19,8 +19,8 @@ export function useSuccessModal() {
             return
         }
         const flash = page.props?.flash
-        const msg = flash?.success || flash?.status
-        if (msg && String(msg).trim()) {
+        const flashMessage = flash?.success || flash?.status
+        if (flashMessage && String(flashMessage).trim()) {
             showSuccessModal.value = true
         }
     }
@@ -43,8 +43,8 @@ export function useSuccessModal() {
         messageOverride.value = ''
     }
 
-    const showWithMessage = (msg) => {
-        messageOverride.value = msg || 'Operacija atlikta sėkmingai.'
+    const showWithMessage = (message) => {
+        messageOverride.value = message || 'Operacija atlikta sėkmingai.'
         showSuccessModal.value = true
     }
 
