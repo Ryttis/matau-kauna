@@ -35,4 +35,13 @@ return [
         ],
     ],
 
+    'viisp' => [
+        'gateway_url' => rtrim((string) env('VIISP_GATEWAY_URL', 'http://127.0.0.1:3000'), '/'),
+        'gateway_postback_base' => rtrim(
+            (string) env('VIISP_GATEWAY_POSTBACK_BASE', 'http://127.0.0.1:3000/gateway/viisp/postback'),
+            '/'
+        ),
+        'exchange_secret' => env('VIISP_EXCHANGE_SECRET'),
+    ],
+
 ];

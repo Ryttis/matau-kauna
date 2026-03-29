@@ -4,8 +4,10 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\EmailNotificationTemplate;
+use App\Support\EmailBody;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Str;
 
 class EmailNotificationController extends Controller
 {
@@ -14,6 +16,17 @@ class EmailNotificationController extends Controller
         $templates = EmailNotificationTemplate::orderBy('key')->get();
 
         return response()->json(['templates' => $templates]);
+    }
+
+    public function previewBody(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'body' => ['required', 'string', 'max:65000'],
+        ]);
+
+        $html = trim(Str::markdown($validated['body'], EmailBody::markdownConverterOptions()));
+
+        return response()->json(['html' => $html]);
     }
 
     public function update(Request $request, EmailNotificationTemplate $emailNotification): JsonResponse

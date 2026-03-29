@@ -28,6 +28,15 @@ class EmailNotificationTemplate extends Model
 
     public const KEY_REPORTER_REVIEW_ENTRY = 'reporter_review_entry';
 
+    public const KEY_VERIFY_EMAIL = 'verify_email_address';
+
+    public const KEY_PASSWORD_RESET = 'password_reset';
+
+    /** El. laiškas iš įstaigos admino – problema be integracijos (rankinis siuntimas) */
+    public const KEY_INSTITUTION_PROBLEM_SHARE = 'institution_problem_share_email';
+
+    public const KEY_INSTITUTION_INVITATION = 'institution_invitation';
+
     public static function getByKey(string $key): ?self
     {
         return static::where('key', $key)->first();

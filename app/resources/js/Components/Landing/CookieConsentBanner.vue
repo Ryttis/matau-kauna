@@ -48,8 +48,7 @@ function save(level, categories = null) {
         localStorage.setItem(STORAGE_KEY, JSON.stringify(data))
         consent.value = data
         showDetails.value = false
-    } catch (e) {
-        console.warn('Cookie consent save failed', e)
+    } catch {
     }
 }
 

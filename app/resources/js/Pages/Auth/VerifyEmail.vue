@@ -1,19 +1,47 @@
 <script setup>
 import AppButton from '@/Components/App/AppButton.vue';
+import SuccessModal from '@/Components/App/SuccessModal.vue';
 import GuestHeader from '@/Components/Landing/GuestHeader.vue';
 import LandingFooter from '@/Components/Landing/LandingFooter.vue';
-import { Head, router } from '@inertiajs/vue3';
+import { Head, useForm, usePage } from '@inertiajs/vue3';
+import { nextTick, onMounted, ref } from 'vue';
 
-defineProps({
-    status: {
-        type: String,
-        default: '',
-    },
+const page = usePage();
+
+const showSuccessModal = ref(false);
+const successModalText = ref('');
+const resendError = ref('');
+
+const form = useForm({});
+
+function openSuccessModal(text) {
+    successModalText.value = text || 'Patvirtinimo nuoroda išsiųsta. Patikrinkite el. paštą.';
+    showSuccessModal.value = true;
+    resendError.value = '';
+}
+
+function resend() {
+    resendError.value = '';
+    form.post(route('verification.send'), {
+        preserveScroll: true,
+        onSuccess: async () => {
+            await nextTick();
+            const msg = page.props.flash?.status;
+            openSuccessModal(typeof msg === 'string' && msg !== '' ? msg : '');
+        },
+        onError: () => {
+            resendError.value =
+                'Nepavyko išsiųsti. Jei bandote labai dažnai, palaukite minutę. Patikrinkite .env: MAIL_MAILER=smtp, MAIL_HOST, MAIL_USERNAME ir MAIL_PASSWORD (Mailtrap SMTP).';
+        },
+    });
+}
+
+onMounted(() => {
+    const initial = page.props.flash?.status;
+    if (typeof initial === 'string' && initial !== '') {
+        openSuccessModal(initial);
+    }
 });
-
-const resend = () => {
-    router.post(route('verification.send'));
-};
 </script>
 
 <template>
@@ -28,13 +56,14 @@ const resend = () => {
                 <p class="verify-email-text">
                     Prieš tęsdami, patikrinkite el. paštą ir spustelėkite patvirtinimo nuorodą.
                 </p>
-                <p v-if="status" class="verify-email-status">
-                    {{ status }}
+                <p v-if="resendError" class="verify-email-error" role="alert">
+                    {{ resendError }}
                 </p>
                 <div class="verify-email-actions">
                     <AppButton
                         text="Siųsti patvirtinimo nuorodą dar kartą"
                         :as-button="true"
+                        :loading="form.processing"
                         @click="resend"
                     />
                 </div>
@@ -42,6 +71,12 @@ const resend = () => {
         </main>
 
         <LandingFooter />
+
+        <SuccessModal
+            :show="showSuccessModal"
+            :message="successModalText"
+            @close="showSuccessModal = false"
+        />
     </div>
 </template>
 
@@ -83,10 +118,15 @@ const resend = () => {
     line-height: 1.5;
 }
 
-.verify-email-status {
+.verify-email-error {
     margin: 0 0 1rem 0;
-    color: #0a0;
+    padding: 12px 14px;
+    border-radius: 10px;
+    background: #fef2f2;
+    border: 1px solid #fecaca;
+    color: #b91c1c;
     font-size: 14px;
+    line-height: 1.45;
 }
 
 .verify-email-actions :deep(.app-button) {

@@ -19,6 +19,8 @@ class User extends Authenticatable implements MustVerifyEmail
         'name',
         'surname',
         'email',
+        'phone',
+        'viisp_personal_code_hash',
         'password',
         'two_factor_enabled',
         'email_notifications_enabled',

@@ -5,8 +5,10 @@ import SuccessModal from '@/Components/App/SuccessModal.vue';
 import LoginNavigation from '@/Components/Auth/Login/LoginNavigation.vue';
 import GuestHeader from '@/Components/Landing/GuestHeader.vue';
 import LandingFooter from '@/Components/Landing/LandingFooter.vue';
-import { Head, Link, useForm } from '@inertiajs/vue3';
-import { ref, watch } from 'vue';
+import { Head, Link, useForm, usePage } from '@inertiajs/vue3';
+import { computed, ref, watch } from 'vue';
+
+const page = usePage();
 
 const props = defineProps({
     canResetPassword: {
@@ -33,12 +35,24 @@ watch(activeRole, (tab) => {
     form.login_type = tab;
 });
 
+const emailError = computed(() => form.errors.email || page.props.errors?.email);
+
+const viispLoading = ref(false);
+
 const submit = () => {
     form.login_type = activeRole.value;
     form.post(route('login'), {
         onFinish: () => form.reset('password'),
         showProgress: false,
     });
+};
+
+const goViisp = () => {
+    if (viispLoading.value) {
+        return;
+    }
+    viispLoading.value = true;
+    window.location.assign(route('viisp.redirect'));
 };
 </script>
 
@@ -66,7 +80,7 @@ const submit = () => {
                         type="email"
                         placeholder="Vardas arba el. paštas"
                         v-model="form.email"
-                        :error="form.errors.email"
+                        :error="emailError"
                     />
 
                     <AuthInput
@@ -78,7 +92,11 @@ const submit = () => {
                     />
 
                     <div class="login-form-actions">
-                        <AppButton text="Prisijungti" :as-button="false" />
+                        <AppButton
+                            text="Prisijungti"
+                            :as-button="false"
+                            :loading="form.processing"
+                        />
                         <Link
                             v-if="canResetPassword"
                             :href="route('password.request')"
@@ -90,9 +108,16 @@ const submit = () => {
                             v-if="activeRole === 'pareiskejas'"
                             type="button"
                             class="login-form-el-vartai"
-                            @click.prevent
+                            :disabled="viispLoading"
+                            :aria-busy="viispLoading"
+                            @click="goViisp"
                         >
-                            Jungtis per el. valdžios vartus
+                            <span
+                                v-if="viispLoading"
+                                class="login-form-el-vartai__spinner"
+                                aria-hidden="true"
+                            />
+                            <span v-else>Jungtis per el. valdžios vartus</span>
                         </button>
                     </div>
                 </form>
@@ -185,6 +210,7 @@ const submit = () => {
     border-radius: 8px;
     font-size: 1rem;
     text-align: center;
+    text-decoration: none;
     color: #666;
     background: #fff;
     border: 1px solid #ccc;
@@ -193,8 +219,29 @@ const submit = () => {
     font-family: inherit;
 }
 
-.login-form-el-vartai:hover {
+.login-form-el-vartai:hover:not(:disabled) {
     background: #f5f5f5;
     color: #333;
+}
+
+.login-form-el-vartai:disabled {
+    cursor: wait;
+    opacity: 0.85;
+}
+
+.login-form-el-vartai__spinner {
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    border: 2px solid rgba(102, 102, 102, 0.25);
+    border-top-color: #666;
+    animation: login-viisp-spin 0.65s linear infinite;
+    box-sizing: border-box;
+}
+
+@keyframes login-viisp-spin {
+    to {
+        transform: rotate(360deg);
+    }
 }
 </style>

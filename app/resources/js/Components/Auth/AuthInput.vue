@@ -24,6 +24,10 @@ defineProps({
         type: Boolean,
         default: false,
     },
+    required: {
+        type: Boolean,
+        default: true,
+    },
 });
 
 defineEmits(['update:modelValue']);
@@ -39,7 +43,7 @@ defineEmits(['update:modelValue']);
             :placeholder="placeholder"
             :value="modelValue"
             :readonly="readonly"
-            required
+            :required="required"
             autofocus
             @input="$emit('update:modelValue', $event.target.value)"
         />

@@ -174,3 +174,107 @@
 .admin-tab .error-list li + li {
     margin-top: 0.25em;
 }
+
+.modal-body .field {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-bottom: var(--admin-spacing, 12px);
+    font-size: var(--admin-font-size, 14px);
+}
+
+.modal-body .field span,
+.modal-body .field-label {
+    font-size: 13px;
+    font-weight: 500;
+}
+
+.modal-body .field.checkbox {
+    flex-direction: row;
+    align-items: center;
+    gap: 8px;
+}
+
+.modal-body .field.full {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.modal-body .form-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+}
+
+.modal-body .form-grid .field.full {
+    grid-column: 1 / -1;
+}
+
+.modal-body .input {
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+    min-height: 40px;
+    border: 1px solid var(--color-border-light);
+    border-radius: 10px;
+    padding: 8px var(--admin-spacing, 12px);
+    background: var(--color-white);
+    font-size: inherit;
+    font-family: inherit;
+}
+
+.modal-body select.input {
+    cursor: pointer;
+}
+
+.modal-body .input:focus {
+    outline: none;
+    border-color: var(--color-primary);
+}
+
+.modal-body .hint {
+    color: var(--color-text-muted);
+    font-size: var(--admin-font-size, 14px);
+    background: var(--color-border-light);
+    padding: var(--admin-spacing, 12px);
+    border-radius: 10px;
+    margin-bottom: var(--admin-spacing, 12px);
+}
+
+.modal-body .error {
+    background: #fff0f0;
+    border: 1px solid #ffd2d2;
+    color: var(--color-error);
+    padding: var(--admin-spacing, 12px);
+    border-radius: 10px;
+    margin-bottom: var(--admin-spacing, 12px);
+    font-size: var(--admin-font-size, 14px);
+}
+
+.modal-body .error-list {
+    margin: 0;
+    padding-left: 1.2em;
+}
+
+.modal-body .error-list li + li {
+    margin-top: 0.25em;
+}
+
+.modal-body .checklist {
+    display: flex;
+    flex-direction: column;
+    gap: var(--admin-spacing, 12px);
+    max-height: 420px;
+    overflow: auto;
+    border-top: 1px solid var(--color-border-light);
+    border-bottom: 1px solid var(--color-border-light);
+    padding: var(--admin-spacing, 12px) 0;
+}
+
+.modal-body .check {
+    display: flex;
+    gap: var(--admin-spacing, 12px);
+    align-items: center;
+    font-size: var(--admin-font-size, 14px);
+}

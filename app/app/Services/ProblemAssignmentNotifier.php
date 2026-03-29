@@ -8,11 +8,57 @@ use App\Models\Institution;
 use App\Models\Problem;
 use App\Models\User;
 use App\Models\UserRole;
+use App\Support\EmailBody;
 use Illuminate\Support\Collection;
-use Illuminate\Support\Facades\Mail;
 
 class ProblemAssignmentNotifier
 {
+    public function buildInstitutionProblemShareEmail(Problem $problem): array
+    {
+        $url = route('problems.show', $problem->id);
+        $excerpt = Problem::descriptionPreview($problem->description, 500) ?: '-';
+        $deadlineLine = $problem->completion_deadline
+            ? 'Atlikimo terminas: '.$problem->completion_deadline->format('Y-m-d')
+            : '';
+
+        $template = EmailNotificationTemplate::getByKey(EmailNotificationTemplate::KEY_INSTITUTION_PROBLEM_SHARE);
+        $map = [
+            'internal_number' => $problem->internal_number ?? '-',
+            'description_excerpt' => $excerpt,
+            'address' => $problem->address ?? '-',
+            'created_at' => $problem->created_at?->format('Y-m-d') ?? '-',
+            'deadline_line' => $deadlineLine,
+            'url' => $url,
+        ];
+
+        if ($template && $template->is_enabled) {
+            return [
+                'subject' => EmailBody::replacePlaceholders($template->subject, $map),
+                'body' => EmailBody::replacePlaceholders($template->body, $map),
+                'action_url' => $url,
+                'action_label' => 'Atidaryti problemą',
+            ];
+        }
+
+        $lines = [
+            'Problemos informacija:',
+            'Nr: '.($problem->internal_number ?? '-'),
+            'Aprašymas: '.$excerpt,
+            'Adresas: '.($problem->address ?? '-'),
+            'Sukūrimo data: '.($problem->created_at?->format('Y-m-d') ?? '-'),
+        ];
+        if ($deadlineLine !== '') {
+            $lines[] = $deadlineLine;
+        }
+
+        return [
+            'subject' => 'Problemos priskyrimo informacija – '.($problem->internal_number ?? 'problema'),
+            'body' => implode("\n", $lines),
+            'action_url' => $url,
+            'action_label' => 'Atidaryti problemą',
+        ];
+    }
+
     public function buildManualAssignToInstitutionEmail(Institution $institution, Collection $problems): array
     {
         $first = $problems->first();
@@ -46,8 +92,10 @@ class ProblemAssignmentNotifier
             ];
 
             return [
-                'subject' => $this->replacePlaceholders($template->subject, $map),
-                'body' => $this->replacePlaceholders($template->body, $map),
+                'subject' => EmailBody::replacePlaceholders($template->subject, $map),
+                'body' => EmailBody::replacePlaceholders($template->body, $map),
+                'action_url' => $urlFirst,
+                'action_label' => 'Atidaryti problemą',
             ];
         }
 
@@ -67,16 +115,9 @@ class ProblemAssignmentNotifier
         return [
             'subject' => 'Problemų priskyrimo informacija',
             'body' => implode("\n", $lines),
+            'action_url' => $urlFirst,
+            'action_label' => 'Atidaryti problemą',
         ];
-    }
-
-    private function replacePlaceholders(string $text, array $replacements): string
-    {
-        foreach ($replacements as $placeholder => $value) {
-            $text = str_replace('{'.$placeholder.'}', (string) $value, $text);
-        }
-
-        return $text;
     }
 
     public function notifyInstitutionOfAssignment(array $problemIds, int $institutionId): void
@@ -124,11 +165,11 @@ class ProblemAssignmentNotifier
 
         $template = EmailNotificationTemplate::getByKey(EmailNotificationTemplate::KEY_INSTITUTION_ASSIGNMENT);
         if ($template && $template->is_enabled) {
-            $subject = $this->replacePlaceholders($template->subject, [
+            $subject = EmailBody::replacePlaceholders($template->subject, [
                 'problem_list' => $problemList,
                 'institution_name' => $institutionName,
             ]);
-            $body = $this->replacePlaceholders($template->body, [
+            $body = EmailBody::replacePlaceholders($template->body, [
                 'problem_list' => $problemList,
                 'institution_name' => $institutionName,
             ]);
@@ -137,10 +178,11 @@ class ProblemAssignmentNotifier
             $body = "Jums priskirtos naujos problemos:\n{$problemList}\n\nĮstaiga: {$institutionName}";
         }
 
+        $firstProblem = $problems->first();
+        $actionUrl = $firstProblem ? route('problems.show', $firstProblem->id) : null;
+
         foreach (array_values($recipientEmails) as $email) {
-            Mail::raw($body, function ($message) use ($email, $subject) {
-                $message->to($email)->subject($subject);
-            });
+            TransactionalMail::send($email, $subject, $body, $actionUrl, 'Atidaryti problemą');
         }
     }
 
@@ -161,13 +203,13 @@ class ProblemAssignmentNotifier
         $excerpt = Problem::descriptionPreview($problem->description, 200);
         $template = EmailNotificationTemplate::getByKey(EmailNotificationTemplate::KEY_EMPLOYEE_ASSIGNMENT);
         if ($template && $template->is_enabled) {
-            $subject = $this->replacePlaceholders($template->subject, [
+            $subject = EmailBody::replacePlaceholders($template->subject, [
                 'internal_number' => $problem->internal_number,
                 'title' => $excerpt,
                 'description_excerpt' => $excerpt,
                 'url' => $url,
             ]);
-            $body = $this->replacePlaceholders($template->body, [
+            $body = EmailBody::replacePlaceholders($template->body, [
                 'internal_number' => $problem->internal_number,
                 'title' => $excerpt,
                 'description_excerpt' => $excerpt,
@@ -178,9 +220,7 @@ class ProblemAssignmentNotifier
             $body = "Jums priskirta nauja problema:\n{$problem->internal_number} | {$excerpt} | {$url}";
         }
 
-        Mail::raw($body, function ($message) use ($user, $subject) {
-            $message->to($user->email)->subject($subject);
-        });
+        TransactionalMail::send($user->email, $subject, $body, $url, 'Atidaryti problemą');
     }
 
     public function notifyDeadlineReminder(Problem $problem, string $type): void
@@ -199,14 +239,14 @@ class ProblemAssignmentNotifier
         $excerpt = Problem::descriptionPreview($problem->description, 200);
 
         if ($template) {
-            $subject = $this->replacePlaceholders($template->subject, [
+            $subject = EmailBody::replacePlaceholders($template->subject, [
                 'internal_number' => $problem->internal_number,
                 'title' => $excerpt,
                 'description_excerpt' => $excerpt,
                 'url' => $url,
                 'deadline_date' => $deadlineStr,
             ]);
-            $body = $this->replacePlaceholders($template->body, [
+            $body = EmailBody::replacePlaceholders($template->body, [
                 'internal_number' => $problem->internal_number,
                 'title' => $excerpt,
                 'description_excerpt' => $excerpt,
@@ -251,9 +291,7 @@ class ProblemAssignmentNotifier
             $recipients = array_unique(array_merge($recipients, $admins));
         }
         foreach ($recipients as $email) {
-            Mail::raw($body, function ($message) use ($email, $subject) {
-                $message->to($email)->subject($subject);
-            });
+            TransactionalMail::send($email, $subject, $body, $url, 'Atidaryti problemą');
         }
     }
 }

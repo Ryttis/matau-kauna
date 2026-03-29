@@ -80,6 +80,25 @@ function insertList() {
     nextTick(() => ta.focus())
 }
 
+function insertLink() {
+    const ta = document.getElementById('content-body-editor')
+    if (!ta) return
+    const start = ta.selectionStart
+    const end = ta.selectionEnd
+    const text = form.value.body
+    const selected = text.slice(start, end)
+    const label = selected.length ? selected : 'nuoroda'
+    const insert = `<a href="">${label}</a>`
+    const before = text.slice(0, start)
+    const after = text.slice(end)
+    form.value.body = before + insert + after
+    nextTick(() => {
+        ta.focus()
+        const hrefStart = before.length + '<a href="'.length
+        ta.setSelectionRange(hrefStart, hrefStart)
+    })
+}
+
 function save() {
     saving.value = true
     successMessage.value = ''
@@ -219,11 +238,6 @@ function formatDate(s) {
 
         <div v-if="loading" class="loading">Kraunama…</div>
         <template v-else>
-            <p class="content-hint">
-                <template v-if="type === 'faq'">Paskelbtas turinys rodomas svečių puslapyje <strong>DUK</strong> (nuoroda footeryje).</template>
-                <template v-else-if="type === 'privacy'">Paskelbtas turinys rodomas svečių puslapyje <strong>Privatumo politika</strong> (nuoroda footeryje).</template>
-                <template v-else>Paskelbtas turinys rodomas pareiškėjų supažindinime ir taisyklėse.</template>
-            </p>
             <table v-if="versions.length" class="versions-table">
                 <thead>
                     <tr>
@@ -274,6 +288,7 @@ function formatDate(s) {
                     <div class="toolbar">
                         <button type="button" class="toolbar-btn" @click="insertTag('<b>', '</b>')">B</button>
                         <button type="button" class="toolbar-btn" @click="insertTag('<i>', '</i>')">I</button>
+                        <button type="button" class="toolbar-btn" @click="insertLink()">Nuoroda</button>
                         <button type="button" class="toolbar-btn" @click="insertList()">Sąrašas</button>
                     </div>
                     <textarea
@@ -298,7 +313,6 @@ function formatDate(s) {
             width="520px"
             @close="closePublishModal"
         >
-            <p class="publish-modal-note">Ši versija bus rodoma viešai (svečių puslapiuose / pareiškėjų supažindinime).</p>
             <label v-if="isTerms()" class="checkbox-row">
                 <AppCheckbox v-model="requireReconsent" />
                 <span>Reikalauti pareiškėjų supažindinimo (sekančio prisijungimo metu jie turės išreikšti sutikimą su naujomis taisyklėmis)</span>
@@ -327,7 +341,6 @@ function formatDate(s) {
     font-size: 14px;
 }
 .message-error { background: #f8d7da; color: #721c24; }
-.content-hint { margin: 0 0 12px 0; font-size: 13px; color: #555; }
 .loading, .empty { color: #666; margin: 0 0 16px 0; font-size: 14px; }
 .versions-table {
     width: 100%;
@@ -390,7 +403,6 @@ function formatDate(s) {
 }
 .form-actions { display: flex; gap: 12px; margin-top: 16px; }
 
-.publish-modal-note { margin: 0 0 16px 0; font-size: 14px; color: #666; line-height: 1.5; }
 .publish-modal .checkbox-row { display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 14px; color: #333; }
 .publish-modal .checkbox-row span { flex: 1; }
 .publish-modal :deep(.modal-body) { padding-top: 8px; padding-bottom: 16px; }
