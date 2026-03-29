@@ -8,19 +8,10 @@ use App\Models\Problem;
 use App\Models\ProblemReviewHistory;
 use App\Models\ProblemWatch;
 use App\Models\User;
-use Illuminate\Support\Facades\Mail;
+use App\Support\EmailBody;
 
 class ProblemReporterStatusNotifier
 {
-    private function replacePlaceholders(string $text, array $replacements): string
-    {
-        foreach ($replacements as $placeholder => $value) {
-            $text = str_replace('{'.$placeholder.'}', (string) $value, $text);
-        }
-
-        return $text;
-    }
-
     public function statusLabel(string $status): string
     {
         $enum = ProblemStatus::tryFrom($status);
@@ -84,8 +75,8 @@ class ProblemReporterStatusNotifier
             'new_status_label' => $newLabel,
         ];
 
-        $subject = $this->replacePlaceholders($template->subject, $baseReplacements);
-        $bodyTemplate = $this->replacePlaceholders($template->body, $baseReplacements);
+        $subject = EmailBody::replacePlaceholders($template->subject, $baseReplacements);
+        $bodyTemplate = EmailBody::replacePlaceholders($template->body, $baseReplacements);
 
         $sentTo = [];
 
@@ -100,9 +91,7 @@ class ProblemReporterStatusNotifier
             }
 
             $sentTo[$user->id] = true;
-            Mail::raw($bodyTemplate, function ($message) use ($user, $subject) {
-                $message->to($user->email)->subject($subject);
-            });
+            TransactionalMail::send($user->email, $subject, $bodyTemplate, $url, 'Peržiūrėti problemą');
         }
 
         foreach ($watcherIds as $userId) {
@@ -119,9 +108,7 @@ class ProblemReporterStatusNotifier
                 continue;
             }
 
-            Mail::raw($bodyTemplate, function ($message) use ($user, $subject) {
-                $message->to($user->email)->subject($subject);
-            });
+            TransactionalMail::send($user->email, $subject, $bodyTemplate, $url, 'Peržiūrėti problemą');
         }
     }
 
@@ -166,8 +153,8 @@ class ProblemReporterStatusNotifier
             'entry_date' => $entry->created_at?->format('Y-m-d H:i') ?? '',
         ];
 
-        $subject = $this->replacePlaceholders($template->subject, $replacements);
-        $body = $this->replacePlaceholders($template->body, $replacements);
+        $subject = EmailBody::replacePlaceholders($template->subject, $replacements);
+        $body = EmailBody::replacePlaceholders($template->body, $replacements);
 
         $sentTo = [];
 
@@ -182,9 +169,7 @@ class ProblemReporterStatusNotifier
             }
 
             $sentTo[$user->id] = true;
-            Mail::raw($body, function ($message) use ($user, $subject) {
-                $message->to($user->email)->subject($subject);
-            });
+            TransactionalMail::send($user->email, $subject, $body, $url, 'Peržiūrėti problemą');
         }
 
         foreach ($watcherIds as $userId) {
@@ -201,9 +186,7 @@ class ProblemReporterStatusNotifier
                 continue;
             }
 
-            Mail::raw($body, function ($message) use ($user, $subject) {
-                $message->to($user->email)->subject($subject);
-            });
+            TransactionalMail::send($user->email, $subject, $body, $url, 'Peržiūrėti problemą');
         }
     }
 }

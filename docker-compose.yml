@@ -1,4 +1,20 @@
 services:
+    kauno_problemos_gateway:
+        build:
+            context: ..
+            dockerfile: kauno_problemos_gateway/Dockerfile
+        container_name: kauno_problemos_gateway
+        restart: unless-stopped
+        ports:
+            - "3000:3000"
+        env_file:
+            - ../kauno_problemos_gateway/.env
+        volumes:
+            - ../kauno_problemos_gateway:/kauno_problemos_gateway
+            - ../viisp_handler_updated:/kauno_problemos_gateway/node_modules/viisp-nodejs-auth-handler
+        networks:
+            - proxy
+
     kauno_problemos_nginx:
         image: nginx:latest
         container_name: kauno-problemos-nginx
@@ -13,6 +29,7 @@ services:
         depends_on:
             - kauno_problemos_php
             - kauno_problemos_postgres
+            - kauno_problemos_gateway
             - swagger
 
     swagger:
@@ -36,11 +53,13 @@ services:
         restart: always
         volumes:
             - ./:/var/www/html
+            - ./docker/php/fpm-clear-env.conf:/usr/local/etc/php-fpm.d/zz-clear-env.conf:ro
             - ./docker/php/xdebug.ini:/usr/local/etc/php/conf.d/xdebug.ini
         networks:
             - proxy
         depends_on:
             - kauno_problemos_postgres
+            - kauno_problemos_gateway
         ports:
             - "5174:5174"
             - "9003:9003"

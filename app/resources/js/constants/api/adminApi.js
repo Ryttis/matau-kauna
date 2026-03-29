@@ -5,6 +5,7 @@ export const adminApi = {
     institutionsList: `${BASE}/institutions/list`,
     institution: (id) => `${BASE}/institutions/${id}`,
     emailNotifications: `${BASE}/email-notifications`,
+    emailNotificationPreviewBody: `${BASE}/email-notifications/preview-body`,
     emailNotification: (id) => `${BASE}/email-notifications/${id}`,
     publicStatisticsConfig: `${BASE}/public-statistics-config`,
     classifiers: `${BASE}/classifiers`,

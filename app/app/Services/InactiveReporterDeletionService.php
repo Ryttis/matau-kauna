@@ -8,7 +8,6 @@ use App\Models\LoginLog;
 use App\Models\User;
 use App\Models\UserRole;
 use Illuminate\Support\Carbon;
-use Illuminate\Support\Facades\Mail;
 
 class InactiveReporterDeletionService
 {
@@ -84,18 +83,17 @@ class InactiveReporterDeletionService
         if ($userName === '') {
             $userName = $user->email;
         }
-        $subject = str_replace(
-            ['{user_name}', '{deletion_date}', '{inactivity_days}'],
-            [$userName, $deletionDate->format('Y-m-d'), $setting->inactivity_days],
-            $template->subject
-        );
-        $body = str_replace(
-            ['{user_name}', '{deletion_date}', '{inactivity_days}'],
-            [$userName, $deletionDate->format('Y-m-d'), $setting->inactivity_days],
-            $template->body
-        );
+        $loginUrl = url(route('login', [], false));
+        $replacements = [
+            '{user_name}' => $userName,
+            '{deletion_date}' => $deletionDate->format('Y-m-d'),
+            '{inactivity_days}' => (string) $setting->inactivity_days,
+            '{login_url}' => $loginUrl,
+        ];
+        $subject = str_replace(array_keys($replacements), array_values($replacements), $template->subject);
+        $body = str_replace(array_keys($replacements), array_values($replacements), $template->body);
         if (filter_var($user->email, FILTER_VALIDATE_EMAIL)) {
-            Mail::raw($body, fn ($message) => $message->to($user->email)->subject($subject));
+            TransactionalMail::send($user->email, $subject, $body, $loginUrl, 'Prisijungti');
         }
     }
 

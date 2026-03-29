@@ -10,9 +10,9 @@ use App\Models\User;
 use App\Models\UserRole;
 use App\Services\ProblemAssignmentNotifier;
 use App\Services\ProblemScopeService;
+use App\Services\TransactionalMail;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Mail;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -136,22 +136,14 @@ class ProblemInstitutionAssignmentController extends Controller
             'email' => ['required', 'email'],
         ]);
 
-        $lines = [
-            'Problemos informacija:',
-            sprintf('Nr: %s', $problem->internal_number ?? '-'),
-            sprintf('Aprašymas: %s', Problem::descriptionPreview($problem->description, 500) ?: '-'),
-            sprintf('Adresas: %s', $problem->address ?? '-'),
-            sprintf('Sukūrimo data: %s', $problem->created_at?->format('Y-m-d') ?? '-'),
-        ];
-        if ($problem->completion_deadline) {
-            $lines[] = sprintf('Atlikimo terminas: %s', $problem->completion_deadline->format('Y-m-d'));
-        }
-        $body = implode("\n", $lines);
-        $subject = 'Problemos priskyrimo informacija – '.($problem->internal_number ?? 'problema');
-
-        Mail::raw($body, function ($message) use ($validated, $subject) {
-            $message->to($validated['email'])->subject($subject);
-        });
+        $mail = $this->assignmentNotifier->buildInstitutionProblemShareEmail($problem);
+        TransactionalMail::send(
+            $validated['email'],
+            $mail['subject'],
+            $mail['body'],
+            $mail['action_url'] ?? null,
+            $mail['action_label'] ?? null,
+        );
 
         return redirect()->back()->with('success', 'Informacija išsiųsta el. paštu.');
     }

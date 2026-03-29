@@ -1,4 +1,21 @@
 export const EMAIL_NOTIFICATION_PLACEHOLDER_DOCS_BY_KEY = {
+    verify_email_address: [
+        { token: '{user_name}', text: 'Naudotojo vardas ir pavardė arba el. paštas, jei vardo nėra.' },
+        { token: '{app_name}', text: 'Programėlės pavadinimas (APP_NAME).' },
+    ],
+    password_reset: [
+        { token: '{user_name}', text: 'Naudotojo vardas ir pavardė arba el. paštas.' },
+        { token: '{app_name}', text: 'Programėlės pavadinimas (APP_NAME).' },
+        { token: '{expire_minutes}', text: 'Kiek minučių galioja atkūrimo nuoroda (auth slaptažodžio konfigūracija).' },
+    ],
+    institution_problem_share_email: [
+        { token: '{internal_number}', text: 'Problemos vidinis numeris.' },
+        { token: '{description_excerpt}', text: 'Sutrumpintas problemos aprašymas (iki 500 simbolių).' },
+        { token: '{address}', text: 'Problemos adresas arba brūkšnys.' },
+        { token: '{created_at}', text: 'Sukūrimo data, formatu Y-m-d.' },
+        { token: '{deadline_line}', text: 'Eilutė „Atlikimo terminas: …“ arba tuščia, jei termino nėra.' },
+        { token: '{url}', text: 'Nuoroda į problemos puslapį darbuotojų aplinkoje (naudojama logikoje; tekste galite ją įterpti).' },
+    ],
     manual_assign_to_institution_email: [
         { token: '{institution_name}', text: 'Įstaigos pavadinimas, pasirinktas priskyrimo puslapyje.' },
         { token: '{problem_list}', text: 'Visų laiške įtrauktų problemų sąrašas: eilutėje – numeris, sutrumpintas aprašymas, nuoroda, atlikimo terminas.' },
@@ -12,6 +29,13 @@ export const EMAIL_NOTIFICATION_PLACEHOLDER_DOCS_BY_KEY = {
         { token: '{institution_name}', text: 'Įstaigos pavadinimas. Naudojama automatinėje žinutėje įstaigos administratoriams.' },
         { token: '{problem_list}', text: 'Priskirtų problemų sąrašas: kelios eilutės su numeriu, aprašymu, data ir nuoroda.' },
     ],
+    institution_invitation: [
+        { token: '{app_name}', text: 'Programėlės pavadinimas (APP_NAME).' },
+        { token: '{institution_name}', text: 'Įstaigos, į kurią kviečiamas naudotojas, pavadinimas.' },
+        { token: '{role_name}', text: 'Pakviestos rolės pavadinimas (pvz. įstaigos administratorius).' },
+        { token: '{expires_at}', text: 'Pakvietimo galiojimo pabaiga, formatu Y-m-d H:i.' },
+        { token: '{url}', text: 'Registracijos nuoroda su pakvietimo žetonu; mygtukas visada veda į tą patį adresą.' },
+    ],
     employee_assignment: [
         { token: '{internal_number}', text: 'Problemos vidinis numeris.' },
         { token: '{description_excerpt}', text: 'Sutrumpintas problemos aprašymas.' },
@@ -22,6 +46,7 @@ export const EMAIL_NOTIFICATION_PLACEHOLDER_DOCS_BY_KEY = {
         { token: '{user_name}', text: 'Naudotojo vardas ir pavardė arba el. paštas, jei vardo nėra.' },
         { token: '{deletion_date}', text: 'Numatoma paskyros pašalinimo data, formatu Y-m-d.' },
         { token: '{inactivity_days}', text: 'Nebuvimo dienų skaičius pagal sistemos taisykles.' },
+        { token: '{login_url}', text: 'Prisijungimo puslapio nuoroda (mygtukas „Prisijungti“).' },
     ],
     reporter_status_change: [
         { token: '{internal_number}', text: 'Problemos vidinis numeris.' },

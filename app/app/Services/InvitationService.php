@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Models\EmailNotificationTemplate;
 use App\Models\Employee;
 use App\Models\Invitation;
 use App\Models\User;
@@ -53,6 +54,11 @@ class InvitationService
 
     public function sendInvitationNotification(Invitation $invitation): void
     {
+        $template = EmailNotificationTemplate::getByKey(EmailNotificationTemplate::KEY_INSTITUTION_INVITATION);
+        if ($template && ! $template->is_enabled) {
+            return;
+        }
+
         Notification::route('mail', $invitation->email)
             ->notify(new InvitationNotification($invitation));
     }

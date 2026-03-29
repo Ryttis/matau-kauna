@@ -9,9 +9,9 @@ use App\Services\ProblemAssignmentNotifier;
 use App\Services\ProblemHttpSupport;
 use App\Services\ProblemReporterStatusNotifier;
 use App\Services\ProblemResolutionTermService;
+use App\Services\TransactionalMail;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Mail;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -150,9 +150,13 @@ class ProblemAdminAssignController extends Controller
 
         $mail = $this->assignmentNotifier->buildManualAssignToInstitutionEmail($institution, $problems);
 
-        Mail::raw($mail['body'], function ($message) use ($validated, $mail) {
-            $message->to($validated['email'])->subject($mail['subject']);
-        });
+        TransactionalMail::send(
+            $validated['email'],
+            $mail['subject'],
+            $mail['body'],
+            ! empty($mail['action_url']) ? $mail['action_url'] : null,
+            $mail['action_label'] ?? null,
+        );
 
         return redirect()->back()->with('success', 'Informacija išsiųsta el. paštu ir problema priskirta įstaigai.');
     }

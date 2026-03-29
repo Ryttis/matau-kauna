@@ -318,9 +318,12 @@ watch(
             @close="closeSuccessModal"
         />
         <div class="automation-page">
-            <h1 class="automation-title">Automatizacija</h1>
-            <div class="automation-section-select-wrap">
-                <label class="automation-section-label">Automatizacija</label>
+            <h1 id="automation-page-title" class="automation-title">Automatizacija</h1>
+            <div
+                class="automation-section-select-wrap"
+                role="group"
+                aria-labelledby="automation-page-title"
+            >
                 <AppSelect
                     v-model="activeSection"
                     class="automation-section-select"
@@ -636,13 +639,6 @@ watch(
     width: 100%;
     max-width: 100%;
 }
-.automation-section-label {
-    display: block;
-    margin-bottom: 6px;
-    font-size: 14px;
-    font-weight: 500;
-    color: var(--color-text, #333);
-}
 .automation-section-select :deep(.app-select-group) {
     margin-bottom: 0;
 }
@@ -706,10 +702,12 @@ watch(
     cursor: pointer;
     font-size: 14px;
     padding: 0;
-    text-decoration: underline;
+    text-decoration: none;
+    font-family: inherit;
 }
 .automation-link:hover {
     color: var(--color-primary-hover, #153a8a);
+    text-decoration: none;
 }
 .automation-sep {
     margin: 0 6px;

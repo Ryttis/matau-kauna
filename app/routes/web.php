@@ -180,6 +180,7 @@ Route::middleware(['auth', 'verified', 'reporter.terms'])->group(function () {
 
             Route::get('/archive', [AdminArchiveController::class, 'index']);
             Route::get('/email-notifications', [\App\Http\Controllers\Admin\EmailNotificationController::class, 'index']);
+            Route::post('/email-notifications/preview-body', [\App\Http\Controllers\Admin\EmailNotificationController::class, 'previewBody']);
             Route::put('/email-notifications/{emailNotification}', [\App\Http\Controllers\Admin\EmailNotificationController::class, 'update']);
 
             Route::get('/content-versions', [\App\Http\Controllers\Admin\ContentVersionController::class, 'index']);
