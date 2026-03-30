@@ -14,6 +14,7 @@ use App\Services\ReporterFileUploadService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -191,10 +192,29 @@ class ReporterProblemController extends Controller
         $uploadConfig = FileUploadSettings::getChannel($channel);
         $maxDesc = (int) $uploadConfig['description_max_chars'];
 
+        if ($request->input('problem_nature_id') === '' || $request->input('problem_nature_id') === null) {
+            $request->merge(['problem_nature_id' => null]);
+        }
+
         $validated = $request->validate(
             [
-                'problem_type_id' => 'required|integer|exists:classifier_values,id',
-                'problem_nature_id' => 'nullable|integer|exists:classifier_values,id',
+                'problem_type_id' => [
+                    'required',
+                    'integer',
+                    Rule::exists('classifier_values', 'id')
+                        ->whereNull('parent_id')
+                        ->whereNull('archived_at')
+                        ->where('is_active', true),
+                ],
+                'problem_nature_id' => [
+                    'nullable',
+                    'integer',
+                    Rule::exists('classifier_values', 'id')->where(function ($query) use ($request) {
+                        $query->where('parent_id', (int) $request->input('problem_type_id'))
+                            ->whereNull('archived_at')
+                            ->where('is_active', true);
+                    }),
+                ],
                 'description' => 'required|string|max:'.$maxDesc,
                 'address' => 'required|string|max:500',
                 'lat' => 'nullable|numeric',
@@ -204,10 +224,10 @@ class ReporterProblemController extends Controller
             ],
             [
                 'problem_type_id.required' => 'Pasirinkite problemos rūšį.',
-                'problem_type_id.integer' => 'Netinkama problemos rūšis.',
-                'problem_type_id.exists' => 'Netinkama problemos rūšis.',
-                'problem_nature_id.integer' => 'Netinkamas problemos pobūdis.',
-                'problem_nature_id.exists' => 'Netinkamas problemos pobūdis.',
+                'problem_type_id.integer' => 'problem_type_id turi būti sveikasis skaičius.',
+                'problem_type_id.exists' => 'problem_type_id turi būti aktyvios rūšies id (classifier_values.parent_id yra NULL). Tikrinkite GET /api/reporter/report-meta arba SQL: SELECT id, name FROM classifier_values WHERE parent_id IS NULL AND archived_at IS NULL;',
+                'problem_nature_id.integer' => 'problem_nature_id turi būti sveikasis skaičius.',
+                'problem_nature_id.exists' => 'problem_nature_id turi būti tos rūšies pobūdis (classifier_values.parent_id = problem_type_id). Jei nereikia — palikite tuščią / Send empty value.',
                 'description.required' => 'Įveskite aprašymą.',
                 'description.max' => 'Aprašymas per ilgas.',
                 'address.required' => 'Įveskite adresą.',
@@ -219,21 +239,7 @@ class ReporterProblemController extends Controller
             ]
         );
 
-        $typeId = (int) $validated['problem_type_id'];
-        $natureId = isset($validated['problem_nature_id']) ? (int) $validated['problem_nature_id'] : null;
-        $typeValue = ClassifierValue::where('id', $typeId)->whereNull('parent_id')->first();
-
-        if (! $typeValue) {
-            return response()->json(['message' => 'Netinkama problemos kategorija.'], 422);
-        }
-
-        if ($natureId !== null) {
-            $natureValue = ClassifierValue::where('id', $natureId)->where('parent_id', $typeId)->first();
-
-            if (! $natureValue) {
-                return response()->json(['message' => 'Netinkama problemos pobūdis.'], 422);
-            }
-        }
+        $typeValue = ClassifierValue::query()->findOrFail($validated['problem_type_id']);
 
         $user->update(['reporter_report_terms_accepted_at' => now()]);
         $categoryName = $typeValue->name;

@@ -58,8 +58,6 @@ class ViispRegistrationRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'name' => ['required', 'string', 'max:255'],
-            'surname' => ['required', 'string', 'max:255'],
             'email' => ['required', 'string', 'email', 'max:255', 'unique:users,email'],
             'phone' => ['nullable', 'string', 'max:32', 'regex:/^[0-9+\s\-]+$/'],
         ];
@@ -68,8 +66,6 @@ class ViispRegistrationRequest extends FormRequest
     public function attributes(): array
     {
         return [
-            'name' => 'vardas',
-            'surname' => 'pavardė',
             'email' => 'el. paštas',
             'phone' => 'telefono numeris',
         ];
@@ -78,10 +74,6 @@ class ViispRegistrationRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'name.required' => 'Įveskite vardą.',
-            'name.max' => 'Vardas negali būti ilgesnis nei :max simbolių.',
-            'surname.required' => 'Įveskite pavardę.',
-            'surname.max' => 'Pavardė negali būti ilgesnė nei :max simbolių.',
             'email.required' => 'Įveskite el. pašto adresą.',
             'email.email' => 'Įveskite teisingą el. pašto adresą.',
             'email.unique' => 'Šiuo el. paštu paskyra jau užregistruota.',

@@ -172,9 +172,17 @@ class ViispAuthController extends Controller
             ? $validated['phone']
             : null;
 
+        $firstName = is_string($payload['firstName'] ?? null) ? trim($payload['firstName']) : '';
+        $lastName = is_string($payload['lastName'] ?? null) ? trim($payload['lastName']) : '';
+        if ($firstName === '' || $lastName === '') {
+            $request->session()->forget(self::REGISTRATION_SESSION_KEY);
+
+            return $this->viispLoginError('VIISP: gauti nepilni tapatybės duomenys (trūksta vardo ar pavardės).');
+        }
+
         $user = User::create([
-            'name' => $validated['name'],
-            'surname' => $validated['surname'],
+            'name' => $firstName,
+            'surname' => $lastName,
             'email' => $validated['email'],
             'phone' => $phone,
             'password' => Hash::make(Str::random(64)),
