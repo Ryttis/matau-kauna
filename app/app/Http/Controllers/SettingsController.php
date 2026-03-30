@@ -62,16 +62,21 @@ class SettingsController extends Controller
 
     public function updateProfile(Request $request): RedirectResponse
     {
+        $user = Auth::user();
+        if (! ($user instanceof User)) {
+            abort(403);
+        }
+
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'surname' => ['nullable', 'string', 'max:255'],
             'email' => ['required', 'string', 'lowercase', 'email', 'max:255', 'unique:users,email,'.Auth::id()],
         ]);
 
-        $user = Auth::user();
-        if (! ($user instanceof User)) {
-            abort(403);
+        if ($user->viisp_personal_code_hash !== null) {
+            unset($validated['name'], $validated['surname']);
         }
+
         $user->update($validated);
 
         return back()->with('success', 'Profilis atnaujintas.');

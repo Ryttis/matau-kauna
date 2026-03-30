@@ -10,6 +10,7 @@ import { SETTINGS_PAGE_STYLE } from '@/constants/ui/theme'
 const page = usePage()
 const user = computed(() => page.props.auth?.user ?? null)
 const authRoles = computed(() => page.props.auth?.roles ?? [])
+const isViispUser = computed(() => !!user.value?.viisp_personal_code_hash)
 
 const roleDisplayNames = computed(() =>
     (authRoles.value ?? []).map((r) => r?.name).filter(Boolean)
@@ -79,13 +80,18 @@ const updatePassword = () => {
                                 placeholder="Vardas"
                                 :show-icon="true"
                                 autocomplete="given-name"
+                                :readonly="isViispUser"
                             />
                             <AppInput
                                 v-model="profileForm.surname"
                                 placeholder="Pavardė"
                                 :show-icon="true"
                                 autocomplete="family-name"
+                                :readonly="isViispUser"
                             />
+                            <div v-if="isViispUser" class="form-hint">
+                                Vardas ir pavardė atnaujinami automatiškai pagal el. valdžios vartų duomenis ir negali būti keičiami.
+                            </div>
                             <AppInput
                                 v-model="profileForm.email"
                                 type="email"
@@ -227,6 +233,12 @@ const updatePassword = () => {
 .form-error {
     font-size: 14px;
     color: var(--color-error, #c62828);
+}
+
+.form-hint {
+    font-size: 14px;
+    color: #555;
+    line-height: 1.4;
 }
 
 .form-grid--password {

@@ -174,8 +174,8 @@ const submit = () => {
             <div class="viisp-register-intro">
                 <h1 class="viisp-register-title">Užbaikite registraciją</h1>
                 <p class="viisp-register-lead">
-                    Patikrinkite ir, jei reikia, pataisykite duomenis iš el. valdžios vartų. Po patvirtinimo
-                    būsite automatiškai prijungti.
+                    Vardas ir pavardė užpildomi pagal el. valdžios vartų informaciją ir negali būti keičiami.
+                    Po patvirtinimo būsite automatiškai prijungti.
                 </p>
                 <p v-if="isCompany && companyName" class="viisp-register-company">
                     Jungiatės kaip įmonės atstovas: <strong>{{ companyName }}</strong>
@@ -192,6 +192,7 @@ const submit = () => {
                         type="text"
                         placeholder="Įveskite vardą"
                         v-model="form.name"
+                        :readonly="true"
                         :error="fieldError('name')"
                     />
                 </div>
@@ -205,6 +206,7 @@ const submit = () => {
                         type="text"
                         placeholder="Įveskite pavardę"
                         v-model="form.surname"
+                        :readonly="true"
                         :error="fieldError('surname')"
                     />
                 </div>

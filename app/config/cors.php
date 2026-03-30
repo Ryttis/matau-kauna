@@ -10,7 +10,11 @@ return [
         'http://127.0.0.1:8081',
     ],
 
-    'allowed_origins_patterns' => [],
+    'allowed_origins_patterns' => [
+        '#^https?://localhost(:\d+)?$#',
+        '#^https?://127\.0\.0\.1(:\d+)?$#',
+        '#^https?://[a-zA-Z0-9.-]+\.local(:\d+)?$#',
+    ],
 
     'allowed_headers' => ['*'],
 
@@ -20,4 +24,3 @@ return [
 
     'supports_credentials' => true,
 ];
-

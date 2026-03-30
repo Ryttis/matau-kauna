@@ -29,6 +29,14 @@ class EnsureReporterAcceptedTerms
             return $next($request);
         }
 
+        if ($request->is('api/*')) {
+            return response()->json([
+                'message' => 'Reikia patvirtinti naudojimo taisykles.',
+                'code' => 'reporter_terms_required',
+                'terms_web_url' => url('/reporter/terms'),
+            ], 403);
+        }
+
         return redirect()->route('reporter.terms');
     }
 }

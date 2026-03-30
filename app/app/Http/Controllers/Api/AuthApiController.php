@@ -106,12 +106,19 @@ class AuthApiController extends Controller
 
     public function me(Request $request): JsonResponse
     {
-        $user = $request->user();
+        $user = $request->user()->load('roles');
 
         return response()->json([
             'id' => $user->id,
             'name' => $user->name,
+            'surname' => $user->surname,
             'email' => $user->email,
+            'email_verified_at' => $user->email_verified_at?->toIso8601String(),
+            'terms_accepted_at' => $user->terms_accepted_at?->toIso8601String(),
+            'reporter_report_terms_accepted_at' => $user->reporter_report_terms_accepted_at?->toIso8601String(),
+            'reporter_wizard_completed_at' => $user->reporter_wizard_completed_at?->toIso8601String(),
+            'roles' => $user->roles->pluck('role')->values()->all(),
+            'permissions' => $user->permissions(),
         ]);
     }
 
