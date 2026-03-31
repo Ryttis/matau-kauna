@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Enums\AuditAction;
 use App\Enums\AuditLogResult;
 use App\Models\AuditLog;
 use App\Models\AuditSetting;
@@ -41,6 +42,7 @@ class AuditService
             'actor_identifier' => $log->actor_identifier,
             'event_type' => $log->event_type,
             'action' => $log->action,
+            'action_label' => AuditAction::labelFor($log->action),
             'subject_type' => $log->subject_type,
             'subject_id' => $log->subject_id,
             'result' => $log->result,

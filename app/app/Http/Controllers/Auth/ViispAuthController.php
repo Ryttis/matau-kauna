@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Auth;
 
+use App\Enums\AuditLogResult;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Auth\ViispRegistrationRequest;
 use App\Models\LoginLog;
@@ -13,6 +14,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Http\Client\Response as HttpClientResponse;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
 use Inertia\Inertia;
@@ -42,6 +44,10 @@ class ViispAuthController extends Controller
             'exchangeSecret' => $exchangeSecret,
         ]);
 
+        $redirectUrl = $response->json('redirectUrl');
+        $redirectUrlStr = is_string($redirectUrl) && $redirectUrl !== '' ? $redirectUrl : null;
+        $this->auditViispGatewayLoginInit($request, $response, $postbackBase, $gatewayUrl, $redirectUrlStr);
+
         if (! $response->successful()) {
             $json = $response->json();
             $detail = '';
@@ -60,12 +66,11 @@ class ViispAuthController extends Controller
             return $this->viispLoginError('VIISP gateway '.$response->status().': '.$detail);
         }
 
-        $redirectUrl = $response->json('redirectUrl');
-        if (! is_string($redirectUrl) || $redirectUrl === '') {
+        if ($redirectUrlStr === null) {
             return $this->viispLoginError('VIISP: neteisingas gateway atsakymas (nėra redirectUrl).');
         }
 
-        return redirect()->away($redirectUrl);
+        return redirect()->away($redirectUrlStr);
     }
 
     public function callback(Request $request): RedirectResponse
@@ -85,11 +90,14 @@ class ViispAuthController extends Controller
             ->withHeaders(['X-Viisp-Exchange' => $secret])
             ->get("{$gatewayUrl}/gateway/viisp/exchange/{$token}");
 
+        $identity = $response->json('identity');
+        $identityArr = is_array($identity) ? $identity : null;
+        $this->auditViispGatewayExchange($request, $response, $gatewayUrl, $token, $identityArr);
+
         if (! $response->successful()) {
             return $this->viispLoginError('VIISP: nepavyko patvirtinti tapatybės. Bandykite dar kartą.');
         }
 
-        $identity = $response->json('identity');
         if (! is_array($identity) || empty($identity['hashedCode']) || ! is_string($identity['hashedCode'])) {
             return $this->viispLoginError('VIISP: gauti nepilni tapatybės duomenys.');
         }
@@ -279,6 +287,97 @@ class ViispAuthController extends Controller
         $s = config('services.viisp.exchange_secret');
 
         return is_string($s) && $s !== '' ? $s : null;
+    }
+
+    private function auditViispGatewayLoginInit(
+        Request $request,
+        HttpClientResponse $response,
+        string $postbackBase,
+        string $gatewayUrl,
+        ?string $redirectUrl,
+    ): void {
+        $ok = $response->successful() && $redirectUrl !== null;
+        $message = null;
+        if (! $response->successful()) {
+            $message = Str::limit(trim($response->body()), 500);
+        } elseif ($redirectUrl === null) {
+            $message = 'Atsakyme nėra redirectUrl.';
+        }
+
+        $this->auditLogService->logIntegration(
+            'viisp.login_init',
+            'VIISP (integracinis gateway)',
+            [
+                'from_system' => (string) config('app.name'),
+                'to_system' => 'VIISP integracijos gateway',
+                'occurred_note' => 'Siuntimas: prisijungimo užklausa į gateway',
+                'client_ip' => $request->ip(),
+                'http' => [
+                    'method' => 'POST',
+                    'path' => '/gateway/viisp/login',
+                    'base_url' => rtrim($gatewayUrl, '/'),
+                ],
+                'request_params' => [
+                    'postbackUrl' => $postbackBase,
+                    'callbackUrl' => url('/viisp/callback'),
+                    'exchangeSecret' => '[užslpta]',
+                ],
+                'response' => [
+                    'http_status' => $response->status(),
+                    'redirect_received' => $redirectUrl !== null,
+                ],
+            ],
+            $ok ? AuditLogResult::Success : AuditLogResult::Error,
+            $message,
+        );
+    }
+
+    private function auditViispGatewayExchange(
+        Request $request,
+        HttpClientResponse $response,
+        string $gatewayUrl,
+        string $token,
+        ?array $identity,
+    ): void {
+        $hasIdentity = is_array($identity)
+            && ! empty($identity['hashedCode'])
+            && is_string($identity['hashedCode']);
+        $httpOk = $response->successful();
+        $ok = $httpOk && $hasIdentity;
+
+        $message = null;
+        if (! $httpOk) {
+            $message = Str::limit(trim($response->body()), 500);
+        } elseif (! $hasIdentity) {
+            $message = 'HTTP sėkmė, bet trūksta identity / hashedCode.';
+        }
+
+        $this->auditLogService->logIntegration(
+            'viisp.identity_exchange',
+            'VIISP (integracinis gateway)',
+            [
+                'from_system' => 'VIISP integracijos gateway',
+                'to_system' => (string) config('app.name'),
+                'occurred_note' => 'Gavimas: tapatybės mainas (exchange)',
+                'client_ip' => $request->ip(),
+                'http' => [
+                    'method' => 'GET',
+                    'path' => '/gateway/viisp/exchange/{token}',
+                    'base_url' => rtrim($gatewayUrl, '/'),
+                ],
+                'request_params' => [
+                    'token' => '[užslpta, ilgis: '.strlen($token).']',
+                    'header_X-Viisp-Exchange' => '[užslpta]',
+                ],
+                'response' => [
+                    'http_status' => $response->status(),
+                    'identity_field_keys' => is_array($identity) ? array_keys($identity) : [],
+                    'has_hashed_code' => $hasIdentity,
+                ],
+            ],
+            $ok ? AuditLogResult::Success : AuditLogResult::Error,
+            $message,
+        );
     }
 
     private function viispLoginError(string $message): RedirectResponse

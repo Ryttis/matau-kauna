@@ -114,7 +114,7 @@ export function useDashboardProblemList(props) {
         }, {
             preserveState: true,
             preserveScroll: true,
-            only: ['problems'],
+            only: ['problems', 'flash'],
             onSuccess: (inertiaPage) => {
                 if (inertiaPage.props.problems?.data) {
                     const newItems = inertiaPage.props.problems.data.slice(0, 6)

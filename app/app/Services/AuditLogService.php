@@ -14,6 +14,7 @@ class AuditLogService
         AuditLog::EVENT_LOGIN,
         AuditLog::EVENT_LOGOUT,
         AuditLog::EVENT_AUDIT_CONFIG,
+        AuditLog::EVENT_INTEGRATION,
     ];
 
     public function shouldLog(string $eventType): bool
