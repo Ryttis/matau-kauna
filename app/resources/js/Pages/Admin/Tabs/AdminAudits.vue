@@ -119,11 +119,6 @@ function eventTypeLabel(type) {
     return EVENT_TYPE_LABELS[type] ?? type ?? '—'
 }
 
-function subjectDisplay(row) {
-    if (!row.subject_type) return '—'
-    return row.subject_id ? `${row.subject_type}#${row.subject_id}` : row.subject_type
-}
-
 watch([() => filters.value.date_from, () => filters.value.date_to, () => filters.value.event_type, () => filters.value.result, () => filters.value.search], () => {
     currentPage.value = 1
     load()
@@ -207,7 +202,6 @@ loadSettings()
                         <th>Atlikėjas</th>
                         <th>Įvykio tipas</th>
                         <th>Veiksmas</th>
-                        <th>Subjektas</th>
                         <th>Rezultatas</th>
                         <th>Žinutė</th>
                     </tr>
@@ -217,13 +211,12 @@ loadSettings()
                         <td>{{ formatDate(row.occurred_at) }}</td>
                         <td>{{ row.actor_identifier ?? '—' }}</td>
                         <td>{{ eventTypeLabel(row.event_type) }}</td>
-                        <td>{{ row.action ?? '—' }}</td>
-                        <td>{{ subjectDisplay(row) }}</td>
+                        <td>{{ row.action_label || row.action || '—' }}</td>
                         <td>{{ row.result === 'success' ? 'Sėkmė' : 'Klaida' }}</td>
                         <td>{{ row.message ?? '—' }}</td>
                     </tr>
                     <tr v-if="!data.length">
-                        <td colspan="7" class="empty-cell">Nėra įrašų pagal pasirinktus filtrus.</td>
+                        <td colspan="6" class="empty-cell">Nėra įrašų pagal pasirinktus filtrus.</td>
                     </tr>
                 </tbody>
             </table>

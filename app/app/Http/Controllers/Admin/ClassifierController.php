@@ -49,7 +49,7 @@ class ClassifierController extends Controller
         if (! empty($validated['parent_id'])) {
             $parent = ClassifierValue::findOrFail($validated['parent_id']);
             if ($parent->parent_id !== null) {
-                return response()->json(['message' => 'Invalid parent.'], 422);
+                return response()->json(['message' => 'Galima susieti tik su problemos rūšimi, ne su pobūdžiu.'], 422);
             }
         }
 

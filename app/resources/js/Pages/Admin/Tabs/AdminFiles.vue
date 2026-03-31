@@ -163,16 +163,6 @@ onMounted(load)
                                 class="inp"
                             />
                         </div>
-                        <div class="field-row">
-                            <span class="field-lbl">Aprašymas, simb.</span>
-                            <input
-                                v-model.number="config[ch].description_max_chars"
-                                type="number"
-                                min="1000"
-                                max="65535"
-                                class="inp"
-                            />
-                        </div>
                     </div>
                 </section>
             </div>

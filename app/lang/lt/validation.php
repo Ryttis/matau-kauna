@@ -168,7 +168,7 @@ return [
         'status' => 'būsena',
         'visibility' => 'matomumas',
         'comment' => 'komentaras',
-        'problem_type_id' => 'problemos tipas',
+        'problem_type_id' => 'problemos rūšis',
         'problem_nature_id' => 'problemos pobūdis',
     ],
 
