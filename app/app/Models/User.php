@@ -125,13 +125,11 @@ class User extends Authenticatable implements MustVerifyEmail
     {
         $permissions = [];
 
-        $roles = $this->roles()->with('permissionGroups.permissions')->get();
+        $roles = $this->roles()->with('permissions')->get();
 
         foreach ($roles as $role) {
-            foreach ($role->permissionGroups as $group) {
-                foreach ($group->permissions as $permission) {
-                    $permissions[$permission->permission] = $permission->permission;
-                }
+            foreach ($role->permissions as $permission) {
+                $permissions[$permission->permission] = $permission->permission;
             }
         }
 
@@ -140,7 +138,7 @@ class User extends Authenticatable implements MustVerifyEmail
 
     public function permissionsForRole(string $roleId): array
     {
-        $role = $this->roles()->with('permissionGroups.permissions')
+        $role = $this->roles()->with('permissions')
             ->where('user_role.id', $roleId)
             ->first();
 
@@ -149,10 +147,8 @@ class User extends Authenticatable implements MustVerifyEmail
         }
 
         $permissions = [];
-        foreach ($role->permissionGroups as $group) {
-            foreach ($group->permissions as $permission) {
-                $permissions[$permission->permission] = $permission->permission;
-            }
+        foreach ($role->permissions as $permission) {
+            $permissions[$permission->permission] = $permission->permission;
         }
 
         return array_values($permissions);

@@ -24,7 +24,6 @@ const errorMessage = ref('')
 const usersPage = ref(null)
 const roles = ref([])
 const institutions = ref([])
-const groups = ref([])
 const permissions = ref([])
 
 const clearError = () => {
@@ -44,11 +43,6 @@ const loadRoles = async () => {
 const loadInstitutions = async () => {
     const { data } = await axios.get(adminApi.institutionsList)
     institutions.value = data
-}
-
-const loadGroups = async () => {
-    const { data } = await axios.get(adminRbacApi.groups)
-    groups.value = data
 }
 
 const loadPermissions = async () => {
@@ -72,7 +66,7 @@ const setTab = async (tab) => {
         }
 
         if (tab === 'roles') {
-            await Promise.all([loadRoles(), loadGroups()])
+            await loadRoles()
         }
 
         if (tab === 'permissions') {
@@ -135,7 +129,6 @@ onMounted(async () => {
                 v-else-if="activeSubTab === 'roles'"
                 :saving="saving"
                 :roles="roles"
-                :groups="groups"
                 @set-saving="saving = $event"
                 @refresh="setTab('roles')"
                 @show-success="showWithMessage($event)"

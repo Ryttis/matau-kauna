@@ -26,13 +26,13 @@ class UserRole extends Model
 
     public const ROLE_REPORTER = 'ROLE_REPORTER';
 
-    public function permissionGroups(): BelongsToMany
+    public function permissions(): BelongsToMany
     {
         return $this->belongsToMany(
-            UserRolePermissionGroup::class,
-            'user_role_permission_group_role_map',
+            UserRolePermission::class,
+            'user_role_permission_map',
             'role_id',
-            'group_id'
+            'permission_id'
         );
     }
 
