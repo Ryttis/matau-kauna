@@ -5,7 +5,6 @@ use App\Http\Controllers\Admin\ClassifierController as AdminClassifierController
 use App\Http\Controllers\Admin\InstitutionController as AdminInstitutionController;
 use App\Http\Controllers\Admin\InvitationController as AdminInvitationController;
 use App\Http\Controllers\Admin\RbacPermissionController;
-use App\Http\Controllers\Admin\RbacPermissionGroupController;
 use App\Http\Controllers\Admin\RbacRoleController;
 use App\Http\Controllers\Admin\RbacUserController;
 use App\Http\Controllers\AutomationAssignmentRuleController;
@@ -143,12 +142,6 @@ Route::middleware(['auth', 'verified', 'reporter.terms'])->group(function () {
             Route::get('/rbac/roles', [RbacRoleController::class, 'roles']);
             Route::post('/rbac/roles', [RbacRoleController::class, 'createRole']);
             Route::delete('/rbac/roles/{role}', [RbacRoleController::class, 'deleteRole']);
-            Route::post('/rbac/roles/{role}/groups', [RbacRoleController::class, 'syncRoleGroups']);
-
-            Route::get('/rbac/groups', [RbacPermissionGroupController::class, 'groups']);
-            Route::post('/rbac/groups', [RbacPermissionGroupController::class, 'createGroup']);
-            Route::delete('/rbac/groups/{group}', [RbacPermissionGroupController::class, 'deleteGroup']);
-            Route::post('/rbac/groups/{group}/permissions', [RbacPermissionGroupController::class, 'syncGroupPermissions']);
 
             Route::get('/rbac/permissions', [RbacPermissionController::class, 'permissions']);
             Route::post('/rbac/permissions', [RbacPermissionController::class, 'createPermission']);

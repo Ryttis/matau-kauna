@@ -12,10 +12,6 @@ const props = defineProps({
         type: Array,
         default: () => []
     },
-    groups: {
-        type: Array,
-        default: () => []
-    },
     saving: {
         type: Boolean,
         default: false
@@ -26,13 +22,9 @@ const emit = defineEmits(['refresh', 'set-saving', 'show-success'])
 
 const isCreateOpen = ref(false)
 const isDeleteOpen = ref(false)
-const isAssignGroupsOpen = ref(false)
 
 const createForm = ref({ role: '', name: '' })
 const deleteTarget = ref({ id: null, name: '', role: '' })
-
-const selectedRole = ref(null)
-const selectedGroupIds = ref([])
 
 const openCreate = () => {
     createForm.value = { role: '', name: '' }
@@ -42,12 +34,6 @@ const openCreate = () => {
 const openDelete = (r) => {
     deleteTarget.value = { id: r.id, name: r.name, role: r.role }
     isDeleteOpen.value = true
-}
-
-const openAssignGroups = (r) => {
-    selectedRole.value = r
-    selectedGroupIds.value = (r.permission_groups ?? []).map(g => g.id)
-    isAssignGroupsOpen.value = true
 }
 
 const createRole = async () => {
@@ -76,23 +62,6 @@ const deleteRole = async () => {
     }
 }
 
-const saveRoleGroups = async () => {
-    if (!selectedRole.value) return
-
-    emit('set-saving', true)
-
-    try {
-        await axios.post(adminRbacApi.roleGroups(selectedRole.value.id), {
-            group_ids: selectedGroupIds.value
-        })
-
-        isAssignGroupsOpen.value = false
-        emit('show-success', 'Rolės grupės atnaujintos.')
-        emit('refresh')
-    } finally {
-        emit('set-saving', false)
-    }
-}
 </script>
 
 <template>
@@ -107,7 +76,6 @@ const saveRoleGroups = async () => {
                 <tr>
                     <th>Pavadinimas</th>
                     <th>Rolės kodas</th>
-                    <th>Grupės</th>
                     <th>Veiksmai</th>
                 </tr>
             </thead>
@@ -116,12 +84,7 @@ const saveRoleGroups = async () => {
                 <tr v-for="r in roles" :key="r.id">
                     <td>{{ r.name }}</td>
                     <td>{{ r.role }}</td>
-                    <td>
-                        <span v-for="g in (r.permission_groups ?? [])" :key="g.id" class="pill">
-                            {{ g.name }}
-                        </span>
-                    </td>
-                    <td class="actions"><span class="actions-row"><button type="button" class="link-btn" @click="openAssignGroups(r)">Grupės</button><button type="button" class="link-btn danger" @click="openDelete(r)">Trinti</button></span></td>
+                    <td class="actions"><span class="actions-row"><button type="button" class="link-btn danger" @click="openDelete(r)">Trinti</button></span></td>
                 </tr>
             </tbody>
         </table>
@@ -140,35 +103,6 @@ const saveRoleGroups = async () => {
                     as-button
                     :disabled="saving"
                     @click="createRole"
-                />
-            </template>
-        </BaseModal>
-
-        <BaseModal
-            :open="isAssignGroupsOpen"
-            title="Priskirti grupes rolei"
-            width="640px"
-            @close="isAssignGroupsOpen = false"
-        >
-            <div class="hint">
-                Rolė: <strong>{{ selectedRole?.name }}</strong>
-            </div>
-
-            <div class="checklist">
-                <label v-for="g in groups" :key="g.id" class="check">
-                    <input type="checkbox" :value="g.id" v-model="selectedGroupIds" />
-                    <span>{{ g.name }}</span>
-                </label>
-            </div>
-
-            <template #footer>
-                <AppButton text="Atšaukti" variant="secondary" as-button @click="isAssignGroupsOpen = false" />
-                <AppButton
-                    :text="saving ? 'Saugoma...' : 'Išsaugoti'"
-                    variant="primary"
-                    as-button
-                    :disabled="saving"
-                    @click="saveRoleGroups"
                 />
             </template>
         </BaseModal>

@@ -17,7 +17,6 @@ class RbacRoleController extends Controller
     public function roles()
     {
         return UserRole::query()
-            ->with(['permissionGroups:id,name'])
             ->orderBy('name')
             ->get();
     }
@@ -40,30 +39,12 @@ class RbacRoleController extends Controller
         }
     }
 
-    public function syncRoleGroups(Request $request, UserRole $role)
-    {
-        $data = $request->validate([
-            'group_ids' => ['array'],
-            'group_ids.*' => ['uuid', 'exists:user_role_permission_group,id'],
-        ]);
-
-        try {
-            $role->permissionGroups()->sync($data['group_ids'] ?? []);
-            $this->auditLogService->logUserAction($request->user(), 'rbac.role.sync_groups', 'UserRole', $role->id, AuditLogResult::Success);
-
-            return $role->load('permissionGroups:id,name');
-        } catch (\Throwable $e) {
-            $this->auditLogService->logUserAction($request->user(), 'rbac.role.sync_groups', 'UserRole', $role->id, AuditLogResult::Error, $e->getMessage());
-            throw $e;
-        }
-    }
-
     public function deleteRole(Request $request, UserRole $role)
     {
         $roleId = $role->id;
         try {
             $role->users()->detach();
-            $role->permissionGroups()->detach();
+            $role->permissions()->detach();
             $role->delete();
             $this->auditLogService->logUserAction($request->user(), 'rbac.role.delete', 'UserRole', $roleId, AuditLogResult::Success);
 

@@ -14,13 +14,13 @@ class UserRolePermission extends Model
 
     protected $fillable = ['permission'];
 
-    public function groups(): BelongsToMany
+    public function roles(): BelongsToMany
     {
         return $this->belongsToMany(
-            UserRolePermissionGroup::class,
-            'user_role_permission_group_map',
+            UserRole::class,
+            'user_role_permission_map',
             'permission_id',
-            'group_id'
+            'role_id'
         );
     }
 }

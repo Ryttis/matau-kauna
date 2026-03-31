@@ -42,7 +42,7 @@ class RbacPermissionController extends Controller
     {
         $permissionId = $permission->id;
         try {
-            $permission->groups()->detach();
+            $permission->roles()->detach();
             $permission->delete();
             $this->auditLogService->logUserAction($request->user(), 'rbac.permission.delete', 'UserRolePermission', $permissionId, AuditLogResult::Success);
 
