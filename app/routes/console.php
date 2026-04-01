@@ -9,7 +9,10 @@ Artisan::command('inspire', function () {
 })->purpose('Display an inspiring quote');
 
 Schedule::command('problems:check-deadlines')->daily();
-Schedule::command('archive:process')->daily();
+Schedule::command('archive:process')
+    ->dailyAt('00:10')
+    ->timezone('Europe/Vilnius')
+    ->withoutOverlapping();
 Schedule::command('audit:purge')->daily();
 Schedule::command('reporters:inactive-deletion')
     ->dailyAt('00:00')
