@@ -79,6 +79,12 @@ useKaunasMap(mapContainer, problemsToShow, {
     overflow: hidden;
 }
 
+.kaunas-map-container :deep(.leaflet-control-container),
+.kaunas-map-container :deep(.leaflet-top),
+.kaunas-map-container :deep(.leaflet-bottom) {
+    z-index: 400;
+}
+
 .kaunas-map-container :deep(.leaflet-marker-icon.kaunas-map-marker) {
     background: transparent !important;
     border: none !important;
@@ -133,5 +139,17 @@ useKaunasMap(mapContainer, problemsToShow, {
     width: 10px;
     height: 10px;
     border-radius: 50%;
+}
+
+@media (max-width: 767px) {
+    .kaunas-map-container :deep(.leaflet-top.leaflet-right) {
+        top: 8px;
+        right: 8px;
+    }
+
+    .kaunas-map-container :deep(.leaflet-top.leaflet-right .leaflet-control) {
+        margin-top: 0;
+        margin-right: 0;
+    }
 }
 </style>

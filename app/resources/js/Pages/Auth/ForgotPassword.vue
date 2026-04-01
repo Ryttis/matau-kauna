@@ -63,12 +63,19 @@ h2 {
 }
 
 .forgot-password-form {
-    width: 400px;
+    width: 100%;
+    max-width: 400px;
     margin: 0 auto;
+    padding: 0 1rem;
     font-size: 18px;
+    box-sizing: border-box;
 }
 
 .btn-wrp {
-    margin: 0 40px;
+    margin: 0;
+}
+
+.btn-wrp :deep(.app-button) {
+    width: 100%;
 }
 </style>

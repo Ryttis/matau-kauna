@@ -31,7 +31,7 @@ function resend() {
         },
         onError: () => {
             resendError.value =
-                'Nepavyko išsiųsti. Jei bandote labai dažnai, palaukite minutę. Patikrinkite .env: MAIL_MAILER=smtp, MAIL_HOST, MAIL_USERNAME ir MAIL_PASSWORD (Mailtrap SMTP).';
+                'Nepavyko išsiųsti patvirtinimo nuorodos. Pabandykite vėliau.';
         },
     });
 }
