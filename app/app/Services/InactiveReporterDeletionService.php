@@ -2,16 +2,19 @@
 
 namespace App\Services;
 
+use App\Jobs\DeleteInactiveReporterJob;
+use App\Jobs\SendInactiveReporterReminderJob;
 use App\Models\EmailNotificationTemplate;
 use App\Models\InactiveReporterDeletionSetting;
 use App\Models\LoginLog;
 use App\Models\User;
 use App\Models\UserRole;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\DB;
 
 class InactiveReporterDeletionService
 {
-    public function runRemindersAndDeletions(): array
+    public function runRemindersAndDeletions(bool $dispatchToQueue = true): array
     {
         $setting = InactiveReporterDeletionSetting::get();
         if (! $setting || ! $setting->is_active) {
@@ -33,11 +36,19 @@ class InactiveReporterDeletionService
                 continue;
             }
             if ($lastLogin->lt($deletionThreshold)) {
-                $this->deleteReporter($user);
+                if ($dispatchToQueue) {
+                    DeleteInactiveReporterJob::dispatch($user->id);
+                } else {
+                    $this->deleteReporterById($user->id);
+                }
                 $deleted++;
             } elseif ($lastLogin->lt($reminderThreshold) && $user->inactive_reporter_reminder_sent_at === null) {
-                $this->sendReminder($user, $setting);
-                $user->update(['inactive_reporter_reminder_sent_at' => now()]);
+                if ($dispatchToQueue) {
+                    SendInactiveReporterReminderJob::dispatch($user->id, $setting->inactivity_days);
+                    $user->update(['inactive_reporter_reminder_sent_at' => now()]);
+                } else {
+                    $this->sendReminderByUser($user, $setting->inactivity_days);
+                }
                 $reminded++;
             }
         }
@@ -72,13 +83,56 @@ class InactiveReporterDeletionService
         return $users;
     }
 
-    private function sendReminder(User $user, InactiveReporterDeletionSetting $setting): void
+    public function sendReminderByUserId(int $userId, int $inactivityDays): void
+    {
+        $user = $this->findInactiveReporterById($userId);
+        if (! $user || $user->inactive_reporter_reminder_sent_at !== null) {
+            return;
+        }
+
+        $this->sendReminderByUser($user, $inactivityDays);
+        $user->update(['inactive_reporter_reminder_sent_at' => now()]);
+    }
+
+    public function deleteReporterById(int $userId): void
+    {
+        $user = $this->findInactiveReporterById($userId);
+        if (! $user) {
+            return;
+        }
+
+        DB::transaction(function () use ($user): void {
+            $user->roles()->detach();
+            $user->delete();
+        });
+    }
+
+    private function findInactiveReporterById(int $userId): ?User
+    {
+        return User::query()
+            ->notArchived()
+            ->where('id', $userId)
+            ->whereHas('roles', fn ($q) => $q->where('role', UserRole::ROLE_REPORTER))
+            ->whereDoesntHave('roles', fn ($q) => $q->whereIn('role', [
+                UserRole::ROLE_SYSTEM_ADMIN,
+                UserRole::ROLE_PROBLEM_ADMIN,
+                UserRole::ROLE_INSTITUTION_ADMIN,
+                UserRole::ROLE_MUNICIPALITY_REP,
+                UserRole::ROLE_EMPLOYEE,
+            ]))
+            ->first(['id', 'name', 'surname', 'email', 'last_login_at', 'inactive_reporter_reminder_sent_at']);
+    }
+
+    private function sendReminderByUser(User $user, int $inactivityDays): void
     {
         $template = EmailNotificationTemplate::getByKey(EmailNotificationTemplate::KEY_INACTIVE_REPORTER_REMINDER);
         if (! $template || ! $template->is_enabled) {
             return;
         }
-        $deletionDate = $user->last_login_at->copy()->addDays($setting->inactivity_days);
+        if (! $user->last_login_at) {
+            return;
+        }
+        $deletionDate = $user->last_login_at->copy()->addDays($inactivityDays);
         $userName = trim($user->name.' '.($user->surname ?? ''));
         if ($userName === '') {
             $userName = $user->email;
@@ -87,7 +141,7 @@ class InactiveReporterDeletionService
         $replacements = [
             '{user_name}' => $userName,
             '{deletion_date}' => $deletionDate->format('Y-m-d'),
-            '{inactivity_days}' => (string) $setting->inactivity_days,
+            '{inactivity_days}' => (string) $inactivityDays,
             '{login_url}' => $loginUrl,
         ];
         $subject = str_replace(array_keys($replacements), array_values($replacements), $template->subject);
@@ -95,11 +149,5 @@ class InactiveReporterDeletionService
         if (filter_var($user->email, FILTER_VALIDATE_EMAIL)) {
             TransactionalMail::send($user->email, $subject, $body, $loginUrl, 'Prisijungti');
         }
-    }
-
-    private function deleteReporter(User $user): void
-    {
-        $user->roles()->detach();
-        $user->delete();
     }
 }
