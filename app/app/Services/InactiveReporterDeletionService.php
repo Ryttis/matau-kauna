@@ -37,17 +37,16 @@ class InactiveReporterDeletionService
             }
             if ($lastLogin->lt($deletionThreshold)) {
                 if ($dispatchToQueue) {
-                    DeleteInactiveReporterJob::dispatch($user->id);
+                    DeleteInactiveReporterJob::dispatch($user->id, $inactivityDays);
                 } else {
-                    $this->deleteReporterById($user->id);
+                    $this->deleteReporterById($user->id, $inactivityDays);
                 }
                 $deleted++;
             } elseif ($lastLogin->lt($reminderThreshold) && $user->inactive_reporter_reminder_sent_at === null) {
                 if ($dispatchToQueue) {
-                    SendInactiveReporterReminderJob::dispatch($user->id, $setting->inactivity_days);
-                    $user->update(['inactive_reporter_reminder_sent_at' => now()]);
+                    SendInactiveReporterReminderJob::dispatch($user->id, $inactivityDays, $reminderDays);
                 } else {
-                    $this->sendReminderByUser($user, $setting->inactivity_days);
+                    $this->sendReminderByUserId($user->id, $inactivityDays, $reminderDays);
                 }
                 $reminded++;
             }
@@ -83,10 +82,19 @@ class InactiveReporterDeletionService
         return $users;
     }
 
-    public function sendReminderByUserId(int $userId, int $inactivityDays): void
+    public function sendReminderByUserId(int $userId, int $inactivityDays, int $reminderDays): void
     {
         $user = $this->findInactiveReporterById($userId);
         if (! $user || $user->inactive_reporter_reminder_sent_at !== null) {
+            return;
+        }
+
+        if (! $user->last_login_at) {
+            return;
+        }
+        $reminderThreshold = now()->subDays($reminderDays);
+        $deletionThreshold = now()->subDays($inactivityDays);
+        if (! $user->last_login_at->lt($reminderThreshold) || $user->last_login_at->lt($deletionThreshold)) {
             return;
         }
 
@@ -94,10 +102,13 @@ class InactiveReporterDeletionService
         $user->update(['inactive_reporter_reminder_sent_at' => now()]);
     }
 
-    public function deleteReporterById(int $userId): void
+    public function deleteReporterById(int $userId, int $inactivityDays): void
     {
         $user = $this->findInactiveReporterById($userId);
         if (! $user) {
+            return;
+        }
+        if (! $user->last_login_at || ! $user->last_login_at->lt(now()->subDays($inactivityDays))) {
             return;
         }
 
