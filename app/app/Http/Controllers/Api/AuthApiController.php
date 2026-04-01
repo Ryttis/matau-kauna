@@ -28,7 +28,7 @@ class AuthApiController extends Controller
 
         if (! $user || ! Hash::check($validated['password'], $user->password)) {
             throw ValidationException::withMessages([
-                'email' => [trans('auth.failed')],
+                'email' => [__('auth.failed', [], 'lt')],
             ]);
         }
 
@@ -46,7 +46,7 @@ class AuthApiController extends Controller
         $invalidStaff = $validated['login_type'] !== 'pareiskejas' && ! $hasStaffRole;
         if ($invalidReporter || $invalidStaff) {
             throw ValidationException::withMessages([
-                'email' => [trans('auth.failed')],
+                'email' => [__('auth.failed', [], 'lt')],
             ]);
         }
 

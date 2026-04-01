@@ -73,6 +73,7 @@ function formatDate(isoDateString) {
 
 .reporter-statistics-table {
     width: 100%;
+    min-width: 560px;
     border-collapse: collapse;
     font-size: 14px;
 }
@@ -129,5 +130,11 @@ function formatDate(isoDateString) {
     margin: 0;
     font-size: 14px;
     color: #666;
+}
+
+@media (max-width: 640px) {
+    .reporter-statistics-table-card {
+        padding: 16px;
+    }
 }
 </style>

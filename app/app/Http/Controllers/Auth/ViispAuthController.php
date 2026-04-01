@@ -32,7 +32,7 @@ class ViispAuthController extends Controller
     {
         $exchangeSecret = $this->viispExchangeSecret();
         if ($exchangeSecret === null) {
-            return $this->viispLoginError('VIISP: trūksta VIISP_EXCHANGE_SECRET (.env).');
+            return $this->viispLoginError('VIISP šiuo metu laikinai nepasiekiamas. Bandykite vėliau.');
         }
 
         $gatewayUrl = config('services.viisp.gateway_url');
@@ -63,11 +63,11 @@ class ViispAuthController extends Controller
                 $detail = Str::limit(trim($response->body()), 500);
             }
 
-            return $this->viispLoginError('VIISP gateway '.$response->status().': '.$detail);
+            return $this->viispLoginError('VIISP šiuo metu laikinai nepasiekiamas. Bandykite vėliau.');
         }
 
         if ($redirectUrlStr === null) {
-            return $this->viispLoginError('VIISP: neteisingas gateway atsakymas (nėra redirectUrl).');
+            return $this->viispLoginError('VIISP šiuo metu laikinai nepasiekiamas. Bandykite vėliau.');
         }
 
         return redirect()->away($redirectUrlStr);
@@ -82,7 +82,7 @@ class ViispAuthController extends Controller
 
         $secret = $this->viispExchangeSecret();
         if ($secret === null) {
-            return $this->viispLoginError('VIISP: serveryje nesukonfigūruotas VIISP_EXCHANGE_SECRET.');
+            return $this->viispLoginError('VIISP šiuo metu laikinai nepasiekiamas. Bandykite vėliau.');
         }
 
         $gatewayUrl = config('services.viisp.gateway_url');

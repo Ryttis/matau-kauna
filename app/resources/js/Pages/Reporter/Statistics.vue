@@ -148,4 +148,15 @@ const categoryOptions = computed(() => {
         grid-template-columns: 1fr;
     }
 }
+
+@media (max-width: 640px) {
+    .reporter-statistics-filters {
+        gap: 12px;
+    }
+
+    .reporter-statistics-filter-select {
+        width: 100%;
+        min-width: 0;
+    }
+}
 </style>

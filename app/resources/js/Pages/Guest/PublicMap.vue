@@ -238,7 +238,8 @@ function openProblemView(problemId) {
 }
 
 .public-map-wrap :deep(.kaunas-map-container) {
-    max-height: 55vh;
+    height: clamp(320px, 55vh, 620px);
+    min-height: 320px;
 }
 
 .public-map-list {
@@ -268,8 +269,13 @@ function openProblemView(problemId) {
         padding-bottom: 0;
     }
 
+    .public-map-list {
+        max-height: none;
+    }
+
     .public-map-wrap :deep(.kaunas-map-container) {
-        max-height: min(50vh, 420px);
+        height: clamp(300px, 45vh, 420px);
+        min-height: 300px;
     }
 }
 </style>

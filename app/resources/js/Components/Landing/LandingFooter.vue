@@ -72,7 +72,7 @@ import { ICON_QUESTION } from '@/constants/ui/icons'
     font-size: 1rem;
 }
 .landing-footer-link:hover {
-    text-decoration: underline;
+    text-decoration: none;
 }
 .landing-footer-icon {
     display: inline-block;

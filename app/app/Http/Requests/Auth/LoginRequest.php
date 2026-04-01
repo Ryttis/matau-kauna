@@ -34,7 +34,7 @@ class LoginRequest extends FormRequest
             RateLimiter::hit($this->throttleKey());
 
             throw ValidationException::withMessages([
-                'email' => trans('auth.failed'),
+                'email' => $this->authMessage('failed', 'Neteisingi prisijungimo duomenys.'),
             ]);
         }
 
@@ -71,10 +71,10 @@ class LoginRequest extends FormRequest
         $seconds = RateLimiter::availableIn($this->throttleKey());
 
         throw ValidationException::withMessages([
-            'email' => trans('auth.throttle', [
+            'email' => __('auth.throttle', [
                 'seconds' => $seconds,
                 'minutes' => ceil($seconds / 60),
-            ]),
+            ], 'lt'),
         ]);
     }
 
@@ -90,7 +90,14 @@ class LoginRequest extends FormRequest
         $this->session()->regenerateToken();
 
         throw ValidationException::withMessages([
-            'email' => trans('auth.failed'),
+            'email' => $this->authMessage('failed', 'Neteisingi prisijungimo duomenys.'),
         ]);
+    }
+
+    private function authMessage(string $key, string $fallback): string
+    {
+        $translated = __("auth.{$key}", [], 'lt');
+
+        return $translated === "auth.{$key}" ? $fallback : $translated;
     }
 }
