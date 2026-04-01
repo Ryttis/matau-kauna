@@ -2,18 +2,35 @@
 
 namespace App\Console\Commands;
 
+use App\Jobs\RunArchiveArchivingJob;
+use App\Jobs\RunArchiveDeletionJob;
 use App\Models\DataRetentionRule;
 use App\Services\DataRetentionService;
 use Illuminate\Console\Command;
 
 class ProcessArchiveCommand extends Command
 {
-    protected $signature = 'archive:process';
+    protected $signature = 'archive:process {--sync : Vykdyti sinchroniškai be queue}';
 
     protected $description = 'Archiuuoja įrašus pagal taisykles ir ištrina pasibaigusius archyvuotus įrašus.';
 
     public function handle(DataRetentionService $service): int
     {
+        if (! $this->option('sync')) {
+            RunArchiveArchivingJob::dispatch();
+            foreach ([
+                DataRetentionRule::ENTITY_USER,
+                DataRetentionRule::ENTITY_INSTITUTION,
+                DataRetentionRule::ENTITY_PROBLEM,
+                DataRetentionRule::ENTITY_CLASSIFIER_VALUE,
+            ] as $entityType) {
+                RunArchiveDeletionJob::dispatch($entityType);
+            }
+            $this->info('Archyvavimo ir trynimo jobai įdėti į queue.');
+
+            return self::SUCCESS;
+        }
+
         $service->runArchive();
         $inArchive = $service->countArchived();
         $deletedTotal = 0;
