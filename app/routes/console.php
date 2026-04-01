@@ -13,7 +13,10 @@ Schedule::command('archive:process')
     ->dailyAt('00:10')
     ->timezone('Europe/Vilnius')
     ->withoutOverlapping();
-Schedule::command('audit:purge')->daily();
+Schedule::command('audit:purge')
+    ->dailyAt('00:20')
+    ->timezone('Europe/Vilnius')
+    ->withoutOverlapping();
 Schedule::command('reporters:inactive-deletion')
     ->dailyAt('00:00')
     ->timezone('Europe/Vilnius')
