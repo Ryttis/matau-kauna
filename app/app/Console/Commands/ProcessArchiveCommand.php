@@ -33,8 +33,7 @@ class ProcessArchiveCommand extends Command
             return self::SUCCESS;
         }
 
-        $service->runArchive();
-        $inArchive = $service->countArchived();
+        $archivedNow = $service->runArchive();
         $deletedTotal = 0;
         foreach ([
             DataRetentionRule::ENTITY_USER,
@@ -45,8 +44,8 @@ class ProcessArchiveCommand extends Command
             $deletedTotal += $service->runDeletionFor($entityType);
         }
 
-        if ($inArchive > 0 || $deletedTotal > 0) {
-            $this->info("Archivuota: {$inArchive}, ištrinta: {$deletedTotal}.");
+        if ($archivedNow > 0 || $deletedTotal > 0) {
+            $this->info("Archivuota: {$archivedNow}, ištrinta: {$deletedTotal}.");
         }
 
         return self::SUCCESS;
