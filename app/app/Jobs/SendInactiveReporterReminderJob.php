@@ -20,10 +20,11 @@ class SendInactiveReporterReminderJob implements ShouldQueue
     public function __construct(
         public int $userId,
         public int $inactivityDays,
+        public int $reminderDays,
     ) {}
 
     public function handle(InactiveReporterDeletionService $service): void
     {
-        $service->sendReminderByUserId($this->userId, $this->inactivityDays);
+        $service->sendReminderByUserId($this->userId, $this->inactivityDays, $this->reminderDays);
     }
 }

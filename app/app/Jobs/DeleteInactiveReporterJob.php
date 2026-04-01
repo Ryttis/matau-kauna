@@ -17,10 +17,13 @@ class DeleteInactiveReporterJob implements ShouldQueue
 
     public int $timeout = 120;
 
-    public function __construct(public int $userId) {}
+    public function __construct(
+        public int $userId,
+        public int $inactivityDays,
+    ) {}
 
     public function handle(InactiveReporterDeletionService $service): void
     {
-        $service->deleteReporterById($this->userId);
+        $service->deleteReporterById($this->userId, $this->inactivityDays);
     }
 }
