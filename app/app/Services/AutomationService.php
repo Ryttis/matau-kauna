@@ -123,9 +123,17 @@ class AutomationService
                     ->value('created_at');
                 $lastLoginAt = $fromLog ? Carbon::parse($fromLog) : null;
             }
-            $inactiveDays = $lastLoginAt
-                ? (int) $lastLoginAt->diffInDays(now(), false)
-                : null;
+            $inactiveDays = null;
+            if ($lastLoginAt !== null) {
+                if ($lastLoginAt->greaterThan(now())) {
+                    $inactiveDays = 0;
+                } else {
+                    $inactiveDays = (int) $lastLoginAt->copy()->startOfDay()->diffInDays(
+                        now()->copy()->startOfDay(),
+                        true
+                    );
+                }
+            }
 
             $list[] = [
                 'id' => $user->id,
