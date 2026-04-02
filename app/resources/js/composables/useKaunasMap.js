@@ -9,6 +9,9 @@ const MERGED_MARKER_SIZE = 14
 const CLUSTER_MARKER_SIZE = 28
 const DEFAULT_MARKER_SIZE = 14
 
+const REFIT_DEBOUNCE_MS = 120
+const EXTRA_REFIT_DELAYS_MS = [400, 800]
+
 function escapeHtml(text) {
     return (text || '').replace(/</g, '&lt;').replace(/>/g, '&gt;')
 }
@@ -24,34 +27,65 @@ export function useKaunasMap(containerRef, problemsToShowRef, options = {}) {
         focusHighlightedMarker = true,
     } = options
 
-    const shouldAutoFitView = () => {
-        if (autoFitView == null) return true
-        return unref(autoFitView) !== false
-    }
+    const shouldAutoFitView = () => autoFitView == null || unref(autoFitView) !== false
+    const shouldFocusHighlightedMarker = () =>
+        focusHighlightedMarker == null || unref(focusHighlightedMarker) !== false
 
-    const shouldFocusHighlightedMarker = () => {
-        if (focusHighlightedMarker == null) return true
-        return unref(focusHighlightedMarker) !== false
-    }
     let map = null
     let markersLayer = null
     let initialized = false
     let removeNavListener = null
     let resizeObserver = null
+    let resizeRefitTimer = null
+    let removeZoomListener = null
     const markersById = {}
-
-    function scheduleInvalidateSize() {
-        if (!map) return
-        requestAnimationFrame(() => {
-            if (map) map.invalidateSize({ animate: false })
-        })
-    }
 
     const getMergedSet = () => {
         const raw = unref(mergedProblemIds)
         return new Set((Array.isArray(raw) ? raw : []).map(Number))
     }
     const getHighlightedId = () => unref(highlightedProblemId)
+
+    function fitMapToProblems() {
+        if (!map || typeof L === 'undefined' || !shouldAutoFitView()) return
+        const list = Array.isArray(problemsToShowRef.value) ? problemsToShowRef.value : []
+        if (list.length === 0) return
+        if (list.length === 1) {
+            const p = list[0]
+            if (p.lat == null || p.lng == null) return
+            map.setView([Number(p.lat), Number(p.lng)], 14)
+            return
+        }
+        const allLatLng = list
+            .filter((p) => p.lat != null && p.lng != null)
+            .map((p) => [Number(p.lat), Number(p.lng)])
+        if (allLatLng.length === 0) return
+        const bounds = L.latLngBounds(allLatLng)
+        if (!bounds.isValid()) return
+        try {
+            map.fitBounds(bounds.pad(0.1))
+        } catch {}
+    }
+
+    function panToHighlightedMarker() {
+        if (!map || !shouldFocusHighlightedMarker()) return
+        const id = getHighlightedId()
+        if (id == null) return
+        const marker = markersById[id]
+        if (marker) map.panTo(marker.getLatLng())
+    }
+
+    function scheduleInvalidateSize(refitAfter = false) {
+        if (!map) return
+        requestAnimationFrame(() => {
+            if (!map) return
+            map.invalidateSize({ animate: false })
+            if (refitAfter) {
+                fitMapToProblems()
+                panToHighlightedMarker()
+            }
+        })
+    }
 
     function buildPopupContent(problem) {
         const num = escapeHtml(problem.internal_number)
@@ -75,19 +109,16 @@ export function useKaunasMap(containerRef, problemsToShowRef, options = {}) {
         if (!map) return
         const handler = (event) => {
             const openBtn = event.target.closest('.kaunas-map-popup-open-problem[data-open-problem-id]')
-            if (openBtn) {
-                event.preventDefault()
-                event.stopPropagation()
-                const id = Number(openBtn.getAttribute('data-open-problem-id'))
-                if (onProblemOpen && id) onProblemOpen(id)
-                map.closePopup()
-                return
-            }
+            if (!openBtn) return
+            event.preventDefault()
+            event.stopPropagation()
+            const id = Number(openBtn.getAttribute('data-open-problem-id'))
+            if (onProblemOpen && id) onProblemOpen(id)
+            map.closePopup()
         }
         const container = map.getContainer()
         container.addEventListener('click', handler)
-        const cleanupNav = () => container.removeEventListener('click', handler)
-        return cleanupNav
+        return () => container.removeEventListener('click', handler)
     }
 
     function updateMarkers(skipFitView = false) {
@@ -97,14 +128,16 @@ export function useKaunasMap(containerRef, problemsToShowRef, options = {}) {
         const items = clusterProblems(list, zoom)
         const merged = getMergedSet()
         const mainId = getHighlightedId()
-        Object.keys(markersById).forEach((problemId) => delete markersById[problemId])
+        Object.keys(markersById).forEach((k) => delete markersById[k])
         markersLayer.clearLayers()
         items.forEach((item) => {
             if (item.type === 'single') {
                 const problem = item.problem
                 const isMain = mainId != null && Number(problem.id) === Number(mainId)
                 const isMerged = merged.has(Number(problem.id))
-                const color = (isMain || isMerged) ? (isMain ? MAP_HIGHLIGHT_COLOR : MAP_MERGED_MARKER_COLOR) : getMarkerColorForStatus(problem.status)
+                const color = (isMain || isMerged)
+                    ? (isMain ? MAP_HIGHLIGHT_COLOR : MAP_MERGED_MARKER_COLOR)
+                    : getMarkerColorForStatus(problem.status)
                 const size = isMain ? HIGHLIGHTED_MARKER_SIZE : (isMerged ? MERGED_MARKER_SIZE : DEFAULT_MARKER_SIZE)
                 const icon = L.divIcon({
                     className: markerClassName,
@@ -132,25 +165,10 @@ export function useKaunasMap(containerRef, problemsToShowRef, options = {}) {
             }
         })
         if (!skipFitView && shouldAutoFitView()) {
-            if (list.length === 1) {
-                map.setView([list[0].lat, list[0].lng], 14)
-            } else if (list.length > 1 && items.length > 0) {
-                const allLatLng = list.map((problem) => [problem.lat, problem.lng])
-                const bounds = L.latLngBounds(allLatLng)
-                map.fitBounds(bounds.pad(0.1))
-            }
+            fitMapToProblems()
         }
-        const highlightedId = getHighlightedId()
-        if (shouldFocusHighlightedMarker() && highlightedId && markersById[highlightedId]) {
-            nextTick(() => {
-                if (map && markersById[highlightedId]) {
-                    map.panTo(markersById[highlightedId].getLatLng())
-                }
-            })
-        }
+        nextTick(() => panToHighlightedMarker())
     }
-
-    let removeZoomListener = null
 
     function initMap() {
         if (initialized || !containerRef.value || typeof L === 'undefined') return
@@ -162,18 +180,30 @@ export function useKaunasMap(containerRef, problemsToShowRef, options = {}) {
         removeNavListener = setupPopupNavListener()
         const zoomHandler = () => updateMarkers(true)
         map.on('zoomend', zoomHandler)
-        removeZoomListener = () => { if (map) map.off('zoomend', zoomHandler) }
+        removeZoomListener = () => {
+            if (map) map.off('zoomend', zoomHandler)
+        }
         updateMarkers()
-        setTimeout(scheduleInvalidateSize, invalidateSizeDelay)
-        setTimeout(scheduleInvalidateSize, 400)
+        setTimeout(() => scheduleInvalidateSize(true), invalidateSizeDelay)
+        EXTRA_REFIT_DELAYS_MS.forEach((ms) => setTimeout(() => scheduleInvalidateSize(true), ms))
 
         if (typeof ResizeObserver !== 'undefined' && containerRef.value) {
-            resizeObserver = new ResizeObserver(() => scheduleInvalidateSize())
+            resizeObserver = new ResizeObserver(() => {
+                if (resizeRefitTimer) clearTimeout(resizeRefitTimer)
+                resizeRefitTimer = setTimeout(() => {
+                    resizeRefitTimer = null
+                    scheduleInvalidateSize(shouldAutoFitView())
+                }, REFIT_DEBOUNCE_MS)
+            })
             resizeObserver.observe(containerRef.value)
         }
     }
 
     function cleanup() {
+        if (resizeRefitTimer) {
+            clearTimeout(resizeRefitTimer)
+            resizeRefitTimer = null
+        }
         if (resizeObserver) {
             resizeObserver.disconnect()
             resizeObserver = null
@@ -201,9 +231,7 @@ export function useKaunasMap(containerRef, problemsToShowRef, options = {}) {
     watch(problemsToShowRef, updateMarkers, { deep: true })
 
     const watchOption = (option, deep = false) => {
-        if (!isRef(option)) {
-            return
-        }
+        if (!isRef(option)) return
         watch(option, () => updateMarkers(true), deep ? { deep: true } : undefined)
     }
 
@@ -213,6 +241,4 @@ export function useKaunasMap(containerRef, problemsToShowRef, options = {}) {
     watchOption(mergedProblemIds, true)
 
     onUnmounted(cleanup)
-
-    return { updateMarkers, initMap, cleanup }
 }
