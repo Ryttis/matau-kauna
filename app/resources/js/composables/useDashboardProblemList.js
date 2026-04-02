@@ -293,15 +293,32 @@ export function useDashboardProblemList(props) {
         showDeleteModal.value = true
     }
 
+    const deleteConfirmMessage = computed(() => {
+        const n = selectedProblems.value.length
+        if (n <= 1) {
+            return 'Ar tikrai norite ištrinti šią problemą?'
+        }
+        return `Ar tikrai norite pašalinti pažymėtas problemas (${n})?`
+    })
+
     const handleConfirmDelete = () => {
         if (selectedProblems.value.length === 0) return
-        router.delete(route('problems.destroy', selectedProblems.value[0]), {
+        const ids = [...selectedProblems.value]
+        const onSuccess = () => {
+            showDeleteModal.value = false
+            selectedProblems.value = []
+            loadProblems(false)
+        }
+        if (ids.length === 1) {
+            router.delete(route('problems.destroy', ids[0]), {
+                preserveScroll: false,
+                onSuccess,
+            })
+            return
+        }
+        router.post(route('problems.bulkDestroy'), { problem_ids: ids }, {
             preserveScroll: false,
-            onSuccess: () => {
-                showDeleteModal.value = false
-                selectedProblems.value = []
-                loadProblems(false)
-            },
+            onSuccess,
         })
     }
 
@@ -400,6 +417,7 @@ export function useDashboardProblemList(props) {
         exportDropdown,
         problemsList,
         showDeleteModal,
+        deleteConfirmMessage,
         displayRows,
         selectedIncludesResolvedProblem,
         selectedProblemIdForReview,

@@ -45,6 +45,7 @@ const {
     exportDropdown,
     problemsList,
     showDeleteModal,
+    deleteConfirmMessage,
     displayRows,
     selectedIncludesResolvedProblem,
     selectedProblemIdForReview,
@@ -167,7 +168,7 @@ const {
                 variant="secondary"
                 as-button
                 class="list-nav-btn"
-                :disabled="selectedProblems.length !== 1"
+                :disabled="selectedProblems.length === 0"
                 @click="handleDeleteProblems"
             />
         </template>
@@ -229,13 +230,12 @@ const {
 
     <ConfirmModal
         :open="showDeleteModal"
-        message="Ar tikrai norite ištrinti šią problemą?"
+        :message="deleteConfirmMessage"
         confirm-text="Patvirtinti"
         cancel-text="Atšaukti"
         footer-layout="column"
         confirm-variant="primary"
         width="369px"
-        max-height="275px"
         @close="showDeleteModal = false"
         @confirm="handleConfirmDelete"
     />

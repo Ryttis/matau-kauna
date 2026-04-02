@@ -98,6 +98,7 @@ Route::middleware(['auth', 'verified', 'reporter.terms'])->group(function () {
         Route::put('/problems/{problem}/review-progress/{entry}', [ProblemReviewController::class, 'updateReviewProgress'])->name('problems.reviewProgress.update');
         Route::delete('/problems/{problem}/review-progress/attachments/{attachment}', [ProblemReviewController::class, 'destroyReviewAttachment'])->name('problems.reviewProgress.attachments.destroy');
         Route::post('/problems/bulk-update-status', [ProblemController::class, 'bulkUpdateStatus'])->name('problems.bulkUpdateStatus');
+        Route::post('/problems/bulk-destroy', [ProblemController::class, 'bulkDestroy'])->name('problems.bulkDestroy');
         Route::patch('/problems/{problem}/publish', [ProblemController::class, 'updatePublish'])->name('problems.updatePublish');
         Route::post('/problems/bulk-update-publish', [ProblemController::class, 'bulkUpdatePublish'])->name('problems.bulkUpdatePublish');
     });

@@ -231,6 +231,35 @@ class ProblemController extends Controller
         return redirect()->route('dashboard')->with('success', 'Problema perkelta į archyvą');
     }
 
+    public function bulkDestroy(Request $request): RedirectResponse
+    {
+        $user = $request->user();
+        if (! $user->hasRole(UserRole::ROLE_EMPLOYEE) && ! $user->hasRole(UserRole::ROLE_SYSTEM_ADMIN)) {
+            abort(403);
+        }
+
+        $validated = $request->validate([
+            'problem_ids' => 'required|array|min:1',
+            'problem_ids.*' => 'required|integer|exists:problems,id',
+        ]);
+
+        $query = Problem::whereIn('id', $validated['problem_ids']);
+        $this->scopeService->scopeProblemsForUser($query, $user);
+        $this->scopeService->ensureScopeMatchesCount($query, count($validated['problem_ids']));
+
+        $allIds = Problem::expandIdsToMergeGroups($validated['problem_ids']);
+        Problem::whereIn('id', $allIds)->update([
+            'is_archived' => true,
+            'archived_at' => now(),
+        ]);
+
+        $message = count($validated['problem_ids']) > 1
+            ? 'Problemos perkeltos į archyvą'
+            : 'Problema perkelta į archyvą';
+
+        return redirect()->back()->with('success', $message);
+    }
+
     public function export(Request $request)
     {
         $user = $request->user();
