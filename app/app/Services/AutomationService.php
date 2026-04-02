@@ -111,7 +111,7 @@ class AutomationService
                 UserRole::ROLE_MUNICIPALITY_REP,
                 UserRole::ROLE_EMPLOYEE,
             ]))
-            ->get(['id', 'name', 'surname', 'email', 'last_login_at']);
+            ->get(['id', 'name', 'surname', 'email', 'last_login_at', 'created_at']);
 
         $list = [];
         foreach ($users as $user) {
@@ -123,12 +123,13 @@ class AutomationService
                     ->value('created_at');
                 $lastLoginAt = $fromLog ? Carbon::parse($fromLog) : null;
             }
-            $inactiveDays = null;
-            if ($lastLoginAt !== null) {
-                if ($lastLoginAt->greaterThan(now())) {
+            $referenceAt = $lastLoginAt ?? $user->created_at;
+            $inactiveDays = 0;
+            if ($referenceAt !== null) {
+                if ($referenceAt->greaterThan(now())) {
                     $inactiveDays = 0;
                 } else {
-                    $inactiveDays = (int) $lastLoginAt->copy()->startOfDay()->diffInDays(
+                    $inactiveDays = (int) $referenceAt->copy()->startOfDay()->diffInDays(
                         now()->copy()->startOfDay(),
                         true
                     );

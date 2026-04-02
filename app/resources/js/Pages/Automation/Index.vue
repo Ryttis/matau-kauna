@@ -289,7 +289,7 @@ watch(() => props.inactiveReporterSetting, syncInactiveReporterFormFromProps, { 
 const inactiveReporterSearch = ref('')
 
 const filteredInactiveReporters = computed(() => {
-    const rows = props.inactiveReportersList || []
+    let rows = (props.inactiveReportersList || []).filter((row) => Number(row.inactive_days || 0) > 0)
     const q = inactiveReporterSearch.value.trim().toLowerCase()
     if (!q) return rows
     return rows.filter((row) => {
@@ -300,7 +300,7 @@ const filteredInactiveReporters = computed(() => {
 })
 
 const inactiveReporterTableScrollable = computed(
-    () => (props.inactiveReportersList?.length || 0) > 5
+    () => (filteredInactiveReporters.value?.length || 0) > 5
 )
 
 watch(
