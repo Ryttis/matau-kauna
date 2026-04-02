@@ -106,6 +106,9 @@ const emit = defineEmits(['close', 'confirm'])
     color: #333;
     margin: 0;
     line-height: 1.5;
+    max-width: 100%;
+    overflow-wrap: break-word;
+    word-wrap: break-word;
 }
 
 .confirm-modal :deep(.modal-body) {

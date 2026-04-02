@@ -55,6 +55,33 @@ const canSaveInactiveReporterSetting = computed(() => {
     const maxD = inactiveReporterMaxDays.value
     return f.inactivity_days != null && f.inactivity_days >= minD && f.inactivity_days <= maxD
 })
+
+const inactiveReporterDaysRangeHint = computed(() => {
+    const minD = inactiveReporterMinDays.value
+    const maxD = inactiveReporterMaxDays.value
+    return `Leistina reikšmė: nuo ${minD} iki ${maxD} dienų.`
+})
+
+const inactiveReporterDaysInvalidHint = computed(() => {
+    if (canSaveInactiveReporterSetting.value) {
+        return null
+    }
+    const raw = inactiveReporterForm.value.inactivity_days
+    const minD = inactiveReporterMinDays.value
+    const maxD = inactiveReporterMaxDays.value
+    if (raw === null || raw === '' || Number.isNaN(Number(raw))) {
+        return 'Įveskite neaktyvumo terminą dienomis.'
+    }
+    const n = Number(raw)
+    if (n < minD) {
+        return `Per mažas terminas. Minimali reikšmė: ${minD} dienų.`
+    }
+    if (n > maxD) {
+        return `Per didelis terminas. Maksimali reikšmė: ${maxD} dienų.`
+    }
+    return null
+})
+
 const defaultInstitutionId = computed(() =>
     props.institutions?.length ? String(props.institutions[0].id) : ''
 )
@@ -474,6 +501,10 @@ watch(
                     :min="inactiveReporterMinDays"
                     :max="inactiveReporterMaxDays"
                 />
+                <p class="automation-form-hint">{{ inactiveReporterDaysRangeHint }}</p>
+                <p v-if="inactiveReporterDaysInvalidHint" class="automation-form-error">
+                    {{ inactiveReporterDaysInvalidHint }}
+                </p>
                 <label class="automation-form-checkbox">
                     <AppCheckbox v-model="inactiveReporterForm.is_active" />
                     <span>Aktyvuoti automatinį šalinimą</span>
@@ -681,6 +712,12 @@ watch(
     margin: -8px 0 0 0;
     font-size: 13px;
     color: var(--color-text-muted, #666);
+}
+.automation-form-error {
+    margin: 8px 0 0 0;
+    font-size: 13px;
+    color: var(--color-danger, #b42318);
+    line-height: 1.4;
 }
 .automation-title {
     font-size: 24px;
