@@ -286,6 +286,23 @@ function submitInactiveReporterForm() {
 
 watch(() => props.inactiveReporterSetting, syncInactiveReporterFormFromProps, { immediate: true })
 
+const inactiveReporterSearch = ref('')
+
+const filteredInactiveReporters = computed(() => {
+    const rows = props.inactiveReportersList || []
+    const q = inactiveReporterSearch.value.trim().toLowerCase()
+    if (!q) return rows
+    return rows.filter((row) => {
+        const name = String(row.name || '').toLowerCase()
+        const email = String(row.email || '').toLowerCase()
+        return name.includes(q) || email.includes(q)
+    })
+})
+
+const inactiveReporterTableScrollable = computed(
+    () => (props.inactiveReportersList?.length || 0) > 5
+)
+
 watch(
     () => termRuleForm.value.category,
     (newCat) => {
@@ -469,25 +486,43 @@ watch(
                     @click="submitInactiveReporterForm"
                 />
             </div>
-            <div class="automation-table-wrap">
-                <table class="automation-table" v-if="inactiveReportersList?.length">
-                    <thead>
-                        <tr>
-                            <th>Vartotojas</th>
-                            <th>Paskutinis prisijungimas</th>
-                            <th>Neaktyvumo dienos</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr v-for="row in inactiveReportersList" :key="row.id">
-                            <td>{{ row.name }} <span class="automation-email">({{ row.email }})</span></td>
-                            <td>{{ row.last_login_at ?? '—' }}</td>
-                            <td>{{ row.inactive_days != null ? row.inactive_days : '—' }}</td>
-                        </tr>
-                    </tbody>
-                </table>
-                <p v-else class="automation-empty">Nėra pareiškėjų arba jie dar neprisijungė.</p>
+            <div v-if="inactiveReportersList?.length" class="automation-inactive-table-block">
+                <AppInput
+                    v-model="inactiveReporterSearch"
+                    type="search"
+                    label="Ieškoti vartotojo"
+                    placeholder="Vardas arba el. paštas"
+                    class="automation-inactive-search"
+                />
+                <div
+                    class="automation-table-wrap"
+                    :class="{ 'automation-inactive-table-scroll': inactiveReporterTableScrollable }"
+                >
+                    <table class="automation-table">
+                        <thead>
+                            <tr>
+                                <th>Vartotojas</th>
+                                <th>Paskutinis prisijungimas</th>
+                                <th>Neaktyvumo dienos</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr v-for="row in filteredInactiveReporters" :key="row.id">
+                                <td>{{ row.name }} <span class="automation-email">({{ row.email }})</span></td>
+                                <td>{{ row.last_login_at ?? '—' }}</td>
+                                <td>
+                                    <template v-if="row.inactive_days != null">{{ row.inactive_days }}</template>
+                                    <template v-else>—</template>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <p v-if="filteredInactiveReporters.length === 0" class="automation-empty automation-inactive-no-match">
+                    Pagal paiešką nieko nerasta.
+                </p>
             </div>
+            <p v-else class="automation-empty">Nėra pareiškėjų arba jie dar neprisijungė.</p>
             </template>
         </div>
 
@@ -729,6 +764,32 @@ watch(
 .automation-email {
     color: var(--color-text-muted, #666);
     font-size: 13px;
+}
+.automation-inactive-table-block {
+    margin-top: 8px;
+}
+.automation-inactive-search {
+    max-width: 360px;
+    margin-bottom: 16px;
+}
+.automation-inactive-table-scroll {
+    max-height: min(320px, 55vh);
+    overflow-y: auto;
+    overflow-x: auto;
+    border: 1px solid var(--color-border, #e0e0e0);
+    border-radius: 8px;
+}
+.automation-inactive-table-scroll .automation-table {
+    margin-bottom: 0;
+}
+.automation-inactive-table-scroll .automation-table thead th {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    box-shadow: 0 1px 0 var(--color-border, #e0e0e0);
+}
+.automation-inactive-no-match {
+    padding-top: 12px;
 }
 .automation-form {
     display: flex;
