@@ -365,10 +365,25 @@ function formatDate(s) {
 .badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 12px; }
 .badge-published { background: #d4edda; color: #155724; }
 .badge-draft { background: #fff3cd; color: #856404; }
-.btn-link { background: none; border: none; color: #1946a0; cursor: pointer; font-size: 14px; padding: 0; }
-.btn-link:hover { text-decoration: underline; }
+.btn-link {
+    background: none;
+    border: none;
+    color: #1946a0;
+    cursor: pointer;
+    font-size: 14px;
+    padding: 0;
+    text-decoration: none;
+}
+.btn-link:hover {
+    text-decoration: none;
+    opacity: 0.85;
+}
 .btn-link-danger { color: #b91c1c; }
-.btn-link-danger:hover { color: #991b1b; }
+.btn-link-danger:hover {
+    color: #991b1b;
+    text-decoration: none;
+    opacity: 0.9;
+}
 .sep { color: #9ca3af; margin: 0 4px; }
 .editor-form {
     border: 1px solid #e5e7eb;

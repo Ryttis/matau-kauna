@@ -37,6 +37,8 @@ class EmailNotificationTemplate extends Model
 
     public const KEY_INSTITUTION_INVITATION = 'institution_invitation';
 
+    public const KEY_ACCOUNT_CREATED = 'account_created';
+
     public static function getByKey(string $key): ?self
     {
         return static::where('key', $key)->first();

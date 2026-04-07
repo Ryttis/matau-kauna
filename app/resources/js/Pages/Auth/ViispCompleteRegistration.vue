@@ -38,7 +38,6 @@ const localErrors = ref({
 const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const phonePattern = /^[0-9+\s\-]+$/;
 
-/** LT: 067670895, +370 676 70895, 867670895, 67670895 (+ tarpai / brūkšniai). */
 function isValidLithuanianPhone(str) {
     const d = (str.match(/\d/g) || []).join('');
     if (!d) {

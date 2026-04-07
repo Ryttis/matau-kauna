@@ -91,7 +91,8 @@
 }
 
 .admin-tab .link-btn:hover {
-    text-decoration: underline;
+    text-decoration: none;
+    opacity: 0.88;
 }
 
 .admin-tab .actions-row .link-btn + .link-btn::before {
@@ -265,7 +266,7 @@
     display: flex;
     flex-direction: column;
     gap: var(--admin-spacing, 12px);
-    max-height: 420px;
+    max-height: 220px;
     overflow: auto;
     border-top: 1px solid var(--color-border-light);
     border-bottom: 1px solid var(--color-border-light);

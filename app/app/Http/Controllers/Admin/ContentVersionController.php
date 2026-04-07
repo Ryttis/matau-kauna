@@ -12,6 +12,7 @@ use App\Services\AuditLogService;
 use App\Services\ContentVersionService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 
 class ContentVersionController extends Controller
 {
@@ -22,7 +23,9 @@ class ContentVersionController extends Controller
 
     public function index(Request $request): JsonResponse
     {
-        $type = $request->validate(['type' => ['required', 'string', 'in:terms,privacy,faq,cookies']])['type'];
+        $type = $request->validate([
+            'type' => ['required', 'string', Rule::in(ContentVersion::administrableContentTypes())],
+        ])['type'];
         $versions = $this->contentVersionService->getVersionsByType($type);
 
         return response()->json(['versions' => $versions]);

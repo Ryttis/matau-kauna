@@ -8,6 +8,7 @@ use App\Models\ContentVersion;
 use App\Models\FileUploadSettings;
 use App\Models\User;
 use App\Services\ProblemMapService;
+use App\Support\Content\GuestPublishedContentCatalog;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Laravel\Sanctum\PersonalAccessToken;
@@ -39,23 +40,17 @@ class InfoApiController extends Controller
 
     public function content(string $type): JsonResponse
     {
-        $publishedTypeAndFallbackTitle = [
-            'faq' => [ContentVersion::TYPE_FAQ, 'DUK'],
-            'privacy' => [ContentVersion::TYPE_PRIVACY, 'Privatumo politika'],
-            'cookies' => [ContentVersion::TYPE_COOKIES, 'Slapukų informacija'],
-        ];
-
-        if (! isset($publishedTypeAndFallbackTitle[$type])) {
+        $definition = GuestPublishedContentCatalog::definitionForGuestPage($type);
+        if ($definition === null) {
             abort(404);
         }
 
-        [$contentType, $fallbackTitle] = $publishedTypeAndFallbackTitle[$type];
-        $version = ContentVersion::getLatestPublished($contentType);
+        $published = ContentVersion::getLatestPublished($definition->databaseType);
 
         return response()->json([
-            'type' => $type,
-            'title' => (string) ($version?->title ?? $fallbackTitle),
-            'body' => (string) ($version?->body ?? ''),
+            'type' => $definition->databaseType,
+            'title' => (string) ($published?->title ?? $definition->fallbackTitle),
+            'body' => (string) ($published?->body ?? ''),
         ]);
     }
 

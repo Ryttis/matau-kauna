@@ -1,55 +1,35 @@
 <script setup>
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import ContentEditorTab from '@/Components/Admin/ContentEditorTab.vue'
 import EmailNotificationEditor from '@/Components/Admin/EmailNotificationEditor.vue'
+import { ADMIN_RULES_SUB_TABS } from '@/constants/admin/adminRulesContentTabs'
 
-const activeSubTab = ref('terms')
+const activeTabKey = ref(ADMIN_RULES_SUB_TABS[0].key)
 
-const subTabs = [
-    { key: 'terms', label: 'Taisyklės', type: 'terms' },
-    { key: 'faq', label: 'DUK', type: 'faq' },
-    { key: 'privacy', label: 'Privatumo', type: 'privacy' },
-    { key: 'cookies', label: 'Slapukai', type: 'cookies' },
-    { key: 'notifications', label: 'Pranešimai' },
-]
+const activeTab = computed(() => ADMIN_RULES_SUB_TABS.find((t) => t.key === activeTabKey.value) ?? null)
 </script>
 
 <template>
     <div class="admin-rules">
         <div class="subtabs">
             <button
-                v-for="t in subTabs"
-                :key="t.key"
+                v-for="tab in ADMIN_RULES_SUB_TABS"
+                :key="tab.key"
                 type="button"
                 class="subtab"
-                :class="{ active: activeSubTab === t.key }"
-                @click="activeSubTab = t.key"
+                :class="{ active: activeTabKey === tab.key }"
+                @click="activeTabKey = tab.key"
             >
-                {{ t.label }}
+                {{ tab.tabLabel }}
             </button>
         </div>
         <div class="panel">
             <ContentEditorTab
-                v-if="activeSubTab === 'terms'"
-                type="terms"
-                label="Taisyklės"
+                v-if="activeTab?.kind === 'contentVersion'"
+                :type="activeTab.contentType"
+                :label="activeTab.editorLabel"
             />
-            <ContentEditorTab
-                v-else-if="activeSubTab === 'faq'"
-                type="faq"
-                label="DUK"
-            />
-            <ContentEditorTab
-                v-else-if="activeSubTab === 'privacy'"
-                type="privacy"
-                label="Privatumo"
-            />
-            <ContentEditorTab
-                v-else-if="activeSubTab === 'cookies'"
-                type="cookies"
-                label="Slapukų informacija"
-            />
-            <EmailNotificationEditor v-else-if="activeSubTab === 'notifications'" />
+            <EmailNotificationEditor v-else-if="activeTab?.kind === 'emailNotifications'" />
         </div>
     </div>
 </template>
@@ -57,11 +37,6 @@ const subTabs = [
 <style scoped>
 .admin-rules {
     padding: 0;
-}
-.title {
-    font-size: 18px;
-    font-weight: 700;
-    margin: 0 0 14px 0;
 }
 .subtabs {
     display: flex;
@@ -90,10 +65,5 @@ const subTabs = [
     border-radius: 14px;
     padding: 20px;
     border: 1px solid #e5e7eb;
-}
-.placeholder {
-    color: #666;
-    font-size: 14px;
-    margin: 0;
 }
 </style>

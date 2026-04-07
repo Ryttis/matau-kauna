@@ -58,10 +58,12 @@ const setTab = (key) => {
     color: #1946A0;
     font-size: var(--admin-font-size, 14px);
     font-weight: 500;
+    text-decoration: none;
 }
 
 .app-tab-navigation .nav-item:hover {
     background: #cccccc;
+    text-decoration: none;
 }
 
 .app-tab-navigation .nav-item.active {

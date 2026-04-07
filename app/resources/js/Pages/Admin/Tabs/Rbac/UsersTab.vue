@@ -28,7 +28,7 @@ const assignRolesError = ref('')
 const createError = ref('')
 const createErrors = ref([])
 
-const createForm = ref({ name: '', email: '', password: '', password_confirmation: '', institution_id: '' })
+const createForm = ref({ name: '', email: '', password: '', password_confirmation: '', institution_id: '', role_ids: [] })
 const inviteForm = ref({ email: '', institution_id: '', role_id: '' })
 const editForm = ref({ id: null, name: '', email: '', password: '', institution_id: '' })
 const deleteTarget = ref({ id: null, name: '', email: '' })
@@ -37,7 +37,7 @@ const selectedUser = ref(null)
 const selectedRoleIds = ref([])
 
 const openCreate = () => {
-    createForm.value = { name: '', email: '', password: '', password_confirmation: '', institution_id: '' }
+    createForm.value = { name: '', email: '', password: '', password_confirmation: '', institution_id: '', role_ids: [] }
     createError.value = ''
     createErrors.value = []
     isCreateOpen.value = true
@@ -74,20 +74,7 @@ const selectedInviteInstitution = computed(() =>
 
 const isInviteInstitutionEmailOnly = computed(() => !!selectedInviteInstitution.value?.is_email_only)
 
-const restrictedRoleIds = computed(() =>
-    (props.roles ?? [])
-        .filter((r) => r.role === ROLE_INSTITUTION_ADMIN || r.role === ROLE_EMPLOYEE)
-        .map((r) => r.id)
-)
-
-const hasRestrictedRole = (user) =>
-    (user?.roles ?? []).some((r) => restrictedRoleIds.value.includes(r.id))
-
-const isRestrictedRole = (role) => restrictedRoleIds.value.includes(role.id)
-
-const assignableRoles = computed(() =>
-    (props.roles ?? []).filter((r) => !isRestrictedRole(r))
-)
+const assignableRoles = computed(() => props.roles ?? [])
 
 const openInvite = () => {
     inviteForm.value = { email: '', institution_id: '', role_id: '' }
@@ -123,7 +110,8 @@ const createUser = async () => {
             email: createForm.value.email,
             password: createForm.value.password,
             password_confirmation: createForm.value.password_confirmation,
-            institution_id: createForm.value.institution_id || null
+            institution_id: createForm.value.institution_id || null,
+            role_ids: createForm.value.role_ids.length ? createForm.value.role_ids : null
         })
         isCreateOpen.value = false
         emit('show-success', 'Naudotojas sukurtas.')
@@ -180,16 +168,6 @@ const saveUserRoles = async () => {
     if (!selectedUser.value) return
 
     assignRolesError.value = ''
-    const restrictedRoleIds = (props.roles ?? [])
-        .filter((r) => r.role === ROLE_INSTITUTION_ADMIN || r.role === ROLE_EMPLOYEE)
-        .map((r) => r.id)
-    const hasRestrictedRoles = selectedRoleIds.value.some((id) => restrictedRoleIds.includes(id))
-
-    if (hasRestrictedRoles && !selectedUser.value?.institution_id) {
-        inviteError.value = 'Įstaigos administratorių ar darbuotojų paskyros turi būti kuriamos per pakvietimą.';
-        isAssignRolesOpen.value = false
-        return
-    }
 
     emit('set-saving', true)
     try {
@@ -248,9 +226,6 @@ const saveUserRoles = async () => {
         <div v-else>Nėra naudotojų.</div>
 
         <BaseModal :open="isCreateOpen" title="Sukurti naudotoją" @close="isCreateOpen = false">
-            <div class="hint">
-                Įstaigos administratorių ir darbuotojų paskyros kuriamos tik per pakvietimą.
-            </div>
             <div v-if="createErrors.length" class="error">
                 <ul v-if="createErrors.length > 1" class="error-list">
                     <li v-for="(err, i) in createErrors" :key="i">{{ err }}</li>
@@ -283,6 +258,16 @@ const saveUserRoles = async () => {
                     <option v-for="i in institutions" :key="i.id" :value="i.id">{{ i.name }}</option>
                 </select>
             </label>
+
+            <div class="field">
+                <span>Rolės</span>
+                <div class="checklist">
+                    <label v-for="r in assignableRoles" :key="r.id" class="check">
+                        <input type="checkbox" :value="r.id" v-model="createForm.role_ids" />
+                        <span>{{ r.name }}</span>
+                    </label>
+                </div>
+            </div>
 
             <template #footer>
                 <AppButton text="Atšaukti" variant="secondary" as-button @click="isCreateOpen = false" />
@@ -368,14 +353,8 @@ const saveUserRoles = async () => {
             @close="isAssignRolesOpen = false"
         >
             <div v-if="assignRolesError" class="error">{{ assignRolesError }}</div>
-            <div v-if="hasRestrictedRole(selectedUser) && !selectedUser?.institution_id" class="error">
-                Įstaigos administratorių ar darbuotojų paskyros turi būti kuriamos per pakvietimą.
-            </div>
             <div class="hint">
                 Naudotojas: <strong>{{ selectedUser?.name }}</strong>
-            </div>
-            <div class="hint">
-                Įstaigos administratorių ir darbuotojų rolės priskiriamos tik per pakvietimą.
             </div>
 
             <div class="checklist">

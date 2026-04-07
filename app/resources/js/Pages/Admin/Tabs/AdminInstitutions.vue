@@ -401,7 +401,8 @@ td {
 }
 
 .link-btn:hover {
-    text-decoration: underline;
+    text-decoration: none;
+    opacity: 0.88;
 }
 
 .link-sep {

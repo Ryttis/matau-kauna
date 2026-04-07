@@ -80,4 +80,10 @@ export const EMAIL_NOTIFICATION_PLACEHOLDER_DOCS_BY_KEY = {
         { token: '{deadline_date}', text: 'Atlikimo terminas, formatu Y-m-d.' },
         { token: '{title}', text: 'Trumpa antraštė; dažnai sutampa su aprašymo santrauka.' },
     ],
+    account_created: [
+        { token: '{app_name}', text: 'Programėlės pavadinimas (APP_NAME).' },
+        { token: '{user_name}', text: 'Naudotojo vardas arba el. paštas, jei vardo nėra.' },
+        { token: '{user_email}', text: 'Naudotojo el. pašto adresas.' },
+        { token: '{url}', text: 'Prisijungimo puslapio nuoroda (mygtukas „Prisijungti").' },
+    ],
 }
