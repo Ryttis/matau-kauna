@@ -33,14 +33,6 @@ class RbacUserController extends Controller
     {
         $roleIds = $request->validated('role_ids') ?? [];
 
-        $error = $this->rbacService->validateSyncUserRoles($user, $roleIds);
-        if ($error !== null) {
-            $msg = $error['message'] ?? json_encode($error);
-            $this->auditLogService->logUserAction($request->user(), 'rbac.user.sync_roles', 'User', $user->id, AuditLogResult::Error, $msg, ['user_id' => $user->id]);
-
-            return response()->json($error, 422);
-        }
-
         try {
             $user->roles()->sync($roleIds);
             $this->auditLogService->logUserAction($request->user(), 'rbac.user.sync_roles', 'User', $user->id, AuditLogResult::Success, null, ['user_id' => $user->id]);

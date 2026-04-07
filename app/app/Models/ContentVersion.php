@@ -15,6 +15,10 @@ class ContentVersion extends Model
 
     public const TYPE_COOKIES = 'cookies';
 
+    public const TYPE_CONTACTS = 'contacts';
+
+    public const TYPE_HELP = 'help';
+
     protected $fillable = [
         'type',
         'version',
@@ -61,5 +65,17 @@ class ContentVersion extends Model
         $max = (int) static::query()->ofType($type)->max('version');
 
         return $max + 1;
+    }
+
+    public static function administrableContentTypes(): array
+    {
+        return [
+            self::TYPE_TERMS,
+            self::TYPE_FAQ,
+            self::TYPE_PRIVACY,
+            self::TYPE_COOKIES,
+            self::TYPE_CONTACTS,
+            self::TYPE_HELP,
+        ];
     }
 }

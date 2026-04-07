@@ -2,7 +2,9 @@
 
 namespace App\Http\Requests\Admin;
 
+use App\Models\ContentVersion;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class ContentVersionStoreRequest extends FormRequest
 {
@@ -14,7 +16,7 @@ class ContentVersionStoreRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'type' => ['required', 'string', 'in:terms,privacy,faq,cookies'],
+            'type' => ['required', 'string', Rule::in(ContentVersion::administrableContentTypes())],
             'title' => ['nullable', 'string', 'max:500'],
             'body' => ['nullable', 'string'],
         ];

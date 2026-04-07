@@ -3,50 +3,13 @@
 namespace App\Services;
 
 use App\Models\Employee;
-use App\Models\Invitation;
 use App\Models\User;
-use App\Models\UserRole;
+use App\Notifications\AccountCreatedNotification;
+use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Support\Facades\Hash;
 
 class RbacService
 {
-    public function validateSyncUserRoles(User $user, array $roleIds): ?array
-    {
-        $currentRoleIds = $user->roles()->pluck('id')->toArray();
-        $addedRoleIds = array_values(array_diff($roleIds, $currentRoleIds));
-
-        if (empty($addedRoleIds)) {
-            return null;
-        }
-
-        $restrictedRoleIds = UserRole::query()
-            ->whereIn('role', [UserRole::ROLE_INSTITUTION_ADMIN, UserRole::ROLE_EMPLOYEE])
-            ->pluck('id')
-            ->toArray();
-
-        $addedRestricted = array_values(array_intersect($addedRoleIds, $restrictedRoleIds));
-        if (empty($addedRestricted)) {
-            return null;
-        }
-
-        $missingInvite = collect($addedRestricted)->first(function ($roleId) use ($user) {
-            return ! Invitation::query()
-                ->where('email', $user->email)
-                ->where('institution_id', $user->institution_id)
-                ->where('role_id', $roleId)
-                ->whereNotNull('used_at')
-                ->exists();
-        });
-
-        if ($missingInvite) {
-            return [
-                'message' => 'Įstaigos administratorių ar darbuotojų paskyros turi būti kuriamos per pakvietimą.',
-            ];
-        }
-
-        return null;
-    }
-
     public function ensureEmployeeForInstitution(User $user): void
     {
         if (! $user->institution_id) {
@@ -83,7 +46,17 @@ class RbacService
             'institution_id' => $data['institution_id'] ?? null,
         ]);
 
+        if (! empty($data['role_ids'])) {
+            $user->roles()->sync($data['role_ids']);
+        }
+
         $this->ensureEmployeeForInstitution($user);
+
+        if ($user instanceof MustVerifyEmail && ! $user->hasVerifiedEmail()) {
+            $user->sendEmailVerificationNotification();
+        }
+
+        $user->notify(new AccountCreatedNotification);
 
         return $user;
     }

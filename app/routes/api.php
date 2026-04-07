@@ -5,6 +5,7 @@ use App\Http\Controllers\Api\InfoApiController;
 use App\Http\Controllers\Api\ProblemApiController;
 use App\Http\Controllers\Api\ReporterProblemApiController;
 use App\Http\Controllers\ReporterProblemController;
+use App\Support\Content\GuestPublishedContentCatalog;
 use Illuminate\Support\Facades\Route;
 
 Route::post('/login', [AuthApiController::class, 'login']);
@@ -12,7 +13,8 @@ Route::post('/register', [AuthApiController::class, 'register']);
 
 Route::get('/info/statistics', [InfoApiController::class, 'statistics']);
 Route::get('/info/map', [InfoApiController::class, 'mapProblems']);
-Route::get('/content/{type}', [InfoApiController::class, 'content'])->where('type', 'faq|privacy|cookies');
+Route::get('/content/{type}', [InfoApiController::class, 'content'])
+    ->where('type', GuestPublishedContentCatalog::publicJsonRoutePattern());
 
 Route::get('/problems', [ProblemApiController::class, 'index']);
 Route::get('/problems/{problem}', [ProblemApiController::class, 'show']);

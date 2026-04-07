@@ -22,6 +22,8 @@ class CreateUserRequest extends FormRequest
             'password' => $policy->rules(),
             'password_confirmation' => ['required_with:password', 'same:password'],
             'institution_id' => ['nullable', 'integer', 'exists:institutions,id'],
+            'role_ids' => ['nullable', 'array'],
+            'role_ids.*' => ['uuid', 'exists:user_role,id'],
         ];
     }
 

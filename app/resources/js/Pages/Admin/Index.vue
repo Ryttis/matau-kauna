@@ -27,8 +27,13 @@ const tabs = [
 
 const getTabFromUrl = () => {
     const url = new URL(window.location.href)
-    const tab = url.searchParams.get('tab')
-    return tabs.some(t => t.key === tab) ? tab : 'users'
+    const requested = url.searchParams.get('tab')
+    const key = tabs.some((t) => t.key === requested) ? requested : 'users'
+    if (requested !== null && requested !== key) {
+        url.searchParams.set('tab', key)
+        window.history.replaceState({}, '', url.toString())
+    }
+    return key
 }
 
 const activeTab = ref(getTabFromUrl())
@@ -50,17 +55,36 @@ const activeComponent = computed(() => {
     <Head title="Admin" />
 
     <AuthenticatedLayout>
-        <AppTabNavigation :tabs="tabs" :active-tab="activeTab" @set-tab="setTab" />
-
-        <div class="admin-content">
-            <div class="admin-tab-panel-scroll">
-                <component :is="activeComponent" />
+        <div class="admin-shell admin-shell--no-link-underline">
+            <AppTabNavigation :tabs="tabs" :active-tab="activeTab" @set-tab="setTab" />
+            <div class="admin-content">
+                <div class="admin-tab-panel-scroll">
+                    <component :is="activeComponent" />
+                </div>
             </div>
         </div>
     </AuthenticatedLayout>
 </template>
 
 <style scoped>
+.admin-shell {
+    min-width: 0;
+}
+
+.admin-shell--no-link-underline :deep(a) {
+    text-decoration: none;
+}
+
+.admin-shell--no-link-underline :deep(a:hover) {
+    text-decoration: none;
+    opacity: 0.88;
+}
+
+.admin-shell--no-link-underline :deep(.app-button--link:hover) {
+    text-decoration: none;
+    opacity: 0.88;
+}
+
 .admin-content {
     background: var(--color-white);
     padding: var(--admin-spacing, 12px) 16px 24px;
@@ -73,4 +97,5 @@ const activeComponent = computed(() => {
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
 }
+
 </style>

@@ -605,12 +605,13 @@ async function removeNature(nature) {
     border: none;
     color: var(--color-primary, #1946A0);
     cursor: pointer;
-    text-decoration: underline;
+    text-decoration: none;
     font-size: 14px;
     padding: 0;
 }
 .link-btn:hover {
     color: #0d3580;
+    opacity: 0.92;
 }
 .link-btn--danger {
     color: #a00;

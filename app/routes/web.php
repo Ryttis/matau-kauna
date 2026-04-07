@@ -33,8 +33,8 @@ Route::get('/', [GuestProblemController::class, 'landing'])->name('landing');
 Route::get('/faq', [\App\Http\Controllers\GuestContentController::class, 'faq'])->name('faq');
 Route::get('/privacy', [\App\Http\Controllers\GuestContentController::class, 'privacy'])->name('privacy');
 Route::get('/slapukai', [\App\Http\Controllers\GuestContentController::class, 'cookies'])->name('cookies');
-Route::get('/contacts', fn () => Inertia::render('Guest/Contacts'))->name('contacts');
-Route::get('/help', fn () => Inertia::render('Guest/Help'))->name('help');
+Route::get('/contacts', [\App\Http\Controllers\GuestContentController::class, 'contacts'])->name('contacts');
+Route::get('/help', [\App\Http\Controllers\GuestContentController::class, 'help'])->name('help');
 
 Route::get('/statistika', fn () => Inertia::render('Guest/PublicStatistics'))->name('public.statistics');
 Route::get('/statistika/duomenys', [\App\Http\Controllers\PublicStatisticsController::class, 'data'])->name('public.statistics.data');

@@ -8,6 +8,7 @@ use App\Models\Institution;
 use App\Models\Invitation;
 use App\Models\User;
 use App\Models\UserRole;
+use App\Notifications\AccountCreatedNotification;
 use App\Notifications\InvitationNotification;
 use App\Support\EmailBody;
 use Illuminate\Auth\Notifications\ResetPassword;
@@ -32,6 +33,7 @@ class EmailPreviewSender
             EmailNotificationTemplate::KEY_REPORTER_STATUS_CHANGE,
             EmailNotificationTemplate::KEY_REPORTER_REVIEW_ENTRY,
             EmailNotificationTemplate::KEY_INSTITUTION_PROBLEM_SHARE,
+            EmailNotificationTemplate::KEY_ACCOUNT_CREATED,
         ];
     }
 
@@ -57,6 +59,7 @@ class EmailPreviewSender
             EmailNotificationTemplate::KEY_REPORTER_STATUS_CHANGE => $this->sendReporterStatusPreview($recipient),
             EmailNotificationTemplate::KEY_REPORTER_REVIEW_ENTRY => $this->sendReporterReviewPreview($recipient),
             EmailNotificationTemplate::KEY_INSTITUTION_PROBLEM_SHARE => $this->sendInstitutionSharePreview($recipient),
+            EmailNotificationTemplate::KEY_ACCOUNT_CREATED => $this->sendAccountCreatedPreview($recipient),
             default => throw new InvalidArgumentException('Unknown preview kind: '.$kind),
         };
     }
@@ -236,6 +239,12 @@ class EmailPreviewSender
         $fbBody = "Nr: {internal_number}\nAprašymas: {description_excerpt}\nAdresas: {address}\nSukūrimo data: {created_at}\n{deadline_line}";
         $r = $this->renderFromTemplateOrFallback($key, $map, $fbSubject, $fbBody);
         TransactionalMail::send($recipient, $r['subject'], $r['body'], $u, 'Atidaryti problemą');
+    }
+
+    private function sendAccountCreatedPreview(string $recipient): void
+    {
+        $user = $this->previewUser($recipient);
+        Notification::send($user, new AccountCreatedNotification);
     }
 
     private function renderFromTemplateOrFallback(string $key, array $map, string $fallbackSubject, string $fallbackBody): array

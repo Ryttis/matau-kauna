@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\ContentVersion;
+use App\Support\Content\GuestPublishedContentCatalog;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -10,26 +11,41 @@ class GuestContentController extends Controller
 {
     public function faq(): Response
     {
-        return $this->renderContentPage(ContentVersion::TYPE_FAQ, 'Guest/Faq', 'DUK');
+        return $this->renderGuestPage(ContentVersion::TYPE_FAQ);
     }
 
     public function privacy(): Response
     {
-        return $this->renderContentPage(ContentVersion::TYPE_PRIVACY, 'Guest/PrivacyPolicy', 'Privatumo politika');
+        return $this->renderGuestPage(ContentVersion::TYPE_PRIVACY);
     }
 
     public function cookies(): Response
     {
-        return $this->renderContentPage(ContentVersion::TYPE_COOKIES, 'Guest/CookiePolicy', 'Slapukų informacija');
+        return $this->renderGuestPage(ContentVersion::TYPE_COOKIES);
     }
 
-    private function renderContentPage(string $type, string $view, string $defaultTitle): Response
+    public function contacts(): Response
     {
-        $content = ContentVersion::getLatestPublished($type);
+        return $this->renderGuestPage(ContentVersion::TYPE_CONTACTS);
+    }
 
-        return Inertia::render($view, [
-            'title' => (string) ($content?->title ?? $defaultTitle),
-            'body' => (string) ($content?->body ?? ''),
+    public function help(): Response
+    {
+        return $this->renderGuestPage(ContentVersion::TYPE_HELP);
+    }
+
+    private function renderGuestPage(string $databaseType): Response
+    {
+        $definition = GuestPublishedContentCatalog::definitionForGuestPage($databaseType);
+        if ($definition === null) {
+            abort(404);
+        }
+
+        $published = ContentVersion::getLatestPublished($databaseType);
+
+        return Inertia::render($definition->inertiaView, [
+            'title' => (string) ($published?->title ?? $definition->fallbackTitle),
+            'body' => (string) ($published?->body ?? ''),
         ]);
     }
 }
