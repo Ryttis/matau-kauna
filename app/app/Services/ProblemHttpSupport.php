@@ -74,6 +74,8 @@ class ProblemHttpSupport
             'isWatched' => $isWatched,
             'watchProblemId' => $watchProblemId,
             'fileUpload' => FileUploadSettings::getChannelForClient(FileUploadSettings::CHANNEL_WEB),
+            'authUserId' => $user?->id,
+            'isSystemAdmin' => $user ? $user->hasRole(UserRole::ROLE_SYSTEM_ADMIN) : false,
         ]);
     }
 

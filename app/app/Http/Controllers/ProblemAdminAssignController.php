@@ -9,6 +9,7 @@ use App\Services\ProblemAssignmentNotifier;
 use App\Services\ProblemHttpSupport;
 use App\Services\ProblemReporterStatusNotifier;
 use App\Services\ProblemResolutionTermService;
+use App\Services\ProblemReviewHistoryService;
 use App\Services\TransactionalMail;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -22,6 +23,7 @@ class ProblemAdminAssignController extends Controller
         private ProblemAssignmentNotifier $assignmentNotifier,
         private ProblemResolutionTermService $resolutionTermService,
         private ProblemReporterStatusNotifier $reporterStatusNotifier,
+        private ProblemReviewHistoryService $reviewHistoryService,
     ) {}
 
     public function assign(Request $request): Response|RedirectResponse
@@ -89,6 +91,13 @@ class ProblemAdminAssignController extends Controller
             Problem::whereIn('id', $validated['problem_ids'])->update($update);
 
             $this->reporterStatusNotifier->notifyRootsAfterStatusChange($oldByMain, $validated['status']);
+
+            foreach (array_keys($rootIdsMap) as $rootId) {
+                $rootProblem = Problem::find($rootId);
+                if ($rootProblem) {
+                    $this->reviewHistoryService->logStatusChangeEntry($rootProblem, $user, $validated['status']);
+                }
+            }
         } else {
             Problem::whereIn('id', $validated['problem_ids'])->update($update);
         }

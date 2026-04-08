@@ -42,7 +42,15 @@ const props = defineProps({
         type: Object,
         default: () => ({}),
     },
+    authUserId: { type: Number, default: null },
+    isSystemAdmin: { type: Boolean, default: false },
 })
+
+const canEditEntry = (entry) => {
+    if (props.isSystemAdmin) return true
+    if (entry.user_id && props.authUserId) return entry.user_id === props.authUserId
+    return false
+}
 
 const watchActive = ref(props.isWatched)
 const watchLoading = ref(false)
@@ -168,7 +176,7 @@ function confirmDeleteReviewAttachment() {
                         <span class="review-progress-date">{{ new Date(entry.date).toLocaleDateString('lt-LT') }}</span>
                         <div class="review-progress-entry-header-actions">
                             <button
-                                v-if="canAddEntry"
+                                v-if="canEditEntry(entry)"
                                 type="button"
                                 class="review-progress-edit-btn"
                                 @click="openEditEntry(entry)"
@@ -185,21 +193,23 @@ function confirmDeleteReviewAttachment() {
                         <div class="review-progress-responsible">
                             Atsakingas: {{ entry.responsible }}
                         </div>
-                        <div class="review-progress-divider"></div>
-                        <div class="review-progress-comment">
-                            <div class="review-progress-comment-heading">
-                                <span class="review-progress-comment-label">Komentaras</span>
-                                <span
-                                    v-if="showReviewVisibilityLabels && entry.visibility === 'internal'"
-                                    class="review-progress-visibility review-progress-visibility--internal"
-                                >Vidinis</span>
-                                <span
-                                    v-else-if="showReviewVisibilityLabels && entry.visibility === 'public'"
-                                    class="review-progress-visibility review-progress-visibility--public"
-                                >Viešas</span>
+                        <template v-if="entry.comment">
+                            <div class="review-progress-divider"></div>
+                            <div class="review-progress-comment">
+                                <div class="review-progress-comment-heading">
+                                    <span class="review-progress-comment-label">Komentaras</span>
+                                    <span
+                                        v-if="showReviewVisibilityLabels && entry.visibility === 'internal'"
+                                        class="review-progress-visibility review-progress-visibility--internal"
+                                    >Vidinis</span>
+                                    <span
+                                        v-else-if="showReviewVisibilityLabels && entry.visibility === 'public'"
+                                        class="review-progress-visibility review-progress-visibility--public"
+                                    >Viešas</span>
+                                </div>
+                                <div class="review-progress-comment-text">{{ entry.comment }}</div>
                             </div>
-                            <div class="review-progress-comment-text">{{ entry.comment || '' }}</div>
-                        </div>
+                        </template>
                         <div
                             v-if="entry.attachments?.length"
                             class="review-progress-entry-attachments"

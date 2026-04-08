@@ -30,11 +30,8 @@ const institutionForm = useForm({
     code: '',
 })
 
-const deleteAccountForm = useForm({
-    password: '',
-})
-
 const showDeleteModal = ref(false)
+const deleteLoading = ref(false)
 const twoFactorEnabled = ref(false)
 const emailUpdatesInstitutionAdmin = ref(false)
 const emailNotificationsEnabled = ref(false)
@@ -69,11 +66,14 @@ const updateInstitution = () => {
 }
 
 const deleteAccount = () => {
-    deleteAccountForm.delete(route('settings.destroy'), {
+    deleteLoading.value = true
+    router.delete(route('settings.destroy'), {
         preserveScroll: true,
         onSuccess: () => {
             showDeleteModal.value = false
-            deleteAccountForm.reset()
+        },
+        onFinish: () => {
+            deleteLoading.value = false
         },
     })
 }
@@ -163,37 +163,10 @@ const saveReporterEmailWatched = (value) => {
 
         <DeleteAccountModal
             :open="showDeleteModal"
-            :confirm-loading="deleteAccountForm.processing"
+            :confirm-loading="deleteLoading"
             @close="showDeleteModal = false"
-        >
-            <p class="modal-description">Šio veiksmo atšaukti negalėsite.</p>
-            <div class="modal-inputs">
-                <AppInput
-                    v-model="deleteAccountForm.password"
-                    type="password"
-                    placeholder="Įveskite slaptažodį patvirtinimui"
-                />
-                <div v-if="deleteAccountForm.errors.password" class="error">
-                    {{ deleteAccountForm.errors.password }}
-                </div>
-            </div>
-            <template #footer>
-                <AppButton
-                    text="Atšaukti"
-                    variant="secondary"
-                    as-button
-                    @click="showDeleteModal = false"
-                />
-                <AppButton
-                    text="Šalinti"
-                    variant="primary"
-                    as-button
-                    :disabled="deleteAccountForm.processing"
-                    class="btn-delete"
-                    @click="deleteAccount"
-                />
-            </template>
-        </DeleteAccountModal>
+            @confirm="deleteAccount"
+        />
 
     </AuthenticatedLayout>
 </template>

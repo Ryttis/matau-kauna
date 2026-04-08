@@ -11,6 +11,7 @@ use App\Models\UserRole;
 use App\Services\ProblemDashboardQueryService;
 use App\Services\ProblemMergeContextService;
 use App\Services\ProblemReporterStatusNotifier;
+use App\Services\ProblemReviewHistoryService;
 use App\Services\ProblemScopeService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -25,6 +26,7 @@ class ProblemController extends Controller
         private ProblemDashboardQueryService $dashboardQuery,
         private ProblemScopeService $scopeService,
         private ProblemReporterStatusNotifier $reporterStatusNotifier,
+        private ProblemReviewHistoryService $reviewHistoryService,
     ) {}
 
     public function index(Request $request): Response
@@ -82,11 +84,16 @@ class ProblemController extends Controller
             'status_updated_at' => now(),
         ]);
 
+        $main = Problem::find($mainId);
+
         if ($oldMainStatus !== null && $oldMainStatus !== $validated['status']) {
-            $main = Problem::find($mainId);
             if ($main) {
                 $this->reporterStatusNotifier->notifyReportersAndWatchersWhenStatusChanges($main, $oldMainStatus, $validated['status']);
             }
+        }
+
+        if ($main) {
+            $this->reviewHistoryService->logStatusChangeEntry($main, $user, $validated['status']);
         }
 
         $message = count($ids) > 1
@@ -118,6 +125,13 @@ class ProblemController extends Controller
         ]);
 
         $this->reporterStatusNotifier->notifyRootsAfterStatusChange($oldByMain, $validated['status']);
+
+        foreach (array_keys($rootIdsMap) as $rootId) {
+            $rootProblem = Problem::find($rootId);
+            if ($rootProblem) {
+                $this->reviewHistoryService->logStatusChangeEntry($rootProblem, $user, $validated['status']);
+            }
+        }
 
         return redirect()->back()->with('success', 'Būsenos atnaujintos');
     }

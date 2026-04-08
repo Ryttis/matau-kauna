@@ -117,32 +117,23 @@ class SettingsController extends Controller
         return back()->with('success', 'Įstaigos duomenys atnaujinti.');
     }
 
+    private const PRIVACY_FIELDS = [
+        'two_factor_enabled',
+        'email_notifications_enabled',
+        'email_updates_institution_admin',
+        'reporter_email_own_problems',
+        'reporter_email_watched_problems',
+    ];
+
     public function updatePrivacy(Request $request): RedirectResponse
     {
-        $validated = $request->validate([
-            'two_factor_enabled' => ['sometimes', 'boolean'],
-            'email_notifications_enabled' => ['sometimes', 'boolean'],
-            'email_updates_institution_admin' => ['sometimes', 'boolean'],
-            'reporter_email_own_problems' => ['sometimes', 'boolean'],
-            'reporter_email_watched_problems' => ['sometimes', 'boolean'],
-        ]);
+        $rules = array_fill_keys(self::PRIVACY_FIELDS, ['sometimes', 'boolean']);
+        $validated = $request->validate($rules);
 
-        $data = [];
-        if (array_key_exists('two_factor_enabled', $validated)) {
-            $data['two_factor_enabled'] = filter_var($validated['two_factor_enabled'], FILTER_VALIDATE_BOOLEAN);
-        }
-        if (array_key_exists('email_notifications_enabled', $validated)) {
-            $data['email_notifications_enabled'] = filter_var($validated['email_notifications_enabled'], FILTER_VALIDATE_BOOLEAN);
-        }
-        if (array_key_exists('email_updates_institution_admin', $validated)) {
-            $data['email_updates_institution_admin'] = filter_var($validated['email_updates_institution_admin'], FILTER_VALIDATE_BOOLEAN);
-        }
-        if (array_key_exists('reporter_email_own_problems', $validated)) {
-            $data['reporter_email_own_problems'] = filter_var($validated['reporter_email_own_problems'], FILTER_VALIDATE_BOOLEAN);
-        }
-        if (array_key_exists('reporter_email_watched_problems', $validated)) {
-            $data['reporter_email_watched_problems'] = filter_var($validated['reporter_email_watched_problems'], FILTER_VALIDATE_BOOLEAN);
-        }
+        $data = collect(self::PRIVACY_FIELDS)
+            ->filter(fn ($field) => array_key_exists($field, $validated))
+            ->mapWithKeys(fn ($field) => [$field => filter_var($validated[$field], FILTER_VALIDATE_BOOLEAN)])
+            ->all();
 
         if ($data !== []) {
             $user = Auth::user();
@@ -174,16 +165,12 @@ class SettingsController extends Controller
 
     public function destroy(Request $request): RedirectResponse
     {
-        $request->validate([
-            'password' => ['required', 'current_password'],
-        ]);
-
         $user = Auth::user();
         if (! ($user instanceof User)) {
             abort(403);
         }
         Auth::logout();
-        $user->delete();
+        $user->update(['archived_at' => now()]);
         $request->session()->invalidate();
         $request->session()->regenerateToken();
 

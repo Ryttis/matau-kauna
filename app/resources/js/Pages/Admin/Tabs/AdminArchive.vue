@@ -5,6 +5,7 @@ import AppButton from '@/Components/App/AppButton.vue'
 import AppInput from '@/Components/App/AppInput.vue'
 import AppCheckbox from '@/Components/App/AppCheckbox.vue'
 import SuccessModal from '@/Components/App/SuccessModal.vue'
+import ConfirmModal from '@/Components/App/ConfirmModal.vue'
 import { adminApi } from '@/constants/api/adminApi'
 
 const loading = ref(true)
@@ -113,6 +114,8 @@ const formatDate = (str) => {
 }
 
 const restoring = ref(null)
+const destroying = ref(null)
+const confirmDeleteUser = ref(null)
 
 const RESTORE_CONFIG = {
     users: { path: adminApi.archiveRestoreUser, key: 'user', successMsg: 'Naudotojas atkurtas.' },
@@ -142,6 +145,25 @@ async function restore(type, item) {
 function restoringKey(type, id) {
     const cfg = RESTORE_CONFIG[type]
     return cfg ? `${cfg.key}-${id}` : ''
+}
+
+async function destroyUser() {
+    const user = confirmDeleteUser.value
+    if (!user?.id) return
+    destroying.value = user.id
+    errorMessage.value = ''
+    successMessage.value = ''
+    try {
+        await axios.delete(adminApi.archiveDestroyUser(user.id))
+        confirmDeleteUser.value = null
+        successMessage.value = 'Naudotojas galutinai pašalintas.'
+        showSuccessModal.value = true
+        await load()
+    } catch (e) {
+        errorMessage.value = e.response?.data?.message ?? 'Nepavyko pašalinti naudotojo.'
+    } finally {
+        destroying.value = null
+    }
 }
 
 watch(activeTab, syncSettingsFormFromRule)
@@ -212,13 +234,20 @@ onMounted(load)
                             <td>{{ u.email }}</td>
                             <td>{{ formatDate(u.archived_at) }}</td>
                             <td>{{ formatDate(u.delete_at) }}</td>
-                            <td>
+                            <td class="actions-cell">
                                 <AppButton
                                     text="Atkurti"
                                     variant="primary"
                                     as-button
                                     :disabled="restoring === restoringKey('users', u.id)"
                                     @click="restore('users', u)"
+                                />
+                                <AppButton
+                                    text="Naikinti"
+                                    variant="danger"
+                                    as-button
+                                    :disabled="destroying === u.id"
+                                    @click="confirmDeleteUser = u"
                                 />
                             </td>
                         </tr>
@@ -311,6 +340,17 @@ onMounted(load)
                 </p>
             </div>
         </template>
+        <ConfirmModal
+            :open="!!confirmDeleteUser"
+            title="Galutinis pašalinimas"
+            :message="confirmDeleteUser ? `Ar tikrai norite galutinai pašalinti ${confirmDeleteUser.name} (${confirmDeleteUser.email})? Šio veiksmo atšaukti nebus galima.` : ''"
+            confirm-text="Naikinti"
+            cancel-text="Atšaukti"
+            confirm-variant="danger"
+            :loading="destroying !== null"
+            @close="confirmDeleteUser = null"
+            @confirm="destroyUser"
+        />
     </div>
 </template>
 
@@ -400,7 +440,7 @@ onMounted(load)
 .table th,
 .table td {
     padding: 12px 14px;
-    text-align: left;
+    text-align: center;
     border-bottom: 1px solid #e5e7eb;
     vertical-align: middle;
     box-sizing: border-box;
@@ -425,5 +465,21 @@ onMounted(load)
 .loading {
     color: #666;
     font-size: 14px;
+}
+.actions-cell {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    justify-content: center;
+}
+.table :deep(.app-button) {
+    width: 100px !important;
+    min-width: 100px;
+    height: 36px !important;
+    min-height: 36px !important;
+    font-size: 13px !important;
+    padding: 0 12px !important;
+    border-radius: 8px !important;
+    margin: 0 !important;
 }
 </style>
