@@ -193,6 +193,7 @@ Route::middleware(['auth', 'verified', 'reporter.terms'])->group(function () {
                 ->name('admin.file-upload-settings.update');
             Route::put('/archive/retention-rule', [AdminArchiveController::class, 'updateRetentionRule']);
             Route::post('/archive/users/{user}/restore', [AdminArchiveController::class, 'restoreUser']);
+            Route::delete('/archive/users/{user}', [AdminArchiveController::class, 'destroyUser']);
             Route::post('/archive/institutions/{institution}/restore', [AdminArchiveController::class, 'restoreInstitution']);
             Route::post('/archive/problems/{problem}/restore', [AdminArchiveController::class, 'restoreProblem']);
             Route::post('/archive/classifier-values/{classifier_value}/restore', [AdminArchiveController::class, 'restoreClassifierValue']);

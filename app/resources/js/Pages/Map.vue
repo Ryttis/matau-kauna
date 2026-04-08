@@ -4,12 +4,14 @@ import { Head, router } from '@inertiajs/vue3'
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue'
 import AppButton from '@/Components/App/AppButton.vue'
 import FilterModal from '@/Components/App/Modals/FilterModal.vue'
+import InactiveReasonModal from '@/Components/App/Modals/InactiveReasonModal.vue'
 import StatusChangeModal from '@/Components/App/Modals/StatusChangeModal.vue'
 import KaunasProblemsMap from '@/Components/Map/KaunasProblemsMap.vue'
 import MapAddressAutocomplete from '@/Components/Map/MapAddressAutocomplete.vue'
 import { useAuth } from '@/composables/useAuth'
 import { ICON_FILTER } from '@/constants/ui/icons'
 import { PROBLEM_STATUS, MARKER_COLOR_BY_STATUS } from '@/constants/domain/problemStatus'
+import { buildInactiveReviewPostBody } from '@/constants/domain/reviewProgressEntry'
 
 const props = defineProps({
     categories: Array,
@@ -85,6 +87,9 @@ const handleFilterClose = () => {
 }
 
 const showStatusModal = ref(false)
+const showInactiveReasonModal = ref(false)
+const inactiveComment = ref('')
+const inactiveSubmitting = ref(false)
 
 const canAssignSelectedProblemOnMap = computed(() => {
     const p = selectedProblemFromAddress.value
@@ -111,6 +116,12 @@ const handleDisplayStatus = () => {
 
 const handleStatusChange = (status) => {
     if (!selectedProblemFromAddress.value) return
+    if (status === PROBLEM_STATUS.INACTIVE) {
+        showStatusModal.value = false
+        inactiveComment.value = ''
+        showInactiveReasonModal.value = true
+        return
+    }
     router.patch(route('problems.updateStatus', selectedProblemFromAddress.value.id), { status }, {
         preserveScroll: true,
         onSuccess: () => {
@@ -118,6 +129,32 @@ const handleStatusChange = (status) => {
             selectedProblemFromAddress.value = { ...selectedProblemFromAddress.value, status }
         },
     })
+}
+
+const closeInactiveReasonModal = () => {
+    if (inactiveSubmitting.value) return
+    showInactiveReasonModal.value = false
+}
+
+const submitInactiveReason = (visibility) => {
+    const p = selectedProblemFromAddress.value
+    if (!p || inactiveSubmitting.value) return
+    inactiveSubmitting.value = true
+    router.post(
+        route('problems.reviewProgress.store', p.id),
+        buildInactiveReviewPostBody(inactiveComment.value, visibility),
+        {
+            preserveScroll: true,
+            onSuccess: () => {
+                showInactiveReasonModal.value = false
+                inactiveComment.value = ''
+                selectedProblemFromAddress.value = { ...p, status: PROBLEM_STATUS.INACTIVE }
+            },
+            onFinish: () => {
+                inactiveSubmitting.value = false
+            },
+        },
+    )
 }
 
 const handleStatusModalClose = () => {
@@ -237,6 +274,14 @@ const statusIndicatorVars = {
                 :problem="selectedProblemFromAddress"
                 @close="handleStatusModalClose"
                 @save="handleStatusChange"
+            />
+
+            <InactiveReasonModal
+                v-model:comment="inactiveComment"
+                :open="showInactiveReasonModal"
+                :submitting="inactiveSubmitting"
+                @close="closeInactiveReasonModal"
+                @submit="submitInactiveReason"
             />
 
             <FilterModal

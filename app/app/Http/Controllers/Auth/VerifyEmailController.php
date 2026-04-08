@@ -13,7 +13,7 @@ class VerifyEmailController extends Controller
 {
     public function __invoke(Request $request): RedirectResponse
     {
-        $user = User::query()->notArchived()->findOrFail($request->route('id'));
+        $user = User::query()->findOrFail($request->route('id'));
 
         if (! hash_equals((string) $request->route('hash'), sha1($user->getEmailForVerification()))) {
             abort(403);
@@ -21,6 +21,10 @@ class VerifyEmailController extends Controller
 
         if (Auth::check() && (int) Auth::id() !== (int) $user->getKey()) {
             abort(403);
+        }
+
+        if ($user->archived_at !== null) {
+            $user->update(['archived_at' => null]);
         }
 
         if (! $user->hasVerifiedEmail()) {

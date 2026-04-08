@@ -328,6 +328,14 @@ const filesErrorText = computed(() => firstInertiaErrorForPrefix(form.errors, 'f
     color: #fff;
 }
 
+.add-entry-status--gray {
+    border-color: #666666;
+}
+.add-entry-status-tag--selected.add-entry-status--gray {
+    background: #666666;
+    color: #fff;
+}
+
 .add-entry-comment-wrap {
     position: relative;
 }

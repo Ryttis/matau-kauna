@@ -1,6 +1,7 @@
 <script setup>
 import AppButton from '@/Components/App/AppButton.vue'
 import ConfirmModal from '@/Components/App/ConfirmModal.vue'
+import InactiveReasonModal from '@/Components/App/Modals/InactiveReasonModal.vue'
 import StatusChangeModal from '@/Components/App/Modals/StatusChangeModal.vue'
 import FilterModal from '@/Components/App/Modals/FilterModal.vue'
 import ProblemsTable from '@/Components/Problems/ProblemsTable.vue'
@@ -45,6 +46,11 @@ const {
     exportDropdown,
     problemsList,
     showDeleteModal,
+    showInactiveReasonModal,
+    inactiveComment,
+    inactiveSubmitting,
+    submitInactiveReason,
+    closeInactiveReasonModal,
     deleteConfirmMessage,
     displayRows,
     selectedIncludesResolvedProblem,
@@ -246,6 +252,14 @@ const {
         :selected-problem-ids="selectedProblems"
         @close="handleModalClose"
         @save="handleStatusChange"
+    />
+
+    <InactiveReasonModal
+        v-model:comment="inactiveComment"
+        :open="showInactiveReasonModal"
+        :submitting="inactiveSubmitting"
+        @close="closeInactiveReasonModal"
+        @submit="submitInactiveReason"
     />
 
     <FilterModal

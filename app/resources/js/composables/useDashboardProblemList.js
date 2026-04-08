@@ -3,6 +3,7 @@ import { router } from '@inertiajs/vue3'
 import { debounce } from 'lodash-es'
 import { useProblemDisplayRows } from '@/composables/useProblemDisplayRows'
 import { PROBLEM_STATUS, PROBLEM_STATUS_OPTIONS } from '@/constants/domain/problemStatus'
+import { buildInactiveReviewPostBody } from '@/constants/domain/reviewProgressEntry'
 
 export function useDashboardProblemList(props) {
     const search = ref(props.filters?.search || '')
@@ -22,6 +23,10 @@ export function useDashboardProblemList(props) {
     const exportDropdown = ref(null)
     const problemsList = ref([])
     const showDeleteModal = ref(false)
+    const showInactiveReasonModal = ref(false)
+    const inactiveComment = ref('')
+    const inactiveSubmitting = ref(false)
+    const inactiveTargetProblemIds = ref([])
 
     const { displayRows } = useProblemDisplayRows(problemsList)
 
@@ -179,6 +184,18 @@ export function useDashboardProblemList(props) {
     }
 
     const handleStatusChange = (status) => {
+        if (status === PROBLEM_STATUS.INACTIVE) {
+            const ids = selectedProblems.value.length > 0
+                ? [...selectedProblems.value]
+                : (selectedProblem.value ? [selectedProblem.value.id] : [])
+            if (ids.length === 0) return
+            showStatusModal.value = false
+            inactiveTargetProblemIds.value = ids
+            inactiveComment.value = ''
+            showInactiveReasonModal.value = true
+            return
+        }
+
         if (selectedProblems.value.length > 0) {
             router.post(route('problems.bulkUpdateStatus'), {
                 problem_ids: selectedProblems.value,
@@ -204,6 +221,46 @@ export function useDashboardProblemList(props) {
                 },
             })
         }
+    }
+
+    const submitInactiveReason = (visibility) => {
+        if (inactiveSubmitting.value) return
+        const ids = inactiveTargetProblemIds.value
+        if (!ids.length) return
+        inactiveSubmitting.value = true
+
+        const finish = () => {
+            inactiveSubmitting.value = false
+            showInactiveReasonModal.value = false
+            inactiveComment.value = ''
+            inactiveTargetProblemIds.value = []
+            selectedProblems.value = []
+            selectedProblem.value = null
+            loadProblems(false)
+        }
+
+        const postAt = (index) => {
+            if (index >= ids.length) {
+                finish()
+                return
+            }
+            router.post(
+                route('problems.reviewProgress.store', ids[index]),
+                buildInactiveReviewPostBody(inactiveComment.value, visibility),
+                {
+                    preserveScroll: true,
+                    onFinish: () => postAt(index + 1),
+                },
+            )
+        }
+        postAt(0)
+    }
+
+    const closeInactiveReasonModal = () => {
+        if (inactiveSubmitting.value) return
+        showInactiveReasonModal.value = false
+        inactiveTargetProblemIds.value = []
+        inactiveComment.value = ''
     }
 
     const handleModalClose = () => {
@@ -417,6 +474,11 @@ export function useDashboardProblemList(props) {
         exportDropdown,
         problemsList,
         showDeleteModal,
+        showInactiveReasonModal,
+        inactiveComment,
+        inactiveSubmitting,
+        submitInactiveReason,
+        closeInactiveReasonModal,
         deleteConfirmMessage,
         displayRows,
         selectedIncludesResolvedProblem,

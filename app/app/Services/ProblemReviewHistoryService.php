@@ -36,6 +36,7 @@ class ProblemReviewHistoryService
 
         return [
             'id' => $entry->id,
+            'user_id' => $entry->user_id,
             'date' => $entry->created_at->toISOString(),
             'status' => $entry->status,
             'responsible' => $entry->responsible ?? '',
@@ -65,13 +66,11 @@ class ProblemReviewHistoryService
 
         $this->applyStatusToProblemAndMerged($problem, $user, $status);
 
-        $commentNormalized = $comment !== null ? trim($comment) : null;
-        if ($commentNormalized === '') {
-            $commentNormalized = null;
-        }
+        $commentNormalized = $this->normalizeComment($comment);
 
         $entry = ProblemReviewHistory::create([
             'problem_id' => $problem->id,
+            'user_id' => $user->id,
             'status' => $status,
             'responsible' => $this->responsibleLabel($user),
             'comment' => $commentNormalized,
@@ -111,10 +110,7 @@ class ProblemReviewHistoryService
             abort(422, 'Netinkama būsena');
         }
 
-        $commentNormalized = $comment !== null ? trim($comment) : null;
-        if ($commentNormalized === '') {
-            $commentNormalized = null;
-        }
+        $commentNormalized = $this->normalizeComment($comment);
 
         $oldStatus = $entry->status;
         $oldVisibility = $entry->visibility;
@@ -160,6 +156,27 @@ class ProblemReviewHistoryService
                 $this->reporterStatusNotifier->notifyReportersAndWatchersWhenStatusChanges($main, $oldMainStatus, $status);
             }
         }
+    }
+
+    public function logStatusChangeEntry(Problem $problem, User $user, string $newStatus): void
+    {
+        $mainId = $problem->merged_into_problem_id ?? $problem->id;
+
+        ProblemReviewHistory::create([
+            'problem_id' => $mainId,
+            'user_id' => $user->id,
+            'status' => $newStatus,
+            'responsible' => $this->responsibleLabel($user),
+            'comment' => null,
+            'visibility' => ProblemReviewCommentVisibility::Public->value,
+        ]);
+    }
+
+    private function normalizeComment(?string $comment): ?string
+    {
+        $trimmed = $comment !== null ? trim($comment) : null;
+
+        return ($trimmed === null || $trimmed === '') ? null : $trimmed;
     }
 
     private function responsibleLabel(User $user): string

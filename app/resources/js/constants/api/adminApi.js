@@ -15,6 +15,7 @@ export const adminApi = {
     archive: `${BASE}/archive`,
     archiveRetentionRule: `${BASE}/archive/retention-rule`,
     archiveRestoreUser: (id) => `${BASE}/archive/users/${id}/restore`,
+    archiveDestroyUser: (id) => `${BASE}/archive/users/${id}`,
     archiveRestoreInstitution: (id) => `${BASE}/archive/institutions/${id}/restore`,
     archiveRestoreProblem: (id) => `${BASE}/archive/problems/${id}/restore`,
     archiveRestoreClassifierValue: (id) => `${BASE}/archive/classifier-values/${id}/restore`,

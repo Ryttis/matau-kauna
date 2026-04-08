@@ -12,6 +12,7 @@ class ProblemReviewHistory extends Model
 
     protected $fillable = [
         'problem_id',
+        'user_id',
         'status',
         'responsible',
         'comment',

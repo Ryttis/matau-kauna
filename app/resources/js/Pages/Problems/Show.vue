@@ -3,6 +3,7 @@ import { ref, computed } from 'vue'
 import { Head, router } from '@inertiajs/vue3'
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue'
 import ConfirmModal from '@/Components/App/ConfirmModal.vue'
+import InactiveReasonModal from '@/Components/App/Modals/InactiveReasonModal.vue'
 import StatusChangeModal from '@/Components/App/Modals/StatusChangeModal.vue'
 import EditModal from '@/Components/App/Modals/EditModal.vue'
 import SuccessModal from '@/Components/App/SuccessModal.vue'
@@ -16,6 +17,7 @@ import StatusBadge from '@/Components/Problems/StatusBadge.vue'
 import { useAuth } from '@/composables/useAuth'
 import { ICON_RIGHT_ARROW } from '@/constants/ui/icons'
 import { PROBLEM_STATUS } from '@/constants/domain/problemStatus'
+import { buildInactiveReviewPostBody } from '@/constants/domain/reviewProgressEntry'
 
 const props = defineProps({
     problem: Object,
@@ -46,12 +48,22 @@ const { showSuccessModal, successMessage, closeSuccessModal } = useSuccessModal(
 const showStatusModal = ref(false)
 const showEditModal = ref(false)
 const showDeleteModal = ref(false)
+const showInactiveReasonModal = ref(false)
+const inactiveComment = ref('')
+const inactiveSubmitting = ref(false)
 
 const handleBack = () => {
     router.visit(route('dashboard'))
 }
 
 const handleStatusChange = (status) => {
+    if (status === PROBLEM_STATUS.INACTIVE) {
+        showStatusModal.value = false
+        inactiveComment.value = ''
+        showInactiveReasonModal.value = true
+        return
+    }
+
     router.patch(route('problems.updateStatus', props.problem.id), {
         status,
     }, {
@@ -60,6 +72,30 @@ const handleStatusChange = (status) => {
             showStatusModal.value = false
         }
     })
+}
+
+const closeInactiveReasonModal = () => {
+    if (inactiveSubmitting.value) return
+    showInactiveReasonModal.value = false
+}
+
+const submitInactiveReason = (visibility) => {
+    if (inactiveSubmitting.value) return
+    inactiveSubmitting.value = true
+    router.post(
+        route('problems.reviewProgress.store', props.problem.id),
+        buildInactiveReviewPostBody(inactiveComment.value, visibility),
+        {
+            preserveScroll: true,
+            onSuccess: () => {
+                showInactiveReasonModal.value = false
+                inactiveComment.value = ''
+            },
+            onFinish: () => {
+                inactiveSubmitting.value = false
+            },
+        },
+    )
 }
 
 const openStatusModal = () => {
@@ -339,6 +375,14 @@ const assignmentInfo = computed(() => {
                 width="369px"
                 @close="showDeleteModal = false"
                 @confirm="handleConfirmDelete"
+            />
+
+            <InactiveReasonModal
+                v-model:comment="inactiveComment"
+                :open="showInactiveReasonModal"
+                :submitting="inactiveSubmitting"
+                @close="closeInactiveReasonModal"
+                @submit="submitInactiveReason"
             />
         </div>
     </AuthenticatedLayout>

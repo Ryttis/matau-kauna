@@ -91,6 +91,13 @@ class ProblemReviewController extends Controller
             abort(404);
         }
 
+        $user = $request->user();
+        if (! $user->hasRole(UserRole::ROLE_SYSTEM_ADMIN)) {
+            if ($entry->user_id === null || (int) $entry->user_id !== (int) $user->id) {
+                abort(403);
+            }
+        }
+
         $validated = $request->validated();
         $this->reviewHistoryService->updateEntry(
             $problem,

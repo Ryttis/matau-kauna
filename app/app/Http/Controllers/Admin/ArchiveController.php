@@ -10,6 +10,7 @@ use App\Models\Problem;
 use App\Models\User;
 use App\Services\ArchiveService;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Support\Facades\Auth;
 
 class ArchiveController extends Controller
 {
@@ -25,6 +26,17 @@ class ArchiveController extends Controller
     public function updateRetentionRule(UpdateArchiveRetentionRequest $request): JsonResponse
     {
         $this->archiveService->updateRetentionRule($request->validated());
+
+        return response()->json(['ok' => true]);
+    }
+
+    public function destroyUser(User $user): JsonResponse
+    {
+        if ((int) $user->id === (int) Auth::id()) {
+            return response()->json(['message' => 'Negalima pašalinti savo paskyros.'], 422);
+        }
+
+        $user->delete();
 
         return response()->json(['ok' => true]);
     }

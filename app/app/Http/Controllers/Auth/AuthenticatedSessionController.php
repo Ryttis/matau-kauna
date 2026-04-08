@@ -34,7 +34,11 @@ class AuthenticatedSessionController extends Controller
         $request->session()->regenerate();
 
         $user = $request->user();
-        $user->update(['last_login_at' => now(), 'inactive_reporter_reminder_sent_at' => null]);
+        $updates = ['last_login_at' => now(), 'inactive_reporter_reminder_sent_at' => null];
+        if ($user->archived_at !== null) {
+            $updates['archived_at'] = null;
+        }
+        $user->update($updates);
         LoginLog::create([
             'user_id' => $user->id,
             'event_type' => LoginLog::EVENT_LOGIN,

@@ -38,7 +38,7 @@
 
 .admin-tab .table th,
 .admin-tab .table td {
-    text-align: left;
+    text-align: center;
     padding: 12px 12px;
     border-bottom: 1px solid var(--color-border, #e5e5e5);
     vertical-align: middle;
@@ -266,8 +266,8 @@
     display: flex;
     flex-direction: column;
     gap: var(--admin-spacing, 12px);
-    max-height: 220px;
-    overflow: auto;
+    max-height: 170px;
+    overflow-y: auto;
     border-top: 1px solid var(--color-border-light);
     border-bottom: 1px solid var(--color-border-light);
     padding: var(--admin-spacing, 12px) 0;
