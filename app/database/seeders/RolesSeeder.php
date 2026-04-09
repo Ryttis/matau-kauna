@@ -3,7 +3,6 @@
 namespace Database\Seeders;
 
 use App\Models\UserRolePermission;
-use App\Models\UserRolePermissionGroup;
 use App\Models\User;
 use App\Models\UserRole;
 use Illuminate\Database\Seeder;
@@ -13,9 +12,7 @@ class RolesSeeder extends Seeder
 {
     public function run(): void
     {
-        DB::table('user_role_permission_group_role_map')->truncate();
-        DB::table('user_role_permission_group_map')->truncate();
-        DB::table('user_role_permission_group')->truncate();
+        DB::table('user_role_permission_map')->truncate();
         DB::table('user_role_permission')->truncate();
 
         $roleSystemAdmin = UserRole::updateOrCreate(
@@ -48,24 +45,6 @@ class RolesSeeder extends Seeder
             ['name' => 'Pareiškėjas']
         );
 
-        $groups = collect([
-            'Users',
-            'Roles',
-            'Permissions',
-            'Issues',
-            'IssuesPublish',
-            'Classification',
-            'Statistics',
-            'Admin',
-        ])->mapWithKeys(function ($name) {
-            return [
-                $name => UserRolePermissionGroup::updateOrCreate(
-                    ['name' => $name],
-                    []
-                ),
-            ];
-        });
-
         $permissions = collect([
             'users.view',
             'users.manage',
@@ -91,70 +70,59 @@ class RolesSeeder extends Seeder
             ];
         });
 
-        $groups['Users']->permissions()->sync([
+        $roleSystemAdmin->permissions()->sync([
             $permissions['users.view']->id,
             $permissions['users.manage']->id,
-        ]);
-
-        $groups['Roles']->permissions()->sync([
             $permissions['roles.view']->id,
             $permissions['roles.manage']->id,
-        ]);
-
-        $groups['Permissions']->permissions()->sync([
             $permissions['permissions.view']->id,
             $permissions['permissions.manage']->id,
-        ]);
-
-        $groups['Issues']->permissions()->sync([
             $permissions['issues.view']->id,
             $permissions['issues.edit']->id,
             $permissions['issues.assign']->id,
             $permissions['issues.export']->id,
-        ]);
-
-        $groups['IssuesPublish']->permissions()->sync([
             $permissions['issues.publish']->id,
-        ]);
-
-        $groups['Classification']->permissions()->sync([
             $permissions['classification.edit']->id,
-        ]);
-
-        $groups['Statistics']->permissions()->sync([
             $permissions['statistics.view']->id,
-        ]);
-
-        $groups['Admin']->permissions()->sync([
             $permissions['admin.access']->id,
             $permissions['archive.manage']->id,
         ]);
 
-        $roleSystemAdmin->permissionGroups()->sync($groups->pluck('id')->toArray());
-
-        $roleProblemAdmin->permissionGroups()->sync([
-            $groups['Issues']->id,
-            $groups['IssuesPublish']->id,
-            $groups['Classification']->id,
-            $groups['Statistics']->id,
+        $roleProblemAdmin->permissions()->sync([
+            $permissions['issues.view']->id,
+            $permissions['issues.edit']->id,
+            $permissions['issues.assign']->id,
+            $permissions['issues.export']->id,
+            $permissions['issues.publish']->id,
+            $permissions['classification.edit']->id,
+            $permissions['statistics.view']->id,
         ]);
 
-        $roleInstitutionAdmin->permissionGroups()->sync([
-            $groups['Issues']->id,
-            $groups['Statistics']->id,
+        $roleInstitutionAdmin->permissions()->sync([
+            $permissions['issues.view']->id,
+            $permissions['issues.edit']->id,
+            $permissions['issues.assign']->id,
+            $permissions['issues.export']->id,
+            $permissions['statistics.view']->id,
         ]);
 
-        $roleMunicipalityRep->permissionGroups()->sync([
-            $groups['Issues']->id,
-            $groups['Statistics']->id,
+        $roleMunicipalityRep->permissions()->sync([
+            $permissions['issues.view']->id,
+            $permissions['issues.edit']->id,
+            $permissions['issues.assign']->id,
+            $permissions['issues.export']->id,
+            $permissions['statistics.view']->id,
         ]);
 
-        $roleEmployee->permissionGroups()->sync([
-            $groups['Issues']->id,
-            $groups['Statistics']->id,
+        $roleEmployee->permissions()->sync([
+            $permissions['issues.view']->id,
+            $permissions['issues.edit']->id,
+            $permissions['issues.assign']->id,
+            $permissions['issues.export']->id,
+            $permissions['statistics.view']->id,
         ]);
 
-        $roleReporter->permissionGroups()->sync([]);
+        $roleReporter->permissions()->sync([]);
 
         $adminUser = User::find(1);
         if ($adminUser) {
