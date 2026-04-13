@@ -148,16 +148,19 @@ const employeeDisplayName = (emp) => {
 const assignmentInfo = computed(() => {
     const p = props.problem
     if (!p) {
-        return { hasAny: false, institutionName: null, employeeName: null }
+        return { hasAny: false, institutionName: null, employeeName: null, teamName: null }
     }
     const inst = p.institution
     const emp = p.assigned_employee ?? p.assignedEmployee
+    const team = p.assigned_institution_team ?? p.assignedInstitutionTeam
     const institutionName = inst?.name?.trim() || null
     const employeeName = employeeDisplayName(emp) || null
+    const teamName = team?.name?.trim() || null
     return {
-        hasAny: Boolean(institutionName || employeeName),
+        hasAny: Boolean(institutionName || employeeName || teamName),
         institutionName,
         employeeName,
+        teamName,
     }
 })
 </script>
@@ -213,8 +216,15 @@ const assignmentInfo = computed(() => {
                         readonly
                     />
                     <AppInput
+                        v-if="assignmentInfo.teamName"
+                        :model-value="assignmentInfo.teamName"
+                        label="Komanda"
+                        type="text"
+                        readonly
+                    />
+                    <AppInput
                         v-if="!assignmentInfo.hasAny"
-                        model-value="Dar nepriskirta įstaigai arba konkrečiam darbuotojui."
+                        model-value="Dar nepriskirta įstaigai, darbuotojui arba komandai."
                         label="Skirta"
                         type="text"
                         readonly

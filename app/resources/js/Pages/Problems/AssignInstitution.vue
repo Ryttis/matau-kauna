@@ -1,21 +1,28 @@
 <script setup>
 import { ref, watch } from 'vue'
 import { Head, router } from '@inertiajs/vue3'
+import axios from 'axios'
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue'
 import AppButton from '@/Components/App/AppButton.vue'
 import AppInput from '@/Components/App/AppInput.vue'
 import AppDatePicker from '@/Components/App/AppDatePicker.vue'
 import AppBackButton from '@/Components/App/AppBackButton.vue'
 import SuccessModal from '@/Components/App/SuccessModal.vue'
+import InstitutionTeamMembersModal from '@/Components/InstitutionTeams/InstitutionTeamMembersModal.vue'
 import { useAuth } from '@/composables/useAuth'
 import { useSuccessModal } from '@/composables/useSuccessModal'
+import { settingsApi } from '@/constants/api/settingsApi'
 
 const { canSeeInstitutionAdminButtons } = useAuth()
-const { showSuccessModal, successMessage, closeSuccessModal } = useSuccessModal()
+const { showSuccessModal, successMessage, closeSuccessModal, showWithMessage } = useSuccessModal()
 
 const props = defineProps({
     problem: Object,
     employees: {
+        type: Array,
+        default: () => [],
+    },
+    teams: {
         type: Array,
         default: () => [],
     },
@@ -26,6 +33,7 @@ const props = defineProps({
 })
 
 const selectedEmployeeIds = ref([])
+const selectedTeamIds = ref([])
 const deadline = ref(
     props.problem?.completion_deadline
         ? (typeof props.problem.completion_deadline === 'string'
@@ -42,6 +50,20 @@ const emailSubmitting = ref(false)
 const returnSubmitting = ref(false)
 const reassignSubmitting = ref(false)
 
+const teamsList = ref([])
+const membersModalOpen = ref(false)
+const membersModalTeam = ref(null)
+const membersModalEmployees = ref([])
+const teamMembersLoading = ref(false)
+
+watch(
+    () => props.teams,
+    (t) => {
+        teamsList.value = (t ?? []).map((row) => ({ ...row }))
+    },
+    { immediate: true }
+)
+
 const finishVisit = (flag) => ({
     preserveScroll: true,
     onFinish: () => {
@@ -54,7 +76,51 @@ const handleBack = () => {
 }
 
 const selectEmployee = (id) => {
+    selectedTeamIds.value = []
     selectedEmployeeIds.value = selectedEmployeeIds.value[0] === id ? [] : [id]
+}
+
+const selectTeam = (id) => {
+    selectedEmployeeIds.value = []
+    selectedTeamIds.value = selectedTeamIds.value[0] === id ? [] : [id]
+}
+
+const closeTeamMembersModal = () => {
+    membersModalOpen.value = false
+    membersModalTeam.value = null
+    membersModalEmployees.value = []
+}
+
+const openTeamMembersModal = async (teamRow) => {
+    if (teamMembersLoading.value) return
+    teamMembersLoading.value = true
+    try {
+        const { data } = await axios.get(settingsApi.teams)
+        const fullTeam = (data?.teams ?? []).find((t) => t.id === teamRow.id)
+        if (!fullTeam) {
+            alert('Komanda nerasta.')
+            return
+        }
+        membersModalEmployees.value = data?.employees ?? []
+        membersModalTeam.value = fullTeam
+        membersModalOpen.value = true
+    } catch (e) {
+        alert(e.response?.data?.message ?? 'Nepavyko užkrauti komandos duomenų.')
+    } finally {
+        teamMembersLoading.value = false
+    }
+}
+
+const onTeamMembersSaved = (data) => {
+    const idx = teamsList.value.findIndex((x) => x.id === data.id)
+    if (idx !== -1) {
+        teamsList.value[idx] = {
+            ...teamsList.value[idx],
+            name: data.name,
+            members_count: (data.employees ?? []).length,
+        }
+    }
+    showWithMessage('Komandos nariai atnaujinti.')
 }
 
 const selectInstitution = (id) => {
@@ -62,13 +128,20 @@ const selectInstitution = (id) => {
 }
 
 const handleSendAssign = () => {
-    if (!selectedEmployeeIds.value.length) return
+    const employeeId = selectedEmployeeIds.value[0]
+    const teamId = selectedTeamIds.value[0]
+    if (!employeeId && !teamId) return
 
     assignSubmitting.value = true
-    router.post(route('problems.assignInstitution.store', props.problem.id), {
-        employee_id: selectedEmployeeIds.value[0],
+    const payload = {
         completion_deadline: deadline.value || null,
-    }, finishVisit(assignSubmitting))
+    }
+    if (employeeId) {
+        payload.employee_id = employeeId
+    } else {
+        payload.institution_team_id = teamId
+    }
+    router.post(route('problems.assignInstitution.store', props.problem.id), payload, finishVisit(assignSubmitting))
 }
 
 const handleSendEmail = () => {
@@ -104,8 +177,18 @@ const handleReassign = () => {
 watch(
     () => props.problem,
     (newProblem) => {
-        const assignedId = newProblem?.assigned_employee_id
-        selectedEmployeeIds.value = assignedId ? [assignedId] : []
+        const assignedEmp = newProblem?.assigned_employee_id
+        const assignedTeam = newProblem?.assigned_institution_team_id
+        if (assignedEmp) {
+            selectedEmployeeIds.value = [assignedEmp]
+            selectedTeamIds.value = []
+        } else if (assignedTeam) {
+            selectedTeamIds.value = [assignedTeam]
+            selectedEmployeeIds.value = []
+        } else {
+            selectedEmployeeIds.value = []
+            selectedTeamIds.value = []
+        }
     },
     { immediate: true }
 )
@@ -120,6 +203,13 @@ watch(
             :message="successMessage"
             @close="closeSuccessModal"
         />
+        <InstitutionTeamMembersModal
+            :open="membersModalOpen"
+            :team="membersModalTeam"
+            :institution-employees="membersModalEmployees"
+            @close="closeTeamMembersModal"
+            @saved="onTeamMembersSaved"
+        />
         <div class="assign-institution-page">
             <div class="assign-institution-header">
                 <AppBackButton @click="handleBack" />
@@ -130,34 +220,81 @@ watch(
 
             <div class="assign-institution-section">
                 <h2 class="section-title">
-                    Problemai priskiriama atsakingam darbuotojui/grupei
+                    Problemos priskyrimas
                 </h2>
-                <div class="assign-table-scroll" role="region" aria-label="Darbuotojų sąrašas">
-                    <table v-if="employees.length" class="assign-select-table">
-                        <thead>
-                            <tr>
-                                <th>Darbuotojas</th>
-                                <th>El. paštas</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr
-                                v-for="emp in employees"
-                                :key="emp.id"
-                                tabindex="0"
-                                class="assign-select-row"
-                                :class="{ 'assign-select-row--active': selectedEmployeeIds[0] === emp.id }"
-                                @click="selectEmployee(emp.id)"
-                                @keydown.enter.prevent="selectEmployee(emp.id)"
-                                @keydown.space.prevent="selectEmployee(emp.id)"
-                            >
-                                <td>{{ emp.name || '—' }}</td>
-                                <td class="assign-select-cell-muted">{{ emp.email || '—' }}</td>
-                            </tr>
-                        </tbody>
-                    </table>
-                    <div v-else class="assign-empty-state">
-                        <span class="assign-empty-text">Nėra duomenų</span>
+                <div class="assign-tables-grid">
+                    <div class="assign-table-panel" role="region" aria-label="Pavieniai darbuotojai">
+                        <h3 class="assign-table-panel-title">Pavieniai darbuotojai</h3>
+                        <div class="assign-table-scroll">
+                            <table v-if="employees.length" class="assign-select-table">
+                                <thead>
+                                    <tr>
+                                        <th>Darbuotojas</th>
+                                        <th>El. paštas</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr
+                                        v-for="emp in employees"
+                                        :key="emp.id"
+                                        tabindex="0"
+                                        class="assign-select-row"
+                                        :class="{ 'assign-select-row--active': selectedEmployeeIds[0] === emp.id }"
+                                        @click="selectEmployee(emp.id)"
+                                        @keydown.enter.prevent="selectEmployee(emp.id)"
+                                        @keydown.space.prevent="selectEmployee(emp.id)"
+                                    >
+                                        <td>{{ emp.name || '—' }}</td>
+                                        <td class="assign-select-cell-muted">{{ emp.email || '—' }}</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                            <div v-else class="assign-empty-state">
+                                <span class="assign-empty-text">Nėra duomenų</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="assign-table-panel" role="region" aria-label="Komandos">
+                        <h3 class="assign-table-panel-title">Komandos</h3>
+                        <div class="assign-table-scroll">
+                            <table v-if="teamsList.length" class="assign-select-table">
+                                <thead>
+                                    <tr>
+                                        <th>Komanda</th>
+                                        <th>Nariai</th>
+                                        <th class="assign-select-th-actions">Veiksmai</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr
+                                        v-for="t in teamsList"
+                                        :key="t.id"
+                                        tabindex="0"
+                                        class="assign-select-row"
+                                        :class="{ 'assign-select-row--active': selectedTeamIds[0] === t.id }"
+                                        @click="selectTeam(t.id)"
+                                        @keydown.enter.prevent="selectTeam(t.id)"
+                                        @keydown.space.prevent="selectTeam(t.id)"
+                                    >
+                                        <td>{{ t.name || '—' }}</td>
+                                        <td class="assign-select-cell-muted">{{ t.members_count }}</td>
+                                        <td class="assign-select-actions" @click.stop>
+                                            <button
+                                                type="button"
+                                                class="link-btn"
+                                                :disabled="teamMembersLoading"
+                                                @click="openTeamMembersModal(t)"
+                                            >
+                                                Peržiūrėti
+                                            </button>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                            <div v-else class="assign-empty-state">
+                                <span class="assign-empty-text">Nėra komandų</span>
+                            </div>
+                        </div>
                     </div>
                 </div>
                 <div class="field-row field-fixed-width">
@@ -216,7 +353,7 @@ watch(
 
             <div class="assign-institution-section">
                 <h2 class="section-title">Peradresuoti</h2>
-                <div class="assign-table-scroll" role="region" aria-label="Įstaigų sąrašas">
+                <div class="assign-table-scroll assign-table-scroll--single" role="region" aria-label="Įstaigų sąrašas">
                     <table v-if="institutions.length" class="assign-select-table">
                         <thead>
                             <tr>
@@ -288,16 +425,33 @@ watch(
     margin: 0 0 12px 0;
 }
 
+.assign-tables-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+    margin-bottom: 16px;
+    align-items: stretch;
+}
+
+.assign-table-panel-title {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--color-text, #333);
+    margin: 0 0 8px 0;
+}
+
 .assign-table-scroll {
     width: 100%;
-    max-width: 720px;
     max-height: calc(5 * 3rem);
     overflow-y: auto;
-    margin-bottom: 16px;
     border: 1px solid var(--color-border, #e5e5e5);
     border-radius: 8px;
     background: var(--color-white, #fff);
     -webkit-overflow-scrolling: touch;
+}
+
+.assign-table-scroll--single {
+    max-width: 720px;
 }
 
 .assign-select-table {
@@ -350,6 +504,33 @@ watch(
 .assign-select-cell-muted {
     color: var(--color-text-muted, #555);
     font-size: 14px;
+}
+
+.assign-select-th-actions {
+    width: 1%;
+    white-space: nowrap;
+}
+
+.assign-select-actions {
+    vertical-align: middle;
+}
+
+.link-btn {
+    border: 0;
+    background: transparent;
+    padding: 0;
+    font-size: 13px;
+    color: var(--color-primary, #1946a0);
+    cursor: pointer;
+}
+
+.link-btn:hover:not(:disabled) {
+    text-decoration: none;
+}
+
+.link-btn:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
 }
 
 .assign-empty-state {
@@ -413,6 +594,10 @@ watch(
     .section-title {
         font-size: clamp(1.2rem, 4.8vw, 1.45rem);
         line-height: 1.3;
+    }
+
+    .assign-tables-grid {
+        grid-template-columns: 1fr;
     }
 
     .assign-table-scroll {

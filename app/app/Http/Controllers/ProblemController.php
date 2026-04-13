@@ -194,6 +194,7 @@ class ProblemController extends Controller
         $problem->load([
             'institution:id,name',
             'assignedEmployee:id,name,surname,email',
+            'assignedInstitutionTeam:id,name',
         ]);
 
         $mergeContext = $this->mergeContextService->forProblem($problem);

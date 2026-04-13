@@ -79,6 +79,7 @@ class ProblemAdminAssignController extends Controller
 
         if (empty($validated['institution_id'])) {
             $update['assigned_employee_id'] = null;
+            $update['assigned_institution_team_id'] = null;
         }
 
         if (! empty($validated['status'])) {
@@ -151,6 +152,7 @@ class ProblemAdminAssignController extends Controller
         Problem::whereIn('id', $validated['problem_ids'])->update([
             'institution_id' => $institution->id,
             'assigned_employee_id' => null,
+            'assigned_institution_team_id' => null,
         ]);
 
         foreach ($problems as $p) {

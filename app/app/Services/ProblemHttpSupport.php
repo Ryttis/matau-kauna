@@ -86,11 +86,11 @@ class ProblemHttpSupport
         }
 
         $employeeId = $this->scopeService->employeeIdForUser($user);
-        if (! $employeeId || ! $problem->assigned_employee_id) {
+        if (! $employeeId) {
             return false;
         }
 
-        return (int) $problem->assigned_employee_id === (int) $employeeId;
+        return $this->scopeService->employeeHasAccessToAssignment($employeeId, $problem);
     }
 
     public function reporterCanToggleWatch(User $user, Problem $problem): bool
