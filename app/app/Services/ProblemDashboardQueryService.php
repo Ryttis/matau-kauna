@@ -48,7 +48,7 @@ class ProblemDashboardQueryService
                 $this->scopeService->isEmployeeScoped($user),
                 function ($query) use ($employeeId) {
                     if ($employeeId) {
-                        $query->where('assigned_employee_id', $employeeId);
+                        $query->whereVisibleToEmployee($employeeId);
                     } else {
                         $query->whereRaw('1 = 0');
                     }

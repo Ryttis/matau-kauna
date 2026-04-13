@@ -90,7 +90,7 @@ class ProblemMapService
                 function ($q) use ($user) {
                     $employeeId = $this->scopeService->employeeIdForUser($user);
                     if ($employeeId) {
-                        $q->where('assigned_employee_id', $employeeId);
+                        $q->whereVisibleToEmployee($employeeId);
                     } else {
                         $q->whereRaw('1 = 0');
                     }

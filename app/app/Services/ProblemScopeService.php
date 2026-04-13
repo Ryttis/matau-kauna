@@ -7,6 +7,7 @@ use App\Models\Problem;
 use App\Models\User;
 use App\Models\UserRole;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Facades\DB;
 
 class ProblemScopeService
 {
@@ -36,7 +37,7 @@ class ProblemScopeService
             abort(403);
         }
 
-        $query->where('assigned_employee_id', $employeeId);
+        $query->whereVisibleToEmployee($employeeId);
     }
 
     public function ensureScopeMatchesCount(Builder $query, int $expectedCount): void
@@ -65,11 +66,28 @@ class ProblemScopeService
         }
 
         $employeeId = $this->employeeIdForUser($user);
-        $problemEmployeeId = (int) $problem->assigned_employee_id;
 
-        if (! $employeeId || $problemEmployeeId !== (int) $employeeId) {
+        if (! $this->employeeHasAccessToAssignment($employeeId, $problem)) {
             abort(403);
         }
+    }
+
+    public function employeeHasAccessToAssignment(?int $employeeId, Problem $problem): bool
+    {
+        if (! $employeeId) {
+            return false;
+        }
+        if ((int) $problem->assigned_employee_id === (int) $employeeId) {
+            return true;
+        }
+        if ($problem->assigned_institution_team_id === null) {
+            return false;
+        }
+
+        return DB::table('employee_institution_team')
+            ->where('institution_team_id', $problem->assigned_institution_team_id)
+            ->where('employee_id', $employeeId)
+            ->exists();
     }
 
     private function authorizeInstitutionMatch(User $user, int $institutionId): void

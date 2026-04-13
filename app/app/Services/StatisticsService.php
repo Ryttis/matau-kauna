@@ -137,7 +137,7 @@ class StatisticsService
         if ($this->isEmployeeScoped($user)) {
             $employeeId = $this->employeeIdForUser($user);
             if ($employeeId) {
-                $query->where('assigned_employee_id', $employeeId);
+                $query->whereVisibleToEmployee($employeeId);
             } else {
                 $query->whereRaw('1 = 0');
             }

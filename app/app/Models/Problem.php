@@ -38,6 +38,7 @@ class Problem extends Model
         'status_updated_at',
         'institution_id',
         'assigned_employee_id',
+        'assigned_institution_team_id',
         'completion_deadline',
         'deadline_status',
         'deadline_reminder_sent_at',
@@ -218,6 +219,25 @@ class Problem extends Model
     public function assignedEmployee(): BelongsTo
     {
         return $this->belongsTo(Employee::class, 'assigned_employee_id');
+    }
+
+    public function assignedInstitutionTeam(): BelongsTo
+    {
+        return $this->belongsTo(InstitutionTeam::class, 'assigned_institution_team_id');
+    }
+
+    public function scopeWhereVisibleToEmployee(Builder $query, int $employeeId): void
+    {
+        $table = $query->getModel()->getTable();
+        $query->where(function (Builder $inner) use ($employeeId, $table) {
+            $inner->where("{$table}.assigned_employee_id", $employeeId)
+                ->orWhereExists(function ($sub) use ($employeeId, $table) {
+                    $sub->selectRaw('1')
+                        ->from('employee_institution_team')
+                        ->whereColumn('employee_institution_team.institution_team_id', "{$table}.assigned_institution_team_id")
+                        ->where('employee_institution_team.employee_id', $employeeId);
+                });
+        });
     }
 
     public function reportedByUser(): BelongsTo
