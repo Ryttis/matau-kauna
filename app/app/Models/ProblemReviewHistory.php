@@ -14,12 +14,15 @@ class ProblemReviewHistory extends Model
         'problem_id',
         'user_id',
         'status',
+        'status_changed',
         'responsible',
         'comment',
         'visibility',
     ];
 
-    protected $casts = [];
+    protected $casts = [
+        'status_changed' => 'boolean',
+    ];
 
     public function problem(): BelongsTo
     {

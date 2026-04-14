@@ -3,6 +3,7 @@ import { watch, ref, computed, nextTick } from 'vue'
 import { router } from '@inertiajs/vue3'
 import BaseModal from '@/Components/App/BaseModal.vue'
 import ConfirmModal from '@/Components/App/ConfirmModal.vue'
+import AttachmentMediaLightbox from '@/Components/Problems/AttachmentMediaLightbox.vue'
 
 const props = defineProps({
     show: {
@@ -176,28 +177,7 @@ function confirmDelete() {
         @confirm="confirmDelete"
     />
 
-    <Teleport to="body">
-        <div
-            v-if="preview"
-            class="lightbox-overlay"
-            role="dialog"
-            aria-modal="true"
-            tabindex="-1"
-            @click.self="closePreview"
-            @keydown.escape="closePreview"
-        >
-            <button type="button" class="lightbox-close" aria-label="Uždaryti" @click="closePreview">
-                ×
-            </button>
-            <img
-                v-if="preview.kind === 'photo'"
-                :src="preview.url"
-                alt=""
-                class="lightbox-media"
-            />
-            <video v-else :src="preview.url" class="lightbox-media lightbox-video" controls playsinline />
-        </div>
-    </Teleport>
+    <AttachmentMediaLightbox :attachment="preview" @close="closePreview" />
 </template>
 
 <style scoped>
@@ -292,48 +272,4 @@ function confirmDelete() {
     cursor: wait;
 }
 
-.lightbox-overlay {
-    position: fixed;
-    inset: 0;
-    z-index: 1200;
-    background: rgba(0, 0, 0, 0.88);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 24px;
-    box-sizing: border-box;
-}
-
-.lightbox-close {
-    position: fixed;
-    top: 16px;
-    right: 20px;
-    z-index: 1210;
-    width: 44px;
-    height: 44px;
-    border: none;
-    border-radius: 8px;
-    background: rgba(255, 255, 255, 0.15);
-    color: #fff;
-    font-size: 28px;
-    line-height: 1;
-    cursor: pointer;
-}
-
-.lightbox-close:hover {
-    background: rgba(255, 255, 255, 0.28);
-}
-
-.lightbox-media {
-    max-width: 100%;
-    max-height: calc(100vh - 48px);
-    width: auto;
-    height: auto;
-    object-fit: contain;
-}
-
-.lightbox-video {
-    max-width: min(100%, 960px);
-    background: #000;
-}
 </style>

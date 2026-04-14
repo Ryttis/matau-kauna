@@ -123,6 +123,7 @@ class ProblemSeeder extends Seeder
                 ProblemReviewHistory::create([
                     'problem_id' => $problem->id,
                     'status' => $statuses[array_rand($statuses)],
+                    'status_changed' => true,
                     'responsible' => $responsibleNames[array_rand($responsibleNames)],
                     'comment' => $comments[array_rand($comments)],
                     'visibility' => rand(0, 1) === 1 ? 'public' : 'internal',

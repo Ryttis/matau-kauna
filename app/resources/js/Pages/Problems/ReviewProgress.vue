@@ -7,6 +7,7 @@ import AppBackButton from '@/Components/App/AppBackButton.vue'
 import AppButton from '@/Components/App/AppButton.vue'
 import AddEntryModal from '@/Components/App/Modals/AddEntryModal.vue'
 import ConfirmModal from '@/Components/App/ConfirmModal.vue'
+import AttachmentMediaLightbox from '@/Components/Problems/AttachmentMediaLightbox.vue'
 import StatusBadge from '@/Components/Problems/StatusBadge.vue'
 import { PROBLEM_STATUS_LABELS } from '@/constants/domain/problemStatus'
 
@@ -113,6 +114,16 @@ function confirmDeleteReviewAttachment() {
         },
     )
 }
+
+const reviewLightboxPreview = ref(null)
+
+function openReviewAttachmentLightbox(a) {
+    reviewLightboxPreview.value = a
+}
+
+function closeReviewAttachmentLightbox() {
+    reviewLightboxPreview.value = null
+}
 </script>
 
 <template>
@@ -153,11 +164,12 @@ function confirmDeleteReviewAttachment() {
                     class="review-progress-watch-btn"
                     :class="{ 'is-active': watchActive }"
                     :aria-pressed="watchActive"
+                    :title="watchActive ? 'Nebestebėti' : 'Stebėti'"
                     :aria-label="watchActive ? 'Stebima: gausite pranešimus apie naujus įrašus' : 'Stebėti ir gauti pranešimus apie naujus įrašus'"
                     :disabled="watchLoading"
                     @click="toggleProblemWatch"
                 >
-                    <img src="/icons/eye-icon.png" alt="" width="28" height="28" />
+                    {{ watchActive ? 'Stebima' : 'Stebėti' }}
                 </button>
             </div>
 
@@ -187,7 +199,10 @@ function confirmDeleteReviewAttachment() {
                         </div>
                     </div>
                     <div class="review-progress-entry-body">
-                        <div class="review-progress-status">
+                        <div
+                            v-if="entry.status_changed"
+                            class="review-progress-status"
+                        >
                             Būsena pakeista į: {{ PROBLEM_STATUS_LABELS[entry.status] || entry.status }}
                         </div>
                         <div class="review-progress-responsible">
@@ -231,21 +246,33 @@ function confirmDeleteReviewAttachment() {
                                     >
                                         Šalinti
                                     </button>
-                                    <a
+                                    <button
                                         v-if="a.kind === 'photo'"
-                                        :href="a.url"
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        class="review-progress-attachment-link"
+                                        type="button"
+                                        class="review-progress-attachment-thumb-btn"
+                                        aria-label="Peržiūrėti nuotrauką"
+                                        @click="openReviewAttachmentLightbox(a)"
                                     >
-                                        <img :src="a.url" alt="" class="review-progress-attachment-thumb" />
-                                    </a>
-                                    <video
+                                        <span class="review-progress-attachment-link">
+                                            <img :src="a.url" alt="" class="review-progress-attachment-thumb" />
+                                        </span>
+                                    </button>
+                                    <button
                                         v-else
-                                        class="review-progress-attachment-video"
-                                        controls
-                                        :src="a.url"
-                                    />
+                                        type="button"
+                                        class="review-progress-attachment-thumb-btn"
+                                        aria-label="Peržiūrėti vaizdo įrašą"
+                                        @click="openReviewAttachmentLightbox(a)"
+                                    >
+                                        <span class="review-progress-attachment-link">
+                                            <video
+                                                class="review-progress-attachment-video review-progress-attachment-video--thumb"
+                                                muted
+                                                playsinline
+                                                :src="a.url"
+                                            />
+                                        </span>
+                                    </button>
                                 </div>
                             </div>
                         </div>
@@ -280,6 +307,12 @@ function confirmDeleteReviewAttachment() {
             :loading="deleteReviewAttachmentLoading"
             @close="onCloseDeleteReviewAttachment"
             @confirm="confirmDeleteReviewAttachment"
+        />
+
+        <AttachmentMediaLightbox
+            :attachment="reviewLightboxPreview"
+            :z-index="5600"
+            @close="closeReviewAttachmentLightbox"
         />
     </AuthenticatedLayout>
 </template>
@@ -348,22 +381,30 @@ function confirmDeleteReviewAttachment() {
     margin-bottom: 20px;
     display: flex;
     align-items: center;
+    justify-content: flex-start;
     gap: 12px;
     flex-wrap: wrap;
 }
 
 .review-progress-watch-btn {
-    border: none;
-    background: transparent;
-    padding: 6px;
+    border: 1px solid var(--color-primary, #1946a0);
+    background: #fff;
+    color: var(--color-primary, #1946a0);
+    padding: 0 16px;
+    min-width: 120px;
+    height: var(--control-height, 45px);
     cursor: pointer;
-    line-height: 0;
-    border-radius: 10px;
+    line-height: 1;
+    font-size: 15px;
+    font-weight: 600;
+    border-radius: var(--control-radius, 15px);
+    font-family: var(--font-family-base, 'Open Sans', sans-serif);
+    white-space: nowrap;
     transition: background 0.15s ease, opacity 0.15s ease;
 }
 
 .review-progress-watch-btn:hover:not(:disabled) {
-    background: rgba(0, 0, 0, 0.05);
+    background: #e8eef7;
 }
 
 .review-progress-watch-btn:disabled {
@@ -371,14 +412,15 @@ function confirmDeleteReviewAttachment() {
     cursor: wait;
 }
 
-.review-progress-watch-btn img {
-    display: block;
-    width: 28px;
-    height: 28px;
+.review-progress-watch-btn.is-active {
+    background: var(--color-primary, #1946a0);
+    color: #fff;
+    border-color: var(--color-primary, #1946a0);
 }
 
-.review-progress-watch-btn.is-active img {
-    filter: brightness(0) saturate(100%) invert(27%) sepia(96%) saturate(2500%) hue-rotate(212deg) brightness(96%) contrast(96%);
+.review-progress-watch-btn.is-active:hover:not(:disabled) {
+    background: var(--color-primary-hover, #153a8a);
+    border-color: var(--color-primary-hover, #153a8a);
 }
 
 .review-progress-description {
@@ -580,15 +622,16 @@ function confirmDeleteReviewAttachment() {
     font-weight: 600;
     font-family: var(--font-family-base, 'Open Sans', sans-serif);
     color: #fff;
-    background: rgba(0, 0, 0, 0.65);
+    background: rgba(180, 40, 40, 0.92);
     border: none;
     border-radius: 6px;
     cursor: pointer;
     line-height: 1.2;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
 }
 
 .review-progress-attachment-delete:hover:not(:disabled) {
-    background: rgba(180, 40, 40, 0.95);
+    background: rgba(200, 50, 50, 1);
 }
 
 .review-progress-attachment-delete:disabled {
@@ -596,26 +639,56 @@ function confirmDeleteReviewAttachment() {
     cursor: wait;
 }
 
+.review-progress-attachment-thumb-btn {
+    padding: 0;
+    margin: 0;
+    border: none;
+    background: none;
+    cursor: pointer;
+    display: block;
+    line-height: 0;
+    border-radius: 8px;
+    font: inherit;
+}
+
+.review-progress-attachment-thumb-btn:focus-visible {
+    outline: 2px solid var(--color-primary, #1946a0);
+    outline-offset: 2px;
+}
+
 .review-progress-attachment-link {
     display: block;
-    max-width: 200px;
+    width: 120px;
+    height: 120px;
     border-radius: 8px;
     overflow: hidden;
     border: 1px solid #e0e0e0;
+    background: #f5f5f5;
+    box-sizing: border-box;
 }
 
 .review-progress-attachment-thumb {
     display: block;
     width: 100%;
-    height: auto;
+    height: 100%;
+    object-fit: cover;
     vertical-align: top;
 }
 
 .review-progress-attachment-video {
-    max-width: 280px;
-    max-height: 200px;
+    display: block;
+    width: 120px;
+    height: 120px;
     border-radius: 8px;
     border: 1px solid #e0e0e0;
+    box-sizing: border-box;
+    object-fit: cover;
+    background: #111;
+}
+
+.review-progress-attachment-video--thumb {
+    border: none;
+    border-radius: 0;
 }
 
 .review-progress-empty {

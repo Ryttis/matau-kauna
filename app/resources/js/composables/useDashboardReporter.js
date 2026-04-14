@@ -1,7 +1,12 @@
 import { ref, watch, computed } from 'vue'
 import { router } from '@inertiajs/vue3'
+import axios from 'axios'
 import { useProblemsMapFilter } from '@/composables/useProblemsMapFilter'
 import { buildReporterProblemDisplayRows } from '@/utils/reporterProblemRows'
+
+function watchRootId(problem) {
+    return problem?.merged_into_problem_id ?? problem?.id
+}
 
 export function useDashboardReporter(props) {
     const reporterProblems = computed(() => {
@@ -65,10 +70,101 @@ export function useDashboardReporter(props) {
         return fullGroups.length === 1 ? fullGroups[0].problem.id : null
     })
 
-    function reporterHandleStebeti() {
-        if (!reporterSelectedProblemId.value) return
-        router.visit(route('problems.reviewProgress', reporterSelectedProblemId.value))
+    const reporterSelectedProblems = computed(() => {
+        const ids = reporterSelectedIds.value
+        if (!ids.size) return []
+        return reporterFilteredProblems.value.filter((p) => ids.has(p.id))
+    })
+
+    const watchOverridesByRoot = ref({})
+    const reporterWatchLoadingRootId = ref(null)
+
+    watch(
+        () => props.problems,
+        () => {
+            watchOverridesByRoot.value = {}
+        },
+    )
+
+    function isReporterProblemWatched(problem) {
+        if (!problem) return false
+        const root = watchRootId(problem)
+        const override = watchOverridesByRoot.value[root]
+        if (override !== undefined) return !!override
+        return !!problem.is_watched
     }
+
+    async function applyWatchToggle(problem) {
+        if (!problem || reporterWatchLoadingRootId.value != null) return
+        const root = watchRootId(problem)
+        reporterWatchLoadingRootId.value = root
+        try {
+            const { data } = await axios.post(route('problems.watch.toggle', problem.id))
+            watchOverridesByRoot.value = {
+                ...watchOverridesByRoot.value,
+                [root]: !!data.watched,
+            }
+        } finally {
+            reporterWatchLoadingRootId.value = null
+        }
+    }
+
+    async function reporterHandleStebeti() {
+        if (reporterWatchLoadingRootId.value != null) return
+
+        const roots = reporterSelectionRoots.value
+        if (!roots.length) return
+
+        const allWatched = roots.every((p) => isReporterProblemWatched(p))
+        const toToggle = allWatched
+            ? roots
+            : roots.filter((p) => !isReporterProblemWatched(p))
+
+        if (!toToggle.length) return
+
+        for (const p of toToggle) {
+            await applyWatchToggle(p)
+        }
+
+        reporterSelectedIds.value = new Set()
+    }
+
+    function reporterToggleWatchFromList(problem) {
+        applyWatchToggle(problem)
+    }
+
+    const reporterSelectionRoots = computed(() => {
+        const selected = reporterSelectedProblems.value
+        if (!selected.length) return []
+        const roots = new Map()
+        selected.forEach((p) => {
+            const root = watchRootId(p)
+            if (!roots.has(root)) roots.set(root, p)
+        })
+        return [...roots.values()]
+    })
+
+    const reporterSelectedIsWatched = computed(() => {
+        const roots = reporterSelectionRoots.value
+        if (!roots.length) return false
+        return roots.every((p) => isReporterProblemWatched(p))
+    })
+
+    const reporterCanToggleWatchSelection = computed(() => {
+        if (reporterWatchLoadingRootId.value != null) return false
+        return reporterSelectionRoots.value.length > 0
+    })
+
+    const reporterWatchBusy = computed(() => reporterWatchLoadingRootId.value != null)
+
+    const reporterStebetiButtonLoading = computed(() => {
+        if (reporterWatchLoadingRootId.value == null || !reporterSelectedProblemId.value) {
+            return false
+        }
+        const p = reporterFilteredProblems.value.find((x) => x.id === reporterSelectedProblemId.value)
+        if (!p) return false
+        return watchRootId(p) === reporterWatchLoadingRootId.value
+    })
 
     const showOnlyMyReports = ref(props.onlyMine ?? false)
     watch(() => props.onlyMine, (onlyMine) => {
@@ -107,6 +203,13 @@ export function useDashboardReporter(props) {
         reporterOpenProblemView,
         reporterSelectedProblemId,
         reporterHandleStebeti,
+        reporterToggleWatchFromList,
+        isReporterProblemWatched,
+        reporterSelectedIsWatched,
+        reporterCanToggleWatchSelection,
+        reporterWatchLoadingRootId,
+        reporterWatchBusy,
+        reporterStebetiButtonLoading,
         showOnlyMyReports,
         reporterToggleOnlyMine,
         reporterToggleOnlyMineFromFilter,

@@ -2,11 +2,18 @@
 defineProps({
     description: { type: String, default: '' },
     hideLabel: { type: Boolean, default: false },
+    noFlexGrow: { type: Boolean, default: false },
 })
 </script>
 
 <template>
-    <div class="problem-detail-blocks" :class="{ 'problem-detail-blocks--fill': hideLabel }">
+    <div
+        class="problem-detail-blocks"
+        :class="{
+            'problem-detail-blocks--fill': hideLabel,
+            'problem-detail-blocks--no-flex-grow': noFlexGrow,
+        }"
+    >
         <div
             class="problem-detail-blocks__description"
             :class="{ 'problem-detail-blocks__description--no-label': hideLabel }"
@@ -26,6 +33,14 @@ defineProps({
     margin-top: 0;
     min-width: 0;
     flex: 1 1 260px;
+}
+
+.problem-detail-blocks--no-flex-grow {
+    flex: 0 1 auto;
+}
+
+.problem-detail-blocks--no-flex-grow .problem-detail-blocks__textarea {
+    flex: 0 1 auto;
 }
 
 .problem-detail-blocks--fill {
