@@ -3,11 +3,13 @@ import { computed, ref, inject } from 'vue'
 import { Link, router } from '@inertiajs/vue3'
 import { ICON_USER, ICON_BELL, ICON_LOGOUT } from '@/constants/ui/icons'
 import { useAuth } from '@/composables/useAuth'
+import { useBrandHomeHref } from '@/composables/useBrandHomeHref'
 
 const roleDropdownOpen = ref(false)
 const appShell = inject('appShell', null)
 
 const { user, roles, activeRole } = useAuth()
+const brandHomeHref = useBrandHomeHref()
 
 const isAuthenticated = computed(() => !!user.value)
 const showRoleSwitcher = computed(() => roles.value.length > 1)
@@ -36,7 +38,9 @@ const showNavToggle = computed(() => isAuthenticated.value && !!appShell?.toggle
             >
                 <span class="header-menu-bars" aria-hidden="true" />
             </button>
-            <Link :href="route('dashboard')" class="header-logo">Matau Kauną</Link>
+            <Link :href="brandHomeHref" class="header-logo" aria-label="Matau Kauną">
+                <img src="/images/matau_kaune.png" alt="Matau Kauną" class="header-logo-image" />
+            </Link>
         </div>
         <div class="header-icons" v-if="isAuthenticated">
             <div v-if="showRoleSwitcher" class="role-switcher-wrp">
@@ -159,24 +163,22 @@ const showNavToggle = computed(() => isAuthenticated.value && !!appShell?.toggle
     }
 
     .header-logo {
-        font-size: clamp(0.95rem, 3.2vw, 1.25rem);
-        font-weight: 700;
-        font-style: italic;
-        color: var(--color-white, #fff);
+        display: inline-flex;
+        align-items: center;
         text-decoration: none;
         margin-left: 0;
-        flex: 1;
-        min-width: 0;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        line-height: 1.2;
     }
 
     .header-logo:hover {
-        color: var(--color-white, #fff);
         text-decoration: none;
         opacity: 0.9;
+    }
+
+    .header-logo-image {
+        display: block;
+        height: 20px;
+        width: auto;
+        max-width: min(160px, 48vw);
     }
 
     @media (min-width: 1024px) {
@@ -187,6 +189,11 @@ const showNavToggle = computed(() => isAuthenticated.value && !!appShell?.toggle
         .header-logo {
             flex: 0 1 auto;
             margin-left: 56px;
+        }
+
+        .header-logo-image {
+            height: 22px;
+            max-width: 200px;
         }
     }
 

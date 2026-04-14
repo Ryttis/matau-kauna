@@ -18,7 +18,7 @@ const tabs = [
     { key: 'institutions', label: 'Įstaigos', component: AdminInstitutions },
     { key: 'teams', label: 'Komandos (grupės)', component: InstitutionTeamsManager },
     { key: 'rules', label: 'Taisyklės ir turinys', component: AdminRules },
-    { key: 'classifiers', label: 'Klasifikatoriai ir terminai', component: AdminClassifiers },
+    { key: 'classifiers', label: 'Problemos rūšys ir pobūdžiai', component: AdminClassifiers },
     { key: 'files', label: 'Failai', component: AdminFiles },
     { key: 'archive', label: 'Archyvavimas', component: AdminArchive },
     { key: 'public-statistics', label: 'Vieša statistika', component: AdminPublicStatistics },

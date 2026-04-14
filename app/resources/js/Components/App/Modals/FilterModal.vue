@@ -1,5 +1,5 @@
 <script setup>
-import { ref, watch } from 'vue'
+import { computed, ref, watch } from 'vue'
 import BaseModal from '@/Components/App/BaseModal.vue'
 import AppButton from '@/Components/App/AppButton.vue'
 import AppCheckbox from '@/Components/App/AppCheckbox.vue'
@@ -29,11 +29,20 @@ const props = defineProps({
     categories: Array,
     allStatusOptions: Array,
     onlyMine: { type: Boolean, default: undefined },
+    statusCheckboxOptions: { type: Array, default: null },
 })
 
 const emit = defineEmits(['close', 'apply', 'clear', 'onlyMineChange'])
 
 const isPublicMap = () => props.variant === 'publicMap'
+
+const publicMapStatusOptions = computed(() => {
+    const o = props.statusCheckboxOptions
+    if (Array.isArray(o) && o.length > 0) {
+        return o
+    }
+    return PUBLIC_PROBLEM_STATUS_OPTIONS
+})
 
 function getInitialFilters() {
     return {
@@ -106,6 +115,7 @@ const handleClose = () => {
         :show="show"
         title="Filtruoti"
         max-width="500px"
+        footer-layout="column"
         @close="handleClose"
     >
         <div class="filter-modal-body">
@@ -127,7 +137,7 @@ const handleClose = () => {
                 <label class="filter-label">Būsena</label>
                 <div class="filter-status-checkboxes">
                     <label
-                        v-for="opt in PUBLIC_PROBLEM_STATUS_OPTIONS"
+                        v-for="opt in publicMapStatusOptions"
                         :key="opt.value"
                         class="filter-checkbox-label"
                     >
@@ -309,6 +319,7 @@ const handleClose = () => {
     gap: 10px;
     width: 100%;
     align-items: center;
+    box-sizing: border-box;
 }
 
 .filter-modal-footer--narrow .filter-modal-clear-btn,
@@ -337,7 +348,7 @@ const handleClose = () => {
 }
 
 .filter-modal-clear-btn {
-    color: var(--color-primary, #1946A0);
+    color: var(--color-primary, #1946a0);
 }
 
 .filter-modal-apply-btn {

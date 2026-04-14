@@ -152,7 +152,7 @@ class ProblemHttpSupport
                     ->orWhereIn('merged_into_problem_id', $rootIdArr);
             })
             ->notArchived()
-            ->whereIn('status', ProblemStatus::staffMapStatusValues())
+            ->whereIn('status', ProblemStatus::reporterOwnedProblemsQueryStatusValues())
             ->get([
                 'id',
                 'internal_number',

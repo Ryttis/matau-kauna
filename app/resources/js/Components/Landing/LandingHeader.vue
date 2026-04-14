@@ -3,7 +3,9 @@
         <template v-if="variant === 'dark'">
             <div class="landing-header-fixed-bar">
                 <div class="landing-header-inner landing-header-inner--nav">
-                    <Link :href="route('landing')" class="landing-logo">Matau Kauną</Link>
+                    <Link :href="brandHomeHref" class="landing-logo" aria-label="Matau Kauną">
+                        <img src="/images/matau_kaune.png" alt="" class="landing-logo-image" />
+                    </Link>
                     <button
                         type="button"
                         class="landing-menu-btn landing-menu-btn--on-dark"
@@ -40,7 +42,9 @@
         <template v-else>
             <div class="landing-header-fixed-bar landing-header-fixed-bar--light">
                 <div class="landing-header-inner landing-header-inner--nav landing-header-inner--light">
-                    <Link :href="route('landing')" class="landing-logo">Matau Kauną</Link>
+                    <Link :href="brandHomeHref" class="landing-logo" aria-label="Matau Kauną">
+                        <img src="/images/matau_kaune.png" alt="" class="landing-logo-image landing-logo-image--on-light" />
+                    </Link>
                     <button
                         type="button"
                         class="landing-menu-btn"
@@ -80,6 +84,9 @@
 <script setup>
 import { ref } from 'vue'
 import { Link } from '@inertiajs/vue3'
+import { useBrandHomeHref } from '@/composables/useBrandHomeHref'
+
+const brandHomeHref = useBrandHomeHref()
 
 defineProps({
     activeLink: { type: String, default: '' },
@@ -151,10 +158,6 @@ const navOpen = ref(false)
     position: relative;
 }
 
-.landing-header-inner--light .landing-logo {
-    color: #000;
-}
-
 @media (min-width: 768px) {
     .landing-header-inner--nav {
         padding-left: 2rem;
@@ -163,11 +166,32 @@ const navOpen = ref(false)
 }
 
 .landing-logo {
-    font-size: 1.25rem;
-    font-weight: 700;
-    font-style: italic;
-    color: #fff;
+    display: inline-flex;
+    align-items: center;
     text-decoration: none;
+    min-width: 0;
+}
+
+.landing-logo:hover {
+    opacity: 0.9;
+}
+
+.landing-logo-image {
+    display: block;
+    height: 20px;
+    width: auto;
+    max-width: min(160px, 48vw);
+}
+
+.landing-logo-image--on-light {
+    filter: brightness(0);
+}
+
+@media (min-width: 1024px) {
+    .landing-logo-image {
+        height: 22px;
+        max-width: 200px;
+    }
 }
 
 .landing-menu-btn {
@@ -231,11 +255,6 @@ const navOpen = ref(false)
 }
 
 @media (max-width: 767px) {
-    .landing-logo {
-        font-size: clamp(1.5rem, 4.5vw, 1.85rem);
-        letter-spacing: -0.01em;
-    }
-
     .landing-menu-btn {
         display: inline-flex;
         width: 56px;

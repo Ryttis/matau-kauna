@@ -70,11 +70,16 @@ const formattedDate = computed(() => {
                             readonly
                         />
                     </div>
-                    <div class="public-problem-desc-media-row">
-                        <ProblemDetailBlocks :description="problem?.description ?? ''" />
+                    <div class="public-problem-desc-block">
+                        <ProblemDetailBlocks no-flex-grow :description="problem?.description ?? ''" />
                         <ProblemAttachmentsPanel
                             v-if="problem?.attachments?.length"
-                            class="public-problem-desc-media-row__attachments"
+                            class="public-problem-attachments-below"
+                            compact
+                            direct-lightbox
+                            skip-compact-min-height
+                            compact-use-small-thumbs
+                            show-compact-open-hint
                             :attachments="problem.attachments"
                             :can-delete="false"
                         />
@@ -188,31 +193,39 @@ const formattedDate = computed(() => {
     margin-bottom: 0;
 }
 
-.public-problem-desc-media-row {
+.public-problem-desc-block {
     display: flex;
-    flex-wrap: wrap;
-    align-items: flex-start;
-    gap: 24px;
+    flex-direction: column;
+    gap: 12px;
+    max-width: 600px;
+    width: 100%;
 }
 
-.public-problem-desc-media-row__attachments {
-    flex: 0 1 340px;
-    min-width: min(100%, 260px);
-    max-width: 100%;
+.public-problem-attachments-below {
+    min-width: 0;
+    width: 100%;
 }
 
-.public-problem-desc-media-row__attachments :deep(.attachments-panel) {
+.public-problem-attachments-below :deep(.attachments-panel--compact) {
+    flex: 0 1 auto;
+    align-self: stretch;
+    width: 100%;
+}
+
+.public-problem-attachments-below :deep(.attachments-heading) {
+    font-size: 16px;
+    font-weight: 600;
+}
+
+.public-problem-attachments-below :deep(.attachments-compact-surface) {
+    flex: 0 1 auto;
+}
+
+.public-problem-attachments-below :deep(.attachments-row-compact) {
+    flex: 0 1 auto;
+}
+
+.public-problem-attachments-below :deep(.attachments-panel) {
     min-height: 0;
-}
-
-@media (max-width: 768px) {
-    .public-problem-desc-media-row {
-        flex-direction: column;
-    }
-
-    .public-problem-desc-media-row__attachments {
-        flex: 1 1 auto;
-        width: 100%;
-    }
 }
 </style>

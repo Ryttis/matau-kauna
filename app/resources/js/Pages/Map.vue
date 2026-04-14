@@ -10,7 +10,13 @@ import KaunasProblemsMap from '@/Components/Map/KaunasProblemsMap.vue'
 import MapAddressAutocomplete from '@/Components/Map/MapAddressAutocomplete.vue'
 import { useAuth } from '@/composables/useAuth'
 import { ICON_FILTER } from '@/constants/ui/icons'
-import { PROBLEM_STATUS, MARKER_COLOR_BY_STATUS } from '@/constants/domain/problemStatus'
+import {
+    MAP_LEGEND_STATUS_ORDER,
+    MARKER_COLOR_BY_STATUS,
+    PROBLEM_STATUS,
+    PROBLEM_STATUS_LABELS,
+} from '@/constants/domain/problemStatus'
+import { MAP_LEGEND_DOT_SIZE_PX } from '@/constants/ui/theme'
 import { buildInactiveReviewPostBody } from '@/constants/domain/reviewProgressEntry'
 
 const props = defineProps({
@@ -160,19 +166,13 @@ const submitInactiveReason = (visibility) => {
 const handleStatusModalClose = () => {
     showStatusModal.value = false
 }
-
-const statusIndicatorVars = {
-    '--status-new': MARKER_COLOR_BY_STATUS[PROBLEM_STATUS.NEW],
-    '--status-review': MARKER_COLOR_BY_STATUS[PROBLEM_STATUS.IN_REVIEW],
-    '--status-resolved': MARKER_COLOR_BY_STATUS[PROBLEM_STATUS.RESOLVED],
-}
 </script>
 
 <template>
     <Head title="Žemėlapis" />
 
     <AuthenticatedLayout>
-        <div class="map-page" :style="statusIndicatorVars">
+        <div class="map-page">
             <div class="search-filter-section">
                 <div class="map-page-search-wrap">
                     <MapAddressAutocomplete
@@ -193,17 +193,16 @@ const statusIndicatorVars = {
             </div>
 
             <div class="status-indicators">
-                <div class="status-indicator status-new">
-                    <div class="status-circle status-circle--new"></div>
-                    <span class="status-label">Naujos</span>
-                </div>
-                <div class="status-indicator status-review">
-                    <div class="status-circle status-circle--review"></div>
-                    <span class="status-label">Nagrinėjamos</span>
-                </div>
-                <div class="status-indicator status-resolved">
-                    <div class="status-circle status-circle--resolved"></div>
-                    <span class="status-label">Išspręstos</span>
+                <div
+                    v-for="st in MAP_LEGEND_STATUS_ORDER"
+                    :key="st"
+                    class="status-indicator"
+                >
+                    <div
+                        class="status-circle"
+                        :style="{ backgroundColor: MARKER_COLOR_BY_STATUS[st] || '#95a5a6' }"
+                    />
+                    <span class="status-label">{{ PROBLEM_STATUS_LABELS[st] }}</span>
                 </div>
             </div>
 
@@ -307,27 +306,32 @@ const statusIndicatorVars = {
 
 .search-filter-section {
     display: flex;
-    gap: 40px;
+    flex-wrap: wrap;
+    gap: 12px 16px;
     align-items: center;
-    justify-content: center;
+    justify-content: flex-start;
+    width: 100%;
 }
 
 .map-page-search-wrap {
-    width: 340px;
+    flex: 1 1 240px;
+    max-width: 420px;
+    min-width: 0;
 }
 
 .filter-icon {
     display: block;
-    margin: auto 0;
+    flex-shrink: 0;
     cursor: pointer;
 }
 
 .status-indicators {
     display: flex;
     flex-wrap: wrap;
-    gap: 24px;
+    gap: 12px 20px;
     align-items: center;
-    justify-content: center;
+    justify-content: flex-start;
+    width: 100%;
 }
 
 .status-indicator {
@@ -337,21 +341,16 @@ const statusIndicatorVars = {
 }
 
 .status-circle {
-    width: 20px;
-    height: 20px;
+    display: block;
+    flex-shrink: 0;
+    box-sizing: border-box;
+    width: var(--map-legend-dot-size, 12px);
+    height: var(--map-legend-dot-size, 12px);
+    min-width: var(--map-legend-dot-size, 12px);
+    min-height: var(--map-legend-dot-size, 12px);
+    max-width: var(--map-legend-dot-size, 12px);
+    max-height: var(--map-legend-dot-size, 12px);
     border-radius: 50%;
-}
-
-.status-circle--new {
-    background-color: var(--status-new);
-}
-
-.status-circle--review {
-    background-color: var(--status-review);
-}
-
-.status-circle--resolved {
-    background-color: var(--status-resolved);
 }
 
 .status-label {

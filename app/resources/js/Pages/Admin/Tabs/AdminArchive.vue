@@ -43,14 +43,14 @@ const tabs = [
     { key: 'users', label: 'Naudotojai' },
     { key: 'institutions', label: 'Įstaigos' },
     { key: 'problems', label: 'Problemos' },
-    { key: 'classifiers', label: 'Klasifikatoriai' },
+    { key: 'classifiers', label: 'Rūšys ir pobūdžiai' },
 ]
 
 const EMPTY_MESSAGES = {
     users: 'Nėra archyvuotų naudotojų.',
     institutions: 'Nėra archyvuotų įstaigų.',
     problems: 'Nėra archyvuotų problemų.',
-    classifiers: 'Nėra archyvuotų klasifikatorių.',
+    classifiers: 'Nėra archyvuotų rūšių ar pobūdžių.',
 }
 const emptyTabMessage = computed(() => EMPTY_MESSAGES[activeTab.value] ?? '')
 
@@ -121,7 +121,7 @@ const RESTORE_CONFIG = {
     users: { path: adminApi.archiveRestoreUser, key: 'user', successMsg: 'Naudotojas atkurtas.' },
     institutions: { path: adminApi.archiveRestoreInstitution, key: 'institution', successMsg: 'Įstaiga atkurta.' },
     problems: { path: adminApi.archiveRestoreProblem, key: 'problem', successMsg: 'Problema atkurta.' },
-    classifiers: { path: adminApi.archiveRestoreClassifierValue, key: 'classifier', successMsg: 'Klasifikatorius atkurtas.' },
+    classifiers: { path: adminApi.archiveRestoreClassifierValue, key: 'classifier', successMsg: 'Rūšis arba pobūdis atkurtas.' },
 }
 
 async function restore(type, item) {

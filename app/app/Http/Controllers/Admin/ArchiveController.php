@@ -74,7 +74,7 @@ class ArchiveController extends Controller
     public function restoreClassifierValue(ClassifierValue $classifier_value): JsonResponse
     {
         if (! $classifier_value->archived_at) {
-            return response()->json(['message' => 'Klasifikatorius nearchyvuotas.'], 422);
+            return response()->json(['message' => 'Įrašas nearchyvuotas.'], 422);
         }
         $classifier_value->update(['archived_at' => null]);
         if ($classifier_value->parent_id === null) {

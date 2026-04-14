@@ -2,7 +2,7 @@
 import { ref, computed, watch, nextTick, onMounted, onUnmounted } from 'vue'
 import { Head, router } from '@inertiajs/vue3'
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue'
-import AppSelect from '@/Components/App/AppSelect.vue'
+import SearchableSelect from '@/Components/App/SearchableSelect.vue'
 import AppButton from '@/Components/App/AppButton.vue'
 import AppBackButton from '@/Components/App/AppBackButton.vue'
 import AppCheckbox from '@/Components/App/AppCheckbox.vue'
@@ -12,6 +12,9 @@ import { useSuccessModal } from '@/composables/useSuccessModal'
 import { KAUNAS_CENTER } from '@/utils/leafletKaunas'
 import { PROBLEM_STATUS } from '@/constants/domain/problemStatus'
 import { ICON_ARROW } from '@/constants/ui/icons'
+import { truncateDisplay, DEFAULT_DISPLAY_MAX_LENGTH } from '@/utils/textDisplay'
+import { buildMergeAddressSelectOptions, listMergePageProblems } from '@/utils/mergeAddressOptions'
+import { problemMatchesNumberQuery } from '@/utils/mergeFilters'
 
 const props = defineProps({
     problem: Object,
@@ -35,50 +38,24 @@ const mainProblemId = computed(() => props.problem.id)
 
 function mergeProblemLabel(p) {
     const d = (p?.description || '').trim()
-    const short = !d ? '' : d.length > 80 ? d.slice(0, 80) + '…' : d
     const nr = p?.internal_number || ''
-    return short ? `${short} (Nr. ${nr})` : `Nr. ${nr}`
+    const full = d ? `${d} (Nr. ${nr})` : `Nr. ${nr}`
+    return truncateDisplay(full, DEFAULT_DISPLAY_MAX_LENGTH)
 }
 
-function normalizeInternalNumber(s) {
-    return String(s || '').replace(/\s/g, '').toUpperCase()
-}
+const addressSelectOptions = computed(() =>
+    buildMergeAddressSelectOptions(props.problem, props.mergedProblems, props.similarProblems),
+)
 
-function problemMatchesNumberQuery(problem, rawQuery) {
-    const q = normalizeInternalNumber(rawQuery)
-    if (!q) return true
-    const nr = normalizeInternalNumber(problem?.internal_number)
-    return nr.includes(q)
-}
-
-const addressSelectOptions = computed(() => {
-    const opts = []
-    const seen = new Set()
-
-    const pushProblem = (p) => {
-        if (!p?.id) return
-        const addr = String(p.address || '').trim()
-        if (!addr) return
-        const id = Number(p.id)
-        if (seen.has(id)) return
-        seen.add(id)
-        const nr = p.internal_number || String(id)
-        opts.push({
-            value: String(id),
-            label: `${addr} — ${nr}`,
-        })
-    }
-
-    pushProblem(props.problem)
-    ;(props.mergedProblems || []).forEach(pushProblem)
-    ;(props.similarProblems || []).forEach((s) => {
-        pushProblem(s)
-        const children = s.merged_problems || s.mergedProblems || []
-        children.forEach(pushProblem)
-    })
-
-    return opts.sort((a, b) => a.label.localeCompare(b.label, 'lt'))
-})
+const numberSelectOptions = computed(() =>
+    listMergePageProblems(props.problem, props.mergedProblems, props.similarProblems)
+        .filter((p) => p.internal_number)
+        .map((p) => ({
+            value: String(p.internal_number).trim(),
+            label: mergeProblemLabel(p),
+        }))
+        .sort((a, b) => a.value.localeCompare(b.value, 'lt', { numeric: true })),
+)
 
 const problemsForMap = computed(() => {
     const fromBackend = props.mapProblems || []
@@ -393,31 +370,24 @@ onUnmounted(() => {
 
                 <div class="merge-problems-section">
                     <div class="merge-filters">
-                        <input
+                        <SearchableSelect
                             v-model="numberSearchQuery"
-                            type="search"
-                            class="merge-search-input"
-                            placeholder="Ieškoti pagal problemos Nr."
-                            autocomplete="off"
-                            aria-label="Ieškoti pagal problemos numerį"
+                            class="merge-number-select"
+                            label="Problemos Nr."
+                            label-position="left"
+                            empty-option-label="Visi numeriai"
+                            search-placeholder="Ieškoti pagal numerį ar aprašymą…"
+                            :options="numberSelectOptions"
                         />
-                        <AppSelect
+                        <SearchableSelect
                             v-model="selectedAddressProblemId"
                             class="merge-address-select"
                             label="Adresas"
-                            placeholder=""
-                            variant="white"
                             label-position="left"
-                        >
-                            <option value="">Visi adresai</option>
-                            <option
-                                v-for="opt in addressSelectOptions"
-                                :key="opt.value"
-                                :value="opt.value"
-                            >
-                                {{ opt.label }}
-                            </option>
-                        </AppSelect>
+                            empty-option-label="Visi adresai"
+                            :max-display-length="56"
+                            :options="addressSelectOptions"
+                        />
                     </div>
 
                     <div ref="mergeListScrollRef" class="merge-problems-list-scroll">
@@ -635,27 +605,13 @@ onUnmounted(() => {
     gap: 16px;
 }
 
-.merge-search-input {
+.merge-number-select {
     flex: 1;
     min-width: 200px;
-    padding: 10px 14px;
-    font-size: 14px;
-    font-family: var(--font-family-base, 'Open Sans', sans-serif);
-    border: 1px solid var(--color-border, #e0e0e0);
-    border-radius: 5px;
-    box-sizing: border-box;
-}
-
-.merge-search-input::placeholder {
-    color: #888;
 }
 
 .merge-address-select {
     flex: 1;
-    min-width: 260px;
-}
-
-.merge-address-select :deep(.app-select) {
     min-width: 220px;
 }
 

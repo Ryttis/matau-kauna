@@ -39,6 +39,7 @@ class ProblemReviewHistoryService
             'user_id' => $entry->user_id,
             'date' => $entry->created_at->toISOString(),
             'status' => $entry->status,
+            'status_changed' => (bool) ($entry->status_changed ?? true),
             'responsible' => $entry->responsible ?? '',
             'comment' => $entry->comment ?? '',
             'visibility' => $entry->visibility ?? ProblemReviewCommentVisibility::Public->value,
@@ -64,7 +65,13 @@ class ProblemReviewHistoryService
             abort(422, 'Netinkama būsena');
         }
 
-        $this->applyStatusToProblemAndMerged($problem, $user, $status);
+        $problem->refresh();
+        $previousStatus = (string) $problem->status;
+        $statusChanged = $previousStatus !== (string) $status;
+
+        if ($statusChanged) {
+            $this->applyStatusToProblemAndMerged($problem, $user, $status);
+        }
 
         $commentNormalized = $this->normalizeComment($comment);
 
@@ -72,6 +79,7 @@ class ProblemReviewHistoryService
             'problem_id' => $problem->id,
             'user_id' => $user->id,
             'status' => $status,
+            'status_changed' => $statusChanged,
             'responsible' => $this->responsibleLabel($user),
             'comment' => $commentNormalized,
             'visibility' => $visibility->value,
@@ -166,6 +174,7 @@ class ProblemReviewHistoryService
             'problem_id' => $mainId,
             'user_id' => $user->id,
             'status' => $newStatus,
+            'status_changed' => true,
             'responsible' => $this->responsibleLabel($user),
             'comment' => null,
             'visibility' => ProblemReviewCommentVisibility::Public->value,

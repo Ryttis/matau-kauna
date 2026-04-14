@@ -1,8 +1,9 @@
 <script setup>
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import { router } from '@inertiajs/vue3'
 import ConfirmModal from '@/Components/App/ConfirmModal.vue'
 import ProblemAttachmentsViewerModal from '@/Components/Problems/ProblemAttachmentsViewerModal.vue'
+import AttachmentMediaLightbox from '@/Components/Problems/AttachmentMediaLightbox.vue'
 
 const props = defineProps({
     attachments: {
@@ -37,7 +38,25 @@ const props = defineProps({
         type: Boolean,
         default: false,
     },
+    skipCompactMinHeight: {
+        type: Boolean,
+        default: false,
+    },
+    compactUseSmallThumbs: {
+        type: Boolean,
+        default: false,
+    },
+    showCompactOpenHint: {
+        type: Boolean,
+        default: false,
+    },
 })
+
+const compactThumbClasses = computed(() =>
+    props.compactUseSmallThumbs ? ['strip-thumb'] : ['strip-thumb', 'strip-thumb--sm'],
+)
+
+const compactVideoClasses = computed(() => [...compactThumbClasses.value, 'strip-video'])
 
 const showViewer = ref(false)
 const initialOpenId = ref(null)
@@ -129,49 +148,60 @@ const showTitle = () =>
         <template v-if="compact">
             <div
                 class="attachments-compact-surface"
-                :class="{ 'attachments-compact-surface--fill': fillCompactSurface }"
+                :class="{
+                    'attachments-compact-surface--fill': fillCompactSurface,
+                    'attachments-compact-surface--no-min': skipCompactMinHeight,
+                }"
             >
-                <div v-if="attachments?.length" class="attachments-row-compact">
-                    <div
-                        v-for="a in attachments"
-                        :key="a.id"
-                        class="thumb-tile"
+                <template v-if="attachments?.length">
+                    <div class="attachments-row-compact">
+                        <div
+                            v-for="a in attachments"
+                            :key="a.id"
+                            class="thumb-tile"
+                        >
+                            <button
+                                type="button"
+                                class="thumb-btn"
+                                aria-label="Peržiūrėti"
+                                @click="directLightbox ? openLightbox(a) : openViewerFromThumb(a)"
+                            >
+                                <img
+                                    v-if="a.kind === 'photo'"
+                                    :src="a.url"
+                                    alt=""
+                                    :class="compactThumbClasses"
+                                />
+                                <video
+                                    v-else
+                                    :src="a.url"
+                                    :class="compactVideoClasses"
+                                    muted
+                                    playsinline
+                                />
+                            </button>
+                            <button
+                                v-if="directLightbox && canDelete && problemId"
+                                type="button"
+                                class="thumb-remove"
+                                :disabled="deleteLoading"
+                                aria-label="Pašalinti"
+                                @click="openDeleteConfirm(a, $event)"
+                            >
+                                Šalinti
+                            </button>
+                        </div>
+                        <div v-if="$slots.add" class="attachments-add-wrap">
+                            <slot name="add" />
+                        </div>
+                    </div>
+                    <p
+                        v-if="showCompactOpenHint"
+                        class="attachments-hint attachments-hint--compact"
                     >
-                        <button
-                            type="button"
-                            class="thumb-btn"
-                            aria-label="Peržiūrėti"
-                            @click="directLightbox ? openLightbox(a) : openViewerFromThumb(a)"
-                        >
-                            <img
-                                v-if="a.kind === 'photo'"
-                                :src="a.url"
-                                alt=""
-                                class="strip-thumb strip-thumb--sm"
-                            />
-                            <video
-                                v-else
-                                :src="a.url"
-                                class="strip-thumb strip-thumb--sm strip-video"
-                                muted
-                                playsinline
-                            />
-                        </button>
-                        <button
-                            v-if="directLightbox && canDelete && problemId"
-                            type="button"
-                            class="thumb-remove"
-                            :disabled="deleteLoading"
-                            aria-label="Pašalinti"
-                            @click="openDeleteConfirm(a, $event)"
-                        >
-                            Šalinti
-                        </button>
-                    </div>
-                    <div v-if="$slots.add" class="attachments-add-wrap">
-                        <slot name="add" />
-                    </div>
-                </div>
+                        Paspauskite miniatiūrą, kad atidarytumėte didesnėje peržiūroje.
+                    </p>
+                </template>
                 <div
                     v-else-if="$slots.empty"
                     class="attachments-empty-custom attachments-empty-custom--fill"
@@ -246,34 +276,11 @@ const showTitle = () =>
             @confirm="confirmDelete"
         />
 
-        <Teleport v-if="directLightbox" to="body">
-            <div
-                v-if="preview"
-                class="lightbox-overlay"
-                role="dialog"
-                aria-modal="true"
-                tabindex="-1"
-                @click.self="closeLightbox"
-                @keydown.escape="closeLightbox"
-            >
-                <button type="button" class="lightbox-close" aria-label="Uždaryti" @click="closeLightbox">
-                    ×
-                </button>
-                <img
-                    v-if="preview.kind === 'photo'"
-                    :src="preview.url"
-                    alt=""
-                    class="lightbox-media"
-                />
-                <video
-                    v-else
-                    :src="preview.url"
-                    class="lightbox-media lightbox-video"
-                    controls
-                    playsinline
-                />
-            </div>
-        </Teleport>
+        <AttachmentMediaLightbox
+            v-if="directLightbox"
+            :attachment="preview"
+            @close="closeLightbox"
+        />
     </div>
 </template>
 
@@ -301,7 +308,7 @@ const showTitle = () =>
     flex-direction: column;
 }
 
-.attachments-compact-surface:not(.attachments-compact-surface--fill) {
+.attachments-compact-surface:not(.attachments-compact-surface--fill):not(.attachments-compact-surface--no-min) {
     min-height: var(--reporter-desc-block-min-h, 220px);
 }
 
@@ -446,6 +453,11 @@ const showTitle = () =>
     font-family: 'Open Sans', sans-serif;
 }
 
+.attachments-hint--compact {
+    margin: 10px 0 0;
+    font-size: 12px;
+}
+
 .media-placeholder {
     width: 100%;
     height: 150px;
@@ -469,48 +481,4 @@ const showTitle = () =>
     border: none;
 }
 
-.lightbox-overlay {
-    position: fixed;
-    inset: 0;
-    z-index: 1200;
-    background: rgba(0, 0, 0, 0.88);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 24px;
-    box-sizing: border-box;
-}
-
-.lightbox-close {
-    position: fixed;
-    top: 16px;
-    right: 20px;
-    z-index: 1210;
-    width: 44px;
-    height: 44px;
-    border: none;
-    border-radius: 8px;
-    background: rgba(255, 255, 255, 0.15);
-    color: #fff;
-    font-size: 28px;
-    line-height: 1;
-    cursor: pointer;
-}
-
-.lightbox-close:hover {
-    background: rgba(255, 255, 255, 0.28);
-}
-
-.lightbox-media {
-    max-width: 100%;
-    max-height: calc(100vh - 48px);
-    width: auto;
-    height: auto;
-    object-fit: contain;
-}
-
-.lightbox-video {
-    max-width: min(100%, 960px);
-    background: #000;
-}
 </style>

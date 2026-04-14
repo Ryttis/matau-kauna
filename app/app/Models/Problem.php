@@ -197,7 +197,7 @@ class Problem extends Model
     public function scopeForReporter($query, int $userId)
     {
         return $query
-            ->whereIn('status', ProblemStatus::staffMapStatusValues())
+            ->whereIn('status', ProblemStatus::reporterOwnedProblemsQueryStatusValues())
             ->notArchived()
             ->whereNull('merged_into_problem_id')
             ->where(function ($q) use ($userId) {

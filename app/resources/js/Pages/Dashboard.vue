@@ -10,6 +10,10 @@ import { Head } from '@inertiajs/vue3'
 import { useSuccessModal } from '@/composables/useSuccessModal'
 import { useDashboardReporter } from '@/composables/useDashboardReporter'
 import { ICON_FILTER, ICON_SEARCH } from '@/constants/ui/icons'
+import {
+    REPORTER_MAP_FILTER_STATUS_OPTIONS,
+    REPORTER_MAP_LEGEND_STATUS_ORDER,
+} from '@/constants/domain/problemStatus'
 
 const props = defineProps({
     reporterView: {
@@ -45,6 +49,13 @@ const {
     reporterOpenProblemView,
     reporterSelectedProblemId,
     reporterHandleStebeti,
+    reporterToggleWatchFromList,
+    isReporterProblemWatched,
+    reporterSelectedIsWatched,
+    reporterCanToggleWatchSelection,
+    reporterWatchLoadingRootId,
+    reporterWatchBusy,
+    reporterStebetiButtonLoading,
     showOnlyMyReports,
     reporterToggleOnlyMine,
     reporterToggleOnlyMineFromFilter,
@@ -68,10 +79,21 @@ const {
                         <img :src="ICON_SEARCH" class="reporter-dashboard-search-icon" alt="" aria-hidden="true" />
                         <input
                             v-model="reporterSearchQuery"
-                            type="text"
+                            type="search"
                             class="reporter-dashboard-search"
-                            placeholder="ieškoti"
+                            placeholder="Ieškoti"
+                            autocomplete="off"
+                            enterkeyhint="search"
                         />
+                        <button
+                            v-show="(reporterSearchQuery || '').trim().length > 0"
+                            type="button"
+                            class="reporter-dashboard-search-clear"
+                            aria-label="Išvalyti paiešką"
+                            @click="reporterSearchQuery = ''"
+                        >
+                            ×
+                        </button>
                     </div>
                     <button
                         type="button"
@@ -97,6 +119,7 @@ const {
                     <KaunasProblemsMap
                         :problems="reporterProblemsToShowOnMap"
                         marker-class="reporter-dashboard-marker"
+                        :legend-status-order="REPORTER_MAP_LEGEND_STATUS_ORDER"
                         @open-problem="reporterOpenProblemView"
                     />
                 </div>
@@ -106,16 +129,23 @@ const {
                         :display-rows="reporterDisplayRows"
                         :all-count="reporterProblems.length"
                         :selected-ids="reporterSelectedIds"
+                        actions-header="Veiksmai"
+                        view-button-variant="internal"
+                        enable-watch
+                        :is-watched="isReporterProblemWatched"
+                        :watch-loading-root-id="reporterWatchLoadingRootId"
                         @select="reporterToggle"
                         @select-group="reporterToggleGroup"
                         @open="reporterOpenProblemView"
+                        @toggle-watch="reporterToggleWatchFromList"
                     />
                     <div class="reporter-dashboard-actions">
                         <AppButton
-                            text="Stebėti eigą"
+                            :text="reporterSelectedIsWatched ? 'Nebestebėti' : 'Stebėti eigą'"
                             variant="primary"
                             as-button
-                            :disabled="!reporterSelectedProblemId"
+                            :disabled="!reporterCanToggleWatchSelection || reporterWatchBusy"
+                            :loading="reporterStebetiButtonLoading"
                             @click="reporterHandleStebeti"
                         />
                     </div>
@@ -126,6 +156,7 @@ const {
                 variant="publicMap"
                 :filters="reporterFilterState"
                 :categories="reporterCategoryOptions"
+                :status-checkbox-options="REPORTER_MAP_FILTER_STATUS_OPTIONS"
                 :only-mine="showOnlyMyReports"
                 @close="reporterShowFilterModal = false"
                 @apply="reporterHandleFilterApply"
@@ -195,9 +226,38 @@ const {
     border-radius: 15px;
     background: #f6f7f9;
     color: #333;
-    padding: 0 16px 0 44px;
+    padding: 0 36px 0 44px;
     font-size: 14px;
     box-sizing: border-box;
+}
+
+.reporter-dashboard-search::-webkit-search-cancel-button {
+    display: none;
+}
+
+.reporter-dashboard-search-clear {
+    position: absolute;
+    right: 8px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 28px;
+    height: 28px;
+    padding: 0;
+    border: none;
+    border-radius: 50%;
+    background: transparent;
+    color: #666;
+    font-size: 22px;
+    line-height: 1;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.reporter-dashboard-search-clear:hover {
+    background: rgba(0, 0, 0, 0.06);
+    color: #333;
 }
 
 .reporter-dashboard-search::placeholder {
@@ -296,14 +356,8 @@ const {
     flex-shrink: 0;
     display: flex;
     justify-content: center;
-}
-
-.reporter-dashboard-actions .app-button {
+    padding-top: 0.25rem;
     width: 100%;
-    max-width: 200px;
-    height: 40px;
-    border-radius: 15px;
-    padding: 0 20px;
 }
 
 @media (max-width: 900px) {
