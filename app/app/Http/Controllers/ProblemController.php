@@ -7,7 +7,6 @@ use App\Exports\ProblemsExport;
 use App\Models\ClassifierValue;
 use App\Models\FileUploadSettings;
 use App\Models\Problem;
-use App\Models\UserRole;
 use App\Services\ProblemDashboardQueryService;
 use App\Services\ProblemMergeContextService;
 use App\Services\ProblemReporterStatusNotifier;
@@ -33,7 +32,7 @@ class ProblemController extends Controller
     {
         $user = $request->user();
 
-        if ($user->hasRole(UserRole::ROLE_REPORTER) && ! $user->hasPermission('issues.view')) {
+        if ($user->isReporterOnly()) {
             return Inertia::render('Dashboard', $this->dashboardQuery->reporterDashboardProps(
                 $user,
                 $request->boolean('only_mine')
@@ -233,7 +232,7 @@ class ProblemController extends Controller
     public function destroy(Problem $problem): RedirectResponse
     {
         $user = request()->user();
-        if (! $user->hasRole(UserRole::ROLE_EMPLOYEE) && ! $user->hasRole(UserRole::ROLE_SYSTEM_ADMIN)) {
+        if (! $user->canDeleteProblems()) {
             abort(403);
         }
 
@@ -249,7 +248,7 @@ class ProblemController extends Controller
     public function bulkDestroy(Request $request): RedirectResponse
     {
         $user = $request->user();
-        if (! $user->hasRole(UserRole::ROLE_EMPLOYEE) && ! $user->hasRole(UserRole::ROLE_SYSTEM_ADMIN)) {
+        if (! $user->canDeleteProblems()) {
             abort(403);
         }
 
@@ -278,7 +277,7 @@ class ProblemController extends Controller
     public function export(Request $request)
     {
         $user = $request->user();
-        if (! $user->isProblemAdminOrSystemAdmin()) {
+        if (! $user->hasPermission('issues.export')) {
             abort(403);
         }
 

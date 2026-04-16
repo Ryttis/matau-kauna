@@ -21,7 +21,7 @@ class InvitationService
             ->with(['institution:id,name', 'role:id,role,name', 'creator:id,name,email'])
             ->orderBy('created_at', 'desc');
 
-        if (! $user->hasRole(UserRole::ROLE_SYSTEM_ADMIN)) {
+        if (! $user->canAccessAdmin()) {
             $query->where('institution_id', $user->institution_id);
         }
 

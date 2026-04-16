@@ -170,44 +170,64 @@ class User extends Authenticatable implements MustVerifyEmail
         return false;
     }
 
+    public function canAccessAdmin(): bool
+    {
+        return $this->hasPermission('admin.access');
+    }
+
+    public function canManageAutomation(): bool
+    {
+        return $this->hasPermission('automation.manage');
+    }
+
+    public function canManageInvitations(): bool
+    {
+        return $this->hasPermission('invitations.manage');
+    }
+
+    public function canManageTeams(): bool
+    {
+        return $this->canManageInvitations();
+    }
+
+    public function canAssignInstitutionProblems(): bool
+    {
+        return $this->hasPermission('issues.assign');
+    }
+
+    public function canReassignInstitutions(): bool
+    {
+        return $this->hasPermission('issues.reassign');
+    }
+
     public function isProblemAdminOrSystemAdmin(): bool
     {
-        return $this->hasAnyRole([
-            UserRole::ROLE_PROBLEM_ADMIN,
-            UserRole::ROLE_SYSTEM_ADMIN,
-        ]);
+        return $this->hasPermission('issues.publish');
     }
 
     public function canPublishProblems(): bool
     {
-        return $this->isProblemAdminOrSystemAdmin();
+        return $this->hasPermission('issues.publish');
     }
 
     public function isInstitutionAdminOrSystemAdmin(): bool
     {
-        return $this->hasAnyRole([
-            UserRole::ROLE_INSTITUTION_ADMIN,
-            UserRole::ROLE_SYSTEM_ADMIN,
-        ]);
+        return $this->canManageInvitations();
     }
 
     public function canMergeProblems(): bool
     {
-        return $this->hasAnyRole([
-            UserRole::ROLE_PROBLEM_ADMIN,
-            UserRole::ROLE_INSTITUTION_ADMIN,
-            UserRole::ROLE_SYSTEM_ADMIN,
-        ]);
+        return $this->hasPermission('issues.merge');
+    }
+
+    public function canDeleteProblems(): bool
+    {
+        return $this->hasPermission('issues.delete');
     }
 
     public function canEditProblemClassification(): bool
     {
-        if ($this->hasRole(UserRole::ROLE_SYSTEM_ADMIN)) {
-            return true;
-        }
-
-        return $this->hasRole(UserRole::ROLE_PROBLEM_ADMIN)
-            && $this->hasPermission('classification.edit');
+        return $this->hasPermission('classification.edit');
     }
 
     public function isReporterOnly(): bool

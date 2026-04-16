@@ -17,6 +17,7 @@ class RbacPermissionController extends Controller
     public function permissions()
     {
         return UserRolePermission::query()
+            ->orderBy('name')
             ->orderBy('permission')
             ->get();
     }
@@ -24,6 +25,7 @@ class RbacPermissionController extends Controller
     public function createPermission(Request $request)
     {
         $data = $request->validate([
+            'name' => ['required', 'string', 'max:255'],
             'permission' => ['required', 'string', 'max:255', 'unique:user_role_permission,permission'],
         ]);
 

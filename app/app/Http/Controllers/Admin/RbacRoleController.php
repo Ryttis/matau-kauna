@@ -17,6 +17,7 @@ class RbacRoleController extends Controller
     public function roles()
     {
         return UserRole::query()
+            ->with(['permissions:id,name,permission'])
             ->orderBy('name')
             ->get();
     }
@@ -51,6 +52,24 @@ class RbacRoleController extends Controller
             return response()->noContent();
         } catch (\Throwable $e) {
             $this->auditLogService->logUserAction($request->user(), 'rbac.role.delete', 'UserRole', $roleId, AuditLogResult::Error, $e->getMessage());
+            throw $e;
+        }
+    }
+
+    public function syncRolePermissions(Request $request, UserRole $role)
+    {
+        $data = $request->validate([
+            'permission_ids' => ['array'],
+            'permission_ids.*' => ['uuid', 'exists:user_role_permission,id'],
+        ]);
+
+        try {
+            $role->permissions()->sync($data['permission_ids'] ?? []);
+            $this->auditLogService->logUserAction($request->user(), 'rbac.role.sync_permissions', 'UserRole', $role->id, AuditLogResult::Success);
+
+            return $role->load('permissions:id,name,permission');
+        } catch (\Throwable $e) {
+            $this->auditLogService->logUserAction($request->user(), 'rbac.role.sync_permissions', 'UserRole', $role->id, AuditLogResult::Error, $e->getMessage());
             throw $e;
         }
     }

@@ -11,7 +11,7 @@ import {
     ICON_ARROW,
     ICON_SETTINGS,
 } from '@/constants/ui/icons'
-import { ROLE_INSTITUTION_ADMIN, ROLE_PROBLEM_ADMIN } from '@/constants/domain/roles'
+import { ROLE_INSTITUTION_ADMIN } from '@/constants/domain/roles'
 import { SIDEBAR_DASHBOARD_STATUS_ENTRIES } from '@/constants/ui/dashboardSidebarNav'
 
 const page = usePage()
@@ -20,8 +20,9 @@ const {
     permissions,
     activeRole,
     isSystemAdmin,
-    hasAssignedRole,
+    hasRole,
     isActiveRoleReporter,
+    hasPermission,
 } = useAuth()
 
 const dashboardStatusParam = computed(() => {
@@ -38,15 +39,13 @@ const dashboardStatusParam = computed(() => {
 const isStatusLinkActive = (status) => dashboardStatusParam.value === status
 const isVisosActive = () => isActive('/dashboard') && !dashboardStatusParam.value
 
-const isInstitutionAdmin = computed(() => hasAssignedRole(ROLE_INSTITUTION_ADMIN))
+const isInstitutionAdmin = computed(() => hasRole(ROLE_INSTITUTION_ADMIN) && !isSystemAdmin.value)
 
 const canAccessIssues = computed(() =>
     isSystemAdmin.value || permissions.value.includes('issues.view')
 )
 
-const canAccessAutomation = computed(
-    () => isSystemAdmin.value || hasAssignedRole(ROLE_PROBLEM_ADMIN)
-)
+const canAccessAutomation = computed(() => hasPermission('automation.manage'))
 
 const canAccessStatistics = computed(() =>
     isSystemAdmin.value || permissions.value.includes('statistics.view')

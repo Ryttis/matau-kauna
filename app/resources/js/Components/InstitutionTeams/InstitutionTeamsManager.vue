@@ -13,7 +13,6 @@ import InstitutionTeamMembersModal from '@/Components/InstitutionTeams/Instituti
 import { adminApi } from '@/constants/api/adminApi'
 import { settingsApi } from '@/constants/api/settingsApi'
 import { useSuccessModal } from '@/composables/useSuccessModal'
-import { ROLE_SYSTEM_ADMIN } from '@/constants/domain/roles'
 
 const props = defineProps({
     initialInstitutionId: {
@@ -23,7 +22,7 @@ const props = defineProps({
 })
 
 const page = usePage()
-const isSystemAdmin = computed(() => (page.props.auth?.roles ?? []).some((r) => r.role === ROLE_SYSTEM_ADMIN))
+const isSystemAdmin = computed(() => (page.props.auth?.permissions ?? []).includes('admin.access'))
 const { showSuccessModal, successMessage, closeSuccessModal, showWithMessage } = useSuccessModal()
 
 const loading = ref(false)

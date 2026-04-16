@@ -4,7 +4,6 @@ namespace App\Services;
 
 use App\Models\ContentVersion;
 use App\Models\User;
-use App\Models\UserRole;
 
 class ContentVersionService
 {
@@ -44,7 +43,7 @@ class ContentVersionService
 
         if ($contentVersion->type === ContentVersion::TYPE_TERMS && $requireReconsent) {
             User::query()
-                ->whereHas('roles', fn ($q) => $q->where('role', UserRole::ROLE_REPORTER))
+                ->whereDoesntHave('roles.permissions', fn ($p) => $p->where('permission', 'issues.view'))
                 ->update(['terms_accepted_at' => null]);
         }
     }

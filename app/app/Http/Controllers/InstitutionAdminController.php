@@ -4,7 +4,6 @@ namespace App\Http\Controllers;
 
 use App\Models\Institution;
 use App\Models\User;
-use App\Models\UserRole;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Inertia\Inertia;
@@ -15,14 +14,11 @@ class InstitutionAdminController extends Controller
     {
         $user = Auth::user();
 
-        if (! ($user instanceof User) || ! $user->hasAnyRole([
-            UserRole::ROLE_INSTITUTION_ADMIN,
-            UserRole::ROLE_SYSTEM_ADMIN,
-        ])) {
+        if (! ($user instanceof User) || ! $user->canManageTeams()) {
             abort(403);
         }
 
-        $isSystemAdmin = $user->hasRole(UserRole::ROLE_SYSTEM_ADMIN);
+        $isSystemAdmin = $user->canAccessAdmin();
 
         $institutionId = null;
         if ($isSystemAdmin) {

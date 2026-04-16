@@ -12,7 +12,7 @@ class UserRolePermission extends Model
 
     protected $table = 'user_role_permission';
 
-    protected $fillable = ['permission'];
+    protected $fillable = ['name', 'permission'];
 
     public function roles(): BelongsToMany
     {

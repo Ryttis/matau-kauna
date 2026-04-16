@@ -2,7 +2,6 @@
 
 namespace App\Http\Middleware;
 
-use App\Models\UserRole;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
 
@@ -36,7 +35,7 @@ class HandleInertiaRequests extends Middleware
             }
         }
 
-        $isSystemAdmin = $activeRole && $activeRole['role'] === UserRole::ROLE_SYSTEM_ADMIN;
+        $isSystemAdmin = in_array('admin.access', $permissions, true);
 
         return [
             ...parent::share($request),
