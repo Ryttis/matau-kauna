@@ -53,7 +53,6 @@ class UsersSeeder extends Seeder
             $user->name = $data['name'];
             $user->email_verified_at = $user->email_verified_at ?? Carbon::now();
 
-            // Existing users keep their current password hash.
             if (! $user->exists) {
                 $password = $data['password'] ?: $defaultPassword;
                 $user->password = Hash::make($password);

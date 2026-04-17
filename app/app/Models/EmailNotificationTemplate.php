@@ -6,7 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class EmailNotificationTemplate extends Model
 {
-    protected $fillable = ['key', 'name', 'subject', 'body', 'is_enabled'];
+    protected $fillable = ['key', 'name', 'description', 'subject', 'body', 'is_enabled'];
 
     protected $casts = [
         'is_enabled' => 'boolean',
@@ -32,7 +32,6 @@ class EmailNotificationTemplate extends Model
 
     public const KEY_PASSWORD_RESET = 'password_reset';
 
-    /** El. laiškas iš įstaigos admino – problema be integracijos (rankinis siuntimas) */
     public const KEY_INSTITUTION_PROBLEM_SHARE = 'institution_problem_share_email';
 
     public const KEY_INSTITUTION_INVITATION = 'institution_invitation';
