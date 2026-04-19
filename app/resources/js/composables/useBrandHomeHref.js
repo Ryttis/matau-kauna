@@ -8,6 +8,9 @@ export function useBrandHomeHref() {
         if (!user.value) {
             return route('landing')
         }
+        if (!user.value.email_verified_at) {
+            return route('landing')
+        }
         if (isActiveRoleReporter.value) {
             return route('reporter.sarasas')
         }

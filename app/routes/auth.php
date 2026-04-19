@@ -10,12 +10,11 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
+Route::get('login', [AuthenticatedSessionController::class, 'create'])
+    ->name('login');
+Route::post('login', [AuthenticatedSessionController::class, 'store']);
+
 Route::middleware('guest')->group(function () {
-
-    Route::get('login', [AuthenticatedSessionController::class, 'create'])
-        ->name('login');
-
-    Route::post('login', [AuthenticatedSessionController::class, 'store']);
 
     Route::get('viisp/redirect', [ViispAuthController::class, 'redirectToViisp'])
         ->name('viisp.redirect');
