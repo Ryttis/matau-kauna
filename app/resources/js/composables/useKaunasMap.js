@@ -25,7 +25,7 @@ function mapPopupDateLabel(iso) {
 }
 
 function mapPopupStatusLabel(status) {
-    if (!status) return '—'
+    if (!status) return '-'
     return PROBLEM_STATUS_LABELS[status] || String(status)
 }
 
@@ -102,12 +102,12 @@ export function useKaunasMap(containerRef, problemsToShowRef, options = {}) {
 
     function buildPopupContent(problem) {
         const num = escapeHtml(problem.internal_number)
-        const cat = escapeHtml((problem.category || '').trim() || '—')
-        const addr = escapeHtml(truncateMapPopupText(problem.address) || '—')
+        const cat = escapeHtml((problem.category || '').trim() || '-')
+        const addr = escapeHtml(truncateMapPopupText(problem.address) || '-')
         const statusText = escapeHtml(mapPopupStatusLabel(problem.status))
         const dateText = escapeHtml(mapPopupDateLabel(problem.created_at))
         const desc = escapeHtml(
-            truncateMapPopupText(problem.description_preview || problem.description) || '—',
+            truncateMapPopupText(problem.description_preview || problem.description) || '-',
         )
         const id = Number(problem.id)
         const viewBtn = onProblemOpen && id

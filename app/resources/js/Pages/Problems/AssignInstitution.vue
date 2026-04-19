@@ -1,5 +1,5 @@
 <script setup>
-import { ref, watch } from 'vue'
+import { ref, watch, computed } from 'vue'
 import { Head, router } from '@inertiajs/vue3'
 import axios from 'axios'
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue'
@@ -7,6 +7,7 @@ import AppButton from '@/Components/App/AppButton.vue'
 import AppInput from '@/Components/App/AppInput.vue'
 import AppDatePicker from '@/Components/App/AppDatePicker.vue'
 import AppBackButton from '@/Components/App/AppBackButton.vue'
+import SearchableSelect from '@/Components/App/SearchableSelect.vue'
 import SuccessModal from '@/Components/App/SuccessModal.vue'
 import InstitutionTeamMembersModal from '@/Components/InstitutionTeams/InstitutionTeamMembersModal.vue'
 import { useAuth } from '@/composables/useAuth'
@@ -43,6 +44,23 @@ const deadline = ref(
 )
 const emailForInfo = ref('')
 const returnComment = ref('')
+
+const employeeEmailOptions = computed(() =>
+    (props.employees ?? []).map((emp) => ({
+        value: emp.email,
+        label: `${emp.name} - ${emp.email}`,
+    })),
+)
+
+const canSendInfoEmail = computed(() => {
+    const raw = (emailForInfo.value || '').trim()
+    if (!raw) {
+        return false
+    }
+    return (props.employees ?? []).some(
+        (e) => String(e.email).toLowerCase() === raw.toLowerCase(),
+    )
+})
 const selectedReassignIds = ref([])
 
 const assignSubmitting = ref(false)
@@ -62,6 +80,22 @@ watch(
         teamsList.value = (t ?? []).map((row) => ({ ...row }))
     },
     { immediate: true }
+)
+
+watch(
+    () => props.employees,
+    (list) => {
+        if (!Array.isArray(list) || list.length === 0) {
+            emailForInfo.value = ''
+            return
+        }
+        const cur = (emailForInfo.value || '').trim().toLowerCase()
+        const ok = list.some((e) => String(e.email).toLowerCase() === cur)
+        if (!ok) {
+            emailForInfo.value = list[0].email ?? ''
+        }
+    },
+    { immediate: true, deep: true },
 )
 
 const finishVisit = (flag) => ({
@@ -128,6 +162,9 @@ const selectInstitution = (id) => {
 }
 
 const handleSendAssign = () => {
+    if (assignSubmitting.value) {
+        return
+    }
     const employeeId = selectedEmployeeIds.value[0]
     const teamId = selectedTeamIds.value[0]
     if (!employeeId && !teamId) return
@@ -145,11 +182,14 @@ const handleSendAssign = () => {
 }
 
 const handleSendEmail = () => {
-    const email = (emailForInfo.value || '').trim()
-    if (!email) {
-        alert('Įveskite el. paštą.')
+    if (emailSubmitting.value) {
         return
     }
+    if (!canSendInfoEmail.value) {
+        alert('Pasirinkite darbuotoją iš sąrašo.')
+        return
+    }
+    const email = (emailForInfo.value || '').trim()
     emailSubmitting.value = true
     router.post(
         route('problems.assignInstitution.sendEmail', props.problem.id),
@@ -159,11 +199,17 @@ const handleSendEmail = () => {
 }
 
 const handleReturnToAdmin = () => {
+    if (returnSubmitting.value) {
+        return
+    }
     returnSubmitting.value = true
     router.patch(route('problems.return', props.problem.id), {}, finishVisit(returnSubmitting))
 }
 
 const handleReassign = () => {
+    if (reassignSubmitting.value) {
+        return
+    }
     if (selectedReassignIds.value.length !== 1) {
         alert('Pasirinkite vieną įstaigą, kuriai perduoti problemą.')
         return
@@ -244,8 +290,8 @@ watch(
                                         @keydown.enter.prevent="selectEmployee(emp.id)"
                                         @keydown.space.prevent="selectEmployee(emp.id)"
                                     >
-                                        <td>{{ emp.name || '—' }}</td>
-                                        <td class="assign-select-cell-muted">{{ emp.email || '—' }}</td>
+                                        <td>{{ emp.name || '-' }}</td>
+                                        <td class="assign-select-cell-muted">{{ emp.email || '-' }}</td>
                                     </tr>
                                 </tbody>
                             </table>
@@ -276,7 +322,7 @@ watch(
                                         @keydown.enter.prevent="selectTeam(t.id)"
                                         @keydown.space.prevent="selectTeam(t.id)"
                                     >
-                                        <td>{{ t.name || '—' }}</td>
+                                        <td>{{ t.name || '-' }}</td>
                                         <td class="assign-select-cell-muted">{{ t.members_count }}</td>
                                         <td class="assign-select-actions" @click.stop>
                                             <button
@@ -315,78 +361,98 @@ watch(
                 </div>
             </div>
 
-            <div class="assign-institution-section">
+            <div class="assign-institution-section assign-institution-section--email">
                 <h2 class="section-title">Siųsti informaciją el. paštu</h2>
-                <div class="field-row field-fixed-width">
-                    <AppInput v-model="emailForInfo" type="email" placeholder="El. paštas" />
+                <div class="field-row field-fixed-width assign-institution-email-row">
+                    <SearchableSelect
+                        v-model="emailForInfo"
+                        :options="employeeEmailOptions"
+                        :disabled="!employeeEmailOptions.length"
+                        :show-empty-option="false"
+                        empty-option-label="Pasirinkite darbuotoją"
+                        search-placeholder="Ieškoti darbuotojo ar el. pašto…"
+                        list-max-height="min(50vh, 320px)"
+                        :max-display-length="110"
+                        class="assign-institution-email-searchable"
+                    />
                 </div>
                 <div class="btn-row">
                     <AppButton
                         text="Siųsti"
                         variant="primary"
                         as-button
+                        :disabled="!canSendInfoEmail || emailSubmitting"
                         :loading="emailSubmitting"
                         @click="handleSendEmail"
                     />
                 </div>
             </div>
 
-            <div v-if="canSeeInstitutionAdminButtons" class="assign-institution-section">
+            <div v-if="canSeeInstitutionAdminButtons" class="assign-institution-section assign-institution-section--return">
                 <h2 class="section-title">Grąžinti problemos administratoriui</h2>
-                <div class="field-row field-fixed-width">
-                    <AppInput
-                        v-model="returnComment"
-                        :as-textarea="true"
-                        placeholder="Įrašykite komentarą"
-                    />
-                </div>
-                <div class="btn-row">
-                    <AppButton
-                        text="Siųsti"
-                        variant="primary"
-                        as-button
-                        :loading="returnSubmitting"
-                        @click="handleReturnToAdmin"
-                    />
+                <div class="assign-return-two-col-shell">
+                    <div class="assign-return-two-col-shell__column">
+                        <div class="field-row assign-return-comment-row assign-return-comment">
+                            <AppInput
+                                v-model="returnComment"
+                                :as-textarea="true"
+                                :rows="12"
+                                placeholder="Įrašykite komentarą"
+                            />
+                        </div>
+                        <div class="btn-row">
+                            <AppButton
+                                text="Siųsti"
+                                variant="primary"
+                                as-button
+                                :loading="returnSubmitting"
+                                @click="handleReturnToAdmin"
+                            />
+                        </div>
+                    </div>
                 </div>
             </div>
 
-            <div class="assign-institution-section">
+            <div class="assign-institution-section assign-institution-section--reassign">
                 <h2 class="section-title">Peradresuoti</h2>
-                <div class="assign-table-scroll assign-table-scroll--single" role="region" aria-label="Įstaigų sąrašas">
-                    <table v-if="institutions.length" class="assign-select-table">
-                        <thead>
-                            <tr>
-                                <th>Įstaiga</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr
-                                v-for="inst in institutions"
-                                :key="inst.id"
-                                tabindex="0"
-                                class="assign-select-row"
-                                :class="{ 'assign-select-row--active': selectedReassignIds[0] === inst.id }"
-                                @click="selectInstitution(inst.id)"
-                                @keydown.enter.prevent="selectInstitution(inst.id)"
-                                @keydown.space.prevent="selectInstitution(inst.id)"
-                            >
-                                <td>{{ inst.name }}</td>
-                            </tr>
-                        </tbody>
-                    </table>
-                    <div v-else class="assign-empty-state">
-                        <span class="assign-empty-text">Nėra duomenų</span>
+                <div class="assign-return-two-col-shell">
+                    <div class="assign-return-two-col-shell__column assign-reassign-column">
+                        <div class="assign-table-scroll assign-reassign-table" role="region" aria-label="Įstaigų sąrašas">
+                            <table v-if="institutions.length" class="assign-select-table">
+                                <thead>
+                                    <tr>
+                                        <th>Įstaiga</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr
+                                        v-for="inst in institutions"
+                                        :key="inst.id"
+                                        tabindex="0"
+                                        class="assign-select-row"
+                                        :class="{ 'assign-select-row--active': selectedReassignIds[0] === inst.id }"
+                                        @click="selectInstitution(inst.id)"
+                                        @keydown.enter.prevent="selectInstitution(inst.id)"
+                                        @keydown.space.prevent="selectInstitution(inst.id)"
+                                    >
+                                        <td>{{ inst.name }}</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                            <div v-else class="assign-empty-state">
+                                <span class="assign-empty-text">Nėra duomenų</span>
+                            </div>
+                        </div>
+                        <div class="btn-row">
+                            <AppButton
+                                text="Siųsti"
+                                variant="primary"
+                                as-button
+                                :loading="reassignSubmitting"
+                                @click="handleReassign"
+                            />
+                        </div>
                     </div>
-                </div>
-                <div class="btn-row">
-                    <AppButton
-                        text="Siųsti"
-                        variant="primary"
-                        as-button
-                        :loading="reassignSubmitting"
-                        @click="handleReassign"
-                    />
                 </div>
             </div>
         </div>
@@ -450,8 +516,23 @@ watch(
     -webkit-overflow-scrolling: touch;
 }
 
-.assign-table-scroll--single {
-    max-width: 720px;
+.assign-reassign-column {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    min-width: 0;
+}
+
+.assign-reassign-table {
+    max-width: none;
+    width: 100%;
+    max-height: min(220px, calc(4 * 2.5rem));
+}
+
+.assign-reassign-column .assign-select-table thead th,
+.assign-reassign-column .assign-select-row td {
+    padding: 8px 12px;
+    font-size: 14px;
 }
 
 .assign-select-table {
@@ -565,6 +646,53 @@ watch(
     box-sizing: border-box;
 }
 
+.assign-institution-section--email {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+}
+
+.assign-institution-email-row {
+    width: 100%;
+    max-width: var(--button-width, 290px);
+}
+
+.assign-institution-email-row :deep(.searchable-select) {
+    flex: 0 0 auto;
+    width: 100%;
+}
+
+.assign-institution-email-row :deep(.searchable-select__input) {
+    border-radius: var(--button-border-radius, 15px);
+    font-size: 16px;
+}
+
+.assign-institution-email-row :deep(.searchable-select__dropdown) {
+    border-radius: var(--button-border-radius, 15px);
+}
+
+.assign-return-two-col-shell {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+    width: 100%;
+}
+
+.assign-return-two-col-shell__column {
+    min-width: 0;
+}
+
+.assign-return-comment-row {
+    width: 100%;
+    max-width: 100%;
+}
+
+.assign-return-comment :deep(textarea.app-input-edit) {
+    min-height: 18rem;
+    resize: vertical;
+    line-height: 1.45;
+}
+
 .btn-row {
     width: var(--button-width, 290px);
     max-width: 100%;
@@ -596,7 +724,8 @@ watch(
         line-height: 1.3;
     }
 
-    .assign-tables-grid {
+    .assign-tables-grid,
+    .assign-return-two-col-shell {
         grid-template-columns: 1fr;
     }
 

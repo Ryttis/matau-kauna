@@ -33,6 +33,8 @@ const categoryDropdownRef = ref(null)
 const numberSearchQuery = ref('')
 const selectedAddressProblemId = ref('')
 const mergeListScrollRef = ref(null)
+const mergeSubmitting = ref(false)
+const unmergeSubmitting = ref(false)
 
 const mainProblemId = computed(() => props.problem.id)
 
@@ -270,21 +272,37 @@ function openProblemView(problemId) {
 }
 
 function handleUnmerge(problemId) {
-    router.patch(route('problems.unmerge', problemId), {}, { preserveScroll: false })
+    if (unmergeSubmitting.value) {
+        return
+    }
+    unmergeSubmitting.value = true
+    router.patch(route('problems.unmerge', problemId), {}, {
+        preserveScroll: false,
+        onFinish: () => {
+            unmergeSubmitting.value = false
+        },
+    })
 }
 
 const handleMerge = () => {
+    if (mergeSubmitting.value) {
+        return
+    }
     if (selectedProblems.value.length === 0) {
         alert('Pasirinkite bent vieną problemą apjungimui')
         return
     }
 
+    mergeSubmitting.value = true
     router.post(route('problems.merge.store', props.problem.id), {
         problem_ids: selectedProblems.value,
     }, {
         preserveScroll: false,
         onError: (errors) => {
             alert(errors?.message || 'Nepavyko apjungti')
+        },
+        onFinish: () => {
+            mergeSubmitting.value = false
         },
     })
 }
@@ -415,7 +433,7 @@ onUnmounted(() => {
                         >
                             <template v-if="row.type === 'main'">
                                 <span class="merge-problem-text">
-                                    {{ mergeProblemLabel(row.problem) }} — ši problema
+                                    {{ mergeProblemLabel(row.problem) }} - ši problema
                                 </span>
                             </template>
                             <template v-else-if="row.type === 'merged' || row.type === 'similar_merged'">
@@ -425,6 +443,7 @@ onUnmounted(() => {
                                 <button
                                     type="button"
                                     class="merge-unmerge-btn"
+                                    :disabled="unmergeSubmitting"
                                     @click.stop="handleUnmerge(row.problem.id)"
                                 >
                                     Atskirti
@@ -458,6 +477,8 @@ onUnmounted(() => {
                             text="Apjungti"
                             variant="primary"
                             as-button
+                            :loading="mergeSubmitting"
+                            :disabled="mergeSubmitting"
                             @click="handleMerge"
                             class="merge-btn"
                         />

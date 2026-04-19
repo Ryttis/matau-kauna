@@ -30,6 +30,7 @@ export function useDashboardProblemList(props) {
     const inactiveTargetProblemIds = ref([])
     const statusChangeSubmitting = ref(false)
     const deleteSubmitting = ref(false)
+    const bulkPublishSubmitting = ref(false)
 
     const { displayRows } = useProblemDisplayRows(problemsList)
 
@@ -421,7 +422,10 @@ export function useDashboardProblemList(props) {
     )
 
     const handleBulkPublishToggle = () => {
-        if (selectedProblems.value.length === 0) return
+        if (selectedProblems.value.length === 0 || bulkPublishSubmitting.value) {
+            return
+        }
+        bulkPublishSubmitting.value = true
         router.post(route('problems.bulkUpdatePublish'), {
             problem_ids: selectedProblems.value,
             is_published_publicly: !selectedProblemsAllPublished.value,
@@ -430,6 +434,9 @@ export function useDashboardProblemList(props) {
             onSuccess: () => {
                 selectedProblems.value = []
                 loadProblems(false)
+            },
+            onFinish: () => {
+                bulkPublishSubmitting.value = false
             },
         })
     }
@@ -501,6 +508,7 @@ export function useDashboardProblemList(props) {
         inactiveSubmitChannel,
         statusChangeSubmitting,
         deleteSubmitting,
+        bulkPublishSubmitting,
         submitInactiveReason,
         closeInactiveReasonModal,
         deleteConfirmMessage,

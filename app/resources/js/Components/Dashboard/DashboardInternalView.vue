@@ -52,6 +52,7 @@ const {
     inactiveSubmitChannel,
     statusChangeSubmitting,
     deleteSubmitting,
+    bulkPublishSubmitting,
     submitInactiveReason,
     closeInactiveReasonModal,
     deleteConfirmMessage,
@@ -168,7 +169,8 @@ const {
                 variant="secondary"
                 as-button
                 class="list-nav-btn"
-                :disabled="selectedProblems.length === 0"
+                :disabled="selectedProblems.length === 0 || bulkPublishSubmitting"
+                :loading="bulkPublishSubmitting"
                 @click="handleBulkPublishToggle"
             />
             <AppButton

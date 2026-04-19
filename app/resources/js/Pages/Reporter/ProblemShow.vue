@@ -85,7 +85,9 @@ const reporterShowsAttachmentsColumn = computed(
 )
 
 async function onAttachInputChange(e) {
-    if (!props.canUploadAttachments) return
+    if (!props.canUploadAttachments || isUploading.value) {
+        return
+    }
     handleFileChange(e)
     if (!selectedFiles.value.length) return
 

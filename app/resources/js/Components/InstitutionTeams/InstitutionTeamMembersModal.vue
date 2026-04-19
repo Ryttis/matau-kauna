@@ -78,7 +78,7 @@ const handleClose = () => {
     >
         <div v-if="errorMessage" class="modal-error">{{ errorMessage }}</div>
         <div class="hint">
-            Komanda: <strong>{{ team?.name ?? '—' }}</strong>
+            Komanda: <strong>{{ team?.name ?? '-' }}</strong>
         </div>
 
         <div class="members-list">

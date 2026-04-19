@@ -41,6 +41,12 @@ const showTermRuleDeleteModal = ref(false)
 const termRuleFormId = ref(null)
 const termRuleToDelete = ref(null)
 
+const ruleFormSubmitting = ref(false)
+const publishFormSubmitting = ref(false)
+const termRuleFormSubmitting = ref(false)
+const inactiveReporterSubmitting = ref(false)
+const confirmDeleteSubmitting = ref(false)
+
 const activeSection = ref('assignment')
 
 const inactiveReporterForm = ref({
@@ -133,11 +139,23 @@ function buildPayload() {
     }
 }
 
+function tryCloseAssignmentRuleModal() {
+    if (ruleFormSubmitting.value) {
+        return
+    }
+    showFormModal.value = false
+}
+
 function submitForm() {
+    if (ruleFormSubmitting.value) {
+        return
+    }
     const payload = buildPayload()
+    ruleFormSubmitting.value = true
     const options = {
         preserveScroll: true,
         onSuccess: () => { showFormModal.value = false },
+        onFinish: () => { ruleFormSubmitting.value = false },
     }
     if (formRuleId.value) {
         router.put(route('automation.update', formRuleId.value), payload, options)
@@ -152,13 +170,17 @@ function confirmDelete(rule) {
 }
 
 function doDelete() {
-    if (!ruleToDelete.value) return
+    if (!ruleToDelete.value || confirmDeleteSubmitting.value) {
+        return
+    }
+    confirmDeleteSubmitting.value = true
     router.delete(route('automation.destroy', ruleToDelete.value.id), {
         preserveScroll: true,
         onSuccess: () => {
             showDeleteModal.value = false
             ruleToDelete.value = null
         },
+        onFinish: () => { confirmDeleteSubmitting.value = false },
     })
 }
 
@@ -184,13 +206,28 @@ function openPublishEdit(rule) {
     showPublishFormModal.value = true
 }
 
+function tryClosePublishRuleModal() {
+    if (publishFormSubmitting.value) {
+        return
+    }
+    showPublishFormModal.value = false
+}
+
 function submitPublishForm() {
+    if (publishFormSubmitting.value) {
+        return
+    }
     const payload = {
         category: publishForm.value.category || null,
         status: publishForm.value.status || null,
         is_active: publishForm.value.is_active,
     }
-    const options = { preserveScroll: true, onSuccess: () => { showPublishFormModal.value = false } }
+    publishFormSubmitting.value = true
+    const options = {
+        preserveScroll: true,
+        onSuccess: () => { showPublishFormModal.value = false },
+        onFinish: () => { publishFormSubmitting.value = false },
+    }
     if (publishFormId.value) {
         router.put(route('automation.publishRules.update', publishFormId.value), payload, options)
     } else {
@@ -204,13 +241,17 @@ function confirmPublishDelete(rule) {
 }
 
 function doPublishDelete() {
-    if (!publishRuleToDelete.value) return
+    if (!publishRuleToDelete.value || confirmDeleteSubmitting.value) {
+        return
+    }
+    confirmDeleteSubmitting.value = true
     router.delete(route('automation.publishRules.destroy', publishRuleToDelete.value.id), {
         preserveScroll: true,
         onSuccess: () => {
             showPublishDeleteModal.value = false
             publishRuleToDelete.value = null
         },
+        onFinish: () => { confirmDeleteSubmitting.value = false },
     })
 }
 
@@ -246,7 +287,17 @@ function openTermRuleEdit(rule) {
     showTermRuleModal.value = true
 }
 
+function tryCloseTermRuleModal() {
+    if (termRuleFormSubmitting.value) {
+        return
+    }
+    showTermRuleModal.value = false
+}
+
 function submitTermRuleForm() {
+    if (termRuleFormSubmitting.value) {
+        return
+    }
     const payload = {
         days: Number(termRuleForm.value.days),
         institution_id: termRuleForm.value.institution_id ? Number(termRuleForm.value.institution_id) : null,
@@ -255,7 +306,12 @@ function submitTermRuleForm() {
         problem_nature_id: termRuleForm.value.problem_nature_id ? Number(termRuleForm.value.problem_nature_id) : null,
         is_active: termRuleForm.value.is_active,
     }
-    const options = { preserveScroll: true, onSuccess: () => { showTermRuleModal.value = false } }
+    termRuleFormSubmitting.value = true
+    const options = {
+        preserveScroll: true,
+        onSuccess: () => { showTermRuleModal.value = false },
+        onFinish: () => { termRuleFormSubmitting.value = false },
+    }
     if (termRuleFormId.value) {
         router.put(route('automation.resolutionTermRules.update', termRuleFormId.value), payload, options)
     } else {
@@ -269,13 +325,17 @@ function confirmTermRuleDelete(rule) {
 }
 
 function doTermRuleDelete() {
-    if (!termRuleToDelete.value) return
+    if (!termRuleToDelete.value || confirmDeleteSubmitting.value) {
+        return
+    }
+    confirmDeleteSubmitting.value = true
     router.delete(route('automation.resolutionTermRules.destroy', termRuleToDelete.value.id), {
         preserveScroll: true,
         onSuccess: () => {
             showTermRuleDeleteModal.value = false
             termRuleToDelete.value = null
         },
+        onFinish: () => { confirmDeleteSubmitting.value = false },
     })
 }
 
@@ -305,10 +365,17 @@ function syncInactiveReporterFormFromProps() {
 }
 
 function submitInactiveReporterForm() {
+    if (inactiveReporterSubmitting.value) {
+        return
+    }
+    inactiveReporterSubmitting.value = true
     router.put(route('automation.inactiveReporterSetting.update'), {
         inactivity_days: inactiveReporterForm.value.inactivity_days,
         is_active: inactiveReporterForm.value.is_active,
-    }, { preserveScroll: true })
+    }, {
+        preserveScroll: true,
+        onFinish: () => { inactiveReporterSubmitting.value = false },
+    })
 }
 
 watch(() => props.inactiveReporterSetting, syncInactiveReporterFormFromProps, { immediate: true })
@@ -398,9 +465,9 @@ watch(
                     </thead>
                     <tbody>
                         <tr v-for="r in rules" :key="r.id">
-                            <td>{{ r.name || '—' }}</td>
-                            <td>{{ r.category || '—' }}</td>
-                            <td>{{ r.institution_name || '—' }}</td>
+                            <td>{{ r.name || '-' }}</td>
+                            <td>{{ r.category || '-' }}</td>
+                            <td>{{ r.institution_name || '-' }}</td>
                             <td>{{ r.is_active ? 'Taip' : 'Ne' }}</td>
                             <td>
                                 <button type="button" class="automation-link" @click="openEdit(r)">Redaguoti</button>
@@ -472,9 +539,9 @@ watch(
                     <tbody>
                         <tr v-for="r in resolutionTermRules" :key="r.id">
                             <td>{{ r.days }}</td>
-                            <td>{{ r.institution_name || '—' }}</td>
-                            <td>{{ r.category || '—' }}</td>
-                            <td>{{ r.problem_nature_name || '—' }}</td>
+                            <td>{{ r.institution_name || '-' }}</td>
+                            <td>{{ r.category || '-' }}</td>
+                            <td>{{ r.problem_nature_name || '-' }}</td>
                             <td>{{ r.is_active ? 'Taip' : 'Ne' }}</td>
                             <td>
                                 <button type="button" class="automation-link" @click="openTermRuleEdit(r)">Redaguoti</button>
@@ -513,7 +580,8 @@ watch(
                     text="Išsaugoti nustatymus"
                     variant="primary"
                     as-button
-                    :disabled="!canSaveInactiveReporterSetting"
+                    :disabled="!canSaveInactiveReporterSetting || inactiveReporterSubmitting"
+                    :loading="inactiveReporterSubmitting"
                     @click="submitInactiveReporterForm"
                 />
             </div>
@@ -540,10 +608,10 @@ watch(
                         <tbody>
                             <tr v-for="row in filteredInactiveReporters" :key="row.id">
                                 <td>{{ row.name }} <span class="automation-email">({{ row.email }})</span></td>
-                                <td>{{ row.last_login_at ?? '—' }}</td>
+                                <td>{{ row.last_login_at ?? '-' }}</td>
                                 <td>
                                     <template v-if="row.inactive_days != null">{{ row.inactive_days }}</template>
-                                    <template v-else>—</template>
+                                    <template v-else>-</template>
                                 </td>
                             </tr>
                         </tbody>
@@ -563,7 +631,7 @@ watch(
             :max-width="'520px'"
             class="automation-rule-modal"
             footer-layout="column"
-            @close="showFormModal = false"
+            @close="tryCloseAssignmentRuleModal"
         >
             <div class="automation-form">
                 <AppInput v-model="form.name" label="Pavadinimas (nebūtina)" placeholder="pvz. Duobės" />
@@ -579,8 +647,8 @@ watch(
                 </label>
             </div>
             <template #footer>
-                <AppButton text="Atšaukti" variant="secondary" as-button @click="showFormModal = false" />
-                <AppButton text="Išsaugoti" variant="primary" as-button @click="submitForm" />
+                <AppButton text="Atšaukti" variant="secondary" as-button :disabled="ruleFormSubmitting" @click="tryCloseAssignmentRuleModal" />
+                <AppButton text="Išsaugoti" variant="primary" as-button :loading="ruleFormSubmitting" @click="submitForm" />
             </template>
         </BaseModal>
 
@@ -590,6 +658,7 @@ watch(
             confirm-text="Trinti"
             cancel-text="Atšaukti"
             confirm-variant="danger"
+            :loading="confirmDeleteSubmitting"
             @close="showDeleteModal = false"
             @confirm="doDelete"
         />
@@ -600,7 +669,7 @@ watch(
             :max-width="'520px'"
             class="automation-rule-modal"
             footer-layout="column"
-            @close="showPublishFormModal = false"
+            @close="tryClosePublishRuleModal"
         >
             <div class="automation-form">
                 <AppSelect v-model="publishForm.category" label="Kategorija" :placeholder="''">
@@ -615,8 +684,8 @@ watch(
                 </label>
             </div>
             <template #footer>
-                <AppButton text="Atšaukti" variant="secondary" as-button @click="showPublishFormModal = false" />
-                <AppButton text="Išsaugoti" variant="primary" as-button @click="submitPublishForm" />
+                <AppButton text="Atšaukti" variant="secondary" as-button :disabled="publishFormSubmitting" @click="tryClosePublishRuleModal" />
+                <AppButton text="Išsaugoti" variant="primary" as-button :loading="publishFormSubmitting" @click="submitPublishForm" />
             </template>
         </BaseModal>
 
@@ -626,6 +695,7 @@ watch(
             confirm-text="Trinti"
             cancel-text="Atšaukti"
             confirm-variant="danger"
+            :loading="confirmDeleteSubmitting"
             @close="showPublishDeleteModal = false"
             @confirm="doPublishDelete"
         />
@@ -636,7 +706,7 @@ watch(
             :max-width="'520px'"
             class="automation-rule-modal"
             footer-layout="column"
-            @close="showTermRuleModal = false"
+            @close="tryCloseTermRuleModal"
         >
             <div class="automation-form">
                 <AppInput v-model.number="termRuleForm.days" type="number" label="Terminas (dienomis)" />
@@ -660,8 +730,15 @@ watch(
                 </label>
             </div>
             <template #footer>
-                <AppButton text="Atšaukti" variant="secondary" as-button @click="showTermRuleModal = false" />
-                <AppButton text="Išsaugoti" variant="primary" as-button :disabled="!termRuleForm.days || termRuleForm.days < 1" @click="submitTermRuleForm" />
+                <AppButton text="Atšaukti" variant="secondary" as-button :disabled="termRuleFormSubmitting" @click="tryCloseTermRuleModal" />
+                <AppButton
+                    text="Išsaugoti"
+                    variant="primary"
+                    as-button
+                    :disabled="!termRuleForm.days || termRuleForm.days < 1"
+                    :loading="termRuleFormSubmitting"
+                    @click="submitTermRuleForm"
+                />
             </template>
         </BaseModal>
 
@@ -671,6 +748,7 @@ watch(
             confirm-text="Trinti"
             cancel-text="Atšaukti"
             confirm-variant="danger"
+            :loading="confirmDeleteSubmitting"
             @close="showTermRuleDeleteModal = false"
             @confirm="doTermRuleDelete"
         />

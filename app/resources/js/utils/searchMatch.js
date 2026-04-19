@@ -1,7 +1,7 @@
+import { foldLithuanianForSearch } from '@/utils/foldLithuanianForSearch'
+
 export function normalizeSearchText(value) {
-    return String(value ?? '')
-        .trim()
-        .toLowerCase()
+    return foldLithuanianForSearch(String(value ?? '').trim())
 }
 
 export function textMatchesQuery(haystack, needleQuery) {

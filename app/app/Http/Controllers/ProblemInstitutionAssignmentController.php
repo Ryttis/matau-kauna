@@ -13,6 +13,7 @@ use App\Services\ProblemScopeService;
 use App\Services\TransactionalMail;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -188,8 +189,16 @@ class ProblemInstitutionAssignmentController extends Controller
             return redirect()->back()->with('error', 'Išspręstos problemos priskirti negalima.');
         }
 
+        if ($user->institution_id === null) {
+            return redirect()->back()->with('error', 'Negalima siųsti el. laiško be įstaigos konteksto.');
+        }
+
         $validated = $request->validate([
-            'email' => ['required', 'email'],
+            'email' => [
+                'required',
+                'email',
+                Rule::exists('employees', 'email')->where('institution_id', $user->institution_id),
+            ],
         ]);
 
         $mail = $this->assignmentNotifier->buildInstitutionProblemShareEmail($problem);

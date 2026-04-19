@@ -229,6 +229,9 @@ const hasAcceptedTerms = computed(
 )
 
 function handlePateikti() {
+    if (isSubmitting.value) {
+        return
+    }
     submitError.value = ''
     const addressErr = getAddressError()
 
@@ -246,11 +249,19 @@ function handlePateikti() {
     showReviewModal.value = true
 }
 
+const termsAcceptBusy = ref(false)
+
 function handleReviewContinue() {
-    api.post(route('reporter.termsAccepted')).finally(() => {
-        termsAcceptedThisSession.value = true
-        showReviewModal.value = false
-    })
+    if (termsAcceptBusy.value) {
+        return
+    }
+    termsAcceptBusy.value = true
+    api.post(route('reporter.termsAccepted'))
+        .finally(() => {
+            termsAcceptBusy.value = false
+            termsAcceptedThisSession.value = true
+            showReviewModal.value = false
+        })
 }
 
 function getSubmitErrorMessage(err) {
@@ -295,12 +306,16 @@ function handleReviewConfirm() {
             showReviewModal.value = false
             const base = route('dashboard')
             const sep = base.includes('?') ? '&' : '?'
-            router.visit(`${base}${sep}report_created=1`)
+            router.visit(`${base}${sep}report_created=1`, {
+                onFinish: () => {
+                    isSubmitting.value = false
+                },
+            })
         })
         .catch((err) => {
             submitError.value = getSubmitErrorMessage(err)
+            isSubmitting.value = false
         })
-        .finally(() => { isSubmitting.value = false })
 }
 
 function handleCloseCancelModal() {
@@ -331,7 +346,7 @@ function openCancelModal() {
         <ReporterReviewModal
             :show="showReviewModal"
             :mode="reviewModalMode"
-            :submitting="isSubmitting"
+            :submitting="isSubmitting || termsAcceptBusy"
             @close="showReviewModal = false"
             @confirm="handleReviewConfirm"
             @continue="handleReviewContinue"

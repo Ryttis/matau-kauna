@@ -71,7 +71,7 @@ function onPrimary() {
                 variant="primary"
                 as-button
                 :disabled="!canContinue || submitting"
-                :loading="mode === 'submit' && submitting"
+                :loading="submitting"
                 class="reporter-review-submit-btn"
                 @click="onPrimary"
             />
