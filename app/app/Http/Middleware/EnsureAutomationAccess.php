@@ -2,7 +2,6 @@
 
 namespace App\Http\Middleware;
 
-use App\Models\UserRole;
 use Closure;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -17,7 +16,7 @@ class EnsureAutomationAccess
             abort(403);
         }
 
-        if (! $user->hasRole(UserRole::ROLE_SYSTEM_ADMIN) && ! $user->hasRole(UserRole::ROLE_PROBLEM_ADMIN)) {
+        if (! $user->canManageAutomation()) {
             abort(403);
         }
 

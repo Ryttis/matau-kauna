@@ -25,17 +25,19 @@ function mapPopupDateLabel(iso) {
 }
 
 function mapPopupStatusLabel(status) {
-    if (!status) return '—'
+    if (!status) return '-'
     return PROBLEM_STATUS_LABELS[status] || String(status)
 }
 
 export function useKaunasMap(containerRef, problemsToShowRef, options = {}) {
     const {
         onProblemOpen,
+        onProblemMark = null,
         markerClassName = 'kaunas-map-marker',
         invalidateSizeDelay = 150,
         highlightedProblemId = null,
         mergedProblemIds = null,
+        markableProblemIds = null,
         autoFitView = true,
         focusHighlightedMarker = true,
     } = options
@@ -55,6 +57,10 @@ export function useKaunasMap(containerRef, problemsToShowRef, options = {}) {
 
     const getMergedSet = () => {
         const raw = unref(mergedProblemIds)
+        return new Set((Array.isArray(raw) ? raw : []).map(Number))
+    }
+    const getMarkableSet = () => {
+        const raw = unref(markableProblemIds)
         return new Set((Array.isArray(raw) ? raw : []).map(Number))
     }
     const getHighlightedId = () => unref(highlightedProblemId)
@@ -102,16 +108,20 @@ export function useKaunasMap(containerRef, problemsToShowRef, options = {}) {
 
     function buildPopupContent(problem) {
         const num = escapeHtml(problem.internal_number)
-        const cat = escapeHtml((problem.category || '').trim() || '—')
-        const addr = escapeHtml(truncateMapPopupText(problem.address) || '—')
+        const cat = escapeHtml((problem.category || '').trim() || '-')
+        const addr = escapeHtml(truncateMapPopupText(problem.address) || '-')
         const statusText = escapeHtml(mapPopupStatusLabel(problem.status))
         const dateText = escapeHtml(mapPopupDateLabel(problem.created_at))
         const desc = escapeHtml(
-            truncateMapPopupText(problem.description_preview || problem.description) || '—',
+            truncateMapPopupText(problem.description_preview || problem.description) || '-',
         )
         const id = Number(problem.id)
+        const canMark = typeof onProblemMark === 'function' && id && getMarkableSet().has(id)
+        const markBtn = canMark
+            ? `<button type="button" class="kaunas-map-popup-mark-problem kaunas-map-popup-view-btn" data-mark-problem-id="${id}">Pažymėti</button>`
+            : ''
         const viewBtn = onProblemOpen && id
-            ? `<p class="kaunas-map-popup-actions"><button type="button" class="kaunas-map-popup-open-problem kaunas-map-popup-view-btn" data-open-problem-id="${id}">Peržiūrėti</button></p>`
+            ? `<p class="kaunas-map-popup-actions"><button type="button" class="kaunas-map-popup-open-problem kaunas-map-popup-view-btn" data-open-problem-id="${id}">Peržiūrėti</button>${markBtn}</p>`
             : ''
         const dateRow = dateText
             ? `<div class="kaunas-map-popup-row"><span class="kaunas-map-popup-k">Data</span> ${dateText}</div>`
@@ -141,6 +151,17 @@ export function useKaunasMap(containerRef, problemsToShowRef, options = {}) {
     function setupPopupNavListener() {
         if (!map) return
         const handler = (event) => {
+            const markBtn = event.target.closest('[data-mark-problem-id]')
+            if (markBtn) {
+                event.preventDefault()
+                event.stopPropagation()
+                const id = Number(markBtn.getAttribute('data-mark-problem-id'))
+                if (typeof onProblemMark === 'function' && id) {
+                    onProblemMark(id)
+                }
+                map.closePopup()
+                return
+            }
             const openBtn = event.target.closest('.kaunas-map-popup-open-problem[data-open-problem-id]')
             if (!openBtn) return
             event.preventDefault()
@@ -272,6 +293,7 @@ export function useKaunasMap(containerRef, problemsToShowRef, options = {}) {
     watchOption(autoFitView)
     watchOption(focusHighlightedMarker)
     watchOption(mergedProblemIds, true)
+    watchOption(markableProblemIds, true)
 
     onUnmounted(cleanup)
 }

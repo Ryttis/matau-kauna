@@ -58,7 +58,7 @@ function syncSettingsFormFromRule() {
     const entityType = TAB_ENTITY_MAP[activeTab.value]
     const r = retentionRules.value[entityType]
     settingsForm.value = {
-        retention_days: r?.delete_after_days ?? r?.archive_after_days ?? '',
+        retention_days: r?.delete_after_days ?? '',
         is_active: r?.is_active ?? true,
     }
 }
@@ -109,7 +109,7 @@ const saveSettings = async () => {
 }
 
 const formatDate = (str) => {
-    if (!str) return '—'
+    if (!str) return '-'
     return new Date(str).toLocaleDateString('lt-LT')
 }
 
@@ -292,7 +292,7 @@ onMounted(load)
                     <tbody>
                         <tr v-for="p in problems" :key="p.id">
                             <td>{{ p.internal_number }}</td>
-                            <td>{{ p.description_preview || '—' }}</td>
+                            <td>{{ p.description_preview || '-' }}</td>
                             <td>{{ formatDate(p.archived_at) }}</td>
                             <td>{{ formatDate(p.delete_at) }}</td>
                             <td>

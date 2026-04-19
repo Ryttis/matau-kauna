@@ -129,6 +129,12 @@ const { form, submit } = useReviewProgressEntryForm(
     },
 )
 
+const pendingSubmitVisibility = ref(null)
+
+watch(() => form.processing, (busy) => {
+    if (!busy) pendingSubmitVisibility.value = null
+})
+
 const selectedStatusValue = computed(() => {
     const tag = REVIEW_PROGRESS_MODAL_STATUS_TAGS.find((t) => t.key === selectedKey.value)
     return tag?.value ?? ''
@@ -140,12 +146,14 @@ function selectStatus(tag) {
 }
 
 function runSubmit(visibility) {
+    if (form.processing) return
     if (!selectedStatusValue.value) {
         localStatusHint.value = 'Pasirinkite būseną.'
         return
     }
     localStatusHint.value = ''
     form.status = selectedStatusValue.value
+    pendingSubmitVisibility.value = visibility
     submit(visibility)
 }
 
@@ -167,9 +175,13 @@ watch(
                 entry.visibility === REVIEW_ENTRY_VISIBILITY.PUBLIC
                     ? REVIEW_ENTRY_VISIBILITY.PUBLIC
                     : REVIEW_ENTRY_VISIBILITY.INTERNAL
-            selectedKey.value = reviewModalTagKeyForStatus(entry.status)
+            {
+                const key = reviewModalTagKeyForStatus(entry.status)
+                selectedKey.value = key === 'new' ? null : key
+            }
         } else {
-            selectedKey.value = reviewModalTagKeyForStatus(props.currentStatus)
+            const key = reviewModalTagKeyForStatus(props.currentStatus)
+            selectedKey.value = key === 'new' ? null : key
             form.comment = ''
             form.visibility = REVIEW_ENTRY_VISIBILITY.INTERNAL
         }
@@ -310,6 +322,7 @@ const queuedAttachmentCount = computed(() => selectedFiles.value.length)
                     variant="primary"
                     as-button
                     class="add-entry-footer-btn"
+                    :loading="form.processing && pendingSubmitVisibility === REVIEW_ENTRY_VISIBILITY.INTERNAL"
                     :disabled="form.processing"
                     @click="runSubmit(REVIEW_ENTRY_VISIBILITY.INTERNAL)"
                 />
@@ -318,6 +331,7 @@ const queuedAttachmentCount = computed(() => selectedFiles.value.length)
                     variant="secondary"
                     as-button
                     class="add-entry-footer-btn"
+                    :loading="form.processing && pendingSubmitVisibility === REVIEW_ENTRY_VISIBILITY.PUBLIC"
                     :disabled="form.processing"
                     @click="runSubmit(REVIEW_ENTRY_VISIBILITY.PUBLIC)"
                 />
@@ -421,11 +435,11 @@ const queuedAttachmentCount = computed(() => selectedFiles.value.length)
     color: #1e1c1c;
 }
 
-.add-entry-status--blue {
-    border-color: var(--color-primary, #1946a0);
+.add-entry-status--violet {
+    border-color: #9333ea;
 }
-.add-entry-status-tag--selected.add-entry-status--blue {
-    background: var(--color-primary, #1946a0);
+.add-entry-status-tag--selected.add-entry-status--violet {
+    background: #9333ea;
     color: var(--color-white, #fff);
 }
 
@@ -438,10 +452,10 @@ const queuedAttachmentCount = computed(() => selectedFiles.value.length)
 }
 
 .add-entry-status--gray {
-    border-color: #666666;
+    border-color: #795548;
 }
 .add-entry-status-tag--selected.add-entry-status--gray {
-    background: #666666;
+    background: #795548;
     color: #fff;
 }
 

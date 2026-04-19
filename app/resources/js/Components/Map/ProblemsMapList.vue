@@ -34,6 +34,17 @@ function watchBusy(problem) {
     return props.watchLoadingRootId != null && props.watchLoadingRootId === root
 }
 
+function showWatchButtonForRow(row) {
+    if (!props.enableWatch) return false
+    if (!row.groupIds || row.groupIds.length <= 1) return true
+    return !!row.isGroupMain
+}
+
+function showWatchPlaceholderForRow(row) {
+    if (!props.enableWatch) return false
+    return row.groupIds?.length > 1 && !row.isGroupMain
+}
+
 function problemTitle(problem) {
     const text = (problem.description_preview || problem.description || '').trim()
     if (text) {
@@ -88,14 +99,23 @@ function onSimpleRowActivate(problem) {
                     <span class="problems-map-list__title">{{ problemTitle(row.problem) }}</span>
                 </div>
                 <div class="problems-map-list__row-actions">
+                    <span
+                        v-if="showWatchPlaceholderForRow(row)"
+                        class="problems-map-list__watch-placeholder"
+                        aria-hidden="true"
+                    />
                     <button
-                        v-if="enableWatch"
+                        v-if="showWatchButtonForRow(row)"
                         type="button"
                         class="problems-map-list__watch-btn problems-map-list__view-btn problems-map-list__view-btn--internal"
                         :class="{ 'problems-map-list__watch-btn--on': rowWatched(row.problem) }"
                         :disabled="watchBusy(row.problem)"
                         :title="rowWatched(row.problem) ? 'Nebestebėti' : 'Stebėti'"
-                        aria-label="Stebėti arba nebestebėti problemą"
+                        :aria-label="
+                            row.groupIds?.length > 1
+                                ? 'Stebėti arba nebestebėti visą sujungtą problemų grupę'
+                                : 'Stebėti arba nebestebėti problemą'
+                        "
                         @click.stop="emit('toggle-watch', row.problem)"
                     >
                         {{ rowWatched(row.problem) ? 'Stebima' : 'Stebėti' }}
@@ -197,6 +217,12 @@ function onSimpleRowActivate(problem) {
     font-weight: 600;
     line-height: 1.2;
     color: #333;
+}
+
+.problems-map-list__watch-placeholder {
+    flex-shrink: 0;
+    min-width: 86px;
+    align-self: center;
 }
 
 .problems-map-list__watch-btn {

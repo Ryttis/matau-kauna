@@ -200,6 +200,7 @@ class ProblemReviewHistoryService
         return array_values(array_filter(
             ProblemStatus::values(),
             fn (string $v) => $v !== ProblemStatus::UNREGISTERED->value
+                && $v !== ProblemStatus::NEW->value
         ));
     }
 }

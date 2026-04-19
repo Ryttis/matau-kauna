@@ -7,7 +7,6 @@ use App\Exports\ProblemsExport;
 use App\Models\ClassifierValue;
 use App\Models\FileUploadSettings;
 use App\Models\Problem;
-use App\Models\UserRole;
 use App\Services\ProblemDashboardQueryService;
 use App\Services\ProblemMergeContextService;
 use App\Services\ProblemReporterStatusNotifier;
@@ -33,7 +32,7 @@ class ProblemController extends Controller
     {
         $user = $request->user();
 
-        if ($user->hasRole(UserRole::ROLE_REPORTER) && ! $user->hasPermission('issues.view')) {
+        if ($user->isReporterOnly()) {
             return Inertia::render('Dashboard', $this->dashboardQuery->reporterDashboardProps(
                 $user,
                 $request->boolean('only_mine')
@@ -70,7 +69,7 @@ class ProblemController extends Controller
         $this->scopeService->authorizeProblemAccess($user, $problem);
 
         $validated = $request->validate([
-            'status' => 'required|string|in:'.implode(',', ProblemStatus::values()),
+            'status' => 'required|string|in:'.implode(',', ProblemStatus::valuesEligibleForManualStaffUpdate()),
         ]);
 
         $ids = $problem->getMergeGroupIds();
@@ -109,14 +108,17 @@ class ProblemController extends Controller
         $validated = $request->validate([
             'problem_ids' => 'required|array',
             'problem_ids.*' => 'required|integer|exists:problems,id',
-            'status' => 'required|string|in:'.implode(',', ProblemStatus::values()),
+            'status' => 'required|string|in:'.implode(',', ProblemStatus::valuesEligibleForManualStaffUpdate()),
         ]);
 
-        $query = Problem::whereIn('id', $validated['problem_ids']);
-        $this->scopeService->scopeProblemsForUser($query, $user);
-        $this->scopeService->ensureScopeMatchesCount($query, count($validated['problem_ids']));
+        $problemIds = array_values(array_unique(array_map('intval', $validated['problem_ids'])));
+        $expandedIds = Problem::expandIdsToMergeGroups($problemIds);
 
-        $rootIdsMap = Problem::rootIdsMapFromProblemIds($validated['problem_ids']);
+        $query = Problem::whereIn('id', $expandedIds);
+        $this->scopeService->scopeProblemsForUser($query, $user);
+        $this->scopeService->ensureScopeMatchesCount($query, count($expandedIds));
+
+        $rootIdsMap = Problem::rootIdsMapFromProblemIds($expandedIds);
         $oldByMain = Problem::statusesByRootId($rootIdsMap);
 
         $query->update([
@@ -171,9 +173,12 @@ class ProblemController extends Controller
             'is_published_publicly' => 'required|boolean',
         ]);
 
-        $query = Problem::whereIn('id', $validated['problem_ids']);
+        $problemIds = array_values(array_unique(array_map('intval', $validated['problem_ids'])));
+        $expandedIds = Problem::expandIdsToMergeGroups($problemIds);
+
+        $query = Problem::whereIn('id', $expandedIds);
         $this->scopeService->scopeProblemsForUser($query, $user);
-        $this->scopeService->ensureScopeMatchesCount($query, count($validated['problem_ids']));
+        $this->scopeService->ensureScopeMatchesCount($query, count($expandedIds));
         $query->update(['is_published_publicly' => $validated['is_published_publicly']]);
 
         $label = $validated['is_published_publicly'] ? 'Problemos paskelbtos viešai.' : 'Problemos nuimtos nuo viešo skelbimo.';
@@ -233,7 +238,7 @@ class ProblemController extends Controller
     public function destroy(Problem $problem): RedirectResponse
     {
         $user = request()->user();
-        if (! $user->hasRole(UserRole::ROLE_EMPLOYEE) && ! $user->hasRole(UserRole::ROLE_SYSTEM_ADMIN)) {
+        if (! $user->canDeleteProblems()) {
             abort(403);
         }
 
@@ -249,7 +254,7 @@ class ProblemController extends Controller
     public function bulkDestroy(Request $request): RedirectResponse
     {
         $user = $request->user();
-        if (! $user->hasRole(UserRole::ROLE_EMPLOYEE) && ! $user->hasRole(UserRole::ROLE_SYSTEM_ADMIN)) {
+        if (! $user->canDeleteProblems()) {
             abort(403);
         }
 
@@ -258,17 +263,19 @@ class ProblemController extends Controller
             'problem_ids.*' => 'required|integer|exists:problems,id',
         ]);
 
-        $query = Problem::whereIn('id', $validated['problem_ids']);
-        $this->scopeService->scopeProblemsForUser($query, $user);
-        $this->scopeService->ensureScopeMatchesCount($query, count($validated['problem_ids']));
+        $problemIds = array_values(array_unique(array_map('intval', $validated['problem_ids'])));
 
-        $allIds = Problem::expandIdsToMergeGroups($validated['problem_ids']);
+        $query = Problem::whereIn('id', $problemIds);
+        $this->scopeService->scopeProblemsForUser($query, $user);
+        $this->scopeService->ensureScopeMatchesCount($query, count($problemIds));
+
+        $allIds = Problem::expandIdsToMergeGroups($problemIds);
         Problem::whereIn('id', $allIds)->update([
             'is_archived' => true,
             'archived_at' => now(),
         ]);
 
-        $message = count($validated['problem_ids']) > 1
+        $message = count($problemIds) > 1
             ? 'Problemos perkeltos į archyvą'
             : 'Problema perkelta į archyvą';
 
@@ -278,7 +285,7 @@ class ProblemController extends Controller
     public function export(Request $request)
     {
         $user = $request->user();
-        if (! $user->isProblemAdminOrSystemAdmin()) {
+        if (! $user->hasPermission('issues.export')) {
             abort(403);
         }
 

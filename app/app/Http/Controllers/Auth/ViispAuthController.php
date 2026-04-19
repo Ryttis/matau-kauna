@@ -5,16 +5,17 @@ namespace App\Http\Controllers\Auth;
 use App\Enums\AuditLogResult;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Auth\ViispRegistrationRequest;
+use App\Models\ContentVersion;
 use App\Models\LoginLog;
 use App\Models\User;
 use App\Models\UserRole;
 use App\Services\AuditLogService;
+use Illuminate\Http\Client\Response as HttpClientResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Http\Client\Response as HttpClientResponse;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
 use Inertia\Inertia;
@@ -23,6 +24,8 @@ use Inertia\Response;
 class ViispAuthController extends Controller
 {
     private const REGISTRATION_SESSION_KEY = 'viisp_registration_payload';
+
+    private const REGISTRATION_TERMS_SESSION_KEY = 'viisp_registration_terms_accepted';
 
     public function __construct(
         private AuditLogService $auditLogService
@@ -106,11 +109,10 @@ class ViispAuthController extends Controller
 
         $user = User::query()
             ->where('viisp_personal_code_hash', $identity['hashedCode'])
-            ->notArchived()
             ->first();
 
         if (! $user) {
-            $byEmail = User::query()->where('email', $email)->notArchived()->first();
+            $byEmail = User::query()->where('email', $email)->first();
             if ($byEmail) {
                 if ($byEmail->viisp_personal_code_hash !== null && $byEmail->viisp_personal_code_hash !== $identity['hashedCode']) {
                     return $this->viispLoginError('Šis el. paštas jau susietas su kita paskyra. Kreipkitės į administratorių.');
@@ -119,7 +121,7 @@ class ViispAuthController extends Controller
             } else {
                 $this->putRegistrationPayload($request, $identity);
 
-                return redirect()->route('viisp.register');
+                return redirect()->route('viisp.register.terms');
             }
         } else {
             $user = $this->syncViispProfile($user, $identity, $email);
@@ -128,11 +130,50 @@ class ViispAuthController extends Controller
         return $this->finalizeViispLogin($request, $user);
     }
 
+    public function showRegistrationTerms(Request $request): Response|RedirectResponse
+    {
+        if ($this->readRegistrationPayloadFromSession($request) === null) {
+            return $this->viispLoginError('Sesija pasibaigė arba registracijos duomenys nebegalioja. Bandykite prisijungti per el. valdžios vartus dar kartą.');
+        }
+
+        if ($request->session()->get(self::REGISTRATION_TERMS_SESSION_KEY)) {
+            return redirect()->route('viisp.register');
+        }
+
+        $termsContent = ContentVersion::getLatestPublished(ContentVersion::TYPE_TERMS);
+
+        return Inertia::render('Auth/ViispRegistrationTerms', [
+            'terms_title' => (string) ($termsContent?->title ?? 'Sistemos taisyklės ir asmens duomenų tvarkymas'),
+            'terms_body' => (string) ($termsContent?->body ?? ''),
+        ]);
+    }
+
+    public function storeRegistrationTerms(Request $request): RedirectResponse
+    {
+        if ($this->readRegistrationPayloadFromSession($request) === null) {
+            return $this->viispLoginError('Sesija pasibaigė arba registracijos duomenys nebegalioja. Bandykite prisijungti per el. valdžios vartus dar kartą.');
+        }
+
+        $request->validate([
+            'accepted' => ['required', 'accepted'],
+        ], [
+            'accepted.accepted' => 'Turite sutikti su taisyklėmis.',
+        ]);
+
+        $request->session()->put(self::REGISTRATION_TERMS_SESSION_KEY, true);
+
+        return redirect()->route('viisp.register');
+    }
+
     public function showRegistration(Request $request): Response|RedirectResponse
     {
         $payload = $this->readRegistrationPayloadFromSession($request);
         if ($payload === null) {
             return $this->viispLoginError('Sesija pasibaigė arba registracijos duomenys nebegalioja. Bandykite prisijungti per el. valdžios vartus dar kartą.');
+        }
+
+        if (! $request->session()->get(self::REGISTRATION_TERMS_SESSION_KEY)) {
+            return redirect()->route('viisp.register.terms');
         }
 
         $prefillEmail = $this->viispProvidedEmailForRegistrationForm($payload);
@@ -156,15 +197,19 @@ class ViispAuthController extends Controller
             return $this->viispLoginError('Sesija pasibaigė arba registracijos duomenys nebegalioja. Bandykite prisijungti per el. valdžios vartus dar kartą.');
         }
 
+        if (! $request->session()->get(self::REGISTRATION_TERMS_SESSION_KEY)) {
+            return redirect()->route('viisp.register.terms');
+        }
+
         $hashedCode = is_string($payload['hashedCode'] ?? null) ? $payload['hashedCode'] : '';
         if ($hashedCode === '') {
-            $request->session()->forget(self::REGISTRATION_SESSION_KEY);
+            $this->forgetViispRegistrationSession($request);
 
             return $this->viispLoginError('VIISP: neteisingi registracijos duomenys.');
         }
 
         if (User::query()->where('viisp_personal_code_hash', $hashedCode)->exists()) {
-            $request->session()->forget(self::REGISTRATION_SESSION_KEY);
+            $this->forgetViispRegistrationSession($request);
 
             return $this->viispLoginError('Paskyra su šia tapatybe jau egzistuoja. Prisijunkite per el. valdžios vartus.');
         }
@@ -183,7 +228,7 @@ class ViispAuthController extends Controller
         $firstName = is_string($payload['firstName'] ?? null) ? trim($payload['firstName']) : '';
         $lastName = is_string($payload['lastName'] ?? null) ? trim($payload['lastName']) : '';
         if ($firstName === '' || $lastName === '') {
-            $request->session()->forget(self::REGISTRATION_SESSION_KEY);
+            $this->forgetViispRegistrationSession($request);
 
             return $this->viispLoginError('VIISP: gauti nepilni tapatybės duomenys (trūksta vardo ar pavardės).');
         }
@@ -195,11 +240,12 @@ class ViispAuthController extends Controller
             'phone' => $phone,
             'password' => Hash::make(Str::random(64)),
             'viisp_personal_code_hash' => $hashedCode,
+            'terms_accepted_at' => now(),
         ]);
         $user->roles()->sync([$reporterRole->id]);
         $user->sendEmailVerificationNotification();
 
-        $request->session()->forget(self::REGISTRATION_SESSION_KEY);
+        $this->forgetViispRegistrationSession($request);
 
         return $this->finalizeViispLogin($request, $user);
     }
@@ -244,10 +290,19 @@ class ViispAuthController extends Controller
             'companyName' => $identity['companyName'] ?? null,
             'subjectType' => is_string($identity['subjectType'] ?? null) ? $identity['subjectType'] : 'person',
         ];
+        $request->session()->forget(self::REGISTRATION_TERMS_SESSION_KEY);
         $request->session()->put(
             self::REGISTRATION_SESSION_KEY,
             Crypt::encryptString(json_encode($payload, JSON_UNESCAPED_UNICODE))
         );
+    }
+
+    private function forgetViispRegistrationSession(Request $request): void
+    {
+        $request->session()->forget([
+            self::REGISTRATION_SESSION_KEY,
+            self::REGISTRATION_TERMS_SESSION_KEY,
+        ]);
     }
 
     private function readRegistrationPayloadFromSession(Request $request): ?array
@@ -412,7 +467,12 @@ class ViispAuthController extends Controller
             $user->roles()->syncWithoutDetaching([$reporterRole->id]);
         }
 
-        return $this->syncViispProfile($user, $identity, $email);
+        $user = $this->syncViispProfile($user, $identity, $email);
+        if ($user->viisp_local_password_set_at === null) {
+            $user->forceFill(['viisp_local_password_set_at' => now()])->save();
+        }
+
+        return $user->fresh();
     }
 
     private function syncViispProfile(User $user, array $identity, string $email): User

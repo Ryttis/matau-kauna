@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Enums\ProblemStatus;
 use App\Models\Problem;
+use App\Support\LithuanianSearchFold;
 use App\Models\ProblemWatch;
 use App\Models\User;
 use Illuminate\Support\Collection;
@@ -34,28 +35,30 @@ class ProblemMapService
             return [];
         }
         $mode = in_array($mode, ['number', 'address'], true) ? $mode : 'all';
-        $pattern = $this->caseInsensitiveLikePattern($q);
+        $patternNumber = $this->likePattern($q, false);
+        $patternAddress = $this->likePattern($q, true);
+        $addressNormSql = $this->sqlAddressDiacriticInsensitiveLower();
         $centerLat = $this->getCenterLat();
         $centerLng = $this->getCenterLng();
         $problems = $this->getMapQueryForUser($user)
-            ->where(function ($sub) use ($pattern, $mode) {
+            ->where(function ($sub) use ($patternNumber, $patternAddress, $addressNormSql, $mode) {
                 if ($mode === 'number') {
-                    $sub->whereRaw('LOWER(internal_number) LIKE ?', [$pattern]);
+                    $sub->whereRaw('LOWER(internal_number) LIKE ?', [$patternNumber]);
 
                     return;
                 }
                 if ($mode === 'address') {
                     $sub->whereNotNull('address')
                         ->where('address', '!=', '')
-                        ->whereRaw('LOWER(address) LIKE ?', [$pattern]);
+                        ->whereRaw("{$addressNormSql} LIKE ?", [$patternAddress]);
 
                     return;
                 }
-                $sub->where(function ($byAddress) use ($pattern) {
+                $sub->where(function ($byAddress) use ($patternAddress, $addressNormSql) {
                     $byAddress->whereNotNull('address')
                         ->where('address', '!=', '')
-                        ->whereRaw('LOWER(address) LIKE ?', [$pattern]);
-                })->orWhereRaw('LOWER(internal_number) LIKE ?', [$pattern]);
+                        ->whereRaw("{$addressNormSql} LIKE ?", [$patternAddress]);
+                })->orWhereRaw('LOWER(internal_number) LIKE ?', [$patternNumber]);
             })
             ->orderBy('internal_number')
             ->orderBy('created_at', 'desc')
@@ -67,11 +70,19 @@ class ProblemMapService
         })->values()->all();
     }
 
-    private function caseInsensitiveLikePattern(string $trimmedQuery): string
+    private function likePattern(string $trimmedQuery, bool $foldLithuanianDiacritics): string
     {
-        $escaped = str_replace(['\\', '%', '_'], ['\\\\', '\\%', '\\_'], $trimmedQuery);
+        $lower = $foldLithuanianDiacritics
+            ? LithuanianSearchFold::fold($trimmedQuery)
+            : mb_strtolower($trimmedQuery, 'UTF-8');
+        $escaped = str_replace(['\\', '%', '_'], ['\\\\', '\\%', '\\_'], $lower);
 
-        return '%'.mb_strtolower($escaped, 'UTF-8').'%';
+        return '%'.$escaped.'%';
+    }
+
+    private function sqlAddressDiacriticInsensitiveLower(): string
+    {
+        return LithuanianSearchFold::sqlLowerAndFoldColumn('address');
     }
 
     private function getCenterLat(): float

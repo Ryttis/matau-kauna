@@ -1,5 +1,5 @@
 <script setup>
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import { router } from '@inertiajs/vue3'
 
 const props = defineProps({
@@ -14,21 +14,32 @@ const showSwitch = computed(() =>
 
 const isOn = computed(() => Boolean(props.problem?.is_published_publicly))
 
+const patching = ref(false)
+
 function handleToggle(e) {
     e.stopPropagation()
-    if (!showSwitch.value) return
+    if (!showSwitch.value || patching.value) {
+        return
+    }
+    patching.value = true
     router.patch(route('problems.updatePublish', props.problem.id), {
         is_published_publicly: !isOn.value,
-    }, { preserveScroll: true })
+    }, {
+        preserveScroll: true,
+        onFinish: () => {
+            patching.value = false
+        },
+    })
 }
 </script>
 
 <template>
-    <label v-if="showSwitch" class="publish-cell" @click.stop>
+    <label v-if="showSwitch" class="publish-cell" :class="{ 'publish-cell--busy': patching }" @click.stop>
         <input
             type="checkbox"
             class="publish-cell-input"
             :checked="isOn"
+            :disabled="patching"
             @change="handleToggle"
         />
         <span class="publish-cell-slider" />
@@ -40,6 +51,11 @@ function handleToggle(e) {
     display: inline-flex;
     align-items: center;
     cursor: pointer;
+}
+
+.publish-cell--busy {
+    opacity: 0.65;
+    pointer-events: none;
 }
 
 .publish-cell-input {

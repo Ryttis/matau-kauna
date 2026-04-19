@@ -42,6 +42,14 @@ const props = defineProps({
         type: String,
         default: 'Nieko nerasta.',
     },
+    showEmptyOption: {
+        type: Boolean,
+        default: true,
+    },
+    listMaxHeight: {
+        type: String,
+        default: '280px',
+    },
 })
 
 const emit = defineEmits(['update:modelValue'])
@@ -197,7 +205,7 @@ watch(
                     @keydown="onKeydown"
                 />
                 <button
-                    v-if="!disabled && modelValue && !isOpen"
+                    v-if="!disabled && modelValue && !isOpen && showEmptyOption"
                     type="button"
                     class="searchable-select__clear"
                     aria-label="Išvalyti"
@@ -215,9 +223,11 @@ watch(
                 v-show="isOpen"
                 class="searchable-select__dropdown"
                 role="listbox"
+                :style="{ maxHeight: listMaxHeight }"
                 @mousedown="onListMouseDown"
             >
                 <button
+                    v-if="showEmptyOption"
                     type="button"
                     class="searchable-select__option searchable-select__option--all"
                     :class="{ 'searchable-select__option--active': modelValue === '' }"
@@ -373,7 +383,6 @@ watch(
     left: 0;
     right: 0;
     top: calc(100% + 4px);
-    max-height: 280px;
     overflow-y: auto;
     z-index: 1200;
     background: #fff;

@@ -8,9 +8,10 @@ import AppBackButton from '@/Components/App/AppBackButton.vue'
 import AppCheckbox from '@/Components/App/AppCheckbox.vue'
 import SuccessModal from '@/Components/App/SuccessModal.vue'
 import KaunasProblemsMap from '@/Components/Map/KaunasProblemsMap.vue'
+import ProblemMapStatusLegend from '@/Components/Map/ProblemMapStatusLegend.vue'
 import { useSuccessModal } from '@/composables/useSuccessModal'
 import { KAUNAS_CENTER } from '@/utils/leafletKaunas'
-import { PROBLEM_STATUS } from '@/constants/domain/problemStatus'
+import { MAP_LEGEND_STATUS_ORDER, PROBLEM_STATUS } from '@/constants/domain/problemStatus'
 import { ICON_ARROW } from '@/constants/ui/icons'
 import { truncateDisplay, DEFAULT_DISPLAY_MAX_LENGTH } from '@/utils/textDisplay'
 import { buildMergeAddressSelectOptions, listMergePageProblems } from '@/utils/mergeAddressOptions'
@@ -33,6 +34,8 @@ const categoryDropdownRef = ref(null)
 const numberSearchQuery = ref('')
 const selectedAddressProblemId = ref('')
 const mergeListScrollRef = ref(null)
+const mergeSubmitting = ref(false)
+const unmergeSubmitting = ref(false)
 
 const mainProblemId = computed(() => props.problem.id)
 
@@ -83,29 +86,16 @@ const mainMatchesCategory = computed(() => {
     return (props.problem?.category || '') === selectedCategory.value
 })
 
-const selectedProblemIds = computed(() => {
-    const selected = selectedProblems.value
-    const alwaysShow = mainMatchesCategory.value
-        ? [Number(mainProblemId.value), ...(mergedProblemIdsForMap.value || []).map(Number)]
-        : []
-    if (selected.length === 0) {
-        if (!mainMatchesCategory.value) {
-            const ids = new Set()
-            similarOnly.value.forEach((s) => {
-                ids.add(Number(s.id))
-                ;(s.merged_problems || s.mergedProblems || []).forEach((m) => ids.add(Number(m.id)))
-            })
-            return ids
-        }
-        return new Set(problemsForMap.value.map((p) => Number(p.id)))
+const mapVisibleProblemIds = computed(() => {
+    if (!mainMatchesCategory.value) {
+        const ids = new Set()
+        similarOnly.value.forEach((s) => {
+            ids.add(Number(s.id))
+            ;(s.merged_problems || s.mergedProblems || []).forEach((m) => ids.add(Number(m.id)))
+        })
+        return ids
     }
-    const expanded = new Set(selected.map(Number))
-    for (const s of similarOnly.value) {
-        if (expanded.has(Number(s.id))) {
-            (s.merged_problems || s.mergedProblems || []).forEach((m) => expanded.add(Number(m.id)))
-        }
-    }
-    return new Set([...alwaysShow, ...expanded])
+    return new Set(problemsForMap.value.map((p) => Number(p.id)))
 })
 
 const allProblems = computed(() => {
@@ -207,7 +197,7 @@ const listFilterMapIds = computed(() => {
 })
 
 const problemsToShowOnMap = computed(() => {
-    let list = problemsForMap.value.filter((p) => selectedProblemIds.value.has(Number(p.id)))
+    let list = problemsForMap.value.filter((p) => mapVisibleProblemIds.value.has(Number(p.id)))
     const filterIds = listFilterMapIds.value
     if (filterIds === null) return list
     return list.filter((p) => filterIds.has(Number(p.id)))
@@ -224,6 +214,28 @@ watch([numberSearchQuery, selectedAddressProblemId], () => {
 const mergedProblemIdsForMap = computed(() =>
     (props.mergedProblems || []).map((p) => p.id)
 )
+
+const markableProblemIdsForMap = computed(() =>
+    similarOnly.value.map((p) => Number(p.id))
+)
+
+function handleMarkFromMap(problemId) {
+    const id = Number(problemId)
+    if (Number.isNaN(id) || id === Number(props.problem.id)) {
+        return
+    }
+    if (!similarOnly.value.some((p) => Number(p.id) === id)) {
+        return
+    }
+    if (!selectedProblems.value.includes(id)) {
+        selectedProblems.value = [...selectedProblems.value, id]
+    }
+    nextTick(() => {
+        const root = mergeListScrollRef.value
+        const el = root?.querySelector(`[data-merge-selectable-id="${id}"]`)
+        el?.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
+    })
+}
 
 const handleBack = () => {
     router.visit(route('problems.show', props.problem.id))
@@ -270,21 +282,37 @@ function openProblemView(problemId) {
 }
 
 function handleUnmerge(problemId) {
-    router.patch(route('problems.unmerge', problemId), {}, { preserveScroll: false })
+    if (unmergeSubmitting.value) {
+        return
+    }
+    unmergeSubmitting.value = true
+    router.patch(route('problems.unmerge', problemId), {}, {
+        preserveScroll: false,
+        onFinish: () => {
+            unmergeSubmitting.value = false
+        },
+    })
 }
 
 const handleMerge = () => {
+    if (mergeSubmitting.value) {
+        return
+    }
     if (selectedProblems.value.length === 0) {
         alert('Pasirinkite bent vieną problemą apjungimui')
         return
     }
 
+    mergeSubmitting.value = true
     router.post(route('problems.merge.store', props.problem.id), {
         problem_ids: selectedProblems.value,
     }, {
         preserveScroll: false,
         onError: (errors) => {
             alert(errors?.message || 'Nepavyko apjungti')
+        },
+        onFinish: () => {
+            mergeSubmitting.value = false
         },
     })
 }
@@ -355,15 +383,20 @@ onUnmounted(() => {
             <div class="merge-content">
                 <div class="merge-map-section">
                     <div class="merge-map-container">
+                        <ProblemMapStatusLegend
+                            class="merge-map-legend"
+                            :status-order="MAP_LEGEND_STATUS_ORDER"
+                        />
                         <KaunasProblemsMap
                             :problems="problemsToShowOnMap"
                             :highlighted-problem-id="mainProblemId"
                             :auto-fit-view="false"
                             :focus-highlighted-marker="false"
                             :merged-problem-ids="mergedProblemIdsForMap"
+                            :markable-problem-ids="markableProblemIdsForMap"
                             marker-class="merge-map-marker"
-                            :show-legend="false"
                             @open-problem="openProblemView"
+                            @mark-problem="handleMarkFromMap"
                         />
                     </div>
                 </div>
@@ -415,7 +448,7 @@ onUnmounted(() => {
                         >
                             <template v-if="row.type === 'main'">
                                 <span class="merge-problem-text">
-                                    {{ mergeProblemLabel(row.problem) }} — ši problema
+                                    {{ mergeProblemLabel(row.problem) }} - ši problema
                                 </span>
                             </template>
                             <template v-else-if="row.type === 'merged' || row.type === 'similar_merged'">
@@ -425,13 +458,17 @@ onUnmounted(() => {
                                 <button
                                     type="button"
                                     class="merge-unmerge-btn"
+                                    :disabled="unmergeSubmitting"
                                     @click.stop="handleUnmerge(row.problem.id)"
                                 >
                                     Atskirti
                                 </button>
                             </template>
                             <template v-else>
-                                <label class="merge-problem-label">
+                                <label
+                                    class="merge-problem-label"
+                                    :data-merge-selectable-id="row.problem.id"
+                                >
                                     <AppCheckbox
                                         :model-value="selectedProblems.includes(row.problem.id)"
                                         :value="row.problem.id"
@@ -458,6 +495,8 @@ onUnmounted(() => {
                             text="Apjungti"
                             variant="primary"
                             as-button
+                            :loading="mergeSubmitting"
+                            :disabled="mergeSubmitting"
                             @click="handleMerge"
                             class="merge-btn"
                         />
@@ -576,20 +615,30 @@ onUnmounted(() => {
 
 .merge-map-container {
     width: 100%;
-    height: 480px;
-    min-height: 480px;
-    border: 1px solid var(--color-border, #e0e0e0);
-    border-radius: 5px;
-    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    min-height: 520px;
+}
+
+.merge-map-legend {
+    flex-shrink: 0;
+    padding: 0;
+    box-sizing: border-box;
 }
 
 .merge-map-container :deep(.kaunas-map-wrap) {
-    height: 100%;
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    height: auto;
 }
 
 .merge-map-container :deep(.kaunas-map-container) {
-    height: 100%;
-    min-height: 480px;
+    flex: 1 1 auto;
+    min-height: 360px;
+    height: auto;
 }
 
 .merge-problems-section {

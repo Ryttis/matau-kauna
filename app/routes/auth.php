@@ -22,6 +22,11 @@ Route::middleware('guest')->group(function () {
     Route::get('viisp/callback', [ViispAuthController::class, 'callback'])
         ->name('viisp.callback');
 
+    Route::get('viisp/register/terms', [ViispAuthController::class, 'showRegistrationTerms'])
+        ->name('viisp.register.terms');
+    Route::post('viisp/register/terms', [ViispAuthController::class, 'storeRegistrationTerms'])
+        ->name('viisp.register.terms.store');
+
     Route::get('viisp/register', [ViispAuthController::class, 'showRegistration'])
         ->name('viisp.register');
     Route::post('viisp/register', [ViispAuthController::class, 'storeRegistration'])

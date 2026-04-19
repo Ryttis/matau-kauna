@@ -6,13 +6,12 @@ export const REVIEW_ENTRY_VISIBILITY = {
 }
 
 export const REVIEW_PROGRESS_MODAL_STATUS_TAGS = [
-    { key: 'new', label: 'Nauja', value: PROBLEM_STATUS.NEW, borderClass: 'add-entry-status--orange' },
     { key: 'in_review', label: 'Nagrinėjama', value: PROBLEM_STATUS.IN_REVIEW, borderClass: 'add-entry-status--yellow' },
     {
         key: 'returned',
         label: 'Grąžinta nagrinėjimui',
         value: PROBLEM_STATUS.RETURNED_FOR_REVIEW,
-        borderClass: 'add-entry-status--blue',
+        borderClass: 'add-entry-status--violet',
     },
     { key: 'resolved', label: 'Išspręsta', value: PROBLEM_STATUS.RESOLVED, borderClass: 'add-entry-status--green' },
     { key: 'inactive', label: 'Neaktuali', value: PROBLEM_STATUS.INACTIVE, borderClass: 'add-entry-status--gray' },
@@ -23,7 +22,6 @@ export function reviewModalTagKeyForStatus(status) {
     return REVIEW_PROGRESS_MODAL_STATUS_TAGS.find((t) => t.value === status)?.key ?? null
 }
 
-/** Kūnas POST į `problems.reviewProgress.store`, kai būsena „Neaktuali“. */
 export function buildInactiveReviewPostBody(comment, visibility) {
     return {
         status: PROBLEM_STATUS.INACTIVE,

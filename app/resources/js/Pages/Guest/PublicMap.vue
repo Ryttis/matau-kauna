@@ -5,6 +5,7 @@ import GuestHeader from '@/Components/Landing/GuestHeader.vue'
 import LandingFooter from '@/Components/Landing/LandingFooter.vue'
 import FilterModal from '@/Components/App/Modals/FilterModal.vue'
 import KaunasProblemsMap from '@/Components/Map/KaunasProblemsMap.vue'
+import ProblemMapStatusLegend from '@/Components/Map/ProblemMapStatusLegend.vue'
 import ProblemsMapList from '@/Components/Map/ProblemsMapList.vue'
 import { useProblemsMapFilter } from '@/composables/useProblemsMapFilter'
 import { useProblemDisplayRows } from '@/composables/useProblemDisplayRows'
@@ -123,10 +124,10 @@ function clearPublicMapSearch() {
         </div>
         <div class="public-map-layout">
             <div class="public-map-wrap">
+                <ProblemMapStatusLegend :status-order="PUBLIC_MAP_LEGEND_STATUS_ORDER" />
                 <KaunasProblemsMap
                     :problems="problemsToShowOnMap"
                     marker-class="public-map-marker"
-                    :legend-status-order="PUBLIC_MAP_LEGEND_STATUS_ORDER"
                     @open-problem="openProblemView"
                 />
             </div>
@@ -300,6 +301,7 @@ function clearPublicMapSearch() {
 .public-map-wrap {
     display: flex;
     flex-direction: column;
+    gap: 12px;
     min-height: 0;
     min-width: 0;
     width: 100%;

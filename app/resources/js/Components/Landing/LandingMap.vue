@@ -44,19 +44,19 @@ function landingMapDateLabel(iso) {
 }
 
 function landingMapStatusLabel(status) {
-    if (!status) return '—'
+    if (!status) return '-'
     return PROBLEM_STATUS_LABELS[status] || String(status)
 }
 
 function singleProblemPopupHtml(p) {
     const id = Number(p.id)
     const num = escapeHtml(p.internal_number || '')
-    const cat = escapeHtml((p.category || '').trim() || '—')
-    const addr = escapeHtml(truncateMapPopupText(p.address) || '—')
+    const cat = escapeHtml((p.category || '').trim() || '-')
+    const addr = escapeHtml(truncateMapPopupText(p.address) || '-')
     const statusText = escapeHtml(landingMapStatusLabel(p.status))
     const dateText = escapeHtml(landingMapDateLabel(p.created_at))
     const desc = escapeHtml(
-        truncateMapPopupText(p.description_preview || p.description) || '—',
+        truncateMapPopupText(p.description_preview || p.description) || '-',
     )
     const dateRow = dateText
         ? `<div class="landing-map-popup-row"><span class="landing-map-popup-k">Data</span> ${dateText}</div>`

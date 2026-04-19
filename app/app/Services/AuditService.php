@@ -86,7 +86,6 @@ class AuditService
             if (array_key_exists('retention_days', $data) || array_key_exists('retention_is_active', $data)) {
                 $payload = [
                     'entity_type' => DataRetentionRule::ENTITY_AUDIT_LOG,
-                    'archive_after_days' => null,
                     'delete_after_days' => $data['retention_days'] ?? $retentionRule?->delete_after_days ?? 365,
                     'is_active' => (bool) ($data['retention_is_active'] ?? $retentionRule?->is_active ?? true),
                 ];

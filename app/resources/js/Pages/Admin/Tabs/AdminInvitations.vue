@@ -82,11 +82,11 @@ onMounted(loadInvitations)
             <tbody>
                 <tr v-for="invite in invitationsPage.data" :key="invite.id">
                     <td>{{ invite.email }}</td>
-                    <td>{{ invite.institution?.name ?? '—' }}</td>
-                    <td>{{ invite.role?.name ?? '—' }}</td>
+                    <td>{{ invite.institution?.name ?? '-' }}</td>
+                    <td>{{ invite.role?.name ?? '-' }}</td>
                     <td>{{ statusLabel(invite) }}</td>
-                    <td>{{ invite.expires_at ? new Date(invite.expires_at).toLocaleString('lt-LT') : '—' }}</td>
-                    <td>{{ invite.created_at ? new Date(invite.created_at).toLocaleString('lt-LT') : '—' }}</td>
+                    <td>{{ invite.expires_at ? new Date(invite.expires_at).toLocaleString('lt-LT') : '-' }}</td>
+                    <td>{{ invite.created_at ? new Date(invite.created_at).toLocaleString('lt-LT') : '-' }}</td>
                     <td>
                         <button
                             type="button"

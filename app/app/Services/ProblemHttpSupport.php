@@ -9,7 +9,6 @@ use App\Models\Problem;
 use App\Models\ProblemAttachment;
 use App\Models\ProblemWatch;
 use App\Models\User;
-use App\Models\UserRole;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
@@ -75,13 +74,13 @@ class ProblemHttpSupport
             'watchProblemId' => $watchProblemId,
             'fileUpload' => FileUploadSettings::getChannelForClient(FileUploadSettings::CHANNEL_WEB),
             'authUserId' => $user?->id,
-            'isSystemAdmin' => $user ? $user->hasRole(UserRole::ROLE_SYSTEM_ADMIN) : false,
+            'isSystemAdmin' => $user ? $user->canAccessAdmin() : false,
         ]);
     }
 
     public function userCanDeleteReviewAttachment(User $user, Problem $problem): bool
     {
-        if ($user->hasRole(UserRole::ROLE_SYSTEM_ADMIN)) {
+        if ($user->canAccessAdmin()) {
             return true;
         }
 

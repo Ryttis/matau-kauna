@@ -4,6 +4,7 @@ import { Head, router } from '@inertiajs/vue3'
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue'
 import AppButton from '@/Components/App/AppButton.vue'
 import AppSelect from '@/Components/App/AppSelect.vue'
+import SearchableSelect from '@/Components/App/SearchableSelect.vue'
 import AppBackButton from '@/Components/App/AppBackButton.vue'
 import SuccessModal from '@/Components/App/SuccessModal.vue'
 import EntityTable from '@/Components/App/Tables/EntityTable.vue'
@@ -96,6 +97,13 @@ const emailRecipients = computed(() => {
     }
     return recipients
 })
+
+const emailRecipientSelectOptions = computed(() =>
+    emailRecipients.value.map((r) => ({
+        value: r.key,
+        label: `${r.institutionName} - ${r.email}`,
+    })),
+)
 
 const selectedEmailRecipient = computed(() => {
     return emailRecipients.value.find((item) => item.key === selectedEmailRecipientKey.value) || null
@@ -336,22 +344,18 @@ const toggleStatus = () => {
                 </div>
 
                 <div class="assign-section assign-section-email">
-                    <AppSelect
+                    <SearchableSelect
                         v-model="selectedEmailRecipientKey"
                         label="Siųsti informaciją el. paštu"
-                        :placeholder="emailSelectPlaceholder"
-                        variant="white"
+                        :options="emailRecipientSelectOptions"
                         :disabled="!emailRecipients.length"
+                        :show-empty-option="false"
+                        :empty-option-label="emailSelectPlaceholder"
+                        search-placeholder="Ieškoti įstaigos ar el. pašto…"
+                        list-max-height="min(50vh, 320px)"
+                        :max-display-length="140"
                         class="assign-email-select"
-                    >
-                        <option
-                            v-for="recipient in emailRecipients"
-                            :key="recipient.key"
-                            :value="recipient.key"
-                        >
-                            {{ recipient.institutionName }} - {{ recipient.email }}
-                        </option>
-                    </AppSelect>
+                    />
                     <div class="assign-send-btn-wrap">
                         <AppButton
                             text="Siųsti"
@@ -495,21 +499,27 @@ const toggleStatus = () => {
 
 .assign-section-email {
     gap: 20px;
+    align-items: flex-start;
 }
 
 .assign-section .app-input-group {
     width: 100%;
 }
 
-.assign-section-email .app-select-group {
-    width: min(440px, 100%);
+.assign-section-email .assign-email-select {
+    width: var(--button-width);
     max-width: 100%;
+    flex: 0 0 auto;
 }
 
-.assign-section-email :deep(.app-select) {
-    width: 100%;
-    min-height: var(--control-height, 44px);
+.assign-section-email :deep(.searchable-select__input) {
     font-size: 16px;
+    border-radius: var(--button-border-radius, 15px);
+    min-height: var(--control-height, 44px);
+}
+
+.assign-section-email :deep(.searchable-select__dropdown) {
+    border-radius: var(--button-border-radius, 15px);
 }
 
 .assign-more-btn {
@@ -628,17 +638,17 @@ const toggleStatus = () => {
 }
 
 .assign-status-btn-returned {
-    border-color: var(--assign-status-returned-border, #1946A0);
+    border-color: var(--assign-status-returned-border, #9333ea);
 }
 
 .assign-status-btn-returned:hover {
-    border-color: var(--assign-status-returned-active-border, #153d8a);
-    background-color: var(--assign-status-returned-active-bg, #eef3fc);
+    border-color: var(--assign-status-returned-active-border, #7e22ce);
+    background-color: var(--assign-status-returned-active-bg, #faf5ff);
 }
 
 .assign-status-btn-returned.assign-status-btn-active {
-    border-color: var(--assign-status-returned-active-border, #153d8a);
-    background-color: var(--assign-status-returned-active-bg, #eef3fc);
+    border-color: var(--assign-status-returned-active-border, #7e22ce);
+    background-color: var(--assign-status-returned-active-bg, #faf5ff);
     border-width: 3px;
 }
 
@@ -705,12 +715,12 @@ const toggleStatus = () => {
         gap: 14px;
     }
 
-    .assign-section-email :deep(.app-select-label) {
+    .assign-section-email :deep(.searchable-select__label) {
         font-size: clamp(1.15rem, 4.8vw, 1.5rem);
         line-height: 1.25;
     }
 
-    .assign-section-email :deep(.app-select) {
+    .assign-section-email :deep(.searchable-select__input) {
         font-size: 1.125rem;
     }
 

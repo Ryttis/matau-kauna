@@ -12,7 +12,7 @@ export function buildMergeAddressSelectOptions(problem, mergedProblems, similarP
         const nr = p.internal_number || String(id)
         opts.push({
             value: String(id),
-            label: `${addr} — ${nr}`,
+            label: `${addr} - ${nr}`,
         })
     }
 

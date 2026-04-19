@@ -5,7 +5,6 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\StoreInvitationRequest;
 use App\Models\Invitation;
-use App\Models\UserRole;
 use App\Services\InvitationService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
@@ -29,7 +28,7 @@ class InvitationController extends Controller
         $this->ensureCanManageInvitations($user);
 
         $data = $request->validated();
-        if (! $user->hasRole(UserRole::ROLE_SYSTEM_ADMIN)) {
+        if (! $user->canAccessAdmin()) {
             $data['institution_id'] = $user->institution_id;
         }
         $this->ensureSameInstitution($user, $data['institution_id'] ?? null);
@@ -68,14 +67,14 @@ class InvitationController extends Controller
 
     private function ensureCanManageInvitations($user): void
     {
-        if (! $user->hasRole(UserRole::ROLE_SYSTEM_ADMIN) && ! $user->hasRole(UserRole::ROLE_INSTITUTION_ADMIN)) {
+        if (! $user->canManageInvitations()) {
             abort(403);
         }
     }
 
     private function ensureSameInstitution($user, ?int $institutionId): void
     {
-        if (! $user->hasRole(UserRole::ROLE_SYSTEM_ADMIN) && (int) $institutionId !== (int) $user->institution_id) {
+        if (! $user->canAccessAdmin() && (int) $institutionId !== (int) $user->institution_id) {
             abort(403);
         }
     }

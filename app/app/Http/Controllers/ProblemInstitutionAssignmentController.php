@@ -8,12 +8,12 @@ use App\Models\Institution;
 use App\Models\InstitutionTeam;
 use App\Models\Problem;
 use App\Models\User;
-use App\Models\UserRole;
 use App\Services\ProblemAssignmentNotifier;
 use App\Services\ProblemScopeService;
 use App\Services\TransactionalMail;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -27,7 +27,7 @@ class ProblemInstitutionAssignmentController extends Controller
     public function assignInstitution(Problem $problem): Response|RedirectResponse
     {
         $user = request()->user();
-        if (! $user->isInstitutionAdminOrSystemAdmin()) {
+        if (! $user->canAssignInstitutionProblems()) {
             abort(403);
         }
         $this->scopeService->authorizeProblemAccess($user, $problem);
@@ -40,7 +40,7 @@ class ProblemInstitutionAssignmentController extends Controller
         $teams = [];
         if ($user->institution_id) {
             $institutionUsers = User::where('institution_id', $user->institution_id)
-                ->whereHas('roles', fn ($query) => $query->whereIn('role', [UserRole::ROLE_EMPLOYEE, UserRole::ROLE_INSTITUTION_ADMIN]))
+                ->whereHas('roles.permissions', fn ($query) => $query->where('permission', 'issues.assign'))
                 ->get(['id', 'name', 'surname', 'email']);
 
             foreach ($institutionUsers as $institutionUser) {
@@ -100,7 +100,7 @@ class ProblemInstitutionAssignmentController extends Controller
     public function storeAssignInstitution(Request $request, Problem $problem): RedirectResponse
     {
         $user = $request->user();
-        if (! $user->isInstitutionAdminOrSystemAdmin()) {
+        if (! $user->canAssignInstitutionProblems()) {
             abort(403);
         }
         $this->scopeService->authorizeProblemAccess($user, $problem);
@@ -180,7 +180,7 @@ class ProblemInstitutionAssignmentController extends Controller
     public function sendAssignInstitutionEmail(Request $request, Problem $problem): RedirectResponse
     {
         $user = $request->user();
-        if (! $user->isInstitutionAdminOrSystemAdmin()) {
+        if (! $user->canAssignInstitutionProblems()) {
             abort(403);
         }
         $this->scopeService->authorizeProblemAccess($user, $problem);
@@ -189,8 +189,16 @@ class ProblemInstitutionAssignmentController extends Controller
             return redirect()->back()->with('error', 'Išspręstos problemos priskirti negalima.');
         }
 
+        if ($user->institution_id === null) {
+            return redirect()->back()->with('error', 'Negalima siųsti el. laiško be įstaigos konteksto.');
+        }
+
         $validated = $request->validate([
-            'email' => ['required', 'email'],
+            'email' => [
+                'required',
+                'email',
+                Rule::exists('employees', 'email')->where('institution_id', $user->institution_id),
+            ],
         ]);
 
         $mail = $this->assignmentNotifier->buildInstitutionProblemShareEmail($problem);
@@ -211,14 +219,14 @@ class ProblemInstitutionAssignmentController extends Controller
         if (! $user) {
             abort(403);
         }
-        if ($user->hasRole(UserRole::ROLE_PROBLEM_ADMIN) || $user->hasRole(UserRole::ROLE_SYSTEM_ADMIN)) {
+        if ($user->canReassignInstitutions()) {
             abort(403);
         }
-        if ($user->hasRole(UserRole::ROLE_INSTITUTION_ADMIN) && $user->institution_id !== null) {
+        if ($this->scopeService->isInstitutionScoped($user) && $user->institution_id !== null) {
             if ((int) $problem->institution_id !== (int) $user->institution_id) {
                 abort(403);
             }
-        } elseif ($user->hasRole(UserRole::ROLE_EMPLOYEE)) {
+        } elseif ($this->scopeService->isEmployeeScoped($user)) {
             $employeeId = $this->scopeService->employeeIdForUser($user);
             if (! $this->scopeService->employeeHasAccessToAssignment($employeeId, $problem)) {
                 abort(403);
@@ -239,8 +247,8 @@ class ProblemInstitutionAssignmentController extends Controller
     public function reassignInstitution(Request $request, Problem $problem): RedirectResponse
     {
         $user = $request->user();
-        $canReassign = $user->isProblemAdminOrSystemAdmin()
-            || ($user->hasRole(UserRole::ROLE_INSTITUTION_ADMIN)
+        $canReassign = $user->canReassignInstitutions()
+            || ($this->scopeService->isInstitutionScoped($user)
                 && $user->institution_id !== null
                 && (int) $problem->institution_id === (int) $user->institution_id);
 

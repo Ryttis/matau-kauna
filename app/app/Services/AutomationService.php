@@ -11,7 +11,6 @@ use App\Models\ProblemAutoAssignmentRule;
 use App\Models\ProblemAutoPublishRule;
 use App\Models\ProblemResolutionTermRule;
 use App\Models\User;
-use App\Models\UserRole;
 use Illuminate\Support\Carbon;
 
 class AutomationService
@@ -103,14 +102,7 @@ class AutomationService
     {
         $users = User::query()
             ->notArchived()
-            ->whereHas('roles', fn ($q) => $q->where('role', UserRole::ROLE_REPORTER))
-            ->whereDoesntHave('roles', fn ($q) => $q->whereIn('role', [
-                UserRole::ROLE_SYSTEM_ADMIN,
-                UserRole::ROLE_PROBLEM_ADMIN,
-                UserRole::ROLE_INSTITUTION_ADMIN,
-                UserRole::ROLE_MUNICIPALITY_REP,
-                UserRole::ROLE_EMPLOYEE,
-            ]))
+            ->whereDoesntHave('roles.permissions', fn ($q) => $q->where('permission', 'issues.view'))
             ->get(['id', 'name', 'surname', 'email', 'last_login_at', 'created_at']);
 
         $list = [];

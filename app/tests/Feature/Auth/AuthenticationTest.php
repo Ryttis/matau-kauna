@@ -3,7 +3,9 @@
 namespace Tests\Feature\Auth;
 
 use App\Models\User;
+use App\Models\UserRole;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Hash;
 use Tests\TestCase;
 
 class AuthenticationTest extends TestCase
@@ -24,6 +26,7 @@ class AuthenticationTest extends TestCase
         $response = $this->post('/login', [
             'email' => $user->email,
             'password' => 'password',
+            'login_type' => 'pareiskejas',
         ]);
 
         $this->assertAuthenticated();
@@ -37,9 +40,34 @@ class AuthenticationTest extends TestCase
         $this->post('/login', [
             'email' => $user->email,
             'password' => 'wrong-password',
+            'login_type' => 'pareiskejas',
         ]);
 
         $this->assertGuest();
+    }
+
+    public function test_viisp_user_without_local_password_cannot_use_email_login(): void
+    {
+        $reporterRole = UserRole::firstOrCreate(
+            ['role' => UserRole::ROLE_REPORTER],
+            ['name' => 'Pareiškėjas']
+        );
+
+        $user = User::factory()->create([
+            'viisp_personal_code_hash' => bin2hex(random_bytes(16)),
+            'viisp_local_password_set_at' => null,
+            'password' => Hash::make('password'),
+        ]);
+        $user->roles()->sync([$reporterRole->id]);
+
+        $this->post('/login', [
+            'email' => $user->email,
+            'password' => 'password',
+            'login_type' => 'pareiskejas',
+        ]);
+
+        $this->assertGuest();
+        $this->assertSessionHasErrors('email');
     }
 
     public function test_users_can_logout(): void

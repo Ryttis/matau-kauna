@@ -1,7 +1,12 @@
 <script setup>
 import { ref, watch } from 'vue'
-import { PROBLEM_STATUS_OPTIONS, getStatusModalVars } from '@/constants/domain/problemStatus'
+import {
+    PROBLEM_STATUS,
+    STATUS_CHANGE_MODAL_OPTIONS,
+    getStatusModalVars,
+} from '@/constants/domain/problemStatus'
 import BaseModal from '@/Components/App/BaseModal.vue'
+import AppButton from '@/Components/App/AppButton.vue'
 import { MODAL_BUTTON_HEIGHT, MODAL_BUTTON_MIN_WIDTH } from '@/constants/ui/theme'
 
 const props = defineProps({
@@ -11,11 +16,15 @@ const props = defineProps({
         type: Array,
         default: () => []
     },
+    saving: {
+        type: Boolean,
+        default: false,
+    },
 })
 
 const emit = defineEmits(['close', 'save'])
 
-const statusOptions = PROBLEM_STATUS_OPTIONS
+const statusOptions = STATUS_CHANGE_MODAL_OPTIONS
 
 const selectedStatus = ref('')
 
@@ -23,7 +32,8 @@ watch(
     () => [props.show, props.problem],
     () => {
         if (!props.show) return
-        selectedStatus.value = props.problem?.status ?? ''
+        const s = props.problem?.status ?? ''
+        selectedStatus.value = s === PROBLEM_STATUS.NEW ? '' : s
     },
     { immediate: true }
 )
@@ -33,12 +43,14 @@ const handleStatusSelect = (status) => {
 }
 
 const handleSave = () => {
+    if (props.saving) return
     if (selectedStatus.value) {
         emit('save', selectedStatus.value)
     }
 }
 
 const handleClose = () => {
+    if (props.saving) return
     emit('close')
 }
 
@@ -51,6 +63,7 @@ const btnMinWidthPx = `${MODAL_BUTTON_MIN_WIDTH}px`
         :show="show"
         :max-width="'360px'"
         :min-width="'300px'"
+        footer-layout="column"
         @close="handleClose"
     >
         <template #header>
@@ -73,14 +86,15 @@ const btnMinWidthPx = `${MODAL_BUTTON_MIN_WIDTH}px`
 
         <template #footer>
             <div class="status-modal-footer-wrapper">
-                <button
-                    type="button"
-                    class="status-modal-save-btn"
-                    :style="{ minHeight: btnHeightPx, minWidth: btnMinWidthPx }"
+                <AppButton
+                    text="Saugoti"
+                    variant="primary"
+                    as-button
+                    class="status-modal-save-btn-app"
+                    :loading="saving"
+                    :disabled="saving || !selectedStatus"
                     @click="handleSave"
-                >
-                    Saugoti
-                </button>
+                />
             </div>
         </template>
     </BaseModal>
@@ -143,21 +157,13 @@ const btnMinWidthPx = `${MODAL_BUTTON_MIN_WIDTH}px`
     align-items: center;
 }
 
-.status-modal-save-btn {
-    padding: 0 24px;
-    border: none;
-    border-radius: 12px;
-    cursor: pointer;
-    font-size: 16px;
-    font-family: 'Open Sans', sans-serif;
-    font-weight: 600;
-    background-color: var(--color-primary);
-    color: var(--color-white);
-    transition: background-color 0.2s;
+.status-modal-save-btn-app {
+    width: var(--button-width);
+    max-width: 100%;
+    height: var(--button-height);
+    min-height: var(--button-height);
+    border-radius: var(--button-border-radius);
+    padding: 9px 24px;
     box-sizing: border-box;
-}
-
-.status-modal-save-btn:hover {
-    background-color: var(--color-primary-hover);
 }
 </style>

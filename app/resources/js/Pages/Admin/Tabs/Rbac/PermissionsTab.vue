@@ -23,16 +23,16 @@ const emit = defineEmits(['refresh', 'set-saving', 'show-success'])
 const isCreateOpen = ref(false)
 const isDeleteOpen = ref(false)
 
-const createForm = ref({ permission: '' })
-const deleteTarget = ref({ id: null, permission: '' })
+const createForm = ref({ name: '', permission: '' })
+const deleteTarget = ref({ id: null, name: '', permission: '' })
 
 const openCreate = () => {
-    createForm.value = { permission: '' }
+    createForm.value = { name: '', permission: '' }
     isCreateOpen.value = true
 }
 
 const openDelete = (p) => {
-    deleteTarget.value = { id: p.id, permission: p.permission }
+    deleteTarget.value = { id: p.id, name: p.name, permission: p.permission }
     isDeleteOpen.value = true
 }
 
@@ -74,12 +74,14 @@ const deletePermission = async () => {
             <thead>
                 <tr>
                     <th>Pavadinimas</th>
+                    <th>Teisė</th>
                     <th>Veiksmai</th>
                 </tr>
             </thead>
 
             <tbody>
                 <tr v-for="p in permissions" :key="p.id">
+                    <td>{{ p.name || p.permission }}</td>
                     <td>{{ p.permission }}</td>
                     <td class="actions">
                         <button type="button" class="link-btn danger" @click="openDelete(p)">
@@ -93,7 +95,8 @@ const deletePermission = async () => {
         <div v-else>Nėra teisių.</div>
 
         <BaseModal :open="isCreateOpen" title="Sukurti teisę" @close="isCreateOpen = false">
-            <AppInput v-model="createForm.permission" label="Pavadinimas" placeholder="users.manage" />
+            <AppInput v-model="createForm.name" label="Pavadinimas" placeholder="Administratoriaus leidimas" />
+            <AppInput v-model="createForm.permission" label="Teisė" placeholder="admin.access" />
 
             <template #footer>
                 <AppButton text="Atšaukti" variant="secondary" as-button @click="isCreateOpen = false" />
@@ -110,7 +113,7 @@ const deletePermission = async () => {
         <ConfirmModal
             :open="isDeleteOpen"
             title="Ištrinti teisę"
-            :message="`Ar tikrai norite ištrinti teisę ${deleteTarget.permission}?`"
+            :message="`Ar tikrai norite ištrinti teisę ${deleteTarget.name || deleteTarget.permission} (${deleteTarget.permission})?`"
             confirm-text="Trinti"
             cancel-text="Atšaukti"
             :loading="saving"

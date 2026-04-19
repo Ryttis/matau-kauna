@@ -3,10 +3,12 @@ import AppButton from '@/Components/App/AppButton.vue'
 import FilterModal from '@/Components/App/Modals/FilterModal.vue'
 import SuccessModal from '@/Components/App/SuccessModal.vue'
 import KaunasProblemsMap from '@/Components/Map/KaunasProblemsMap.vue'
+import ProblemMapStatusLegend from '@/Components/Map/ProblemMapStatusLegend.vue'
 import ProblemsMapList from '@/Components/Map/ProblemsMapList.vue'
 import DashboardInternalView from '@/Components/Dashboard/DashboardInternalView.vue'
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue'
-import { Head } from '@inertiajs/vue3'
+import { onMounted } from 'vue'
+import { Head, usePage } from '@inertiajs/vue3'
 import { useSuccessModal } from '@/composables/useSuccessModal'
 import { useDashboardReporter } from '@/composables/useDashboardReporter'
 import { ICON_FILTER, ICON_SEARCH } from '@/constants/ui/icons'
@@ -14,6 +16,8 @@ import {
     REPORTER_MAP_FILTER_STATUS_OPTIONS,
     REPORTER_MAP_LEGEND_STATUS_ORDER,
 } from '@/constants/domain/problemStatus'
+
+const page = usePage()
 
 const props = defineProps({
     reporterView: {
@@ -32,7 +36,18 @@ const props = defineProps({
     statusOptions: Array,
 })
 
-const { showSuccessModal, successMessage, closeSuccessModal } = useSuccessModal()
+const { showSuccessModal, successMessage, closeSuccessModal, showWithMessage } = useSuccessModal()
+
+onMounted(() => {
+    if (!props.reporterView) return
+    const url = new URL(page.url, window.location.origin)
+    if (url.searchParams.get('report_created') !== '1') return
+    showWithMessage('Pranešimas sėkmingai užregistruotas.')
+    url.searchParams.delete('report_created')
+    const qs = url.searchParams.toString()
+    const clean = url.pathname + (qs ? `?${qs}` : '') + url.hash
+    window.history.replaceState({}, '', clean)
+})
 const {
     reporterSearchQuery,
     reporterFilterState,
@@ -116,10 +131,10 @@ const {
             </div>
             <div class="reporter-dashboard-layout">
                 <div class="reporter-dashboard-map-wrap">
+                    <ProblemMapStatusLegend :status-order="REPORTER_MAP_LEGEND_STATUS_ORDER" />
                     <KaunasProblemsMap
                         :problems="reporterProblemsToShowOnMap"
                         marker-class="reporter-dashboard-marker"
-                        :legend-status-order="REPORTER_MAP_LEGEND_STATUS_ORDER"
                         @open-problem="reporterOpenProblemView"
                     />
                 </div>
@@ -320,6 +335,7 @@ const {
 .reporter-dashboard-map-wrap {
     display: flex;
     flex-direction: column;
+    gap: 12px;
     min-height: 0;
     background: #fafafa;
 }

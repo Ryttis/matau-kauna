@@ -3,7 +3,6 @@
 namespace App\Services;
 
 use App\Models\LoginLog;
-use App\Models\UserRole;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 
 class LoginHistoryService
@@ -15,9 +14,9 @@ class LoginHistoryService
             ->orderByDesc('created_at');
 
         if ($type === 'reporters') {
-            $query->whereHas('user', fn ($q) => $q->whereHas('roles', fn ($r) => $r->where('role', UserRole::ROLE_REPORTER)));
+            $query->whereHas('user', fn ($q) => $q->whereDoesntHave('roles.permissions', fn ($p) => $p->where('permission', 'issues.view')));
         } else {
-            $query->whereHas('user', fn ($q) => $q->whereHas('roles', fn ($r) => $r->where('role', '!=', UserRole::ROLE_REPORTER)));
+            $query->whereHas('user', fn ($q) => $q->whereHas('roles.permissions', fn ($p) => $p->where('permission', 'issues.view')));
         }
 
         if ($search !== '') {

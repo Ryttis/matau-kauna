@@ -29,23 +29,21 @@ class CreateUserRequest extends FormRequest
 
     public function messages(): array
     {
-        $min = PasswordPolicy::get()->min_length;
+        $policy = PasswordPolicy::get();
 
-        return [
-            'name.required' => 'Vardas privalomas.',
-            'name.max' => 'Vardas per ilgas.',
-            'email.required' => 'El. paštas privalomas.',
-            'email.email' => 'Neteisingas el. pašto formatas.',
-            'email.unique' => 'Toks el. paštas jau naudojamas.',
-            'email.max' => 'El. paštas per ilgas.',
-            'password.required' => 'Slaptažodis privalomas.',
-            'password.min' => "Slaptažodis turi būti bent {$min} simbolių.",
-            'password.confirmed' => 'Slaptažodžiai nesutampa.',
-            'password.regex' => 'Slaptažodis turi turėti mažąją raidę, didžiąją raidę ir specialų simbolį (pvz. !@#$%).',
-            'password_confirmation.required_with' => 'Pakartokite slaptažodį.',
-            'password_confirmation.same' => 'Slaptažodžiai nesutampa.',
-            'institution_id.exists' => 'Pasirinkta įstaiga neegzistuoja.',
-        ];
+        return array_merge(
+            $policy->validationMessagesForPasswordField(),
+            [
+                'name.required' => 'Vardas privalomas.',
+                'name.max' => 'Vardas per ilgas.',
+                'email.required' => 'El. paštas privalomas.',
+                'email.email' => 'Neteisingas el. pašto formatas.',
+                'email.unique' => 'Toks el. paštas jau naudojamas.',
+                'email.max' => 'El. paštas per ilgas.',
+                'password.required' => 'Slaptažodis privalomas.',
+                'institution_id.exists' => 'Pasirinkta įstaiga neegzistuoja.',
+            ],
+        );
     }
 
     public function withValidator($validator): void

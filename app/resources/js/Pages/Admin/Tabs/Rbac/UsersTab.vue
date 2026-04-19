@@ -212,7 +212,7 @@ const saveUserRoles = async () => {
                     <td>{{ u.id }}</td>
                     <td>{{ u.name }}</td>
                     <td>{{ u.email }}</td>
-                    <td>{{ u.institution?.name ?? '—' }}</td>
+                    <td>{{ u.institution?.name ?? '-' }}</td>
                     <td>
                         <span v-for="r in (u.roles ?? [])" :key="r.id" class="pill">
                             {{ r.name }}
@@ -254,7 +254,7 @@ const saveUserRoles = async () => {
             <label class="field">
                 <span>Įstaiga</span>
                 <select class="input" v-model="createForm.institution_id">
-                    <option value="">— Nepriskirta</option>
+                    <option value="">- Nepriskirta</option>
                     <option v-for="i in institutions" :key="i.id" :value="i.id">{{ i.name }}</option>
                 </select>
             </label>
@@ -284,7 +284,7 @@ const saveUserRoles = async () => {
             <label class="field">
                 <span>Įstaiga</span>
                 <select class="input" v-model="inviteForm.institution_id">
-                    <option value="">— Pasirinkite</option>
+                    <option value="">- Pasirinkite</option>
                     <option v-for="i in institutions" :key="i.id" :value="i.id" :disabled="i.is_email_only">
                         {{ i.name }}{{ i.is_email_only ? ' (tik el. paštu)' : '' }}
                     </option>
@@ -296,7 +296,7 @@ const saveUserRoles = async () => {
             <label class="field">
                 <span>Rolė</span>
                 <select class="input" v-model="inviteForm.role_id">
-                    <option value="">— Pasirinkite</option>
+                    <option value="">- Pasirinkite</option>
                     <option v-for="r in inviteRoles" :key="r.id" :value="r.id">{{ r.name }}</option>
                 </select>
             </label>
@@ -326,7 +326,7 @@ const saveUserRoles = async () => {
             <label class="field">
                 <span>Įstaiga</span>
                 <select class="input" v-model="editForm.institution_id">
-                    <option value="">— Nepriskirta</option>
+                    <option value="">- Nepriskirta</option>
                     <option v-for="i in institutions" :key="i.id" :value="i.id">{{ i.name }}</option>
                 </select>
             </label>

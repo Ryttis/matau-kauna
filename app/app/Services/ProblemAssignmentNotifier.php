@@ -64,11 +64,11 @@ class ProblemAssignmentNotifier
         $first = $problems->first();
         $excerptFirst = $first ? Problem::descriptionPreview($first->description, 200) : '';
         $urlFirst = $first ? route('problems.show', $first->id) : '';
-        $deadlineFirst = $first?->completion_deadline?->format('Y-m-d') ?? '—';
+        $deadlineFirst = $first?->completion_deadline?->format('Y-m-d') ?? '-';
 
         $problemLines = [];
         foreach ($problems as $problem) {
-            $deadline = $problem->completion_deadline?->format('Y-m-d') ?? '—';
+            $deadline = $problem->completion_deadline?->format('Y-m-d') ?? '-';
             $problemLines[] = sprintf(
                 '- %s | %s | %s | Terminas: %s',
                 $problem->internal_number,

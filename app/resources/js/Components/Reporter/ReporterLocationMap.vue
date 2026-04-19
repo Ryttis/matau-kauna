@@ -7,6 +7,7 @@ import { ICON_SEARCH } from '@/constants/ui/icons'
 const props = defineProps({
     initialLat: { type: Number, default: () => KAUNAS_CENTER[0] },
     initialLng: { type: Number, default: () => KAUNAS_CENTER[1] },
+    initialAddress: { type: String, default: '' },
 })
 
 const emit = defineEmits(['update:address', 'update:lat', 'update:lng'])
@@ -21,7 +22,11 @@ let suggestDebounceTimer = null
 let lastSuggestQuery = ''
 
 const { lat, lng, address, isGeocoding, searchAddress, applySuggestionSelection, fetchAddressSuggestions, centerMap } =
-    useKaunasMapLocationPicker(mapContainer, { initialLat: props.initialLat, initialLng: props.initialLng })
+    useKaunasMapLocationPicker(mapContainer, {
+        initialLat: props.initialLat,
+        initialLng: props.initialLng,
+        initialAddress: props.initialAddress ?? '',
+    })
 
 watch(address, (v) => { addressInput.value = v ?? '' }, { immediate: true })
 watch(addressInput, (v) => emit('update:address', v ?? ''), { immediate: true })

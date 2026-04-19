@@ -27,9 +27,9 @@ class InvitationNotification extends Notification
 
         $url = url('/register/invite/'.$this->invitation->token);
         $appName = config('mail.brand_name');
-        $institutionName = $this->invitation->institution?->name ?? '—';
-        $roleName = $this->invitation->role?->name ?? '—';
-        $expiresAt = $this->invitation->expires_at?->format('Y-m-d H:i') ?? '—';
+        $institutionName = $this->invitation->institution?->name ?? '-';
+        $roleName = $this->invitation->role?->name ?? '-';
+        $expiresAt = $this->invitation->expires_at?->format('Y-m-d H:i') ?? '-';
 
         $map = [
             '{app_name}' => $appName,
