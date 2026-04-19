@@ -20,11 +20,11 @@ class DataRetentionService
     public function runArchive(): int
     {
         $rule = $this->getActiveProblemRule();
-        if (! $rule || ! $rule->archive_after_days || $rule->archive_after_days < 1) {
+        if (! $rule || ! $rule->delete_after_days || $rule->delete_after_days < 1) {
             return 0;
         }
 
-        $threshold = Carbon::now()->subDays($rule->archive_after_days);
+        $threshold = Carbon::now()->subDays($rule->delete_after_days);
 
         $ids = Problem::query()
             ->where('status', 'isspresta')
@@ -69,7 +69,7 @@ class DataRetentionService
         if (! $rule) {
             return 0;
         }
-        $days = $rule->delete_after_days ?? $rule->archive_after_days;
+        $days = $rule->delete_after_days;
         if (! $days || $days < 1) {
             return 0;
         }
@@ -152,7 +152,7 @@ class DataRetentionService
             return 0;
         }
 
-        $days = $rule->delete_after_days ?? $rule->archive_after_days ?? 0;
+        $days = $rule->delete_after_days ?? 0;
         if (! $days || $days < 1) {
             return 0;
         }

@@ -106,11 +106,10 @@ class ViispAuthController extends Controller
 
         $user = User::query()
             ->where('viisp_personal_code_hash', $identity['hashedCode'])
-            ->notArchived()
             ->first();
 
         if (! $user) {
-            $byEmail = User::query()->where('email', $email)->notArchived()->first();
+            $byEmail = User::query()->where('email', $email)->first();
             if ($byEmail) {
                 if ($byEmail->viisp_personal_code_hash !== null && $byEmail->viisp_personal_code_hash !== $identity['hashedCode']) {
                     return $this->viispLoginError('Šis el. paštas jau susietas su kita paskyra. Kreipkitės į administratorių.');

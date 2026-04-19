@@ -1,5 +1,6 @@
 import { ref, computed } from 'vue'
 import { parseDateFilterInput } from '@/utils/parseDateFilterInput'
+import { foldLithuanianForSearch } from '@/utils/foldLithuanianForSearch'
 
 const DEFAULT_FILTER_STATE = {
     reportNumber: '',
@@ -41,15 +42,17 @@ export function useProblemsMapFilter(problemsSource) {
                 (problem.internal_number || '').toLowerCase().includes(reportNum)
             )
         }
-        const query = (searchQuery.value || '').trim().toLowerCase()
+        const query = foldLithuanianForSearch((searchQuery.value || '').trim())
         if (query) {
-            result = result.filter(
-                (problem) =>
-                    (problem.description || '').toLowerCase().includes(query) ||
-                    (problem.description_preview || '').toLowerCase().includes(query) ||
-                    (problem.internal_number || '').toLowerCase().includes(query) ||
-                    (problem.address || '').toLowerCase().includes(query)
-            )
+            result = result.filter((problem) => {
+                const fields = [
+                    problem.description,
+                    problem.description_preview,
+                    problem.internal_number,
+                    problem.address,
+                ]
+                return fields.some((field) => foldLithuanianForSearch(field || '').includes(query))
+            })
         }
         if ((filterState.value.statuses || []).length > 0) {
             result = result.filter((problem) => filterState.value.statuses.includes(problem.status))

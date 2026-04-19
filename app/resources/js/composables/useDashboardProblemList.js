@@ -26,7 +26,10 @@ export function useDashboardProblemList(props) {
     const showInactiveReasonModal = ref(false)
     const inactiveComment = ref('')
     const inactiveSubmitting = ref(false)
+    const inactiveSubmitChannel = ref(null)
     const inactiveTargetProblemIds = ref([])
+    const statusChangeSubmitting = ref(false)
+    const deleteSubmitting = ref(false)
 
     const { displayRows } = useProblemDisplayRows(problemsList)
 
@@ -184,6 +187,7 @@ export function useDashboardProblemList(props) {
     }
 
     const handleStatusChange = (status) => {
+        if (statusChangeSubmitting.value) return
         if (status === PROBLEM_STATUS.INACTIVE) {
             const ids = selectedProblems.value.length > 0
                 ? [...selectedProblems.value]
@@ -196,7 +200,12 @@ export function useDashboardProblemList(props) {
             return
         }
 
+        const finishStatus = () => {
+            statusChangeSubmitting.value = false
+        }
+
         if (selectedProblems.value.length > 0) {
+            statusChangeSubmitting.value = true
             router.post(route('problems.bulkUpdateStatus'), {
                 problem_ids: selectedProblems.value,
                 status,
@@ -208,8 +217,10 @@ export function useDashboardProblemList(props) {
                     selectedProblem.value = null
                     loadProblems(false)
                 },
+                onFinish: finishStatus,
             })
         } else if (selectedProblem.value) {
+            statusChangeSubmitting.value = true
             router.patch(route('problems.updateStatus', selectedProblem.value.id), {
                 status,
             }, {
@@ -219,6 +230,7 @@ export function useDashboardProblemList(props) {
                     selectedProblem.value = null
                     loadProblems(false)
                 },
+                onFinish: finishStatus,
             })
         }
     }
@@ -228,9 +240,11 @@ export function useDashboardProblemList(props) {
         const ids = inactiveTargetProblemIds.value
         if (!ids.length) return
         inactiveSubmitting.value = true
+        inactiveSubmitChannel.value = visibility
 
         const finish = () => {
             inactiveSubmitting.value = false
+            inactiveSubmitChannel.value = null
             showInactiveReasonModal.value = false
             inactiveComment.value = ''
             inactiveTargetProblemIds.value = []
@@ -264,6 +278,7 @@ export function useDashboardProblemList(props) {
     }
 
     const handleModalClose = () => {
+        if (statusChangeSubmitting.value) return
         showStatusModal.value = false
         selectedProblem.value = null
     }
@@ -359,23 +374,29 @@ export function useDashboardProblemList(props) {
     })
 
     const handleConfirmDelete = () => {
-        if (selectedProblems.value.length === 0) return
+        if (deleteSubmitting.value || selectedProblems.value.length === 0) return
+        deleteSubmitting.value = true
         const ids = [...selectedProblems.value]
         const onSuccess = () => {
             showDeleteModal.value = false
             selectedProblems.value = []
             loadProblems(false)
         }
+        const onFinish = () => {
+            deleteSubmitting.value = false
+        }
         if (ids.length === 1) {
             router.delete(route('problems.destroy', ids[0]), {
                 preserveScroll: false,
                 onSuccess,
+                onFinish,
             })
             return
         }
         router.post(route('problems.bulkDestroy'), { problem_ids: ids }, {
             preserveScroll: false,
             onSuccess,
+            onFinish,
         })
     }
 
@@ -477,6 +498,9 @@ export function useDashboardProblemList(props) {
         showInactiveReasonModal,
         inactiveComment,
         inactiveSubmitting,
+        inactiveSubmitChannel,
+        statusChangeSubmitting,
+        deleteSubmitting,
         submitInactiveReason,
         closeInactiveReasonModal,
         deleteConfirmMessage,

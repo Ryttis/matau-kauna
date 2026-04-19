@@ -96,6 +96,8 @@ const showStatusModal = ref(false)
 const showInactiveReasonModal = ref(false)
 const inactiveComment = ref('')
 const inactiveSubmitting = ref(false)
+const inactiveSubmitChannel = ref(null)
+const statusPatchSubmitting = ref(false)
 
 const canAssignSelectedProblemOnMap = computed(() => {
     const p = selectedProblemFromAddress.value
@@ -122,17 +124,22 @@ const handleDisplayStatus = () => {
 
 const handleStatusChange = (status) => {
     if (!selectedProblemFromAddress.value) return
+    if (statusPatchSubmitting.value) return
     if (status === PROBLEM_STATUS.INACTIVE) {
         showStatusModal.value = false
         inactiveComment.value = ''
         showInactiveReasonModal.value = true
         return
     }
+    statusPatchSubmitting.value = true
     router.patch(route('problems.updateStatus', selectedProblemFromAddress.value.id), { status }, {
         preserveScroll: true,
         onSuccess: () => {
             showStatusModal.value = false
             selectedProblemFromAddress.value = { ...selectedProblemFromAddress.value, status }
+        },
+        onFinish: () => {
+            statusPatchSubmitting.value = false
         },
     })
 }
@@ -146,6 +153,7 @@ const submitInactiveReason = (visibility) => {
     const p = selectedProblemFromAddress.value
     if (!p || inactiveSubmitting.value) return
     inactiveSubmitting.value = true
+    inactiveSubmitChannel.value = visibility
     router.post(
         route('problems.reviewProgress.store', p.id),
         buildInactiveReviewPostBody(inactiveComment.value, visibility),
@@ -158,12 +166,14 @@ const submitInactiveReason = (visibility) => {
             },
             onFinish: () => {
                 inactiveSubmitting.value = false
+                inactiveSubmitChannel.value = null
             },
         },
     )
 }
 
 const handleStatusModalClose = () => {
+    if (statusPatchSubmitting.value) return
     showStatusModal.value = false
 }
 </script>
@@ -271,6 +281,7 @@ const handleStatusModalClose = () => {
             <StatusChangeModal
                 :show="showStatusModal"
                 :problem="selectedProblemFromAddress"
+                :saving="statusPatchSubmitting"
                 @close="handleStatusModalClose"
                 @save="handleStatusChange"
             />
@@ -279,6 +290,7 @@ const handleStatusModalClose = () => {
                 v-model:comment="inactiveComment"
                 :open="showInactiveReasonModal"
                 :submitting="inactiveSubmitting"
+                :active-submit-channel="inactiveSubmitChannel"
                 @close="closeInactiveReasonModal"
                 @submit="submitInactiveReason"
             />

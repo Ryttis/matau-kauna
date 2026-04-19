@@ -11,6 +11,7 @@ export function useReviewProgressEntryForm(problemId, { onSuccess, getFiles, get
     })
 
     function submit(visibility) {
+        if (form.processing) return
         form.visibility = visibility
         const files = typeof getFiles === 'function' ? getFiles() : []
         form.files = files

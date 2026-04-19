@@ -218,6 +218,7 @@ const handleSave = async () => {
         width="680px"
         max-width="96vw"
         max-height="90vh"
+        footer-layout="column"
         @close="handleClose"
     >
         <div class="edit-modal-body">
@@ -363,11 +364,11 @@ const handleSave = async () => {
         <template #footer>
             <div class="edit-save-wrap">
                 <AppButton
-                    :text="isSubmitting ? 'Saugoma...' : 'Saugoti'"
+                    text="Saugoti"
                     variant="primary"
-                    :disabled="isSubmitting"
                     as-button
                     class="edit-save-btn"
+                    :loading="isSubmitting"
                     @click="handleSave"
                 />
             </div>
@@ -653,15 +654,18 @@ const handleSave = async () => {
     width: 100%;
 }
 
-.edit-save-btn {
-    width: var(--button-width, 290px);
-    min-width: var(--button-width, 290px);
-}
-
-:deep(.edit-save-btn) {
-    height: var(--control-height, 56px);
-    min-height: var(--control-height, 56px);
-    border-radius: var(--control-radius);
+.edit-save-wrap :deep(.edit-save-btn.app-button--fixed) {
+    width: var(--button-width);
+    max-width: 100%;
+    height: var(--button-height);
+    min-height: var(--button-height);
+    box-sizing: border-box;
+    border-radius: var(--button-border-radius);
+    padding: 9px 24px;
+    font-size: var(--button-font-size, 16px);
+    font-weight: var(--button-font-weight, 400);
+    line-height: 150%;
+    letter-spacing: -0.011em;
 }
 
 :deep(.modal) {

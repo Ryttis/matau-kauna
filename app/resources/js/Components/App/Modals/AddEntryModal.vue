@@ -129,6 +129,12 @@ const { form, submit } = useReviewProgressEntryForm(
     },
 )
 
+const pendingSubmitVisibility = ref(null)
+
+watch(() => form.processing, (busy) => {
+    if (!busy) pendingSubmitVisibility.value = null
+})
+
 const selectedStatusValue = computed(() => {
     const tag = REVIEW_PROGRESS_MODAL_STATUS_TAGS.find((t) => t.key === selectedKey.value)
     return tag?.value ?? ''
@@ -140,12 +146,14 @@ function selectStatus(tag) {
 }
 
 function runSubmit(visibility) {
+    if (form.processing) return
     if (!selectedStatusValue.value) {
         localStatusHint.value = 'Pasirinkite būseną.'
         return
     }
     localStatusHint.value = ''
     form.status = selectedStatusValue.value
+    pendingSubmitVisibility.value = visibility
     submit(visibility)
 }
 
@@ -310,6 +318,7 @@ const queuedAttachmentCount = computed(() => selectedFiles.value.length)
                     variant="primary"
                     as-button
                     class="add-entry-footer-btn"
+                    :loading="form.processing && pendingSubmitVisibility === REVIEW_ENTRY_VISIBILITY.INTERNAL"
                     :disabled="form.processing"
                     @click="runSubmit(REVIEW_ENTRY_VISIBILITY.INTERNAL)"
                 />
@@ -318,6 +327,7 @@ const queuedAttachmentCount = computed(() => selectedFiles.value.length)
                     variant="secondary"
                     as-button
                     class="add-entry-footer-btn"
+                    :loading="form.processing && pendingSubmitVisibility === REVIEW_ENTRY_VISIBILITY.PUBLIC"
                     :disabled="form.processing"
                     @click="runSubmit(REVIEW_ENTRY_VISIBILITY.PUBLIC)"
                 />

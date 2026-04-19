@@ -49,6 +49,9 @@ const {
     showInactiveReasonModal,
     inactiveComment,
     inactiveSubmitting,
+    inactiveSubmitChannel,
+    statusChangeSubmitting,
+    deleteSubmitting,
     submitInactiveReason,
     closeInactiveReasonModal,
     deleteConfirmMessage,
@@ -242,6 +245,7 @@ const {
         footer-layout="column"
         confirm-variant="primary"
         width="369px"
+        :loading="deleteSubmitting"
         @close="showDeleteModal = false"
         @confirm="handleConfirmDelete"
     />
@@ -250,6 +254,7 @@ const {
         :show="showStatusModal"
         :problem="selectedProblem"
         :selected-problem-ids="selectedProblems"
+        :saving="statusChangeSubmitting"
         @close="handleModalClose"
         @save="handleStatusChange"
     />
@@ -258,6 +263,7 @@ const {
         v-model:comment="inactiveComment"
         :open="showInactiveReasonModal"
         :submitting="inactiveSubmitting"
+        :active-submit-channel="inactiveSubmitChannel"
         @close="closeInactiveReasonModal"
         @submit="submitInactiveReason"
     />

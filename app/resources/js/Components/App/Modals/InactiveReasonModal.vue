@@ -6,6 +6,7 @@ import { REVIEW_ENTRY_VISIBILITY } from '@/constants/domain/reviewProgressEntry'
 const props = defineProps({
     open: { type: Boolean, default: false },
     submitting: { type: Boolean, default: false },
+    activeSubmitChannel: { type: String, default: null },
 })
 
 const comment = defineModel('comment', { type: String, default: '' })
@@ -42,6 +43,7 @@ function tryClose() {
                 variant="primary"
                 as-button
                 class="inactive-reason-btn"
+                :loading="submitting && activeSubmitChannel === REVIEW_ENTRY_VISIBILITY.INTERNAL"
                 :disabled="submitting"
                 @click="emit('submit', REVIEW_ENTRY_VISIBILITY.INTERNAL)"
             />
@@ -50,6 +52,7 @@ function tryClose() {
                 variant="secondary"
                 as-button
                 class="inactive-reason-btn"
+                :loading="submitting && activeSubmitChannel === REVIEW_ENTRY_VISIBILITY.PUBLIC"
                 :disabled="submitting"
                 @click="emit('submit', REVIEW_ENTRY_VISIBILITY.PUBLIC)"
             />

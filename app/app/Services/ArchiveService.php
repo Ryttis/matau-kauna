@@ -88,7 +88,6 @@ class ArchiveService
             $rule = $rules->get($type);
             $retentionRules[$type] = $rule ? [
                 'id' => $rule->id,
-                'archive_after_days' => $rule->archive_after_days,
                 'delete_after_days' => $rule->delete_after_days,
                 'is_active' => $rule->is_active,
             ] : null;
@@ -105,7 +104,7 @@ class ArchiveService
 
     private function withDeleteAt($archivedAt, ?DataRetentionRule $rule, array $row): array
     {
-        $days = $rule?->delete_after_days ?? $rule?->archive_after_days;
+        $days = $rule?->delete_after_days;
         if (! $archivedAt || ! $days || $days < 1) {
             $row['delete_at'] = null;
 
@@ -125,7 +124,6 @@ class ArchiveService
         }
         $days = isset($data['retention_days']) && $data['retention_days'] !== '' ? (int) $data['retention_days'] : null;
         $payload = [
-            'archive_after_days' => $entityType === DataRetentionRule::ENTITY_PROBLEM ? $days : null,
             'delete_after_days' => $days,
             'is_active' => (bool) ($data['is_active'] ?? true),
         ];

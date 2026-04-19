@@ -58,7 +58,7 @@ function syncSettingsFormFromRule() {
     const entityType = TAB_ENTITY_MAP[activeTab.value]
     const r = retentionRules.value[entityType]
     settingsForm.value = {
-        retention_days: r?.delete_after_days ?? r?.archive_after_days ?? '',
+        retention_days: r?.delete_after_days ?? '',
         is_active: r?.is_active ?? true,
     }
 }

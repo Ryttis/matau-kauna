@@ -70,7 +70,7 @@ function onPrimary() {
                 :text="primaryButtonText"
                 variant="primary"
                 as-button
-                :disabled="!canContinue"
+                :disabled="!canContinue || submitting"
                 :loading="mode === 'submit' && submitting"
                 class="reporter-review-submit-btn"
                 @click="onPrimary"

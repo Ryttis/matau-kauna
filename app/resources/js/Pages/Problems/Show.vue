@@ -51,12 +51,21 @@ const showDeleteModal = ref(false)
 const showInactiveReasonModal = ref(false)
 const inactiveComment = ref('')
 const inactiveSubmitting = ref(false)
+const inactiveSubmitChannel = ref(null)
+const statusSubmitting = ref(false)
+const deleteSubmitting = ref(false)
 
 const handleBack = () => {
     router.visit(route('dashboard'))
 }
 
+const closeStatusModal = () => {
+    if (statusSubmitting.value) return
+    showStatusModal.value = false
+}
+
 const handleStatusChange = (status) => {
+    if (statusSubmitting.value) return
     if (status === PROBLEM_STATUS.INACTIVE) {
         showStatusModal.value = false
         inactiveComment.value = ''
@@ -64,13 +73,17 @@ const handleStatusChange = (status) => {
         return
     }
 
+    statusSubmitting.value = true
     router.patch(route('problems.updateStatus', props.problem.id), {
         status,
     }, {
         preserveScroll: true,
         onSuccess: () => {
             showStatusModal.value = false
-        }
+        },
+        onFinish: () => {
+            statusSubmitting.value = false
+        },
     })
 }
 
@@ -82,6 +95,7 @@ const closeInactiveReasonModal = () => {
 const submitInactiveReason = (visibility) => {
     if (inactiveSubmitting.value) return
     inactiveSubmitting.value = true
+    inactiveSubmitChannel.value = visibility
     router.post(
         route('problems.reviewProgress.store', props.problem.id),
         buildInactiveReviewPostBody(inactiveComment.value, visibility),
@@ -93,6 +107,7 @@ const submitInactiveReason = (visibility) => {
             },
             onFinish: () => {
                 inactiveSubmitting.value = false
+                inactiveSubmitChannel.value = null
             },
         },
     )
@@ -111,10 +126,15 @@ const closeEditModal = () => {
 }
 
 const handleConfirmDelete = () => {
+    if (deleteSubmitting.value) return
+    deleteSubmitting.value = true
     router.delete(route('problems.destroy', props.problem.id), {
         preserveScroll: false,
         onSuccess: () => {
             showDeleteModal.value = false
+        },
+        onFinish: () => {
+            deleteSubmitting.value = false
         },
     })
 }
@@ -377,7 +397,8 @@ const assignmentInfo = computed(() => {
                 :show="showStatusModal"
                 :problem="problem"
                 :selected-problem-ids="[]"
-                @close="showStatusModal = false"
+                :saving="statusSubmitting"
+                @close="closeStatusModal"
                 @save="handleStatusChange"
             />
 
@@ -397,6 +418,7 @@ const assignmentInfo = computed(() => {
                 footer-layout="column"
                 confirm-variant="primary"
                 width="369px"
+                :loading="deleteSubmitting"
                 @close="showDeleteModal = false"
                 @confirm="handleConfirmDelete"
             />
@@ -405,6 +427,7 @@ const assignmentInfo = computed(() => {
                 v-model:comment="inactiveComment"
                 :open="showInactiveReasonModal"
                 :submitting="inactiveSubmitting"
+                :active-submit-channel="inactiveSubmitChannel"
                 @close="closeInactiveReasonModal"
                 @submit="submitInactiveReason"
             />
