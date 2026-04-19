@@ -175,9 +175,13 @@ watch(
                 entry.visibility === REVIEW_ENTRY_VISIBILITY.PUBLIC
                     ? REVIEW_ENTRY_VISIBILITY.PUBLIC
                     : REVIEW_ENTRY_VISIBILITY.INTERNAL
-            selectedKey.value = reviewModalTagKeyForStatus(entry.status)
+            {
+                const key = reviewModalTagKeyForStatus(entry.status)
+                selectedKey.value = key === 'new' ? null : key
+            }
         } else {
-            selectedKey.value = reviewModalTagKeyForStatus(props.currentStatus)
+            const key = reviewModalTagKeyForStatus(props.currentStatus)
+            selectedKey.value = key === 'new' ? null : key
             form.comment = ''
             form.visibility = REVIEW_ENTRY_VISIBILITY.INTERNAL
         }
@@ -431,11 +435,11 @@ const queuedAttachmentCount = computed(() => selectedFiles.value.length)
     color: #1e1c1c;
 }
 
-.add-entry-status--blue {
-    border-color: var(--color-primary, #1946a0);
+.add-entry-status--violet {
+    border-color: #9333ea;
 }
-.add-entry-status-tag--selected.add-entry-status--blue {
-    background: var(--color-primary, #1946a0);
+.add-entry-status-tag--selected.add-entry-status--violet {
+    background: #9333ea;
     color: var(--color-white, #fff);
 }
 
@@ -448,10 +452,10 @@ const queuedAttachmentCount = computed(() => selectedFiles.value.length)
 }
 
 .add-entry-status--gray {
-    border-color: #666666;
+    border-color: #795548;
 }
 .add-entry-status-tag--selected.add-entry-status--gray {
-    background: #666666;
+    background: #795548;
     color: #fff;
 }
 

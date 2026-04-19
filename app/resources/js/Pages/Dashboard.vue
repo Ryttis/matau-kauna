@@ -3,6 +3,7 @@ import AppButton from '@/Components/App/AppButton.vue'
 import FilterModal from '@/Components/App/Modals/FilterModal.vue'
 import SuccessModal from '@/Components/App/SuccessModal.vue'
 import KaunasProblemsMap from '@/Components/Map/KaunasProblemsMap.vue'
+import ProblemMapStatusLegend from '@/Components/Map/ProblemMapStatusLegend.vue'
 import ProblemsMapList from '@/Components/Map/ProblemsMapList.vue'
 import DashboardInternalView from '@/Components/Dashboard/DashboardInternalView.vue'
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue'
@@ -130,10 +131,10 @@ const {
             </div>
             <div class="reporter-dashboard-layout">
                 <div class="reporter-dashboard-map-wrap">
+                    <ProblemMapStatusLegend :status-order="REPORTER_MAP_LEGEND_STATUS_ORDER" />
                     <KaunasProblemsMap
                         :problems="reporterProblemsToShowOnMap"
                         marker-class="reporter-dashboard-marker"
-                        :legend-status-order="REPORTER_MAP_LEGEND_STATUS_ORDER"
                         @open-problem="reporterOpenProblemView"
                     />
                 </div>
@@ -334,6 +335,7 @@ const {
 .reporter-dashboard-map-wrap {
     display: flex;
     flex-direction: column;
+    gap: 12px;
     min-height: 0;
     background: #fafafa;
 }

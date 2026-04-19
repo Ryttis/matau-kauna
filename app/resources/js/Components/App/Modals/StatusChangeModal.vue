@@ -1,6 +1,10 @@
 <script setup>
 import { ref, watch } from 'vue'
-import { PROBLEM_STATUS_OPTIONS, getStatusModalVars } from '@/constants/domain/problemStatus'
+import {
+    PROBLEM_STATUS,
+    STATUS_CHANGE_MODAL_OPTIONS,
+    getStatusModalVars,
+} from '@/constants/domain/problemStatus'
 import BaseModal from '@/Components/App/BaseModal.vue'
 import AppButton from '@/Components/App/AppButton.vue'
 import { MODAL_BUTTON_HEIGHT, MODAL_BUTTON_MIN_WIDTH } from '@/constants/ui/theme'
@@ -20,7 +24,7 @@ const props = defineProps({
 
 const emit = defineEmits(['close', 'save'])
 
-const statusOptions = PROBLEM_STATUS_OPTIONS
+const statusOptions = STATUS_CHANGE_MODAL_OPTIONS
 
 const selectedStatus = ref('')
 
@@ -28,7 +32,8 @@ watch(
     () => [props.show, props.problem],
     () => {
         if (!props.show) return
-        selectedStatus.value = props.problem?.status ?? ''
+        const s = props.problem?.status ?? ''
+        selectedStatus.value = s === PROBLEM_STATUS.NEW ? '' : s
     },
     { immediate: true }
 )

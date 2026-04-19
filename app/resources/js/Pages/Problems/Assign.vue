@@ -638,17 +638,17 @@ const toggleStatus = () => {
 }
 
 .assign-status-btn-returned {
-    border-color: var(--assign-status-returned-border, #1946A0);
+    border-color: var(--assign-status-returned-border, #9333ea);
 }
 
 .assign-status-btn-returned:hover {
-    border-color: var(--assign-status-returned-active-border, #153d8a);
-    background-color: var(--assign-status-returned-active-bg, #eef3fc);
+    border-color: var(--assign-status-returned-active-border, #7e22ce);
+    background-color: var(--assign-status-returned-active-bg, #faf5ff);
 }
 
 .assign-status-btn-returned.assign-status-btn-active {
-    border-color: var(--assign-status-returned-active-border, #153d8a);
-    background-color: var(--assign-status-returned-active-bg, #eef3fc);
+    border-color: var(--assign-status-returned-active-border, #7e22ce);
+    background-color: var(--assign-status-returned-active-bg, #faf5ff);
     border-width: 3px;
 }
 

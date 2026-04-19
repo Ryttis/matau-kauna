@@ -9,12 +9,12 @@ use App\Models\LoginLog;
 use App\Models\User;
 use App\Models\UserRole;
 use App\Services\AuditLogService;
+use Illuminate\Http\Client\Response as HttpClientResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Http\Client\Response as HttpClientResponse;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
 use Inertia\Inertia;
@@ -411,7 +411,12 @@ class ViispAuthController extends Controller
             $user->roles()->syncWithoutDetaching([$reporterRole->id]);
         }
 
-        return $this->syncViispProfile($user, $identity, $email);
+        $user = $this->syncViispProfile($user, $identity, $email);
+        if ($user->viisp_local_password_set_at === null) {
+            $user->forceFill(['viisp_local_password_set_at' => now()])->save();
+        }
+
+        return $user->fresh();
     }
 
     private function syncViispProfile(User $user, array $identity, string $email): User

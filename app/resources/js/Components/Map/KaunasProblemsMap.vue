@@ -1,41 +1,31 @@
 <script setup>
 import { ref, computed } from 'vue'
 import { useKaunasMap } from '@/composables/useKaunasMap'
-import {
-    MAP_LEGEND_STATUS_ORDER,
-    MARKER_COLOR_BY_STATUS,
-    PROBLEM_STATUS_LABELS,
-} from '@/constants/domain/problemStatus'
-import { MAP_LEGEND_DOT_SIZE_PX } from '@/constants/ui/theme'
 
 const props = defineProps({
     problems: { type: Array, default: () => [] },
     markerClass: { type: String, default: 'kaunas-map-marker' },
-    showLegend: { type: Boolean, default: true },
-    legendStatusOrder: { type: Array, default: null },
     highlightedProblemId: { type: [Number, null], default: null },
     mergedProblemIds: { type: Array, default: () => [] },
+    markableProblemIds: { type: Array, default: () => [] },
     autoFitView: { type: Boolean, default: true },
     focusHighlightedMarker: { type: Boolean, default: true },
 })
 
-const emit = defineEmits(['openProblem'])
+const emit = defineEmits(['openProblem', 'markProblem'])
 
 const mapContainer = ref(null)
 const problemsToShow = computed(() => props.problems || [])
 const mergedIds = computed(() => props.mergedProblemIds || [])
-const legendStatuses = computed(() => {
-    if (Array.isArray(props.legendStatusOrder) && props.legendStatusOrder.length > 0) {
-        return props.legendStatusOrder
-    }
-    return MAP_LEGEND_STATUS_ORDER
-})
+const markableIds = computed(() => props.markableProblemIds || [])
 
 useKaunasMap(mapContainer, problemsToShow, {
     onProblemOpen: (id) => emit('openProblem', id),
+    onProblemMark: (id) => emit('markProblem', id),
     markerClassName: props.markerClass,
     highlightedProblemId: computed(() => props.highlightedProblemId),
     mergedProblemIds: mergedIds,
+    markableProblemIds: markableIds,
     autoFitView: computed(() => props.autoFitView),
     focusHighlightedMarker: computed(() => props.focusHighlightedMarker),
 })
@@ -44,19 +34,6 @@ useKaunasMap(mapContainer, problemsToShow, {
 <template>
     <div class="kaunas-map-wrap">
         <div ref="mapContainer" class="kaunas-map-container" />
-        <div v-if="showLegend" class="kaunas-map-legend">
-            <span
-                v-for="st in legendStatuses"
-                :key="st"
-                class="kaunas-map-legend-item"
-            >
-                <span
-                    class="kaunas-map-legend-dot"
-                    :style="{ background: MARKER_COLOR_BY_STATUS[st] || '#95a5a6' }"
-                />
-                {{ PROBLEM_STATUS_LABELS[st] }}
-            </span>
-        </div>
     </div>
 </template>
 
@@ -171,6 +148,10 @@ useKaunasMap(mapContainer, problemsToShow, {
 .kaunas-map-container :deep(.kaunas-map-popup-actions) {
     margin: 10px 0 0;
     text-align: left;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem;
 }
 
 .kaunas-map-container :deep(.kaunas-map-popup-view-btn) {
@@ -197,36 +178,6 @@ useKaunasMap(mapContainer, problemsToShow, {
 .kaunas-map-container :deep(.leaflet-marker-icon.kaunas-map-marker--cluster) {
     background: transparent !important;
     border: none !important;
-}
-
-.kaunas-map-legend {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.65rem 1.25rem;
-    align-items: center;
-    justify-content: flex-start;
-    padding: 1rem 1.5rem;
-    font-size: 0.8125rem;
-    color: var(--color-text, #333);
-}
-
-.kaunas-map-legend-item {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.5rem;
-}
-
-.kaunas-map-legend-dot {
-    display: block;
-    flex-shrink: 0;
-    box-sizing: border-box;
-    width: var(--map-legend-dot-size, 12px);
-    height: var(--map-legend-dot-size, 12px);
-    min-width: var(--map-legend-dot-size, 12px);
-    min-height: var(--map-legend-dot-size, 12px);
-    max-width: var(--map-legend-dot-size, 12px);
-    max-height: var(--map-legend-dot-size, 12px);
-    border-radius: 50%;
 }
 
 @media (max-width: 767px) {

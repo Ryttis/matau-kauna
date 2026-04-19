@@ -22,6 +22,7 @@ class User extends Authenticatable implements MustVerifyEmail
         'phone',
         'viisp_personal_code_hash',
         'password',
+        'viisp_local_password_set_at',
         'two_factor_enabled',
         'email_notifications_enabled',
         'email_updates_institution_admin',
@@ -49,6 +50,7 @@ class User extends Authenticatable implements MustVerifyEmail
             'reporter_wizard_completed_at' => 'datetime',
             'reporter_report_terms_accepted_at' => 'datetime',
             'password' => 'hashed',
+            'viisp_local_password_set_at' => 'datetime',
             'two_factor_enabled' => 'boolean',
             'email_notifications_enabled' => 'boolean',
             'email_updates_institution_admin' => 'boolean',
@@ -234,5 +236,14 @@ class User extends Authenticatable implements MustVerifyEmail
     {
         return $this->hasRole(UserRole::ROLE_REPORTER)
             && ! $this->hasPermission('issues.view');
+    }
+
+    public function canAuthenticateWithEmailPassword(): bool
+    {
+        if ($this->viisp_personal_code_hash === null) {
+            return true;
+        }
+
+        return $this->viisp_local_password_set_at !== null;
     }
 }

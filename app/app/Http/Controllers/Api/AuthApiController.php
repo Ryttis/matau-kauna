@@ -32,6 +32,12 @@ class AuthApiController extends Controller
             ]);
         }
 
+        if (! $user->canAuthenticateWithEmailPassword()) {
+            throw ValidationException::withMessages([
+                'email' => ['Šiai paskyrai slaptažodžio prisijungimas dar neįjungtas. Prisijunkite per el. valdžios vartus arba nustatykite slaptažodį skiltyje Profilis.'],
+            ]);
+        }
+
         $staffRoles = [
             UserRole::ROLE_SYSTEM_ADMIN,
             UserRole::ROLE_PROBLEM_ADMIN,

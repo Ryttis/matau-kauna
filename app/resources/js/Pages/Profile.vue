@@ -3,14 +3,26 @@ import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue'
 import SettingsSection from '@/Components/App/SettingsSection.vue'
 import AppInput from '@/Components/App/AppInput.vue'
 import AppButton from '@/Components/App/AppButton.vue'
+import SuccessModal from '@/Components/App/SuccessModal.vue'
 import { Head, useForm, usePage } from '@inertiajs/vue3'
 import { ref, computed, watch } from 'vue'
+import { useSuccessModal } from '@/composables/useSuccessModal'
 import { SETTINGS_PAGE_STYLE } from '@/constants/ui/theme'
 
 const page = usePage()
+const { showSuccessModal, successMessage, closeSuccessModal } = useSuccessModal()
 const user = computed(() => page.props.auth?.user ?? null)
 const authRoles = computed(() => page.props.auth?.roles ?? [])
 const isViispUser = computed(() => !!user.value?.viisp_personal_code_hash)
+const viispNeedsFirstPassword = computed(
+    () => isViispUser.value && !user.value?.viisp_local_password_set_at,
+)
+const passwordSectionTitle = computed(() =>
+    viispNeedsFirstPassword.value ? 'Nustatyti slaptažodį' : 'Keisti slaptažodį',
+)
+const passwordSubmitLabel = computed(() =>
+    viispNeedsFirstPassword.value ? 'Sukurti slaptažodį' : 'Patvirtinti',
+)
 
 const roleDisplayNames = computed(() =>
     (authRoles.value ?? []).map((r) => r?.name).filter(Boolean)
@@ -66,6 +78,11 @@ const updatePassword = () => {
 <template>
     <Head title="Profilis" />
     <AuthenticatedLayout>
+        <SuccessModal
+            :show="showSuccessModal"
+            :message="successMessage"
+            @close="closeSuccessModal"
+        />
         <div class="settings-container settings-page" :style="SETTINGS_PAGE_STYLE">
             <div class="settings-content">
                 <div class="settings-inner">
@@ -108,7 +125,7 @@ const updatePassword = () => {
                     </SettingsSection>
 
                     <SettingsSection
-                        title="Keisti slaptažodį"
+                        :title="passwordSectionTitle"
                         :open="sections.password"
                         @toggle="toggleSection('password')"
                     >
@@ -126,7 +143,12 @@ const updatePassword = () => {
                                 tabindex="-1"
                                 class="password-form-username-field"
                             />
+                            <p v-if="viispNeedsFirstPassword" class="form-hint">
+                                Kad galėtumėte prisijungti el. paštu ir slaptažodžiu, sukurkite slaptažodį. El. valdžios vartais
+                                prisijungti galėsite ir toliau.
+                            </p>
                             <AppInput
+                                v-if="!viispNeedsFirstPassword"
                                 v-model="passwordForm.current_password"
                                 type="password"
                                 placeholder="Esamas slaptažodis"
@@ -151,7 +173,7 @@ const updatePassword = () => {
                                 {{ passwordForm.errors.password }}
                             </div>
                             <AppButton
-                                text="Patvirtinti"
+                                :text="passwordSubmitLabel"
                                 variant="primary"
                                 :disabled="passwordForm.processing"
                             />

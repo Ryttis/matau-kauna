@@ -46,6 +46,14 @@ enum ProblemStatus: string
         ], $cases));
     }
 
+    public static function valuesEligibleForManualStaffUpdate(): array
+    {
+        return array_values(array_filter(
+            self::values(),
+            fn (string $v) => $v !== self::NEW->value
+        ));
+    }
+
     public static function labels(): array
     {
         return array_combine(

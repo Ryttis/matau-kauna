@@ -7,16 +7,11 @@ import FilterModal from '@/Components/App/Modals/FilterModal.vue'
 import InactiveReasonModal from '@/Components/App/Modals/InactiveReasonModal.vue'
 import StatusChangeModal from '@/Components/App/Modals/StatusChangeModal.vue'
 import KaunasProblemsMap from '@/Components/Map/KaunasProblemsMap.vue'
+import ProblemMapStatusLegend from '@/Components/Map/ProblemMapStatusLegend.vue'
 import MapAddressAutocomplete from '@/Components/Map/MapAddressAutocomplete.vue'
 import { useAuth } from '@/composables/useAuth'
 import { ICON_FILTER } from '@/constants/ui/icons'
-import {
-    MAP_LEGEND_STATUS_ORDER,
-    MARKER_COLOR_BY_STATUS,
-    PROBLEM_STATUS,
-    PROBLEM_STATUS_LABELS,
-} from '@/constants/domain/problemStatus'
-import { MAP_LEGEND_DOT_SIZE_PX } from '@/constants/ui/theme'
+import { PROBLEM_STATUS } from '@/constants/domain/problemStatus'
 import { buildInactiveReviewPostBody } from '@/constants/domain/reviewProgressEntry'
 
 const props = defineProps({
@@ -202,26 +197,13 @@ const handleStatusModalClose = () => {
                 />
             </div>
 
-            <div class="status-indicators">
-                <div
-                    v-for="st in MAP_LEGEND_STATUS_ORDER"
-                    :key="st"
-                    class="status-indicator"
-                >
-                    <div
-                        class="status-circle"
-                        :style="{ backgroundColor: MARKER_COLOR_BY_STATUS[st] || '#95a5a6' }"
-                    />
-                    <span class="status-label">{{ PROBLEM_STATUS_LABELS[st] }}</span>
-                </div>
-            </div>
+            <ProblemMapStatusLegend />
 
             <div class="map-container">
                 <KaunasProblemsMap
                     :problems="problemsForMap"
                     :highlighted-problem-id="selectedProblemFromAddress?.id ?? null"
                     marker-class="map-page-marker"
-                    :show-legend="false"
                     @open-problem="openProblemView"
                 />
             </div>
@@ -335,39 +317,6 @@ const handleStatusModalClose = () => {
     display: block;
     flex-shrink: 0;
     cursor: pointer;
-}
-
-.status-indicators {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 12px 20px;
-    align-items: center;
-    justify-content: flex-start;
-    width: 100%;
-}
-
-.status-indicator {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-}
-
-.status-circle {
-    display: block;
-    flex-shrink: 0;
-    box-sizing: border-box;
-    width: var(--map-legend-dot-size, 12px);
-    height: var(--map-legend-dot-size, 12px);
-    min-width: var(--map-legend-dot-size, 12px);
-    min-height: var(--map-legend-dot-size, 12px);
-    max-width: var(--map-legend-dot-size, 12px);
-    max-height: var(--map-legend-dot-size, 12px);
-    border-radius: 50%;
-}
-
-.status-label {
-    font-size: 16px;
-    color: #333;
 }
 
 .map-container {
