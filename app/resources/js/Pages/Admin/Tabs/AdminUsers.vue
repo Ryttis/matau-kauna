@@ -66,7 +66,7 @@ const setTab = async (tab) => {
         }
 
         if (tab === 'roles') {
-            await loadRoles()
+            await Promise.all([loadRoles(), loadPermissions()])
         }
 
         if (tab === 'permissions') {
@@ -129,6 +129,7 @@ onMounted(async () => {
                 v-else-if="activeSubTab === 'roles'"
                 :saving="saving"
                 :roles="roles"
+                :permissions="permissions"
                 @set-saving="saving = $event"
                 @refresh="setTab('roles')"
                 @show-success="showWithMessage($event)"

@@ -27,10 +27,14 @@ class PasswordResetController extends Controller
         $status = Password::reset(
             $request->only('email', 'password', 'password_confirmation', 'token'),
             function ($user) use ($request) {
-                $user->forceFill([
+                $fill = [
                     'password' => Hash::make($request->password),
                     'remember_token' => Str::random(60),
-                ])->save();
+                ];
+                if ($user->viisp_personal_code_hash !== null) {
+                    $fill['viisp_local_password_set_at'] = now();
+                }
+                $user->forceFill($fill)->save();
             }
         );
 

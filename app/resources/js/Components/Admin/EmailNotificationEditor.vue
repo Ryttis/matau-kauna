@@ -171,6 +171,15 @@ onMounted(() => load())
                 </AppSelect>
             </div>
             <div v-if="selectedTemplate" class="email-notification-editor-card">
+                <div
+                    v-if="(selectedTemplate.description || '').trim().length > 0"
+                    class="email-notification-editor-description"
+                >
+                    <p class="email-notification-editor-description-title">Aprašymas</p>
+                    <p class="email-notification-editor-description-text">
+                        {{ (selectedTemplate.description || '').trim() }}
+                    </p>
+                </div>
                 <div v-if="placeholderDocs.length" class="email-notification-editor-placeholders">
                     <p class="email-notification-editor-placeholders-title">Kintamieji šablone</p>
                     <ul class="email-notification-editor-placeholder-list">
@@ -286,6 +295,26 @@ onMounted(() => load())
     border: 1px solid #e5e7eb;
     border-radius: 8px;
     padding: 20px;
+}
+.email-notification-editor-description {
+    margin: 0 0 16px 0;
+    padding: 12px 14px;
+    background: #f9fafb;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+}
+.email-notification-editor-description-title {
+    margin: 0 0 8px 0;
+    font-size: 13px;
+    font-weight: 600;
+    color: #374151;
+}
+.email-notification-editor-description-text {
+    margin: 0;
+    font-size: 14px;
+    line-height: 1.5;
+    color: #4b5563;
+    white-space: pre-wrap;
 }
 .email-notification-editor-placeholders {
     margin: 0 0 16px 0;

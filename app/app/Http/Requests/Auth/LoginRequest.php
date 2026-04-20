@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Auth;
 
+use App\Models\User;
 use App\Models\UserRole;
 use Illuminate\Auth\Events\Lockout;
 use Illuminate\Foundation\Http\FormRequest;
@@ -29,6 +30,15 @@ class LoginRequest extends FormRequest
     public function authenticate(): void
     {
         $this->ensureIsNotRateLimited();
+
+        $emailUser = User::query()->where('email', $this->input('email'))->first();
+        if ($emailUser instanceof User && ! $emailUser->canAuthenticateWithEmailPassword()) {
+            RateLimiter::hit($this->throttleKey());
+
+            throw ValidationException::withMessages([
+                'email' => 'Šiai paskyrai slaptažodžio prisijungimas dar neįjungtas. Prisijunkite per el. valdžios vartus arba nustatykite slaptažodį skiltyje Profilis.',
+            ]);
+        }
 
         if (! Auth::attempt($this->only('email', 'password'), $this->boolean('remember'))) {
             RateLimiter::hit($this->throttleKey());

@@ -34,6 +34,11 @@ class UpdateUserRequest extends FormRequest
         return $rules;
     }
 
+    public function messages(): array
+    {
+        return PasswordPolicy::get()->validationMessagesForPasswordField();
+    }
+
     public function withValidator($validator): void
     {
         $validator->after(function ($validator) {

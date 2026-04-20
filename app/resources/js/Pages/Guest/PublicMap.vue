@@ -5,10 +5,12 @@ import GuestHeader from '@/Components/Landing/GuestHeader.vue'
 import LandingFooter from '@/Components/Landing/LandingFooter.vue'
 import FilterModal from '@/Components/App/Modals/FilterModal.vue'
 import KaunasProblemsMap from '@/Components/Map/KaunasProblemsMap.vue'
+import ProblemMapStatusLegend from '@/Components/Map/ProblemMapStatusLegend.vue'
 import ProblemsMapList from '@/Components/Map/ProblemsMapList.vue'
 import { useProblemsMapFilter } from '@/composables/useProblemsMapFilter'
 import { useProblemDisplayRows } from '@/composables/useProblemDisplayRows'
-import { ICON_FILTER } from '@/constants/ui/icons'
+import { ICON_FILTER, ICON_SEARCH } from '@/constants/ui/icons'
+import { PUBLIC_MAP_LEGEND_STATUS_ORDER } from '@/constants/domain/problemStatus'
 
 const props = defineProps({
     problems: { type: Array, default: () => [] },
@@ -73,6 +75,10 @@ function handleFilterClear() {
 function openProblemView(problemId) {
     router.visit(route('reports.show', problemId))
 }
+
+function clearPublicMapSearch() {
+    searchQuery.value = ''
+}
 </script>
 
 <template>
@@ -81,12 +87,31 @@ function openProblemView(problemId) {
         <GuestHeader active-link="reports" />
         <div class="public-map-toolbar">
             <div class="public-map-toolbar-inner">
-                <input
-                    v-model="searchQuery"
-                    type="text"
-                    class="public-map-search"
-                    placeholder="ieškoti"
-                />
+                <div class="public-map-search-wrap">
+                    <img
+                        :src="ICON_SEARCH"
+                        class="public-map-search-icon"
+                        alt=""
+                        aria-hidden="true"
+                    />
+                    <input
+                        v-model="searchQuery"
+                        type="search"
+                        class="public-map-search"
+                        placeholder="Ieškoti"
+                        autocomplete="off"
+                        enterkeyhint="search"
+                    />
+                    <button
+                        v-show="(searchQuery || '').trim().length > 0"
+                        type="button"
+                        class="public-map-search-clear"
+                        aria-label="Išvalyti paiešką"
+                        @click="clearPublicMapSearch"
+                    >
+                        ×
+                    </button>
+                </div>
                 <button
                     type="button"
                     class="public-map-filter-btn"
@@ -99,6 +124,7 @@ function openProblemView(problemId) {
         </div>
         <div class="public-map-layout">
             <div class="public-map-wrap">
+                <ProblemMapStatusLegend :status-order="PUBLIC_MAP_LEGEND_STATUS_ORDER" />
                 <KaunasProblemsMap
                     :problems="problemsToShowOnMap"
                     marker-class="public-map-marker"
@@ -162,18 +188,64 @@ function openProblemView(problemId) {
     gap: 16px;
 }
 
-.public-map-search {
+.public-map-search-wrap {
+    position: relative;
     flex: 1;
     min-width: 0;
     max-width: 400px;
+    display: flex;
+    align-items: center;
+}
+
+.public-map-search-icon {
+    position: absolute;
+    left: 14px;
+    width: 20px;
+    height: 20px;
+    pointer-events: none;
+    object-fit: contain;
+    opacity: 0.55;
+}
+
+.public-map-search {
+    width: 100%;
     height: 40px;
     border: none;
     border-radius: 20px;
     background: #f6f7f9;
     color: #333;
-    padding: 0 16px;
+    padding: 0 36px 0 42px;
     font-size: 14px;
     box-sizing: border-box;
+}
+
+.public-map-search::-webkit-search-cancel-button {
+    display: none;
+}
+
+.public-map-search-clear {
+    position: absolute;
+    right: 8px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 28px;
+    height: 28px;
+    padding: 0;
+    border: none;
+    border-radius: 50%;
+    background: transparent;
+    color: #666;
+    font-size: 22px;
+    line-height: 1;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.public-map-search-clear:hover {
+    background: rgba(0, 0, 0, 0.06);
+    color: #333;
 }
 
 .public-map-search::placeholder {
@@ -229,6 +301,7 @@ function openProblemView(problemId) {
 .public-map-wrap {
     display: flex;
     flex-direction: column;
+    gap: 12px;
     min-height: 0;
     min-width: 0;
     width: 100%;
@@ -260,7 +333,7 @@ function openProblemView(problemId) {
         padding-right: max(1rem, env(safe-area-inset-right));
     }
 
-    .public-map-search {
+    .public-map-search-wrap {
         max-width: none;
     }
 

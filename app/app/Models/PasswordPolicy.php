@@ -76,6 +76,38 @@ class PasswordPolicy extends Model
         return $r;
     }
 
+    public function requirementSummaryLt(): string
+    {
+        $parts = ["ne mažiau kaip {$this->min_length} simbolių"];
+        if ($this->require_lowercase) {
+            $parts[] = 'bent viena mažoji raidė';
+        }
+        if ($this->require_uppercase) {
+            $parts[] = 'bent viena didžioji raidė';
+        }
+        if ($this->require_special) {
+            $parts[] = 'bent vienas simbolis (pvz. !@#$%), ne tik raidės ir skaičiai';
+        }
+
+        return implode(', ', $parts);
+    }
+
+    public function validationMessagesForPasswordField(): array
+    {
+        $summary = $this->requirementSummaryLt();
+
+        return [
+            'password.required' => 'Įveskite slaptažodį.',
+            'password.string' => 'Slaptažodis turi būti tekstas.',
+            'password.min' => "Slaptažodis per trumpas. Reikalaujama: {$summary}.",
+            'password.regex' => "Slaptažodis neatitinka taisyklių. Reikalaujama: {$summary}.",
+            'password.confirmed' => 'Slaptažodžio pakartojimas nesutampa.',
+            'password_confirmation.required' => 'Patvirtinkite slaptažodį.',
+            'password_confirmation.required_with' => 'Patvirtinkite slaptažodį.',
+            'password_confirmation.same' => 'Slaptažodžio pakartojimas nesutampa.',
+        ];
+    }
+
     public function validateProhibitNameEmail(string $password, ?string $name, ?string $email): bool
     {
         if (! $this->prohibit_name_email) {

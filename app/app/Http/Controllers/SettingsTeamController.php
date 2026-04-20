@@ -5,7 +5,6 @@ namespace App\Http\Controllers;
 use App\Models\Employee;
 use App\Models\InstitutionTeam;
 use App\Models\User;
-use App\Models\UserRole;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\Rule;
@@ -20,7 +19,7 @@ class SettingsTeamController extends Controller
         }
         $this->ensureTeamManagementAccess($user);
 
-        $isSystemAdmin = $user->hasRole(UserRole::ROLE_SYSTEM_ADMIN);
+        $isSystemAdmin = $user->canAccessAdmin();
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'institution_id' => [
@@ -108,7 +107,7 @@ class SettingsTeamController extends Controller
         }
         $this->ensureTeamManagementAccess($user);
 
-        $isSystemAdmin = $user->hasRole(UserRole::ROLE_SYSTEM_ADMIN);
+        $isSystemAdmin = $user->canAccessAdmin();
         $institutionId = $isSystemAdmin
             ? $request->integer('institution_id', $user->institution_id)
             : $user->institution_id;
@@ -154,14 +153,14 @@ class SettingsTeamController extends Controller
             abort(403);
         }
 
-        if (! $user->hasRole(UserRole::ROLE_INSTITUTION_ADMIN) && ! $user->hasRole(UserRole::ROLE_SYSTEM_ADMIN)) {
+        if (! $user->canManageTeams()) {
             abort(403);
         }
     }
 
     private function ensureCanManageTeam(User $user, InstitutionTeam $team): void
     {
-        if ($user->hasRole(UserRole::ROLE_SYSTEM_ADMIN)) {
+        if ($user->canAccessAdmin()) {
             return;
         }
 

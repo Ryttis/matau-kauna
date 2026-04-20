@@ -8,7 +8,6 @@ use App\Models\FileUploadSettings;
 use App\Models\Problem;
 use App\Models\ProblemReviewAttachment;
 use App\Models\ProblemReviewHistory;
-use App\Models\UserRole;
 use App\Services\ProblemHttpSupport;
 use App\Services\ProblemReviewHistoryService;
 use App\Services\ProblemScopeService;
@@ -38,7 +37,7 @@ class ProblemReviewController extends Controller
             abort(404);
         }
 
-        $isReporterOnly = $user->hasRole(UserRole::ROLE_REPORTER) && ! $user->hasPermission('issues.view');
+        $isReporterOnly = $user->isReporterOnly();
         if ($isReporterOnly) {
             if ($problem->merged_into_problem_id) {
                 $problem->load('mergedInto');
@@ -92,7 +91,7 @@ class ProblemReviewController extends Controller
         }
 
         $user = $request->user();
-        if (! $user->hasRole(UserRole::ROLE_SYSTEM_ADMIN)) {
+        if (! $user->canAccessAdmin()) {
             if ($entry->user_id === null || (int) $entry->user_id !== (int) $user->id) {
                 abort(403);
             }

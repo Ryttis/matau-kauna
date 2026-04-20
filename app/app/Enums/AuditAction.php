@@ -14,7 +14,7 @@ enum AuditAction: string
     public static function labelFor(?string $action): string
     {
         if (! is_string($action) || trim($action) === '') {
-            return '—';
+            return '-';
         }
 
         $enum = self::tryFrom($action);

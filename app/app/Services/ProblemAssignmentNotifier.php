@@ -64,11 +64,11 @@ class ProblemAssignmentNotifier
         $first = $problems->first();
         $excerptFirst = $first ? Problem::descriptionPreview($first->description, 200) : '';
         $urlFirst = $first ? route('problems.show', $first->id) : '';
-        $deadlineFirst = $first?->completion_deadline?->format('Y-m-d') ?? '—';
+        $deadlineFirst = $first?->completion_deadline?->format('Y-m-d') ?? '-';
 
         $problemLines = [];
         foreach ($problems as $problem) {
-            $deadline = $problem->completion_deadline?->format('Y-m-d') ?? '—';
+            $deadline = $problem->completion_deadline?->format('Y-m-d') ?? '-';
             $problemLines[] = sprintf(
                 '- %s | %s | %s | Terminas: %s',
                 $problem->internal_number,
@@ -269,15 +269,13 @@ class ProblemAssignmentNotifier
         if ($problem->assigned_employee_id) {
             $employee = $problem->assignedEmployee;
             if ($employee) {
-                $user = User::query()
-                    ->notArchived()
-                    ->where('email', $employee->email)
-                    ->where('institution_id', $employee->institution_id)
-                    ->wantsEmployeeAssignmentEmails()
-                    ->first(['email']);
-                if ($user) {
-                    $recipients[] = $user->email;
-                }
+                $this->appendEmployeeDeadlineRecipient($employee, $recipients);
+            }
+        }
+        if ($problem->assigned_institution_team_id) {
+            $problem->loadMissing('assignedInstitutionTeam.employees');
+            foreach ($problem->assignedInstitutionTeam?->employees ?? [] as $employee) {
+                $this->appendEmployeeDeadlineRecipient($employee, $recipients);
             }
         }
         if ($problem->institution_id) {
@@ -290,8 +288,21 @@ class ProblemAssignmentNotifier
                 ->all();
             $recipients = array_unique(array_merge($recipients, $admins));
         }
-        foreach ($recipients as $email) {
+        foreach (array_unique($recipients) as $email) {
             TransactionalMail::send($email, $subject, $body, $url, 'Atidaryti problemą');
+        }
+    }
+
+    private function appendEmployeeDeadlineRecipient(Employee $employee, array &$recipients): void
+    {
+        $user = User::query()
+            ->notArchived()
+            ->where('email', $employee->email)
+            ->where('institution_id', $employee->institution_id)
+            ->wantsEmployeeAssignmentEmails()
+            ->first(['email']);
+        if ($user) {
+            $recipients[] = $user->email;
         }
     }
 }

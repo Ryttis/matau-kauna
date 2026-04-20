@@ -41,30 +41,21 @@ export function useAuth() {
 
     const isActiveRoleReporter = computed(() => (activeRole.value?.role ?? '') === ROLE_REPORTER)
 
-    const isProblemAdmin = computed(() => hasRole(ROLE_PROBLEM_ADMIN))
+    const isProblemAdmin = computed(() => hasRole(ROLE_PROBLEM_ADMIN) || hasPermission('issues.publish'))
     const isInstitutionAdmin = computed(() => hasRole(ROLE_INSTITUTION_ADMIN))
     const isEmployee = computed(() => hasRole(ROLE_EMPLOYEE))
     const isMunicipalityRep = computed(() => hasRole(ROLE_MUNICIPALITY_REP))
 
-    const canSeeProblemAdminButtons = computed(
-        () => isProblemAdmin.value || isSystemAdmin.value
-    )
-    const canSeeInstitutionAdminButtons = computed(
-        () => isInstitutionAdmin.value || isSystemAdmin.value
-    )
-    const canExport = computed(() => isProblemAdmin.value || isSystemAdmin.value)
-    const canDeleteProblem = computed(() => isSystemAdmin.value)
+    const canSeeProblemAdminButtons = computed(() => isProblemAdmin.value || isSystemAdmin.value)
+    const canSeeInstitutionAdminButtons = computed(() => isInstitutionAdmin.value || isSystemAdmin.value)
+    const canExport = computed(() => hasPermission('issues.export'))
+    const canDeleteProblem = computed(() => hasPermission('issues.delete'))
     const canEditProblem = computed(
         () =>
             (isProblemAdmin.value || isSystemAdmin.value) &&
             hasPermission('classification.edit')
     )
-    const canMergeProblem = computed(
-        () =>
-            isProblemAdmin.value ||
-            isInstitutionAdmin.value ||
-            isSystemAdmin.value
-    )
+    const canMergeProblem = computed(() => hasPermission('issues.merge'))
     const canPublish = computed(() => hasPermission('issues.publish'))
 
     return {

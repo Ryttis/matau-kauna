@@ -1,8 +1,9 @@
 import { watch, onMounted, onUnmounted, nextTick, isRef, unref } from 'vue'
-import { getMarkerColorForStatus } from '@/constants/domain/problemStatus'
+import { getMarkerColorForStatus, PROBLEM_STATUS_LABELS } from '@/constants/domain/problemStatus'
 import { loadLeaflet, createBaseMap, KAUNAS_CENTER, MAP_MAX_ZOOM } from '@/utils/leafletKaunas'
 import { MAP_HIGHLIGHT_COLOR, MAP_MERGED_MARKER_COLOR, MAP_CLUSTER_COLOR } from '@/constants/ui/theme'
 import { clusterProblems } from '@/utils/mapClustering'
+import { truncateMapPopupText } from '@/utils/mapPopupText'
 
 const HIGHLIGHTED_MARKER_SIZE = 18
 const MERGED_MARKER_SIZE = 14
@@ -16,13 +17,27 @@ function escapeHtml(text) {
     return (text || '').replace(/</g, '&lt;').replace(/>/g, '&gt;')
 }
 
+function mapPopupDateLabel(iso) {
+    if (!iso) return ''
+    const d = new Date(iso)
+    if (Number.isNaN(d.getTime())) return ''
+    return d.toLocaleDateString('lt-LT')
+}
+
+function mapPopupStatusLabel(status) {
+    if (!status) return '-'
+    return PROBLEM_STATUS_LABELS[status] || String(status)
+}
+
 export function useKaunasMap(containerRef, problemsToShowRef, options = {}) {
     const {
         onProblemOpen,
+        onProblemMark = null,
         markerClassName = 'kaunas-map-marker',
         invalidateSizeDelay = 150,
         highlightedProblemId = null,
         mergedProblemIds = null,
+        markableProblemIds = null,
         autoFitView = true,
         focusHighlightedMarker = true,
     } = options
@@ -42,6 +57,10 @@ export function useKaunasMap(containerRef, problemsToShowRef, options = {}) {
 
     const getMergedSet = () => {
         const raw = unref(mergedProblemIds)
+        return new Set((Array.isArray(raw) ? raw : []).map(Number))
+    }
+    const getMarkableSet = () => {
+        const raw = unref(markableProblemIds)
         return new Set((Array.isArray(raw) ? raw : []).map(Number))
     }
     const getHighlightedId = () => unref(highlightedProblemId)
@@ -89,16 +108,40 @@ export function useKaunasMap(containerRef, problemsToShowRef, options = {}) {
 
     function buildPopupContent(problem) {
         const num = escapeHtml(problem.internal_number)
-        const preview = (problem.description_preview || problem.description || '').slice(0, 200)
-        const line = escapeHtml(preview)
-        return `<strong>${num}</strong><br>${line}`
+        const cat = escapeHtml((problem.category || '').trim() || '-')
+        const addr = escapeHtml(truncateMapPopupText(problem.address) || '-')
+        const statusText = escapeHtml(mapPopupStatusLabel(problem.status))
+        const dateText = escapeHtml(mapPopupDateLabel(problem.created_at))
+        const desc = escapeHtml(
+            truncateMapPopupText(problem.description_preview || problem.description) || '-',
+        )
+        const id = Number(problem.id)
+        const canMark = typeof onProblemMark === 'function' && id && getMarkableSet().has(id)
+        const markBtn = canMark
+            ? `<button type="button" class="kaunas-map-popup-mark-problem kaunas-map-popup-view-btn" data-mark-problem-id="${id}">Pažymėti</button>`
+            : ''
+        const viewBtn = onProblemOpen && id
+            ? `<p class="kaunas-map-popup-actions"><button type="button" class="kaunas-map-popup-open-problem kaunas-map-popup-view-btn" data-open-problem-id="${id}">Peržiūrėti</button>${markBtn}</p>`
+            : ''
+        const dateRow = dateText
+            ? `<div class="kaunas-map-popup-row"><span class="kaunas-map-popup-k">Data</span> ${dateText}</div>`
+            : ''
+        const meta = `<div class="kaunas-map-popup-meta">
+            <div class="kaunas-map-popup-row"><span class="kaunas-map-popup-k">Kategorija</span> ${cat}</div>
+            <div class="kaunas-map-popup-row"><span class="kaunas-map-popup-k">Adresas</span> ${addr}</div>
+            <div class="kaunas-map-popup-row"><span class="kaunas-map-popup-k">Būsena</span> ${statusText}</div>
+            ${dateRow}
+        </div>`
+        return `<div class="kaunas-map-popup-body"><strong class="kaunas-map-popup-title">${num}</strong>${meta}<p class="kaunas-map-popup-desc">${desc}</p>${viewBtn}</div>`
     }
 
     function buildClusterPopupContent(problems) {
         const lines = (problems || []).slice(0, 15).map((problem) => {
             const num = escapeHtml(problem.internal_number)
-            const preview = escapeHtml((problem.description_preview || problem.description || '').slice(0, 40))
-            return `<a href="#" class="kaunas-map-popup-open-problem" data-open-problem-id="${Number(problem.id)}">${num} ${preview}</a>`
+            const catRaw = (problem.category || '').trim()
+            const cat = catRaw ? `${escapeHtml(catRaw)} · ` : ''
+            const preview = escapeHtml((problem.description_preview || problem.description || '').slice(0, 36))
+            return `<a href="#" class="kaunas-map-popup-open-problem" data-open-problem-id="${Number(problem.id)}"><span class="kaunas-map-popup-cluster-line-num">${num}</span> <span class="kaunas-map-popup-cluster-line-rest">${cat}${preview}</span></a>`
         })
         const rest = problems.length > 15 ? problems.length - 15 : 0
         const restLine = rest > 0 ? `<span class="kaunas-map-popup-more">+${rest}</span>` : ''
@@ -108,6 +151,17 @@ export function useKaunasMap(containerRef, problemsToShowRef, options = {}) {
     function setupPopupNavListener() {
         if (!map) return
         const handler = (event) => {
+            const markBtn = event.target.closest('[data-mark-problem-id]')
+            if (markBtn) {
+                event.preventDefault()
+                event.stopPropagation()
+                const id = Number(markBtn.getAttribute('data-mark-problem-id'))
+                if (typeof onProblemMark === 'function' && id) {
+                    onProblemMark(id)
+                }
+                map.closePopup()
+                return
+            }
             const openBtn = event.target.closest('.kaunas-map-popup-open-problem[data-open-problem-id]')
             if (!openBtn) return
             event.preventDefault()
@@ -146,7 +200,7 @@ export function useKaunasMap(containerRef, problemsToShowRef, options = {}) {
                     iconAnchor: [size / 2, size / 2],
                 })
                 const marker = L.marker([problem.lat, problem.lng], { icon })
-                    .bindPopup(buildPopupContent(problem))
+                    .bindPopup(buildPopupContent(problem), { maxWidth: 320, className: 'kaunas-map-popup-root' })
                     .addTo(markersLayer)
                 markersById[problem.id] = marker
                 if (onProblemOpen) marker.on('dblclick', () => onProblemOpen(problem.id))
@@ -160,7 +214,7 @@ export function useKaunasMap(containerRef, problemsToShowRef, options = {}) {
                     iconAnchor: [CLUSTER_MARKER_SIZE / 2, CLUSTER_MARKER_SIZE / 2],
                 })
                 L.marker([lat, lng], { icon })
-                    .bindPopup(buildClusterPopupContent(problems))
+                    .bindPopup(buildClusterPopupContent(problems), { maxWidth: 320, className: 'kaunas-map-popup-root' })
                     .addTo(markersLayer)
             }
         })
@@ -239,6 +293,7 @@ export function useKaunasMap(containerRef, problemsToShowRef, options = {}) {
     watchOption(autoFitView)
     watchOption(focusHighlightedMarker)
     watchOption(mergedProblemIds, true)
+    watchOption(markableProblemIds, true)
 
     onUnmounted(cleanup)
 }

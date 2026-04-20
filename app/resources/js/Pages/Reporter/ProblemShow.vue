@@ -10,7 +10,7 @@ import ProblemMergeLinks from '@/Components/Problems/ProblemMergeLinks.vue'
 import StatusBadge from '@/Components/Problems/StatusBadge.vue'
 import { useFileUploadQueue, defaultFileUploadSettings } from '@/composables/useFileUploadQueue'
 import { useReporterApi } from '@/composables/useReporterApi'
-import { messageFromAxiosError } from '@/utils/laravelApiErrors'
+import { messageFromAxiosError, humanizeTechnicalUploadError } from '@/utils/laravelApiErrors'
 import {
     attachmentsToUploadBaseline,
     formatShortFileUploadLimitsLine,
@@ -85,7 +85,9 @@ const reporterShowsAttachmentsColumn = computed(
 )
 
 async function onAttachInputChange(e) {
-    if (!props.canUploadAttachments) return
+    if (!props.canUploadAttachments || isUploading.value) {
+        return
+    }
     handleFileChange(e)
     if (!selectedFiles.value.length) return
 
@@ -97,7 +99,9 @@ async function onAttachInputChange(e) {
         clearQueue()
         router.reload({ preserveScroll: true })
     } catch (err) {
-        fileHint.value = messageFromAxiosError(err, 'Įkelti nepavyko.')
+        fileHint.value = humanizeTechnicalUploadError(
+            messageFromAxiosError(err, 'Įkelti nepavyko.'),
+        )
     } finally {
         isUploading.value = false
     }
@@ -166,7 +170,7 @@ async function onAttachInputChange(e) {
                         >
                             <div class="reporter-desc-media-label">Priedai</div>
                             <p
-                                v-if="showFileSection && uploadLimitsHint"
+                                v-if="showFileSection && canUploadAttachments && uploadLimitsHint"
                                 class="reporter-upload-limits-hint"
                             >
                                 {{ uploadLimitsHint }}
@@ -225,9 +229,15 @@ async function onAttachInputChange(e) {
                                     @change="onAttachInputChange"
                                 >
                             </div>
-                            <p v-if="fileHint" class="reporter-priedai-hint-error">{{ fileHint }}</p>
                         </div>
                     </div>
+                    <p
+                        v-if="fileHint"
+                        class="reporter-upload-error-below-desc"
+                        role="alert"
+                    >
+                        {{ fileHint }}
+                    </p>
                 </div>
 
                 <div class="reporter-problem-actions">
@@ -429,11 +439,14 @@ async function onAttachInputChange(e) {
     font-family: var(--font-family-base, 'Open Sans', sans-serif);
 }
 
-.reporter-priedai-hint-error {
-    margin: 8px 0 0;
-    font-size: 12px;
+.reporter-upload-error-below-desc {
+    margin: 12px 0 0;
+    font-size: 14px;
+    line-height: 1.45;
     color: #c0392b;
     font-family: var(--font-family-base, 'Open Sans', sans-serif);
+    width: 100%;
+    max-width: 100%;
 }
 
 @media (max-width: 768px) {
@@ -444,6 +457,8 @@ async function onAttachInputChange(e) {
 
 .reporter-problem-actions {
     margin-top: 32px;
+    display: flex;
+    justify-content: flex-start;
 }
 
 .reporter-problem-stebeti-btn {
@@ -453,7 +468,7 @@ async function onAttachInputChange(e) {
     width: 100%;
     max-width: var(--button-width, 290px);
     height: var(--button-height, 45px);
-    margin: 0 auto;
+    margin: 0;
     padding: 9px 96px;
     font-size: 16px;
     font-weight: 600;

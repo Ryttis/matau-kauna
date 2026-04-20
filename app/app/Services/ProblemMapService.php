@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Enums\ProblemStatus;
 use App\Models\Problem;
+use App\Support\LithuanianSearchFold;
 use App\Models\ProblemWatch;
 use App\Models\User;
 use Illuminate\Support\Collection;
@@ -34,27 +35,30 @@ class ProblemMapService
             return [];
         }
         $mode = in_array($mode, ['number', 'address'], true) ? $mode : 'all';
+        $patternNumber = $this->likePattern($q, false);
+        $patternAddress = $this->likePattern($q, true);
+        $addressNormSql = $this->sqlAddressDiacriticInsensitiveLower();
         $centerLat = $this->getCenterLat();
         $centerLng = $this->getCenterLng();
         $problems = $this->getMapQueryForUser($user)
-            ->where(function ($sub) use ($q, $mode) {
+            ->where(function ($sub) use ($patternNumber, $patternAddress, $addressNormSql, $mode) {
                 if ($mode === 'number') {
-                    $sub->where('internal_number', 'like', '%'.$q.'%');
+                    $sub->whereRaw('LOWER(internal_number) LIKE ?', [$patternNumber]);
 
                     return;
                 }
                 if ($mode === 'address') {
                     $sub->whereNotNull('address')
                         ->where('address', '!=', '')
-                        ->where('address', 'like', '%'.$q.'%');
+                        ->whereRaw("{$addressNormSql} LIKE ?", [$patternAddress]);
 
                     return;
                 }
-                $sub->where(function ($byAddress) use ($q) {
+                $sub->where(function ($byAddress) use ($patternAddress, $addressNormSql) {
                     $byAddress->whereNotNull('address')
                         ->where('address', '!=', '')
-                        ->where('address', 'like', '%'.$q.'%');
-                })->orWhere('internal_number', 'like', '%'.$q.'%');
+                        ->whereRaw("{$addressNormSql} LIKE ?", [$patternAddress]);
+                })->orWhereRaw('LOWER(internal_number) LIKE ?', [$patternNumber]);
             })
             ->orderBy('internal_number')
             ->orderBy('created_at', 'desc')
@@ -64,6 +68,21 @@ class ProblemMapService
         return $problems->map(function ($problem, $index) use ($centerLat, $centerLng) {
             return $this->mapProblemToMapItem($problem, $centerLat, $centerLng, $index);
         })->values()->all();
+    }
+
+    private function likePattern(string $trimmedQuery, bool $foldLithuanianDiacritics): string
+    {
+        $lower = $foldLithuanianDiacritics
+            ? LithuanianSearchFold::fold($trimmedQuery)
+            : mb_strtolower($trimmedQuery, 'UTF-8');
+        $escaped = str_replace(['\\', '%', '_'], ['\\\\', '\\%', '\\_'], $lower);
+
+        return '%'.$escaped.'%';
+    }
+
+    private function sqlAddressDiacriticInsensitiveLower(): string
+    {
+        return LithuanianSearchFold::sqlLowerAndFoldColumn('address');
     }
 
     private function getCenterLat(): float
@@ -90,7 +109,7 @@ class ProblemMapService
                 function ($q) use ($user) {
                     $employeeId = $this->scopeService->employeeIdForUser($user);
                     if ($employeeId) {
-                        $q->where('assigned_employee_id', $employeeId);
+                        $q->whereVisibleToEmployee($employeeId);
                     } else {
                         $q->whereRaw('1 = 0');
                     }
@@ -100,12 +119,14 @@ class ProblemMapService
 
     public function getPublicProblemsForMap(?int $reportedByUserId = null, ?User $currentUser = null): array
     {
-        $center = config('kaunas.map_center');
-        $centerLat = $center['lat'];
-        $centerLng = $center['lng'];
+        $centerLat = $this->getCenterLat();
+        $centerLng = $this->getCenterLng();
+        $statusFilter = ($currentUser !== null && $currentUser->isReporterOnly())
+            ? ProblemStatus::reporterDashboardMapStatusValues()
+            : ProblemStatus::publicMapStatusValues();
         $query = Problem::query()
             ->notArchived()
-            ->whereIn('status', ProblemStatus::publicMapStatusValues())
+            ->whereIn('status', $statusFilter)
             ->when($reportedByUserId === null, fn ($q) => $q->where('is_published_publicly', true))
             ->when($reportedByUserId !== null, function ($q) use ($reportedByUserId) {
                 $q->where(function ($q2) use ($reportedByUserId) {
@@ -133,10 +154,11 @@ class ProblemMapService
         return $query->map(function ($problem) use ($centerLat, $centerLng, &$index, $watchedSet) {
             $item = $this->mapProblemToMapItem($problem, $centerLat, $centerLng, $index);
             $index++;
-            if (isset($problem->merged_into_problem_id)) {
+            if ($problem->merged_into_problem_id !== null) {
                 $item['merged_into_problem_id'] = $problem->merged_into_problem_id;
             }
-            $item['is_watched'] = isset($watchedSet[$problem->id]);
+            $watchRootId = $problem->merged_into_problem_id ?? $problem->id;
+            $item['is_watched'] = isset($watchedSet[$watchRootId]);
 
             return $item;
         })->values()->all();
@@ -144,9 +166,8 @@ class ProblemMapService
 
     public function buildMapProblemsForMerge(Problem $problem, Collection $mergedProblems, Collection $similarProblems): array
     {
-        $center = config('kaunas.map_center');
-        $centerLat = $center['lat'];
-        $centerLng = $center['lng'];
+        $centerLat = $this->getCenterLat();
+        $centerLng = $this->getCenterLng();
         $problemsForMap = collect([$problem])->concat($mergedProblems);
         foreach ($similarProblems as $s) {
             $problemsForMap->push($s);
@@ -174,7 +195,7 @@ class ProblemMapService
             'internal_number' => $problem->internal_number,
             'description_preview' => Problem::descriptionPreview($description, 200),
             'description' => $description,
-            'status' => $problem->status ?? 'nauja',
+            'status' => $problem->status ?? ProblemStatus::NEW->value,
             'category' => $problem->category,
             'address' => $problem->address,
             'created_at' => $problem->created_at?->toIso8601String(),

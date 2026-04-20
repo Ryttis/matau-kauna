@@ -22,6 +22,7 @@ class User extends Authenticatable implements MustVerifyEmail
         'phone',
         'viisp_personal_code_hash',
         'password',
+        'viisp_local_password_set_at',
         'two_factor_enabled',
         'email_notifications_enabled',
         'email_updates_institution_admin',
@@ -49,6 +50,7 @@ class User extends Authenticatable implements MustVerifyEmail
             'reporter_wizard_completed_at' => 'datetime',
             'reporter_report_terms_accepted_at' => 'datetime',
             'password' => 'hashed',
+            'viisp_local_password_set_at' => 'datetime',
             'two_factor_enabled' => 'boolean',
             'email_notifications_enabled' => 'boolean',
             'email_updates_institution_admin' => 'boolean',
@@ -170,49 +172,78 @@ class User extends Authenticatable implements MustVerifyEmail
         return false;
     }
 
+    public function canAccessAdmin(): bool
+    {
+        return $this->hasPermission('admin.access');
+    }
+
+    public function canManageAutomation(): bool
+    {
+        return $this->hasPermission('automation.manage');
+    }
+
+    public function canManageInvitations(): bool
+    {
+        return $this->hasPermission('invitations.manage');
+    }
+
+    public function canManageTeams(): bool
+    {
+        return $this->canManageInvitations();
+    }
+
+    public function canAssignInstitutionProblems(): bool
+    {
+        return $this->hasPermission('issues.assign');
+    }
+
+    public function canReassignInstitutions(): bool
+    {
+        return $this->hasPermission('issues.reassign');
+    }
+
     public function isProblemAdminOrSystemAdmin(): bool
     {
-        return $this->hasAnyRole([
-            UserRole::ROLE_PROBLEM_ADMIN,
-            UserRole::ROLE_SYSTEM_ADMIN,
-        ]);
+        return $this->hasPermission('issues.publish');
     }
 
     public function canPublishProblems(): bool
     {
-        return $this->isProblemAdminOrSystemAdmin();
+        return $this->hasPermission('issues.publish');
     }
 
     public function isInstitutionAdminOrSystemAdmin(): bool
     {
-        return $this->hasAnyRole([
-            UserRole::ROLE_INSTITUTION_ADMIN,
-            UserRole::ROLE_SYSTEM_ADMIN,
-        ]);
+        return $this->canManageInvitations();
     }
 
     public function canMergeProblems(): bool
     {
-        return $this->hasAnyRole([
-            UserRole::ROLE_PROBLEM_ADMIN,
-            UserRole::ROLE_INSTITUTION_ADMIN,
-            UserRole::ROLE_SYSTEM_ADMIN,
-        ]);
+        return $this->hasPermission('issues.merge');
+    }
+
+    public function canDeleteProblems(): bool
+    {
+        return $this->hasPermission('issues.delete');
     }
 
     public function canEditProblemClassification(): bool
     {
-        if ($this->hasRole(UserRole::ROLE_SYSTEM_ADMIN)) {
-            return true;
-        }
-
-        return $this->hasRole(UserRole::ROLE_PROBLEM_ADMIN)
-            && $this->hasPermission('classification.edit');
+        return $this->hasPermission('classification.edit');
     }
 
     public function isReporterOnly(): bool
     {
         return $this->hasRole(UserRole::ROLE_REPORTER)
             && ! $this->hasPermission('issues.view');
+    }
+
+    public function canAuthenticateWithEmailPassword(): bool
+    {
+        if ($this->viisp_personal_code_hash === null) {
+            return true;
+        }
+
+        return $this->viisp_local_password_set_at !== null;
     }
 }

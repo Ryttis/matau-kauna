@@ -7,13 +7,12 @@ import BaseModal from '@/Components/App/BaseModal.vue'
 import ConfirmModal from '@/Components/App/ConfirmModal.vue'
 import SuccessModal from '@/Components/App/SuccessModal.vue'
 import AppButton from '@/Components/App/AppButton.vue'
-import AppCheckbox from '@/Components/App/AppCheckbox.vue'
 import AppInput from '@/Components/App/AppInput.vue'
 import ModalFooterActions from '@/Components/App/ModalFooterActions.vue'
+import InstitutionTeamMembersModal from '@/Components/InstitutionTeams/InstitutionTeamMembersModal.vue'
 import { adminApi } from '@/constants/api/adminApi'
 import { settingsApi } from '@/constants/api/settingsApi'
 import { useSuccessModal } from '@/composables/useSuccessModal'
-import { ROLE_SYSTEM_ADMIN } from '@/constants/domain/roles'
 
 const props = defineProps({
     initialInstitutionId: {
@@ -23,7 +22,7 @@ const props = defineProps({
 })
 
 const page = usePage()
-const isSystemAdmin = computed(() => (page.props.auth?.roles ?? []).some((r) => r.role === ROLE_SYSTEM_ADMIN))
+const isSystemAdmin = computed(() => (page.props.auth?.permissions ?? []).includes('admin.access'))
 const { showSuccessModal, successMessage, closeSuccessModal, showWithMessage } = useSuccessModal()
 
 const loading = ref(false)
@@ -41,12 +40,9 @@ const createForm = ref({ name: '' })
 
 const isMembersOpen = ref(false)
 const selectedTeam = ref(null)
-const selectedEmployeeIds = ref([])
 
 const isDeleteOpen = ref(false)
 const deleteTarget = ref(null)
-
-const employeeFullName = (e) => [e.name, e.surname].filter(Boolean).join(' ')
 
 const loadInstitutions = async () => {
     const { data } = await axios.get(adminApi.institutionsList)
@@ -115,36 +111,17 @@ const createTeam = async () => {
 
 const openMembersModal = (team) => {
     selectedTeam.value = team
-    selectedEmployeeIds.value = (team.employees ?? []).map((e) => e.id)
     isMembersOpen.value = true
 }
 
-const toggleEmployee = (id, checked) => {
-    if (checked) {
-        selectedEmployeeIds.value = [...selectedEmployeeIds.value, id]
-    } else {
-        selectedEmployeeIds.value = selectedEmployeeIds.value.filter((i) => i !== id)
-    }
+const closeMembersModal = () => {
+    isMembersOpen.value = false
+    selectedTeam.value = null
 }
 
-const saveMembers = async () => {
-    if (!selectedTeam.value || saving.value) return
-    saving.value = true
-
-    try {
-        const { data } = await axios.post(settingsApi.teamMembers(selectedTeam.value.id), {
-            employee_ids: selectedEmployeeIds.value,
-        })
-
-        teams.value = teams.value.map((t) => (t.id === data.id ? data : t))
-
-        isMembersOpen.value = false
-        showWithMessage('Komandos nariai atnaujinti.')
-    } catch (e) {
-        errorMessage.value = e.response?.data?.message ?? 'Nepavyko atnaujinti narių.'
-    } finally {
-        saving.value = false
-    }
+const onMembersSaved = (data) => {
+    teams.value = teams.value.map((t) => (t.id === data.id ? data : t))
+    showWithMessage('Komandos nariai atnaujinti.')
 }
 
 const openDelete = (team) => {
@@ -257,38 +234,13 @@ const canRender = computed(() => {
             </template>
         </BaseModal>
 
-        <BaseModal
+        <InstitutionTeamMembersModal
             :open="isMembersOpen"
-            title="Priskirti komandos narius"
-            width="720px"
-            max-width="90vw"
-            @close="isMembersOpen = false"
-        >
-            <div class="hint">
-                Komanda: <strong>{{ selectedTeam?.name ?? '—' }}</strong>
-            </div>
-
-            <div class="members-list">
-                <label v-for="e in employees" :key="e.id" class="member-item">
-                    <AppCheckbox
-                        :model-value="selectedEmployeeIds.includes(e.id)"
-                        @update:model-value="(checked) => toggleEmployee(e.id, checked)"
-                    />
-                    <span class="member-name">{{ employeeFullName(e) }}</span>
-                    <span class="member-email">{{ e.email }}</span>
-                </label>
-            </div>
-
-            <template #footer>
-                <ModalFooterActions
-                    cancel-text="Atšaukti"
-                    primary-text="Išsaugoti"
-                    :primary-disabled="saving"
-                    @cancel="isMembersOpen = false"
-                    @primary="saveMembers"
-                />
-            </template>
-        </BaseModal>
+            :team="selectedTeam"
+            :institution-employees="employees"
+            @close="closeMembersModal"
+            @saved="onMembersSaved"
+        />
 
         <ConfirmModal
             :open="isDeleteOpen"
@@ -354,43 +306,6 @@ const canRender = computed(() => {
 .field-label {
     font-size: 14px;
     font-weight: 600;
-}
-
-.members-list {
-    margin-top: 12px;
-    display: grid;
-    grid-template-columns: 1fr;
-    gap: 8px;
-    max-height: 52vh;
-    overflow: auto;
-    padding-right: 6px;
-}
-
-.member-item {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    padding: 10px 12px;
-    border: 1px solid var(--color-border-light, #e6e8ee);
-    border-radius: 12px;
-}
-
-.member-name {
-    font-weight: 600;
-}
-
-.member-email {
-    margin-left: auto;
-    color: var(--color-text-muted, #666);
-    font-size: 13px;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    max-width: 220px;
-}
-
-.hint {
-    margin-bottom: 10px;
 }
 
 .actions-row {

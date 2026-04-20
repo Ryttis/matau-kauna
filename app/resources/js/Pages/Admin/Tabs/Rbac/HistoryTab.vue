@@ -36,7 +36,7 @@ async function load() {
 }
 
 function formatDate(str) {
-    if (!str) return '—'
+    if (!str) return '-'
     return new Date(str).toLocaleString('lt-LT')
 }
 
@@ -97,10 +97,10 @@ load()
                 </thead>
                 <tbody>
                     <tr v-for="row in data" :key="row.id">
-                        <td>{{ row.user_name ?? '—' }}</td>
-                        <td>{{ row.user_email ?? '—' }}</td>
+                        <td>{{ row.user_name ?? '-' }}</td>
+                        <td>{{ row.user_email ?? '-' }}</td>
                         <td>Prisijungimas</td>
-                        <td>{{ row.ip ?? '—' }}</td>
+                        <td>{{ row.ip ?? '-' }}</td>
                         <td>{{ formatDate(row.created_at) }}</td>
                     </tr>
                 </tbody>

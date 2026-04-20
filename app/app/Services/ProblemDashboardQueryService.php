@@ -6,7 +6,6 @@ use App\Enums\ProblemStatus;
 use App\Models\ClassifierValue;
 use App\Models\Problem;
 use App\Models\User;
-use App\Models\UserRole;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Collection;
 
@@ -48,7 +47,7 @@ class ProblemDashboardQueryService
                 $this->scopeService->isEmployeeScoped($user),
                 function ($query) use ($employeeId) {
                     if ($employeeId) {
-                        $query->where('assigned_employee_id', $employeeId);
+                        $query->whereVisibleToEmployee($employeeId);
                     } else {
                         $query->whereRaw('1 = 0');
                     }
@@ -86,7 +85,7 @@ class ProblemDashboardQueryService
         $query = Problem::query()
             ->notArchived()
             ->when(
-                $user->hasRole(UserRole::ROLE_INSTITUTION_ADMIN),
+                $this->scopeService->isInstitutionScoped($user),
                 fn ($q) => $q->where('institution_id', $user->institution_id)
             )
             ->filtered($filters)

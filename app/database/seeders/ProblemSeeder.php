@@ -3,8 +3,11 @@
 namespace Database\Seeders;
 
 use App\Enums\ProblemStatus;
+use App\Models\ClassifierValue;
+use App\Models\Institution;
 use App\Models\Problem;
 use App\Models\ProblemReviewHistory;
+use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
@@ -20,92 +23,96 @@ class ProblemSeeder extends Seeder
             Problem::query()->delete();
         }
 
-        $statuses = ProblemStatus::values();
-
         $problemsData = [
             [
-                'address' => 'Laisvės al. 1, Kaunas',
-                'lat' => 54.8985,
-                'lng' => 23.8863,
+                'status' => ProblemStatus::NEW->value,
+                'address' => 'Karaliaus Mindaugo pr. 35, Kaunas',
+                'lat' => 54.8915,
+                'lng' => 23.9138,
                 'category' => 'Eismas',
-                'description' => 'Neveikia šviesoforas sankryžoje',
+                'nature' => 'Šviesoforas',
+                'institution_code' => 'KMS',
+                'description' => 'Sankryžoje netiksliai veikia šviesoforo fazės ir susidaro spūstys piko metu.',
             ],
             [
-                'address' => 'Gedimino g. 5, Kaunas',
-                'lat' => 54.8970,
-                'lng' => 23.8850,
+                'status' => ProblemStatus::IN_REVIEW->value,
+                'address' => 'Šiaurės pr. 12, Kaunas',
+                'lat' => 54.9322,
+                'lng' => 23.9507,
                 'category' => 'Keliai',
-                'description' => 'Didelė duobė važiuojamojoje dalyje',
+                'nature' => 'Duobė',
+                'institution_code' => 'KMS',
+                'description' => 'Važiuojamojoje dalyje po žiemos atsivėrė gili duobė, kelianti pavojų eismui.',
             ],
             [
-                'address' => 'Vilniaus g. 12, Kaunas',
-                'lat' => 54.8990,
-                'lng' => 23.8920,
+                'status' => ProblemStatus::IN_REVIEW->value,
+                'address' => 'A. Juozapavičiaus pr. 67, Kaunas',
+                'lat' => 54.8797,
+                'lng' => 23.9306,
                 'category' => 'Apšvietimas',
-                'description' => 'Nedega gatvės šviestuvas',
+                'nature' => 'Neveikianti lempa',
+                'institution_code' => 'KMS',
+                'description' => 'Nakties metu neveikia trys gatvės šviestuvai iš eilės, prastas matomumas pėsčiųjų take.',
             ],
             [
-                'address' => 'Kęstučio g. 25, Kaunas',
-                'lat' => 54.9010,
-                'lng' => 23.9080,
-                'category' => 'Pėsčiųjų takai',
-                'description' => 'Atskilę plytelės',
-            ],
-            [
-                'address' => 'Vytauto pr. 45, Kaunas',
-                'lat' => 54.8940,
-                'lng' => 23.9180,
-                'category' => 'Keliai',
-                'description' => 'Po lietaus telkšo vanduo',
-            ],
-            [
-                'address' => 'Donelaičio g. 8, Kaunas',
-                'lat' => 54.8960,
-                'lng' => 23.8810,
-                'category' => 'Keliai',
-                'description' => 'Iškilęs asfaltas kelio ruože',
-            ],
-            [
-                'address' => 'Maironio g. 15, Kaunas',
-                'lat' => 54.8975,
-                'lng' => 23.8870,
+                'status' => ProblemStatus::RETURNED_FOR_REVIEW->value,
+                'address' => 'Partizanų g. 104, Kaunas',
+                'lat' => 54.9203,
+                'lng' => 23.9724,
                 'category' => 'Infrastruktūra',
-                'description' => 'Pažeistas tvoros elementas',
+                'nature' => 'Komunikacijos',
+                'institution_code' => 'KRATC',
+                'description' => 'Po liūties šulinio dangtis pakilęs, reikalinga skubi techninė apžiūra.',
             ],
             [
-                'address' => 'Rotušės a. 3, Kaunas',
-                'lat' => 54.8972,
-                'lng' => 23.8865,
+                'status' => ProblemStatus::RESOLVED->value,
+                'address' => 'Studentų g. 48, Kaunas',
+                'lat' => 54.9049,
+                'lng' => 23.9573,
                 'category' => 'Parkai',
-                'description' => 'Neveikia fontano sistema',
+                'nature' => 'Valymas',
+                'institution_code' => 'KRATC',
+                'description' => 'Pažeisti suoliukai ir šiukšliadėžės sutvarkytos, paliekamas įrašas kaip išspręstas atvejis.',
             ],
         ];
 
-        $responsibleNames = [
-            'Antanas Antanaitis',
-            'Jonas Jonaitis',
-            'Petras Petraitis',
-        ];
+        $reporter = User::where('email', 'aiste.zukaite@kaunas.lt')->first();
+        $responsibleNames = ['Tomas Jankauskas', 'Rasa Vaitkevičiūtė', 'Lukas Bielskis'];
+        $typeLookup = ClassifierValue::query()->whereNull('parent_id')->pluck('id', 'name');
+        $institutionsByCode = Institution::query()->pluck('id', 'code');
 
         $comments = [
-            'Problema perduota nagrinėjimui',
-            'Reikia papildomų tyrimų',
-            'Laukiama atsakymo iš atsakingos institucijos',
-            'Problema išspręsta',
+            'Užduotis priimta ir perduota atsakingam skyriui.',
+            'Atlikta vietos apžiūra, renkama papildoma informacija.',
+            'Vykdomi rangos darbai pagal suderintą grafiką.',
+            'Darbai užbaigti, atlikta kokybės patikra.',
         ];
 
         foreach ($problemsData as $i => $data) {
-            $daysAgo = rand(0, 30);
+            $daysAgo = 20 - ($i * 3);
             $createdAt = Carbon::now()->subDays($daysAgo);
-            $statusUpdatedAt = $createdAt->copy()->addDays(rand(0, min($daysAgo, 10)));
+            $statusUpdatedAt = $createdAt->copy()->addDays(min($daysAgo, 7));
+            $problemTypeId = $typeLookup[$data['category']] ?? null;
+            $problemNatureId = null;
+
+            if ($problemTypeId) {
+                $problemNatureId = ClassifierValue::query()
+                    ->where('parent_id', $problemTypeId)
+                    ->where('name', $data['nature'])
+                    ->value('id');
+            }
 
             $problem = Problem::create([
-                'status' => $statuses[array_rand($statuses)],
+                'status' => $data['status'],
                 'category' => $data['category'],
+                'problem_type_id' => $problemTypeId,
+                'problem_nature_id' => $problemNatureId,
                 'address' => $data['address'],
                 'lat' => $data['lat'],
                 'lng' => $data['lng'],
                 'description' => $data['description'],
+                'institution_id' => $institutionsByCode[$data['institution_code']] ?? null,
+                'reported_by_user_id' => $reporter?->id,
                 'status_updated_at' => $statusUpdatedAt,
             ]);
 
@@ -113,19 +120,20 @@ class ProblemSeeder extends Seeder
             $problem->updated_at = $createdAt;
             $problem->saveQuietly();
 
-            $historyCount = rand(2, 4);
+            $historyCount = 2;
             for ($j = 0; $j < $historyCount; $j++) {
                 $historyDate = $createdAt->copy()
-                    ->addDays(rand(1, max(1, $daysAgo)))
-                    ->addHours(rand(8, 18))
-                    ->addMinutes(rand(0, 59));
+                    ->addDays($j + 1)
+                    ->addHours(9 + $j)
+                    ->addMinutes(15);
 
                 ProblemReviewHistory::create([
                     'problem_id' => $problem->id,
-                    'status' => $statuses[array_rand($statuses)],
+                    'status' => $data['status'],
+                    'status_changed' => true,
                     'responsible' => $responsibleNames[array_rand($responsibleNames)],
                     'comment' => $comments[array_rand($comments)],
-                    'visibility' => rand(0, 1) === 1 ? 'public' : 'internal',
+                    'visibility' => $j === 0 ? 'internal' : 'public',
                     'created_at' => $historyDate,
                     'updated_at' => $historyDate,
                 ]);

@@ -2,7 +2,7 @@
 import BaseModal from '@/Components/App/BaseModal.vue'
 import AppButton from '@/Components/App/AppButton.vue'
 
-defineProps({
+const props = defineProps({
     open: Boolean,
     title: {
         type: String,
@@ -46,6 +46,11 @@ defineProps({
 })
 
 const emit = defineEmits(['close', 'confirm'])
+
+function onModalCloseRequest() {
+    if (props.loading) return
+    emit('close')
+}
 </script>
 
 <template>
@@ -57,17 +62,18 @@ const emit = defineEmits(['close', 'confirm'])
         :max-height="maxHeight"
         :footer-layout="footerLayout"
         :z-index="zIndex"
-        @close="emit('close')"
+        :show-close-button="!loading"
+        @close="onModalCloseRequest"
     >
         <p class="confirm-modal-message">{{ message }}</p>
 
         <template #footer>
             <template v-if="footerLayout === 'column'">
                 <AppButton
-                    :text="loading ? '...' : confirmText"
+                    :text="confirmText"
                     variant="primary"
                     as-button
-                    :disabled="loading"
+                    :loading="loading"
                     :class="{ 'confirm-modal-danger-btn': confirmVariant === 'danger' }"
                     @click="emit('confirm')"
                 />
@@ -75,7 +81,8 @@ const emit = defineEmits(['close', 'confirm'])
                     :text="cancelText"
                     variant="secondary"
                     as-button
-                    @click="emit('close')"
+                    :disabled="loading"
+                    @click="onModalCloseRequest"
                 />
             </template>
             <template v-else>
@@ -83,13 +90,14 @@ const emit = defineEmits(['close', 'confirm'])
                     :text="cancelText"
                     variant="secondary"
                     as-button
-                    @click="emit('close')"
+                    :disabled="loading"
+                    @click="onModalCloseRequest"
                 />
                 <AppButton
-                    :text="loading ? '...' : confirmText"
+                    :text="confirmText"
                     variant="primary"
                     as-button
-                    :disabled="loading"
+                    :loading="loading"
                     :class="{ 'confirm-modal-danger-btn': confirmVariant === 'danger' }"
                     @click="emit('confirm')"
                 />

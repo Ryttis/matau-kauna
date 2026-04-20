@@ -16,6 +16,7 @@ const badgeStyle = computed(() => getStatusBadgeStyle(props.status || PROBLEM_ST
 
 <style scoped>
 .status-badge {
+    box-sizing: border-box;
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -24,6 +25,7 @@ const badgeStyle = computed(() => getStatusBadgeStyle(props.status || PROBLEM_ST
     border-radius: 15px;
     font-size: 16px;
     font-weight: 600;
+    line-height: 1.25;
     border: 1px solid transparent;
     font-family: 'Open Sans', sans-serif;
 }

@@ -7,10 +7,11 @@ import FilterModal from '@/Components/App/Modals/FilterModal.vue'
 import InactiveReasonModal from '@/Components/App/Modals/InactiveReasonModal.vue'
 import StatusChangeModal from '@/Components/App/Modals/StatusChangeModal.vue'
 import KaunasProblemsMap from '@/Components/Map/KaunasProblemsMap.vue'
+import ProblemMapStatusLegend from '@/Components/Map/ProblemMapStatusLegend.vue'
 import MapAddressAutocomplete from '@/Components/Map/MapAddressAutocomplete.vue'
 import { useAuth } from '@/composables/useAuth'
 import { ICON_FILTER } from '@/constants/ui/icons'
-import { PROBLEM_STATUS, MARKER_COLOR_BY_STATUS } from '@/constants/domain/problemStatus'
+import { PROBLEM_STATUS } from '@/constants/domain/problemStatus'
 import { buildInactiveReviewPostBody } from '@/constants/domain/reviewProgressEntry'
 
 const props = defineProps({
@@ -90,6 +91,8 @@ const showStatusModal = ref(false)
 const showInactiveReasonModal = ref(false)
 const inactiveComment = ref('')
 const inactiveSubmitting = ref(false)
+const inactiveSubmitChannel = ref(null)
+const statusPatchSubmitting = ref(false)
 
 const canAssignSelectedProblemOnMap = computed(() => {
     const p = selectedProblemFromAddress.value
@@ -116,17 +119,22 @@ const handleDisplayStatus = () => {
 
 const handleStatusChange = (status) => {
     if (!selectedProblemFromAddress.value) return
+    if (statusPatchSubmitting.value) return
     if (status === PROBLEM_STATUS.INACTIVE) {
         showStatusModal.value = false
         inactiveComment.value = ''
         showInactiveReasonModal.value = true
         return
     }
+    statusPatchSubmitting.value = true
     router.patch(route('problems.updateStatus', selectedProblemFromAddress.value.id), { status }, {
         preserveScroll: true,
         onSuccess: () => {
             showStatusModal.value = false
             selectedProblemFromAddress.value = { ...selectedProblemFromAddress.value, status }
+        },
+        onFinish: () => {
+            statusPatchSubmitting.value = false
         },
     })
 }
@@ -140,6 +148,7 @@ const submitInactiveReason = (visibility) => {
     const p = selectedProblemFromAddress.value
     if (!p || inactiveSubmitting.value) return
     inactiveSubmitting.value = true
+    inactiveSubmitChannel.value = visibility
     router.post(
         route('problems.reviewProgress.store', p.id),
         buildInactiveReviewPostBody(inactiveComment.value, visibility),
@@ -152,19 +161,15 @@ const submitInactiveReason = (visibility) => {
             },
             onFinish: () => {
                 inactiveSubmitting.value = false
+                inactiveSubmitChannel.value = null
             },
         },
     )
 }
 
 const handleStatusModalClose = () => {
+    if (statusPatchSubmitting.value) return
     showStatusModal.value = false
-}
-
-const statusIndicatorVars = {
-    '--status-new': MARKER_COLOR_BY_STATUS[PROBLEM_STATUS.NEW],
-    '--status-review': MARKER_COLOR_BY_STATUS[PROBLEM_STATUS.IN_REVIEW],
-    '--status-resolved': MARKER_COLOR_BY_STATUS[PROBLEM_STATUS.RESOLVED],
 }
 </script>
 
@@ -172,7 +177,7 @@ const statusIndicatorVars = {
     <Head title="Žemėlapis" />
 
     <AuthenticatedLayout>
-        <div class="map-page" :style="statusIndicatorVars">
+        <div class="map-page">
             <div class="search-filter-section">
                 <div class="map-page-search-wrap">
                     <MapAddressAutocomplete
@@ -192,27 +197,13 @@ const statusIndicatorVars = {
                 />
             </div>
 
-            <div class="status-indicators">
-                <div class="status-indicator status-new">
-                    <div class="status-circle status-circle--new"></div>
-                    <span class="status-label">Naujos</span>
-                </div>
-                <div class="status-indicator status-review">
-                    <div class="status-circle status-circle--review"></div>
-                    <span class="status-label">Nagrinėjamos</span>
-                </div>
-                <div class="status-indicator status-resolved">
-                    <div class="status-circle status-circle--resolved"></div>
-                    <span class="status-label">Išspręstos</span>
-                </div>
-            </div>
+            <ProblemMapStatusLegend />
 
             <div class="map-container">
                 <KaunasProblemsMap
                     :problems="problemsForMap"
                     :highlighted-problem-id="selectedProblemFromAddress?.id ?? null"
                     marker-class="map-page-marker"
-                    :show-legend="false"
                     @open-problem="openProblemView"
                 />
             </div>
@@ -272,6 +263,7 @@ const statusIndicatorVars = {
             <StatusChangeModal
                 :show="showStatusModal"
                 :problem="selectedProblemFromAddress"
+                :saving="statusPatchSubmitting"
                 @close="handleStatusModalClose"
                 @save="handleStatusChange"
             />
@@ -280,6 +272,7 @@ const statusIndicatorVars = {
                 v-model:comment="inactiveComment"
                 :open="showInactiveReasonModal"
                 :submitting="inactiveSubmitting"
+                :active-submit-channel="inactiveSubmitChannel"
                 @close="closeInactiveReasonModal"
                 @submit="submitInactiveReason"
             />
@@ -307,56 +300,23 @@ const statusIndicatorVars = {
 
 .search-filter-section {
     display: flex;
-    gap: 40px;
+    flex-wrap: wrap;
+    gap: 12px 16px;
     align-items: center;
-    justify-content: center;
+    justify-content: flex-start;
+    width: 100%;
 }
 
 .map-page-search-wrap {
-    width: 340px;
+    flex: 1 1 240px;
+    max-width: 420px;
+    min-width: 0;
 }
 
 .filter-icon {
     display: block;
-    margin: auto 0;
+    flex-shrink: 0;
     cursor: pointer;
-}
-
-.status-indicators {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 24px;
-    align-items: center;
-    justify-content: center;
-}
-
-.status-indicator {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-}
-
-.status-circle {
-    width: 20px;
-    height: 20px;
-    border-radius: 50%;
-}
-
-.status-circle--new {
-    background-color: var(--status-new);
-}
-
-.status-circle--review {
-    background-color: var(--status-review);
-}
-
-.status-circle--resolved {
-    background-color: var(--status-resolved);
-}
-
-.status-label {
-    font-size: 16px;
-    color: #333;
 }
 
 .map-container {

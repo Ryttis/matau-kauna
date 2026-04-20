@@ -11,6 +11,8 @@ export const COLOR_BORDER_LIGHT = '#e6e8ee'
 export const COLOR_GRAY_400 = '#9e9e9e'
 export const COLOR_GRAY_500 = '#6b7280'
 
+export const MAP_LEGEND_DOT_SIZE_PX = 12
+
 export const CSS_VARS = {
     primary: '--color-primary',
     primaryHover: '--color-primary-hover',

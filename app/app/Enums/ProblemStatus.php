@@ -46,6 +46,14 @@ enum ProblemStatus: string
         ], $cases));
     }
 
+    public static function valuesEligibleForManualStaffUpdate(): array
+    {
+        return array_values(array_filter(
+            self::values(),
+            fn (string $v) => $v !== self::NEW->value
+        ));
+    }
+
     public static function labels(): array
     {
         return array_combine(
@@ -57,18 +65,38 @@ enum ProblemStatus: string
     public static function staffMapStatusValues(): array
     {
         return [
+            self::UNREGISTERED->value,
             self::NEW->value,
             self::IN_REVIEW->value,
             self::RETURNED_FOR_REVIEW->value,
             self::RESOLVED->value,
+            self::INACTIVE->value,
         ];
     }
 
     public static function publicMapStatusValues(): array
     {
         return [
+            self::IN_REVIEW->value,
+            self::RESOLVED->value,
+        ];
+    }
+
+    public static function reporterDashboardMapStatusValues(): array
+    {
+        return [
             self::NEW->value,
             self::IN_REVIEW->value,
+            self::RESOLVED->value,
+        ];
+    }
+
+    public static function reporterOwnedProblemsQueryStatusValues(): array
+    {
+        return [
+            self::NEW->value,
+            self::IN_REVIEW->value,
+            self::RETURNED_FOR_REVIEW->value,
             self::RESOLVED->value,
         ];
     }

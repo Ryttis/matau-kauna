@@ -51,12 +51,21 @@ const showDeleteModal = ref(false)
 const showInactiveReasonModal = ref(false)
 const inactiveComment = ref('')
 const inactiveSubmitting = ref(false)
+const inactiveSubmitChannel = ref(null)
+const statusSubmitting = ref(false)
+const deleteSubmitting = ref(false)
 
 const handleBack = () => {
     router.visit(route('dashboard'))
 }
 
+const closeStatusModal = () => {
+    if (statusSubmitting.value) return
+    showStatusModal.value = false
+}
+
 const handleStatusChange = (status) => {
+    if (statusSubmitting.value) return
     if (status === PROBLEM_STATUS.INACTIVE) {
         showStatusModal.value = false
         inactiveComment.value = ''
@@ -64,13 +73,17 @@ const handleStatusChange = (status) => {
         return
     }
 
+    statusSubmitting.value = true
     router.patch(route('problems.updateStatus', props.problem.id), {
         status,
     }, {
         preserveScroll: true,
         onSuccess: () => {
             showStatusModal.value = false
-        }
+        },
+        onFinish: () => {
+            statusSubmitting.value = false
+        },
     })
 }
 
@@ -82,6 +95,7 @@ const closeInactiveReasonModal = () => {
 const submitInactiveReason = (visibility) => {
     if (inactiveSubmitting.value) return
     inactiveSubmitting.value = true
+    inactiveSubmitChannel.value = visibility
     router.post(
         route('problems.reviewProgress.store', props.problem.id),
         buildInactiveReviewPostBody(inactiveComment.value, visibility),
@@ -93,6 +107,7 @@ const submitInactiveReason = (visibility) => {
             },
             onFinish: () => {
                 inactiveSubmitting.value = false
+                inactiveSubmitChannel.value = null
             },
         },
     )
@@ -111,10 +126,15 @@ const closeEditModal = () => {
 }
 
 const handleConfirmDelete = () => {
+    if (deleteSubmitting.value) return
+    deleteSubmitting.value = true
     router.delete(route('problems.destroy', props.problem.id), {
         preserveScroll: false,
         onSuccess: () => {
             showDeleteModal.value = false
+        },
+        onFinish: () => {
+            deleteSubmitting.value = false
         },
     })
 }
@@ -148,16 +168,19 @@ const employeeDisplayName = (emp) => {
 const assignmentInfo = computed(() => {
     const p = props.problem
     if (!p) {
-        return { hasAny: false, institutionName: null, employeeName: null }
+        return { hasAny: false, institutionName: null, employeeName: null, teamName: null }
     }
     const inst = p.institution
     const emp = p.assigned_employee ?? p.assignedEmployee
+    const team = p.assigned_institution_team ?? p.assignedInstitutionTeam
     const institutionName = inst?.name?.trim() || null
     const employeeName = employeeDisplayName(emp) || null
+    const teamName = team?.name?.trim() || null
     return {
-        hasAny: Boolean(institutionName || employeeName),
+        hasAny: Boolean(institutionName || employeeName || teamName),
         institutionName,
         employeeName,
+        teamName,
     }
 })
 </script>
@@ -187,6 +210,12 @@ const assignmentInfo = computed(() => {
 
             <div class="problem-status-section">
                 <StatusBadge :status="problem?.status" />
+                <span
+                    class="problem-public-label"
+                    :class="{ 'problem-public-label--on': problem.is_published_publicly }"
+                >
+                    {{ problem.is_published_publicly ? 'Paskelbta viešai' : 'Nepaskelbta viešai' }}
+                </span>
             </div>
 
             <ProblemMergeLinks
@@ -213,8 +242,15 @@ const assignmentInfo = computed(() => {
                         readonly
                     />
                     <AppInput
+                        v-if="assignmentInfo.teamName"
+                        :model-value="assignmentInfo.teamName"
+                        label="Komanda"
+                        type="text"
+                        readonly
+                    />
+                    <AppInput
                         v-if="!assignmentInfo.hasAny"
-                        model-value="Dar nepriskirta įstaigai arba konkrečiam darbuotojui."
+                        model-value="Dar nepriskirta įstaigai, darbuotojui arba komandai."
                         label="Skirta"
                         type="text"
                         readonly
@@ -242,11 +278,19 @@ const assignmentInfo = computed(() => {
                         readonly
                     />
 
-                    <div class="problem-media">
+                    <div
+                        v-if="(problem.attachments ?? []).length"
+                        class="problem-attachments-below"
+                    >
                         <ProblemAttachmentsPanel
-                            :attachments="problem.attachments ?? []"
+                            compact
+                            direct-lightbox
+                            skip-compact-min-height
+                            compact-use-small-thumbs
+                            show-compact-open-hint
+                            :attachments="problem.attachments"
                             :problem-id="problem.id"
-                            :can-delete="canEditProblem"
+                            :can-delete="false"
                         />
                     </div>
                 </div>
@@ -353,7 +397,8 @@ const assignmentInfo = computed(() => {
                 :show="showStatusModal"
                 :problem="problem"
                 :selected-problem-ids="[]"
-                @close="showStatusModal = false"
+                :saving="statusSubmitting"
+                @close="closeStatusModal"
                 @save="handleStatusChange"
             />
 
@@ -373,6 +418,7 @@ const assignmentInfo = computed(() => {
                 footer-layout="column"
                 confirm-variant="primary"
                 width="369px"
+                :loading="deleteSubmitting"
                 @close="showDeleteModal = false"
                 @confirm="handleConfirmDelete"
             />
@@ -381,6 +427,7 @@ const assignmentInfo = computed(() => {
                 v-model:comment="inactiveComment"
                 :open="showInactiveReasonModal"
                 :submitting="inactiveSubmitting"
+                :active-submit-channel="inactiveSubmitChannel"
                 @close="closeInactiveReasonModal"
                 @submit="submitInactiveReason"
             />
@@ -433,7 +480,34 @@ const assignmentInfo = computed(() => {
 }
 
 .problem-status-section {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 12px;
     margin-bottom: 20px;
+}
+
+.problem-public-label {
+    box-sizing: border-box;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: var(--button-height, 45px);
+    padding: 12px 24px;
+    border-radius: 15px;
+    font-size: 16px;
+    font-weight: 600;
+    line-height: 1.25;
+    font-family: var(--font-family-base, 'Open Sans', sans-serif);
+    border: 1px solid #cfd8dc;
+    background: #eceff1;
+    color: #455a64;
+}
+
+.problem-public-label--on {
+    border-color: #81c784;
+    background: #e8f5e9;
+    color: #1b5e20;
 }
 
 .problem-content {
@@ -464,13 +538,13 @@ const assignmentInfo = computed(() => {
 }
 
 .problem-content-bottom {
-    display: grid;
-    grid-template-columns: 1fr minmax(0, 400px);
-    grid-template-rows: auto;
-    gap: 32px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
     margin-top: 20px;
-    align-items: start;
+    align-items: stretch;
     width: 100%;
+    max-width: 600px;
     min-width: 0;
 }
 
@@ -506,34 +580,13 @@ const assignmentInfo = computed(() => {
 }
 
 
-.problem-media {
-    height: 150px;
+.problem-attachments-below {
     min-width: 0;
     width: 100%;
-    max-width: 100%;
 }
 
-.problem-media :deep(.attachments-panel) {
+.problem-attachments-below :deep(.attachments-panel) {
     max-width: 100%;
-}
-
-.problem-media :deep(.media-placeholder) {
-    max-width: 100%;
-    box-sizing: border-box;
-}
-
-.media-placeholder {
-    width: 100%;
-    height: 150px;
-    background: repeating-conic-gradient(#f0f0f0 0% 25%, #ffffff 0% 50%) 50% / 20px 20px;
-    border: 1px solid #e0e0e0;
-    border-radius: 5px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: #999;
-    font-size: 16px;
-    font-family: var(--font-family-base, 'Open Sans', sans-serif);
 }
 
 .review-progress-section {
@@ -602,13 +655,7 @@ const assignmentInfo = computed(() => {
 
 @media (max-width: 900px) {
     .problem-content-bottom {
-        grid-template-columns: 1fr;
-        gap: 20px;
-    }
-
-    .problem-media {
-        height: auto;
-        min-height: 140px;
+        max-width: 100%;
     }
 
     .problem-content-bottom :deep(.app-input-group textarea.app-input-edit) {

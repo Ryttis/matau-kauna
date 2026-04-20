@@ -189,9 +189,9 @@ onMounted(async () => {
                     <tbody>
                         <tr v-for="inst in institutionsPage.data" :key="inst.id">
                             <td>{{ inst.name }}</td>
-                            <td>{{ inst.code ?? '—' }}</td>
-                            <td>{{ inst.type ?? '—' }}</td>
-                            <td>{{ inst.contact_email ?? inst.contact_phone ?? '—' }}</td>
+                            <td>{{ inst.code ?? '-' }}</td>
+                            <td>{{ inst.type ?? '-' }}</td>
+                            <td>{{ inst.contact_email ?? inst.contact_phone ?? '-' }}</td>
                             <td>{{ inst.users_count ?? 0 }}</td>
                             <td>
                                 <span :class="['pill', inst.is_active ? 'active' : 'inactive']">

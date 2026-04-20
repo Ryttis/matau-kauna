@@ -120,7 +120,7 @@ paths:
       description: >
         Bearer + reporter role. Prieš siųsdami iškvieskite GET /api/reporter/report-meta:
         problem_type_id = typeValues[].id; problem_nature_id (nebūt.) = to paties elemento
-        natures[].id — ne tas pats skaičius kaip rūšis, jei DB taip nesutampa.
+        natures[].id - ne tas pats skaičius kaip rūšis, jei DB taip nesutampa.
       security:
         - bearerAuth: []
       parameters:
@@ -306,11 +306,11 @@ components:
       properties:
         problem_type_id:
           type: integer
-          description: Rūšis — report-meta typeValues[].id (šaknis).
+          description: Rūšis - report-meta typeValues[].id (šaknis).
         problem_nature_id:
           type: integer
           nullable: true
-          description: Pobūdis — to paties typeValues įrašo natures[].id; ne rūšies id, jei skiriasi.
+          description: Pobūdis - to paties typeValues įrašo natures[].id; ne rūšies id, jei skiriasi.
         description:
           type: string
         address:

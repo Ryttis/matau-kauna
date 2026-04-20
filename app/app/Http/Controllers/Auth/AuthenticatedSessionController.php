@@ -19,8 +19,14 @@ class AuthenticatedSessionController extends Controller
         private AuditLogService $auditLogService
     ) {}
 
-    public function create(): Response
+    public function create(): Response|RedirectResponse
     {
+        $user = Auth::user();
+
+        if ($user !== null && $user->hasVerifiedEmail()) {
+            return redirect()->intended(route('dashboard', absolute: false));
+        }
+
         return Inertia::render('Auth/Login', [
             'canResetPassword' => Route::has('password.request'),
             'status' => session('status'),

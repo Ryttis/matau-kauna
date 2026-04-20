@@ -5,14 +5,15 @@ namespace App\Http\Controllers;
 use App\Enums\ProblemStatus;
 use App\Models\Employee;
 use App\Models\Institution;
+use App\Models\InstitutionTeam;
 use App\Models\Problem;
 use App\Models\User;
-use App\Models\UserRole;
 use App\Services\ProblemAssignmentNotifier;
 use App\Services\ProblemScopeService;
 use App\Services\TransactionalMail;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -26,7 +27,7 @@ class ProblemInstitutionAssignmentController extends Controller
     public function assignInstitution(Problem $problem): Response|RedirectResponse
     {
         $user = request()->user();
-        if (! $user->isInstitutionAdminOrSystemAdmin()) {
+        if (! $user->canAssignInstitutionProblems()) {
             abort(403);
         }
         $this->scopeService->authorizeProblemAccess($user, $problem);
@@ -36,9 +37,10 @@ class ProblemInstitutionAssignmentController extends Controller
         }
 
         $employees = [];
+        $teams = [];
         if ($user->institution_id) {
             $institutionUsers = User::where('institution_id', $user->institution_id)
-                ->whereHas('roles', fn ($query) => $query->whereIn('role', [UserRole::ROLE_EMPLOYEE, UserRole::ROLE_INSTITUTION_ADMIN]))
+                ->whereHas('roles.permissions', fn ($query) => $query->where('permission', 'issues.assign'))
                 ->get(['id', 'name', 'surname', 'email']);
 
             foreach ($institutionUsers as $institutionUser) {
@@ -66,6 +68,19 @@ class ProblemInstitutionAssignmentController extends Controller
                 ])
                 ->values()
                 ->all();
+
+            $teams = InstitutionTeam::query()
+                ->where('institution_id', $user->institution_id)
+                ->withCount('employees')
+                ->orderBy('name')
+                ->get()
+                ->map(fn (InstitutionTeam $team) => [
+                    'id' => $team->id,
+                    'name' => $team->name,
+                    'members_count' => (int) $team->employees_count,
+                ])
+                ->values()
+                ->all();
         }
 
         $institutionsQuery = Institution::query()->notArchived()->orderBy('name');
@@ -77,6 +92,7 @@ class ProblemInstitutionAssignmentController extends Controller
         return Inertia::render('Problems/AssignInstitution', [
             'problem' => $problem,
             'employees' => $employees,
+            'teams' => $teams,
             'institutions' => $institutions,
         ]);
     }
@@ -84,7 +100,7 @@ class ProblemInstitutionAssignmentController extends Controller
     public function storeAssignInstitution(Request $request, Problem $problem): RedirectResponse
     {
         $user = $request->user();
-        if (! $user->isInstitutionAdminOrSystemAdmin()) {
+        if (! $user->canAssignInstitutionProblems()) {
             abort(403);
         }
         $this->scopeService->authorizeProblemAccess($user, $problem);
@@ -94,36 +110,77 @@ class ProblemInstitutionAssignmentController extends Controller
         }
 
         $validated = $request->validate([
-            'employee_id' => ['required', 'integer', 'exists:employees,id'],
+            'employee_id' => ['nullable', 'integer', 'exists:employees,id'],
+            'institution_team_id' => ['nullable', 'integer', 'exists:institution_teams,id'],
             'completion_deadline' => ['nullable', 'date'],
         ]);
 
-        $employee = Employee::where('id', $validated['employee_id'])
+        $employeeId = $validated['employee_id'] ?? null;
+        $teamId = $validated['institution_team_id'] ?? null;
+
+        if (($employeeId === null) === ($teamId === null)) {
+            return redirect()->back()->with('error', 'Pasirinkite darbuotoją arba komandą.');
+        }
+
+        $deadline = array_key_exists('completion_deadline', $validated)
+            ? ($validated['completion_deadline'] ?: null)
+            : null;
+
+        if ($employeeId !== null) {
+            $employee = Employee::where('id', $employeeId)
+                ->where('institution_id', $user->institution_id)
+                ->first();
+
+            if (! $employee) {
+                abort(403);
+            }
+            if ($employee->email === $user->email) {
+                abort(403, 'Negalite priskirti problemos sau.');
+            }
+
+            $problem->update([
+                'assigned_employee_id' => $employee->id,
+                'assigned_institution_team_id' => null,
+                'completion_deadline' => $deadline,
+            ]);
+
+            $this->assignmentNotifier->notifyEmployeeOfAssignment($problem, $employee);
+
+            return redirect()->back()->with('success', 'Problema priskirta darbuotojui.');
+        }
+
+        $team = InstitutionTeam::query()
+            ->where('id', $teamId)
             ->where('institution_id', $user->institution_id)
+            ->with('employees')
             ->first();
 
-        if (! $employee) {
+        if (! $team) {
             abort(403);
         }
-        if ($employee->email === $user->email) {
-            abort(403, 'Negalite priskirti problemos sau.');
+        if ($team->employees->isEmpty()) {
+            return redirect()->back()->with('error', 'Komanda neturi narių.');
         }
 
-        $update = ['assigned_employee_id' => $employee->id];
-        if (array_key_exists('completion_deadline', $validated)) {
-            $update['completion_deadline'] = $validated['completion_deadline'] ?: null;
+        $problem->update([
+            'assigned_employee_id' => null,
+            'assigned_institution_team_id' => $team->id,
+            'completion_deadline' => $deadline,
+        ]);
+
+        foreach ($team->employees as $employee) {
+            if ($employee->email !== $user->email) {
+                $this->assignmentNotifier->notifyEmployeeOfAssignment($problem->fresh(), $employee);
+            }
         }
-        $problem->update($update);
 
-        $this->assignmentNotifier->notifyEmployeeOfAssignment($problem, $employee);
-
-        return redirect()->back()->with('success', 'Problema priskirta darbuotojui.');
+        return redirect()->back()->with('success', 'Problema priskirta komandai.');
     }
 
     public function sendAssignInstitutionEmail(Request $request, Problem $problem): RedirectResponse
     {
         $user = $request->user();
-        if (! $user->isInstitutionAdminOrSystemAdmin()) {
+        if (! $user->canAssignInstitutionProblems()) {
             abort(403);
         }
         $this->scopeService->authorizeProblemAccess($user, $problem);
@@ -132,8 +189,16 @@ class ProblemInstitutionAssignmentController extends Controller
             return redirect()->back()->with('error', 'Išspręstos problemos priskirti negalima.');
         }
 
+        if ($user->institution_id === null) {
+            return redirect()->back()->with('error', 'Negalima siųsti el. laiško be įstaigos konteksto.');
+        }
+
         $validated = $request->validate([
-            'email' => ['required', 'email'],
+            'email' => [
+                'required',
+                'email',
+                Rule::exists('employees', 'email')->where('institution_id', $user->institution_id),
+            ],
         ]);
 
         $mail = $this->assignmentNotifier->buildInstitutionProblemShareEmail($problem);
@@ -154,16 +219,16 @@ class ProblemInstitutionAssignmentController extends Controller
         if (! $user) {
             abort(403);
         }
-        if ($user->hasRole(UserRole::ROLE_PROBLEM_ADMIN) || $user->hasRole(UserRole::ROLE_SYSTEM_ADMIN)) {
+        if ($user->canReassignInstitutions()) {
             abort(403);
         }
-        if ($user->hasRole(UserRole::ROLE_INSTITUTION_ADMIN) && $user->institution_id !== null) {
+        if ($this->scopeService->isInstitutionScoped($user) && $user->institution_id !== null) {
             if ((int) $problem->institution_id !== (int) $user->institution_id) {
                 abort(403);
             }
-        } elseif ($user->hasRole(UserRole::ROLE_EMPLOYEE)) {
+        } elseif ($this->scopeService->isEmployeeScoped($user)) {
             $employeeId = $this->scopeService->employeeIdForUser($user);
-            if (! $employeeId || (int) $problem->assigned_employee_id !== (int) $employeeId) {
+            if (! $this->scopeService->employeeHasAccessToAssignment($employeeId, $problem)) {
                 abort(403);
             }
         } else {
@@ -173,6 +238,7 @@ class ProblemInstitutionAssignmentController extends Controller
         $problem->update([
             'institution_id' => null,
             'assigned_employee_id' => null,
+            'assigned_institution_team_id' => null,
         ]);
 
         return redirect()->route('dashboard')->with('success', 'Problema grąžinta problemų administratoriui.');
@@ -181,8 +247,8 @@ class ProblemInstitutionAssignmentController extends Controller
     public function reassignInstitution(Request $request, Problem $problem): RedirectResponse
     {
         $user = $request->user();
-        $canReassign = $user->isProblemAdminOrSystemAdmin()
-            || ($user->hasRole(UserRole::ROLE_INSTITUTION_ADMIN)
+        $canReassign = $user->canReassignInstitutions()
+            || ($this->scopeService->isInstitutionScoped($user)
                 && $user->institution_id !== null
                 && (int) $problem->institution_id === (int) $user->institution_id);
 
@@ -205,6 +271,7 @@ class ProblemInstitutionAssignmentController extends Controller
         $problem->update([
             'institution_id' => $validated['institution_id'],
             'assigned_employee_id' => null,
+            'assigned_institution_team_id' => null,
         ]);
 
         $this->assignmentNotifier->notifyInstitutionOfAssignment([$problem->id], $validated['institution_id']);

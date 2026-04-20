@@ -7,6 +7,7 @@ use App\Models\Problem;
 use App\Models\User;
 use App\Models\UserRole;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Facades\DB;
 
 class ProblemScopeService
 {
@@ -20,7 +21,7 @@ class ProblemScopeService
             if ($user->institution_id === null) {
                 $query->whereRaw('1 = 0');
             } else {
-                $query->where('institution_id', $user->institution_id);
+                $this->scopeInstitutionProblems($query, (int) $user->institution_id);
             }
 
             return;
@@ -36,7 +37,7 @@ class ProblemScopeService
             abort(403);
         }
 
-        $query->where('assigned_employee_id', $employeeId);
+        $query->whereVisibleToEmployee($employeeId);
     }
 
     public function ensureScopeMatchesCount(Builder $query, int $expectedCount): void
@@ -55,7 +56,7 @@ class ProblemScopeService
         }
 
         if ($this->isInstitutionScoped($user)) {
-            $this->authorizeInstitutionMatch($user, (int) $problem->institution_id);
+            $this->authorizeInstitutionProblemAccess($user, $problem);
 
             return;
         }
@@ -65,18 +66,65 @@ class ProblemScopeService
         }
 
         $employeeId = $this->employeeIdForUser($user);
-        $problemEmployeeId = (int) $problem->assigned_employee_id;
 
-        if (! $employeeId || $problemEmployeeId !== (int) $employeeId) {
+        if (! $this->employeeHasAccessToAssignment($employeeId, $problem)) {
             abort(403);
         }
     }
 
-    private function authorizeInstitutionMatch(User $user, int $institutionId): void
+    public function employeeHasAccessToAssignment(?int $employeeId, Problem $problem): bool
     {
-        $userInstitutionId = (int) $user->institution_id;
+        if (! $employeeId) {
+            return false;
+        }
+        if ((int) $problem->assigned_employee_id === (int) $employeeId) {
+            return true;
+        }
+        if ($problem->assigned_institution_team_id === null) {
+            return false;
+        }
 
-        if ($institutionId !== $userInstitutionId) {
+        return DB::table('employee_institution_team')
+            ->where('institution_team_id', $problem->assigned_institution_team_id)
+            ->where('employee_id', $employeeId)
+            ->exists();
+    }
+
+    public function scopeInstitutionProblems(Builder $query, int $institutionId): void
+    {
+        $table = $query->getModel()->getTable();
+        $query->where(function (Builder $inner) use ($institutionId, $table) {
+            $inner->where("{$table}.institution_id", $institutionId)
+                ->orWhereExists(function ($sub) use ($institutionId, $table) {
+                    $sub->selectRaw('1')
+                        ->from('problems as merge_parents')
+                        ->whereColumn('merge_parents.id', "{$table}.merged_into_problem_id")
+                        ->where('merge_parents.institution_id', $institutionId);
+                });
+        });
+    }
+
+    private function authorizeInstitutionProblemAccess(User $user, Problem $problem): void
+    {
+        if ($user->institution_id === null) {
+            abort(403);
+        }
+
+        $iid = (int) $user->institution_id;
+        if ((int) $problem->institution_id === $iid) {
+            return;
+        }
+
+        if ($problem->merged_into_problem_id === null) {
+            abort(403);
+        }
+
+        $allowed = Problem::query()
+            ->where('id', (int) $problem->merged_into_problem_id)
+            ->where('institution_id', $iid)
+            ->exists();
+
+        if (! $allowed) {
             abort(403);
         }
     }
@@ -91,7 +139,7 @@ class ProblemScopeService
             return;
         }
 
-        $this->authorizeInstitutionMatch($user, (int) $problem->institution_id);
+        $this->authorizeInstitutionProblemAccess($user, $problem);
     }
 
     public function isInstitutionScoped(?User $user): bool

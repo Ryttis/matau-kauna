@@ -171,14 +171,30 @@ class ReporterFileUploadService
         $relativeDir = 'files/problems/'.$problem->id.'/'.$sub;
         $absoluteDir = public_path($relativeDir);
 
-        File::ensureDirectoryExists($absoluteDir);
+        try {
+            File::ensureDirectoryExists($absoluteDir);
+        } catch (\Throwable $e) {
+            report($e);
+
+            throw ValidationException::withMessages([
+                'files' => 'Failų įkėlimas laikinai nepasiekiamas. Bandykite vėliau arba kreipkitės į administratorių.',
+            ]);
+        }
 
         $originalName = $file->getClientOriginalName();
         $sizeBytes = (int) $file->getSize();
 
         $absolutePath = $absoluteDir.'/'.$name;
 
-        $file->move($absoluteDir, $name);
+        try {
+            $file->move($absoluteDir, $name);
+        } catch (\Throwable $e) {
+            report($e);
+
+            throw ValidationException::withMessages([
+                'files' => 'Nepavyko išsaugoti failo. Bandykite vėliau arba kreipkitės į administratorių.',
+            ]);
+        }
 
         $relativePath = $relativeDir.'/'.$name;
 

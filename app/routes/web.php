@@ -143,6 +143,7 @@ Route::middleware(['auth', 'verified', 'reporter.terms'])->group(function () {
             Route::get('/rbac/roles', [RbacRoleController::class, 'roles']);
             Route::post('/rbac/roles', [RbacRoleController::class, 'createRole']);
             Route::delete('/rbac/roles/{role}', [RbacRoleController::class, 'deleteRole']);
+            Route::post('/rbac/roles/{role}/permissions', [RbacRoleController::class, 'syncRolePermissions']);
 
             Route::get('/rbac/permissions', [RbacPermissionController::class, 'permissions']);
             Route::post('/rbac/permissions', [RbacPermissionController::class, 'createPermission']);

@@ -13,11 +13,11 @@ function goToProblem(id) {
 }
 
 function statusLabel(status) {
-    return PROBLEM_STATUS_LABELS[status] ?? status ?? '—'
+    return PROBLEM_STATUS_LABELS[status] ?? status ?? '-'
 }
 
 function formatTermDate(isoDate) {
-    if (!isoDate) return '—'
+    if (!isoDate) return '-'
     const d = new Date(`${isoDate}T12:00:00`)
     return Number.isNaN(d.getTime()) ? isoDate : d.toLocaleDateString('lt-LT')
 }
@@ -54,8 +54,8 @@ function formatTermDate(isoDate) {
                                 <td>{{ p.description_preview }}</td>
                                 <td>{{ statusLabel(p.status) }}</td>
                                 <td>{{ formatTermDate(p.completion_deadline) }}</td>
-                                <td>{{ p.institution_name || '—' }}</td>
-                                <td>{{ p.assigned_to || '—' }}</td>
+                                <td>{{ p.institution_name || '-' }}</td>
+                                <td>{{ p.assigned_to || '-' }}</td>
                                 <td>
                                     <button type="button" class="link-btn" @click="goToProblem(p.id)">Atidaryti</button>
                                 </td>
@@ -87,8 +87,8 @@ function formatTermDate(isoDate) {
                                 <td>{{ p.description_preview }}</td>
                                 <td>{{ statusLabel(p.status) }}</td>
                                 <td>{{ formatTermDate(p.completion_deadline) }}</td>
-                                <td>{{ p.institution_name || '—' }}</td>
-                                <td>{{ p.assigned_to || '—' }}</td>
+                                <td>{{ p.institution_name || '-' }}</td>
+                                <td>{{ p.assigned_to || '-' }}</td>
                                 <td>
                                     <button type="button" class="link-btn" @click="goToProblem(p.id)">Atidaryti</button>
                                 </td>

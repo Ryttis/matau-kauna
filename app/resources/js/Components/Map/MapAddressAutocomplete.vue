@@ -68,7 +68,7 @@ function onFocus() {
 function select(problem) {
     const addr = problem.address || ''
     const num = problem.internal_number || ''
-    inputValue.value = addr ? `${num} — ${addr}`.trim() : num
+    inputValue.value = addr ? `${num} - ${addr}`.trim() : num
     open.value = false
     results.value = []
     emit('select', problem)

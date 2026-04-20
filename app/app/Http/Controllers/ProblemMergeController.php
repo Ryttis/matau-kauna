@@ -24,7 +24,7 @@ class ProblemMergeController extends Controller
         $this->scopeService->authorizeMergeAccess($user, $problem);
         if ($this->scopeService->isEmployeeScoped($user)) {
             $employeeId = $this->scopeService->employeeIdForUser($user);
-            if (! $employeeId || (int) $problem->assigned_employee_id !== (int) $employeeId) {
+            if (! $this->scopeService->employeeHasAccessToAssignment($employeeId, $problem)) {
                 abort(403);
             }
         }
@@ -53,7 +53,7 @@ class ProblemMergeController extends Controller
         if ($this->scopeService->isEmployeeScoped($user)) {
             $employeeId = $this->scopeService->employeeIdForUser($user);
             if ($employeeId) {
-                $query->where('assigned_employee_id', $employeeId);
+                $query->whereVisibleToEmployee($employeeId);
             } else {
                 $query->whereRaw('1 = 0');
             }

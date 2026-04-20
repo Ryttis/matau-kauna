@@ -2,7 +2,14 @@
     <header class="guest-header-root">
         <div class="guest-header-fixed" :class="{ 'guest-header-fixed--dark': variant === 'dark' }">
             <div class="guest-header-inner">
-                <Link :href="route('landing')" class="guest-logo">Matau Kauną</Link>
+                <Link :href="brandHomeHref" class="guest-logo" aria-label="Matau Kauną">
+                    <img
+                        src="/images/matau_kaune.png"
+                        alt=""
+                        class="guest-logo-image"
+                        :class="{ 'guest-logo-image--on-light': variant !== 'dark' }"
+                    />
+                </Link>
                 <button
                     type="button"
                     class="guest-menu-btn"
@@ -42,10 +49,13 @@
 <script setup>
 import { ref } from 'vue'
 import { Link } from '@inertiajs/vue3'
+import { useBrandHomeHref } from '@/composables/useBrandHomeHref'
+
+const brandHomeHref = useBrandHomeHref()
 
 defineProps({
     activeLink: { type: String, default: '' },
-    variant: { type: String, default: '' },
+    variant: { type: String, default: 'dark' },
 })
 
 const navOpen = ref(false)
@@ -72,7 +82,7 @@ const navOpen = ref(false)
 }
 
 .guest-header-spacer {
-    height: 80px;
+    height: var(--app-header-height, 66px);
     flex-shrink: 0;
     width: 100%;
 }
@@ -82,7 +92,8 @@ const navOpen = ref(false)
     align-items: center;
     justify-content: space-between;
     gap: 8px;
-    height: 80px;
+    min-height: var(--app-header-height, 66px);
+    height: var(--app-header-height, 66px);
     margin: 0 auto;
     max-width: 1200px;
     width: 100%;
@@ -99,15 +110,32 @@ const navOpen = ref(false)
 }
 
 .guest-logo {
-    font-size: 1.25rem;
-    font-weight: 700;
-    font-style: italic;
-    color: #000;
+    display: inline-flex;
+    align-items: center;
     text-decoration: none;
+    min-width: 0;
 }
 
-.guest-header-fixed--dark .guest-logo {
-    color: #fff;
+.guest-logo:hover {
+    opacity: 0.9;
+}
+
+.guest-logo-image {
+    display: block;
+    height: 20px;
+    width: auto;
+    max-width: min(160px, 48vw);
+}
+
+.guest-logo-image--on-light {
+    filter: brightness(0);
+}
+
+@media (min-width: 1024px) {
+    .guest-logo-image {
+        height: 22px;
+        max-width: 200px;
+    }
 }
 
 .guest-menu-btn {

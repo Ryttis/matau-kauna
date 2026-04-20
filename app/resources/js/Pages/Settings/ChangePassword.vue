@@ -8,7 +8,13 @@ import { computed } from 'vue'
 import { useSuccessModal } from '@/composables/useSuccessModal'
 
 const page = usePage()
-const passwordManagerUsername = computed(() => page.props.auth?.user?.email ?? '')
+const user = computed(() => page.props.auth?.user ?? null)
+const passwordManagerUsername = computed(() => user.value?.email ?? '')
+const viispNeedsFirstPassword = computed(
+    () => !!user.value?.viisp_personal_code_hash && !user.value?.viisp_local_password_set_at,
+)
+const pageTitle = computed(() => (viispNeedsFirstPassword.value ? 'Nustatyti slaptažodį' : 'Keisti slaptažodį'))
+const submitLabel = computed(() => (viispNeedsFirstPassword.value ? 'Sukurti slaptažodį' : 'Patvirtinti'))
 
 const { showSuccessModal, successMessage, closeSuccessModal } = useSuccessModal()
 const passwordForm = useForm({
@@ -26,7 +32,7 @@ const updatePassword = () => {
 </script>
 
 <template>
-    <Head title="Keisti slaptažodį" />
+    <Head :title="pageTitle" />
 
     <AuthenticatedLayout>
         <div class="change-password-page">
@@ -50,7 +56,11 @@ const updatePassword = () => {
                     tabindex="-1"
                     class="password-form-username-field"
                 />
+                <p v-if="viispNeedsFirstPassword" class="form-hint">
+                    Kad galėtumėte prisijungti el. paštu ir slaptažodžiu, sukurkite slaptažodį.
+                </p>
                 <AppInput
+                    v-if="!viispNeedsFirstPassword"
                     v-model="passwordForm.current_password"
                     type="password"
                     placeholder="Esamas slaptažodis"
@@ -69,7 +79,7 @@ const updatePassword = () => {
                     autocomplete="new-password"
                 />
                 <AppButton
-                    text="Patvirtinti"
+                    :text="submitLabel"
                     variant="primary"
                     :disabled="passwordForm.processing"
                 />
@@ -129,5 +139,13 @@ const updatePassword = () => {
 .error-message {
     color: var(--color-error);
     margin-bottom: 12px;
+}
+
+.form-hint {
+    font-size: 14px;
+    color: #555;
+    line-height: 1.4;
+    margin: 0 0 8px;
+    max-width: 400px;
 }
 </style>

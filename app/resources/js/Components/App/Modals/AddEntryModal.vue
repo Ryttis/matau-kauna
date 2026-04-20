@@ -1,6 +1,7 @@
 <script setup>
-import { ref, computed, watch } from 'vue'
+import { ref, computed, watch, onBeforeUnmount } from 'vue'
 import BaseModal from '@/Components/App/BaseModal.vue'
+import ConfirmModal from '@/Components/App/ConfirmModal.vue'
 import AppButton from '@/Components/App/AppButton.vue'
 import { ICON_PENCIL } from '@/constants/ui/icons'
 import {
@@ -10,7 +11,7 @@ import {
 } from '@/constants/domain/reviewProgressEntry'
 import { useReviewProgressEntryForm } from '@/composables/useReviewProgressEntryForm'
 import { useFileUploadQueue, defaultFileUploadSettings } from '@/composables/useFileUploadQueue'
-import { firstInertiaErrorForPrefix } from '@/utils/laravelApiErrors'
+import { firstInertiaErrorForPrefix, humanizeTechnicalUploadError } from '@/utils/laravelApiErrors'
 import {
     attachmentsToUploadBaseline,
     formatDetailedFileUploadHint,
@@ -65,6 +66,60 @@ const {
     showFileSection,
 } = useFileUploadQueue(uploadRules, { appendBaseline: fileUploadBaseline })
 
+const filePreviewEntries = ref([])
+
+function revokeFilePreviews() {
+    filePreviewEntries.value.forEach((p) => {
+        if (p?.url) URL.revokeObjectURL(p.url)
+    })
+    filePreviewEntries.value = []
+}
+
+function buildPreviewEntries(files) {
+    return files.map((f) => {
+        if (f.type?.startsWith('image/')) {
+            return { url: URL.createObjectURL(f), kind: 'image' }
+        }
+        if (f.type?.startsWith('video/')) {
+            return { url: URL.createObjectURL(f), kind: 'video' }
+        }
+        return { url: '', kind: 'none' }
+    })
+}
+
+watch(
+    selectedFiles,
+    (files) => {
+        revokeFilePreviews()
+        filePreviewEntries.value = buildPreviewEntries(files)
+    },
+    { deep: true },
+)
+
+onBeforeUnmount(() => {
+    revokeFilePreviews()
+})
+
+const showRemoveQueuedConfirm = ref(false)
+const pendingQueuedFileIndex = ref(null)
+
+function openRemoveQueuedConfirm(idx) {
+    pendingQueuedFileIndex.value = idx
+    showRemoveQueuedConfirm.value = true
+}
+
+function closeRemoveQueuedConfirm() {
+    showRemoveQueuedConfirm.value = false
+    pendingQueuedFileIndex.value = null
+}
+
+function confirmRemoveQueued() {
+    const idx = pendingQueuedFileIndex.value
+    if (idx == null) return
+    removeFile(idx)
+    closeRemoveQueuedConfirm()
+}
+
 const { form, submit } = useReviewProgressEntryForm(
     () => props.problemId,
     {
@@ -73,6 +128,12 @@ const { form, submit } = useReviewProgressEntryForm(
         getEntryId: () => props.entry?.id ?? null,
     },
 )
+
+const pendingSubmitVisibility = ref(null)
+
+watch(() => form.processing, (busy) => {
+    if (!busy) pendingSubmitVisibility.value = null
+})
 
 const selectedStatusValue = computed(() => {
     const tag = REVIEW_PROGRESS_MODAL_STATUS_TAGS.find((t) => t.key === selectedKey.value)
@@ -85,12 +146,14 @@ function selectStatus(tag) {
 }
 
 function runSubmit(visibility) {
+    if (form.processing) return
     if (!selectedStatusValue.value) {
         localStatusHint.value = 'Pasirinkite būseną.'
         return
     }
     localStatusHint.value = ''
     form.status = selectedStatusValue.value
+    pendingSubmitVisibility.value = visibility
     submit(visibility)
 }
 
@@ -100,6 +163,7 @@ watch(
         if (!isOpen) {
             selectedKey.value = null
             localStatusHint.value = ''
+            closeRemoveQueuedConfirm()
             return
         }
         localStatusHint.value = ''
@@ -111,9 +175,13 @@ watch(
                 entry.visibility === REVIEW_ENTRY_VISIBILITY.PUBLIC
                     ? REVIEW_ENTRY_VISIBILITY.PUBLIC
                     : REVIEW_ENTRY_VISIBILITY.INTERNAL
-            selectedKey.value = reviewModalTagKeyForStatus(entry.status)
+            {
+                const key = reviewModalTagKeyForStatus(entry.status)
+                selectedKey.value = key === 'new' ? null : key
+            }
         } else {
-            selectedKey.value = reviewModalTagKeyForStatus(props.currentStatus)
+            const key = reviewModalTagKeyForStatus(props.currentStatus)
+            selectedKey.value = key === 'new' ? null : key
             form.comment = ''
             form.visibility = REVIEW_ENTRY_VISIBILITY.INTERNAL
         }
@@ -127,6 +195,9 @@ const uploadHintText = computed(() =>
 )
 
 const filesErrorText = computed(() => firstInertiaErrorForPrefix(form.errors, 'files'))
+const sanitizedFilesErrorText = computed(() => humanizeTechnicalUploadError(filesErrorText.value))
+
+const queuedAttachmentCount = computed(() => selectedFiles.value.length)
 </script>
 
 <template>
@@ -179,7 +250,11 @@ const filesErrorText = computed(() => firstInertiaErrorForPrefix(form.errors, 'f
                     <p v-if="form.errors.comment" class="add-entry-field-error">{{ form.errors.comment }}</p>
                 </div>
 
-                <div v-if="showFileSection" class="add-entry-modal-section">
+                <p v-if="filesErrorText" class="add-entry-field-error add-entry-files-error-after-comment">
+                    {{ sanitizedFilesErrorText }}
+                </p>
+
+                <div v-if="showFileSection" class="add-entry-modal-section add-entry-attachments-section">
                     <label class="add-entry-modal-label">Priedai</label>
                     <input
                         ref="fileInputRef"
@@ -189,21 +264,54 @@ const filesErrorText = computed(() => firstInertiaErrorForPrefix(form.errors, 'f
                         :accept="uploadRules.accept_attr"
                         @change="handleFileChange"
                     >
+                    <div
+                        v-if="selectedFiles.length"
+                        class="add-entry-attachments-grid"
+                        :class="{ 'add-entry-attachments-grid--scroll': queuedAttachmentCount > 3 }"
+                    >
+                        <div
+                            v-for="(f, idx) in selectedFiles"
+                            :key="idx + f.name"
+                            class="add-entry-att-tile"
+                        >
+                            <div class="add-entry-att-thumb-wrap">
+                                <img
+                                    v-if="filePreviewEntries[idx]?.kind === 'image'"
+                                    :src="filePreviewEntries[idx].url"
+                                    alt=""
+                                    class="add-entry-att-thumb"
+                                />
+                                <video
+                                    v-else-if="filePreviewEntries[idx]?.kind === 'video'"
+                                    :src="filePreviewEntries[idx].url"
+                                    class="add-entry-att-thumb add-entry-att-thumb--video"
+                                    muted
+                                    playsinline
+                                />
+                                <div
+                                    v-else
+                                    class="add-entry-att-thumb add-entry-att-thumb--fallback"
+                                    aria-hidden="true"
+                                >
+                                    <span class="add-entry-att-fallback-text">{{ f.name }}</span>
+                                </div>
+                            </div>
+                            <button
+                                type="button"
+                                class="add-entry-att-remove-corner"
+                                :disabled="form.processing"
+                                aria-label="Pašalinti"
+                                @click.stop="openRemoveQueuedConfirm(idx)"
+                            >
+                                Šalinti
+                            </button>
+                        </div>
+                    </div>
                     <div class="add-entry-photo-area" @click="triggerPicker">
-                        <span class="add-entry-photo-text">Pridėti nuotrauką arba vaizdo įrašą</span>
+                        <span class="add-entry-photo-text">Prisegti failą</span>
                     </div>
                     <p class="add-entry-file-hint">{{ uploadHintText }}</p>
-                    <p v-if="fileHint || filesErrorText" class="add-entry-field-error">
-                        {{ fileHint || filesErrorText }}
-                    </p>
-                    <ul v-if="selectedFiles.length" class="add-entry-file-list">
-                        <li v-for="(f, idx) in selectedFiles" :key="idx + f.name" class="add-entry-file-item">
-                            <span class="add-entry-file-name">{{ f.name }}</span>
-                            <button type="button" class="add-entry-file-remove" @click.stop="removeFile(idx)">
-                                Pašalinti
-                            </button>
-                        </li>
-                    </ul>
+                    <p v-if="fileHint" class="add-entry-field-error">{{ fileHint }}</p>
                 </div>
                 <p v-if="form.errors.visibility" class="add-entry-field-error">{{ form.errors.visibility }}</p>
             </div>
@@ -214,6 +322,7 @@ const filesErrorText = computed(() => firstInertiaErrorForPrefix(form.errors, 'f
                     variant="primary"
                     as-button
                     class="add-entry-footer-btn"
+                    :loading="form.processing && pendingSubmitVisibility === REVIEW_ENTRY_VISIBILITY.INTERNAL"
                     :disabled="form.processing"
                     @click="runSubmit(REVIEW_ENTRY_VISIBILITY.INTERNAL)"
                 />
@@ -222,11 +331,25 @@ const filesErrorText = computed(() => firstInertiaErrorForPrefix(form.errors, 'f
                     variant="secondary"
                     as-button
                     class="add-entry-footer-btn"
+                    :loading="form.processing && pendingSubmitVisibility === REVIEW_ENTRY_VISIBILITY.PUBLIC"
                     :disabled="form.processing"
                     @click="runSubmit(REVIEW_ENTRY_VISIBILITY.PUBLIC)"
                 />
             </template>
         </BaseModal>
+
+        <ConfirmModal
+            :open="showRemoveQueuedConfirm"
+            message="Ar tikrai pašalinti šį priedą?"
+            confirm-text="Pašalinti"
+            cancel-text="Atšaukti"
+            footer-layout="column"
+            confirm-variant="danger"
+            width="400px"
+            :z-index="5000"
+            @close="closeRemoveQueuedConfirm"
+            @confirm="confirmRemoveQueued"
+        />
     </div>
 </template>
 
@@ -312,11 +435,11 @@ const filesErrorText = computed(() => firstInertiaErrorForPrefix(form.errors, 'f
     color: #1e1c1c;
 }
 
-.add-entry-status--blue {
-    border-color: var(--color-primary, #1946a0);
+.add-entry-status--violet {
+    border-color: #9333ea;
 }
-.add-entry-status-tag--selected.add-entry-status--blue {
-    background: var(--color-primary, #1946a0);
+.add-entry-status-tag--selected.add-entry-status--violet {
+    background: #9333ea;
     color: var(--color-white, #fff);
 }
 
@@ -329,10 +452,10 @@ const filesErrorText = computed(() => firstInertiaErrorForPrefix(form.errors, 'f
 }
 
 .add-entry-status--gray {
-    border-color: #666666;
+    border-color: #795548;
 }
 .add-entry-status-tag--selected.add-entry-status--gray {
-    background: #666666;
+    background: #795548;
     color: #fff;
 }
 
@@ -368,24 +491,134 @@ const filesErrorText = computed(() => firstInertiaErrorForPrefix(form.errors, 'f
     pointer-events: none;
 }
 
+.add-entry-attachments-section {
+    margin-bottom: 14px;
+}
+
+.add-entry-attachments-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin: 0 0 8px;
+    align-items: flex-start;
+    min-width: 0;
+}
+
+.add-entry-attachments-grid--scroll {
+    max-height: 88px;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding-right: 2px;
+    scrollbar-gutter: stable;
+    scrollbar-width: thin;
+}
+
+.add-entry-attachments-grid--scroll::-webkit-scrollbar {
+    width: 8px;
+}
+
+.add-entry-attachments-grid--scroll::-webkit-scrollbar-thumb {
+    background: rgba(0, 0, 0, 0.22);
+    border-radius: 4px;
+}
+
+.add-entry-att-tile {
+    position: relative;
+    flex: none;
+    width: 72px;
+    line-height: 0;
+}
+
+.add-entry-att-thumb-wrap {
+    width: 72px;
+    height: 72px;
+    border-radius: 8px;
+    overflow: hidden;
+    border: 1px solid var(--color-border, #e0e0e0);
+    background: #f5f5f5;
+    box-sizing: border-box;
+}
+
+.add-entry-att-thumb {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.add-entry-att-thumb--video {
+    background: #111;
+    object-fit: cover;
+}
+
+.add-entry-att-thumb--fallback {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 4px;
+    box-sizing: border-box;
+}
+
+.add-entry-att-fallback-text {
+    font-size: 8px;
+    line-height: 1.15;
+    color: #555;
+    text-align: center;
+    word-break: break-word;
+    display: -webkit-box;
+    -webkit-line-clamp: 5;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.add-entry-att-remove-corner {
+    position: absolute;
+    top: 3px;
+    right: 3px;
+    z-index: 2;
+    padding: 2px 5px;
+    font-size: 9px;
+    font-weight: 600;
+    font-family: inherit;
+    color: #fff;
+    background: rgba(180, 40, 40, 0.92);
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
+    line-height: 1.2;
+}
+
+.add-entry-att-remove-corner:hover:not(:disabled) {
+    background: rgba(200, 50, 50, 1);
+}
+
+.add-entry-att-remove-corner:disabled {
+    opacity: 0.65;
+    cursor: wait;
+}
+
 .add-entry-photo-area {
-    min-height: 120px;
-    background: repeating-conic-gradient(#e0e0e0 0% 25%, #f5f5f5 0% 50%) 50% / 16px 16px;
-    border: 1px dashed #ccc;
-    border-radius: 10px;
+    min-height: 48px;
+    padding: 8px 12px;
+    border: 1px solid var(--color-border, #e0e0e0);
+    border-radius: 8px;
+    background: #f9f9f9;
     display: flex;
     align-items: center;
     justify-content: center;
     cursor: pointer;
+    box-sizing: border-box;
 }
+
+.add-entry-photo-area:hover {
+    border-color: var(--color-primary, #1946a0);
+}
+
 .add-entry-photo-text {
-    font-size: 14px;
+    font-size: 13px;
     color: #666;
-    background: #fff;
-    padding: 8px 16px;
-    border-radius: 8px;
     text-align: center;
-    max-width: 90%;
 }
 .add-entry-file-hint {
     margin: 8px 0 0;
@@ -394,43 +627,15 @@ const filesErrorText = computed(() => firstInertiaErrorForPrefix(form.errors, 'f
     color: #777;
 }
 
-.add-entry-file-list {
-    margin: 10px 0 0;
-    padding-left: 18px;
-    font-size: 12px;
-    color: #333;
-}
-
-.add-entry-file-item {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 8px;
-    margin-bottom: 4px;
-}
-
-.add-entry-file-name {
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    min-width: 0;
-}
-
-.add-entry-file-remove {
-    flex: none;
-    border: none;
-    background: none;
-    color: var(--color-primary, #1946a0);
-    cursor: pointer;
-    font-size: 12px;
-    text-decoration: underline;
-    padding: 0;
-}
-
 .add-entry-field-error {
     margin: 8px 0 0;
     font-size: 13px;
     color: #c0392b;
+}
+
+.add-entry-files-error-after-comment {
+    margin-top: 4px;
+    margin-bottom: 4px;
 }
 
 .add-entry-modal-root :deep(.modal-footer) {

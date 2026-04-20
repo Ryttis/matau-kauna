@@ -43,14 +43,14 @@ const tabs = [
     { key: 'users', label: 'Naudotojai' },
     { key: 'institutions', label: 'Įstaigos' },
     { key: 'problems', label: 'Problemos' },
-    { key: 'classifiers', label: 'Klasifikatoriai' },
+    { key: 'classifiers', label: 'Rūšys ir pobūdžiai' },
 ]
 
 const EMPTY_MESSAGES = {
     users: 'Nėra archyvuotų naudotojų.',
     institutions: 'Nėra archyvuotų įstaigų.',
     problems: 'Nėra archyvuotų problemų.',
-    classifiers: 'Nėra archyvuotų klasifikatorių.',
+    classifiers: 'Nėra archyvuotų rūšių ar pobūdžių.',
 }
 const emptyTabMessage = computed(() => EMPTY_MESSAGES[activeTab.value] ?? '')
 
@@ -58,7 +58,7 @@ function syncSettingsFormFromRule() {
     const entityType = TAB_ENTITY_MAP[activeTab.value]
     const r = retentionRules.value[entityType]
     settingsForm.value = {
-        retention_days: r?.delete_after_days ?? r?.archive_after_days ?? '',
+        retention_days: r?.delete_after_days ?? '',
         is_active: r?.is_active ?? true,
     }
 }
@@ -109,7 +109,7 @@ const saveSettings = async () => {
 }
 
 const formatDate = (str) => {
-    if (!str) return '—'
+    if (!str) return '-'
     return new Date(str).toLocaleDateString('lt-LT')
 }
 
@@ -121,7 +121,7 @@ const RESTORE_CONFIG = {
     users: { path: adminApi.archiveRestoreUser, key: 'user', successMsg: 'Naudotojas atkurtas.' },
     institutions: { path: adminApi.archiveRestoreInstitution, key: 'institution', successMsg: 'Įstaiga atkurta.' },
     problems: { path: adminApi.archiveRestoreProblem, key: 'problem', successMsg: 'Problema atkurta.' },
-    classifiers: { path: adminApi.archiveRestoreClassifierValue, key: 'classifier', successMsg: 'Klasifikatorius atkurtas.' },
+    classifiers: { path: adminApi.archiveRestoreClassifierValue, key: 'classifier', successMsg: 'Rūšis arba pobūdis atkurtas.' },
 }
 
 async function restore(type, item) {
@@ -292,7 +292,7 @@ onMounted(load)
                     <tbody>
                         <tr v-for="p in problems" :key="p.id">
                             <td>{{ p.internal_number }}</td>
-                            <td>{{ p.description_preview || '—' }}</td>
+                            <td>{{ p.description_preview || '-' }}</td>
                             <td>{{ formatDate(p.archived_at) }}</td>
                             <td>{{ formatDate(p.delete_at) }}</td>
                             <td>

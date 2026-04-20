@@ -124,7 +124,7 @@ return [
     'prohibited_if_declined' => 'Laukas :attribute draudžiamas, kai :other atmestas.',
     'prohibited_unless' => 'Laukas :attribute draudžiamas, nebent :other yra :values.',
     'prohibits' => 'Laukas :attribute draudžia lauką :other.',
-    'regex' => 'Lauko :attribute formatas netinkamas.',
+    'regex' => 'Lauko :attribute formatas netinkamas. Patikrinkite, ar atitinka nustatytas taisykles.',
     'required' => 'Laukas :attribute yra privalomas.',
     'required_array_keys' => 'Laukas :attribute turi turėti įrašus: :values.',
     'required_if' => 'Laukas :attribute privalomas, kai :other yra :value.',

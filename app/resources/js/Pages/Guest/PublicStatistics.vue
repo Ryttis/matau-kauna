@@ -4,6 +4,7 @@ import axios from 'axios'
 import { Head } from '@inertiajs/vue3'
 import GuestHeader from '@/Components/Landing/GuestHeader.vue'
 import LandingFooter from '@/Components/Landing/LandingFooter.vue'
+import PublicFilterSelect from '@/Components/Guest/PublicFilterSelect.vue'
 import CategoryStatsBlock from '@/Components/Statistics/CategoryStatsBlock.vue'
 
 const PERIOD_LABELS = {
@@ -107,28 +108,15 @@ watch([periodFilter, categoryFilter], fetchData)
         <main class="public-statistics-main">
             <div class="public-statistics-inner">
                 <div class="filters-section">
-                    <select v-model="periodFilter" class="filter-select">
-                        <option
-                            v-for="opt in periodOptions"
-                            :key="opt.value"
-                            :value="opt.value"
-                        >
-                            {{ opt.label }}
-                        </option>
-                    </select>
-                    <select
+                    <PublicFilterSelect
+                        v-model="periodFilter"
+                        :options="periodOptions"
+                    />
+                    <PublicFilterSelect
                         v-if="showCategoryFilter"
                         v-model="categoryFilter"
-                        class="filter-select"
-                    >
-                        <option
-                            v-for="opt in categoryOptions"
-                            :key="opt.value"
-                            :value="opt.value"
-                        >
-                            {{ opt.label }}
-                        </option>
-                    </select>
+                        :options="categoryOptions"
+                    />
                 </div>
 
                 <p v-if="errorMessage" class="error">{{ errorMessage }}</p>
@@ -223,20 +211,9 @@ watch([periodFilter, categoryFilter], fetchData)
 .filters-section {
     display: flex;
     flex-wrap: wrap;
-    gap: 1rem;
+    align-items: stretch;
+    gap: 0.75rem 1rem;
     margin-bottom: 1.5rem;
-}
-
-.filter-select {
-    padding: 0.5rem 2rem 0.5rem 0.75rem;
-    border: none;
-    border-radius: 8px;
-    background: #e0e0e0;
-    font-size: 0.9375rem;
-    color: #333;
-    min-width: 220px;
-    cursor: pointer;
-    appearance: auto;
 }
 
 .error {
@@ -406,9 +383,9 @@ watch([periodFilter, categoryFilter], fetchData)
         align-items: stretch;
     }
 
-    .filter-select {
-        min-width: 0;
-        width: 100%;
+    .filters-section :deep(.public-filter-select) {
+        max-width: none;
+        flex: 1 1 auto;
     }
 }
 </style>

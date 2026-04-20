@@ -115,7 +115,7 @@ async function toggleTypeActive(type) {
             is_active: !type.is_active,
         })
         await loadClassifiers()
-        successMessage.value = 'Rūšies būsena pakeista.'
+        successMessage.value = 'Rūšies aktyvumas atnaujintas.'
         showSuccessModal.value = true
     } catch (e) {
         errorMessage.value = e.response?.data?.message ?? 'Nepavyko pakeisti.'
@@ -234,7 +234,7 @@ async function toggleNatureActive(nature) {
             is_active: !nature.is_active,
         })
         await loadNaturesForType(selectedTypeForNatures.value.id)
-        successMessage.value = 'Pobūdžio būsena pakeista.'
+        successMessage.value = 'Pobūdžio aktyvumas atnaujintas.'
         showSuccessModal.value = true
     } catch (e) {
         errorMessage.value = e.response?.data?.message ?? 'Nepavyko pakeisti.'
@@ -257,9 +257,9 @@ async function removeNature(nature) {
 
 <template>
     <div class="admin-classifiers">
-        <h2 class="title">Klasifikatoriai ir terminai</h2>
+        <h2 class="title">Problemos rūšys ir pobūdžiai</h2>
         <p class="desc">
-            Valdykite problemų rūšis. Prie kiekvienos rūšies galite pridėti pobūdžius – jie bus rodomi pareiškėjui registruojant problemą pasirinkus atitinkamą rūšį.
+            Čia valdomos problemos rūšys ir jų pobūdžiai. Pobūdžiai rodomi pareiškėjui problemą registruojant, kai pasirenkama atitinkama rūšis.
         </p>
         <p v-if="errorMessage" class="error-msg">{{ errorMessage }}</p>
 
@@ -275,7 +275,7 @@ async function removeNature(nature) {
                 <h3 class="category-title">Problemos rūšis</h3>
                 <div class="toolbar">
                     <AppButton
-                        text="Pridėti rūšį"
+                        text="Pridėti problemos rūšį"
                         variant="primary"
                         as-button
                         @click="openAddType"
@@ -342,7 +342,7 @@ async function removeNature(nature) {
 
         <BaseModal
             :show="showAddTypeModal"
-            title="Pridėti rūšį"
+            title="Pridėti problemos rūšį"
             max-width="400px"
             @close="showAddTypeModal = false"
         >

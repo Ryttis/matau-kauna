@@ -8,7 +8,6 @@ import AppButton from '@/Components/App/AppButton.vue'
 import ReporterWizardModal from '@/Components/Reporter/ReporterWizardModal.vue'
 import ReporterLocationMap from '@/Components/Reporter/ReporterLocationMap.vue'
 import ReporterReviewModal from '@/Components/Reporter/ReporterReviewModal.vue'
-import ReporterSuccessModal from '@/Components/Reporter/ReporterSuccessModal.vue'
 import ReporterCancelConfirmModal from '@/Components/Reporter/ReporterCancelConfirmModal.vue'
 import { KAUNAS_CENTER } from '@/utils/leafletKaunas'
 import { REPORTER_WIZARD_STEPS } from '@/constants/domain/reporterWizardSteps'
@@ -51,9 +50,7 @@ const wizardHiddenUntilNextStep = ref(false)
 const showReviewModal = ref(false)
 const reviewModalMode = ref('terms-first')
 const termsAcceptedThisSession = ref(false)
-const showSuccessModal = ref(false)
 const showCancelModal = ref(false)
-const createdProblemId = ref(null)
 const isSubmitting = ref(false)
 const submitError = ref('')
 
@@ -232,6 +229,9 @@ const hasAcceptedTerms = computed(
 )
 
 function handlePateikti() {
+    if (isSubmitting.value) {
+        return
+    }
     submitError.value = ''
     const addressErr = getAddressError()
 
@@ -249,11 +249,19 @@ function handlePateikti() {
     showReviewModal.value = true
 }
 
+const termsAcceptBusy = ref(false)
+
 function handleReviewContinue() {
-    api.post(route('reporter.termsAccepted')).finally(() => {
-        termsAcceptedThisSession.value = true
-        showReviewModal.value = false
-    })
+    if (termsAcceptBusy.value) {
+        return
+    }
+    termsAcceptBusy.value = true
+    api.post(route('reporter.termsAccepted'))
+        .finally(() => {
+            termsAcceptBusy.value = false
+            termsAcceptedThisSession.value = true
+            showReviewModal.value = false
+        })
 }
 
 function getSubmitErrorMessage(err) {
@@ -293,16 +301,21 @@ function handleReviewConfirm() {
     isSubmitting.value = true
 
     api.postMultipart(route('reporter.report.store'), buildReportFormData())
-        .then((res) => {
+        .then(() => {
             termsAcceptedThisSession.value = true
             showReviewModal.value = false
-            createdProblemId.value = res.data?.problem_id ?? null
-            showSuccessModal.value = true
+            const base = route('dashboard')
+            const sep = base.includes('?') ? '&' : '?'
+            router.visit(`${base}${sep}report_created=1`, {
+                onFinish: () => {
+                    isSubmitting.value = false
+                },
+            })
         })
         .catch((err) => {
             submitError.value = getSubmitErrorMessage(err)
+            isSubmitting.value = false
         })
-        .finally(() => { isSubmitting.value = false })
 }
 
 function handleCloseCancelModal() {
@@ -333,15 +346,10 @@ function openCancelModal() {
         <ReporterReviewModal
             :show="showReviewModal"
             :mode="reviewModalMode"
-            :submitting="isSubmitting"
+            :submitting="isSubmitting || termsAcceptBusy"
             @close="showReviewModal = false"
             @confirm="handleReviewConfirm"
             @continue="handleReviewContinue"
-        />
-        <ReporterSuccessModal
-            :show="showSuccessModal"
-            :problem-id="createdProblemId"
-            @close="showSuccessModal = false"
         />
         <ReporterCancelConfirmModal
             :show="showCancelModal"
@@ -476,6 +484,7 @@ function openCancelModal() {
                         <ReporterLocationMap
                             :initial-lat="latStep2 ?? KAUNAS_CENTER[0]"
                             :initial-lng="lngStep2 ?? KAUNAS_CENTER[1]"
+                            :initial-address="addressStep2"
                             @update:address="addressStep2 = $event"
                             @update:lat="latStep2 = $event"
                             @update:lng="lngStep2 = $event"

@@ -42,12 +42,35 @@ class SettingsController extends Controller
     {
         $policy = PasswordPolicy::get();
         $user = $request->user();
-        $rules = [
-            'current_password' => ['required', 'current_password'],
-            'password' => array_merge(['required'], $policy->rules()),
-            'password_confirmation' => ['required', 'same:password'],
-        ];
-        $validated = $request->validate($rules);
+        if (! ($user instanceof User)) {
+            abort(403);
+        }
+
+        $isViispFirstPassword = $user->viisp_personal_code_hash !== null
+            && $user->viisp_local_password_set_at === null;
+
+        if ($isViispFirstPassword) {
+            $rules = [
+                'password' => array_merge(['required'], $policy->rules()),
+                'password_confirmation' => ['required', 'same:password'],
+            ];
+        } else {
+            $rules = [
+                'current_password' => ['required', 'current_password'],
+                'password' => array_merge(['required'], $policy->rules()),
+                'password_confirmation' => ['required', 'same:password'],
+            ];
+        }
+
+        $messages = array_merge(
+            $policy->validationMessagesForPasswordField(),
+            [
+                'current_password.required' => 'Įveskite dabartinį slaptažodį.',
+                'current_password.current_password' => 'Dabartinis slaptažodis neteisingas.',
+            ],
+        );
+
+        $validated = $request->validate($rules, $messages);
 
         if (! $policy->validateProhibitNameEmail($validated['password'], $user->name, $user->email)) {
             return back()->withErrors([
@@ -55,9 +78,15 @@ class SettingsController extends Controller
             ]);
         }
 
-        $user->update(['password' => Hash::make($validated['password'])]);
+        $updates = [
+            'password' => Hash::make($validated['password']),
+        ];
+        if ($user->viisp_personal_code_hash !== null) {
+            $updates['viisp_local_password_set_at'] = now();
+        }
+        $user->update($updates);
 
-        return back()->with('status', 'Slaptažodis pakeistas.');
+        return back()->with('status', $isViispFirstPassword ? 'Slaptažodis sukurtas. Galite prisijungti ir el. paštu.' : 'Slaptažodis pakeistas.');
     }
 
     public function updateProfile(Request $request): RedirectResponse

@@ -98,10 +98,15 @@ async function reverseGeocode(lat, lng) {
 }
 
 export function useKaunasMapLocationPicker(containerRef, options = {}) {
-    const { initialLat = KAUNAS_CENTER[0], initialLng = KAUNAS_CENTER[1], invalidateSizeDelay = 150 } = options
+    const {
+        initialLat = KAUNAS_CENTER[0],
+        initialLng = KAUNAS_CENTER[1],
+        initialAddress = '',
+        invalidateSizeDelay = 150,
+    } = options
     const lat = ref(initialLat)
     const lng = ref(initialLng)
-    const address = ref('')
+    const address = ref(typeof initialAddress === 'string' ? initialAddress : '')
     const isGeocoding = ref(false)
     let map = null
     let marker = null

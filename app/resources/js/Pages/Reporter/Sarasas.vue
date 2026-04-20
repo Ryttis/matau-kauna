@@ -125,7 +125,7 @@ const columns = [
     },
     {
         key: 'view',
-        label: 'Peržiūrėti',
+        label: 'Veiksmai',
         sortable: false,
         cellComponent: TableViewLink,
         cellProps: (row) => ({ problemId: rowProblem(row).id }),

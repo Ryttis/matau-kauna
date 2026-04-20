@@ -47,6 +47,29 @@ export function firstInertiaErrorForPrefix(errors, prefix) {
 
 const GENERIC_EN_422 = /the given data was invalid/i
 
+const TECHNICAL_UPLOAD_PATTERNS = [
+    /mkdir\s*\(/i,
+    /permission denied/i,
+    /failed to open stream/i,
+    /file_put_contents/i,
+    /unable to create/i,
+    /no such file or directory/i,
+]
+
+export function humanizeTechnicalUploadError(message, fallback = 'Įkelti nepavyko. Bandykite vėliau arba kreipkitės į administratorių.') {
+    if (!message || typeof message !== 'string') {
+        return message || ''
+    }
+    const trimmed = message.trim()
+    if (!trimmed) {
+        return ''
+    }
+    if (TECHNICAL_UPLOAD_PATTERNS.some((re) => re.test(trimmed))) {
+        return fallback
+    }
+    return trimmed
+}
+
 function looksLikeEnglishServerMessage(message) {
     if (!message || typeof message !== 'string') {
         return true
@@ -80,7 +103,7 @@ export function messageFromAxiosError(error, fallback) {
     }
 
     if (status === 422 && responseData?.errors) {
-        const fieldMessages = laravelValidationMessages(responseData.errors)
+        const fieldMessages = humanizeTechnicalUploadError(laravelValidationMessages(responseData.errors))
         if (fieldMessages) {
             return fieldMessages
         }
@@ -97,7 +120,7 @@ export function messageFromAxiosError(error, fallback) {
     }
 
     if (responseData?.message && typeof responseData.message === 'string' && !looksLikeEnglishServerMessage(responseData.message)) {
-        return responseData.message
+        return humanizeTechnicalUploadError(responseData.message)
     }
 
     if (status === 413) {

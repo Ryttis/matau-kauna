@@ -18,13 +18,11 @@ class DataRetentionRule extends Model
 
     protected $fillable = [
         'entity_type',
-        'archive_after_days',
         'delete_after_days',
         'is_active',
     ];
 
     protected $casts = [
-        'archive_after_days' => 'integer',
         'delete_after_days' => 'integer',
         'is_active' => 'boolean',
     ];

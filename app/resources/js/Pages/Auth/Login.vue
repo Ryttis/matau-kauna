@@ -60,7 +60,7 @@ const goViisp = () => {
     <div class="login-page">
         <Head title="Prisijungti" />
 
-        <GuestHeader variant="dark" />
+        <GuestHeader />
 
         <main class="login-page-main">
             <SuccessModal
