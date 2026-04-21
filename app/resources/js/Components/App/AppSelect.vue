@@ -32,6 +32,10 @@ const props = defineProps({
     disabled: {
         type: Boolean,
         default: false
+    },
+    required: {
+        type: Boolean,
+        default: false
     }
 })
 
@@ -45,7 +49,9 @@ const value = computed({
 
 <template>
     <div class="app-select-group" :class="`app-select-group--${labelPosition}`">
-        <label v-if="label" class="app-select-label">{{ label }}</label>
+        <label v-if="label" class="app-select-label">
+            {{ label }}<span v-if="required" class="app-select-required"> *</span>
+        </label>
 
         <div class="app-select-wrapper">
             <select v-model="value" class="app-select" :class="[`app-select--${variant}`, { 'app-select--rounded': rounded }]" :disabled="disabled">
@@ -88,6 +94,10 @@ const value = computed({
     font-family: var(--font-family-base, 'Open Sans', sans-serif);
     line-height: 1.5;
     margin-bottom: 0;
+}
+
+.app-select-required {
+    color: var(--color-danger, #b42318);
 }
 
 .app-select-wrapper {

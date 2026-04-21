@@ -337,7 +337,7 @@ const {
     flex-direction: column;
     gap: 12px;
     min-height: 0;
-    background: #fafafa;
+    background: transparent;
 }
 
 .reporter-dashboard-map-wrap :deep(.kaunas-map-container) {

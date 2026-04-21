@@ -300,7 +300,7 @@ function submitTermRuleForm() {
     }
     const payload = {
         days: Number(termRuleForm.value.days),
-        institution_id: termRuleForm.value.institution_id ? Number(termRuleForm.value.institution_id) : null,
+        institution_id: Number(termRuleForm.value.institution_id),
         category: termRuleForm.value.category || null,
         problem_type_id: termRuleForm.value.problem_type_id ? Number(termRuleForm.value.problem_type_id) : null,
         problem_nature_id: termRuleForm.value.problem_nature_id ? Number(termRuleForm.value.problem_nature_id) : null,
@@ -710,7 +710,7 @@ watch(
         >
             <div class="automation-form">
                 <AppInput v-model.number="termRuleForm.days" type="number" label="Terminas (dienomis)" />
-                <AppSelect v-model="termRuleForm.institution_id" label="Įstaiga (nebūtina)" placeholder="Pasirinkti">
+                <AppSelect v-model="termRuleForm.institution_id" label="Įstaiga" :required="true" placeholder="Pasirinkti">
                     <option v-for="i in institutions" :key="i.id" :value="String(i.id)">{{ i.name }}</option>
                 </AppSelect>
                 <AppSelect v-model="termRuleForm.category" label="Kategorija (nebūtina)" placeholder="Pasirinkti">
@@ -735,7 +735,7 @@ watch(
                     text="Išsaugoti"
                     variant="primary"
                     as-button
-                    :disabled="!termRuleForm.days || termRuleForm.days < 1"
+                    :disabled="!termRuleForm.days || termRuleForm.days < 1 || !termRuleForm.institution_id"
                     :loading="termRuleFormSubmitting"
                     @click="submitTermRuleForm"
                 />

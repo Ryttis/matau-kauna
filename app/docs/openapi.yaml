@@ -3,28 +3,49 @@ openapi: 3.0.3
 info:
   title: Kauno problemos API
   version: 2.0.0
-  description: >
-    JSON API for this week scope: auth, problems, and info.
-    Use `/api/*` endpoints in Swagger.
-
-servers:
-  - url: http://localhost
-    description: Local app (Docker nginx)
 
 tags:
   - name: Auth
-  - name: Problems
   - name: Info
+  - name: Problems
+  - name: Reporter
+  - name: Internal
+
+servers:
+  - url: /
+    description: Šis hostas
+  - url: http://kauno-problemos.local
+    description: Lokalus hostname
+  - url: http://185.80.129.163
+    description: Live HTTP
 
 paths:
   /api/login:
     post:
       tags: [Auth]
-      summary: Login (returns Bearer token)
+      summary: Prisijungimas Sanctum tokenas
       requestBody:
         required: true
         content:
           application/json:
+            schema:
+              $ref: '#/components/schemas/ApiLoginRequest'
+            examples:
+              darbuotojas:
+                summary: Darbuotojo prisijungimas
+                value:
+                  email: "darbuotojas@example.com"
+                  password: "Slaptazodis123!"
+                  login_type: "darbuotojas"
+                  device_name: "api-client"
+              pareiskejas:
+                summary: Pareiškėjo prisijungimas
+                value:
+                  email: "pareiskejas@example.com"
+                  password: "Slaptazodis123!"
+                  login_type: "pareiskejas"
+                  device_name: "api-client"
+          application/x-www-form-urlencoded:
             schema:
               $ref: '#/components/schemas/ApiLoginRequest'
       responses:
@@ -40,13 +61,22 @@ paths:
   /api/register:
     post:
       tags: [Auth]
-      summary: Register reporter (returns Bearer token)
+      summary: Registracija pareiškėjui su tokeno grąža
       requestBody:
         required: true
         content:
           application/json:
             schema:
               $ref: '#/components/schemas/ApiRegisterRequest'
+            examples:
+              pavyzdys:
+                summary: Pavyzdinė užklausa
+                value:
+                  name: "Testas"
+                  email: "testas.reporter@example.com"
+                  password: "Aa!23456"
+                  password_confirmation: "Aa!23456"
+                  device_name: "api-client"
       responses:
         '201':
           description: Created
@@ -60,7 +90,7 @@ paths:
   /api/me:
     get:
       tags: [Auth]
-      summary: Current user
+      summary: Dabartinis naudotojas roles ir permissions
       security:
         - bearerAuth: []
       responses:
@@ -69,14 +99,14 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/UserSummary'
+                $ref: '#/components/schemas/MeResponse'
         '401':
           description: Unauthorized
 
   /api/logout:
     post:
       tags: [Auth]
-      summary: Logout (revoke current token)
+      summary: Atsijungimas panaikina dabartinį tokeną
       security:
         - bearerAuth: []
       responses:
@@ -96,7 +126,7 @@ paths:
   /api/problems:
     get:
       tags: [Problems]
-      summary: Public problems list (JSON)
+      summary: Public problems list JSON
       parameters:
         - in: query
           name: per_page
@@ -116,19 +146,23 @@ paths:
                 additionalProperties: true
     post:
       tags: [Problems]
-      summary: Create problem (reporter, JSON)
+      summary: Naujas pranešimas pareiškėjui
       description: >
-        Bearer + reporter role. Prieš siųsdami iškvieskite GET /api/reporter/report-meta:
-        problem_type_id = typeValues[].id; problem_nature_id (nebūt.) = to paties elemento
-        natures[].id - ne tas pats skaičius kaip rūšis, jei DB taip nesutampa.
+        Reikia Bearer ir reporter rolės. Pirmiausia GET /api/reporter/report-meta.
+        problem_type_id imama iš report meta typeValues elemento id.
+        problem_nature_id neprivaloma, imama iš to paties elemento natures sąrašo id.
+        Failams naudokite multipart form data.
       security:
         - bearerAuth: []
       parameters:
         - in: header
           name: X-Upload-Channel
           required: false
+          description: Nuostatos pagal GET /api/info/file-upload-settings.
           schema:
             type: string
+            enum: [web, mobile]
+            default: web
       requestBody:
         required: true
         content:
@@ -163,7 +197,7 @@ paths:
   /api/problems/{problem}:
     get:
       tags: [Problems]
-      summary: Public problem details (JSON)
+      summary: Public problem details JSON
       parameters:
         - $ref: '#/components/parameters/problemPath'
       responses:
@@ -174,12 +208,12 @@ paths:
               schema:
                 $ref: '#/components/schemas/PublicProblemResponse'
         '404':
-          description: Problem not found / not public
+          description: Problem not found or not public
 
   /api/info/statistics:
     get:
       tags: [Info]
-      summary: Public statistics data (JSON)
+      summary: Public statistics data JSON
       parameters:
         - in: query
           name: period
@@ -199,10 +233,50 @@ paths:
               schema:
                 $ref: '#/components/schemas/PublicStatisticsResponse'
 
+  /api/info/map:
+    get:
+      tags: [Info]
+      summary: Public map problems data JSON
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PublicMapResponse'
+
+  /api/content/{type}:
+    get:
+      tags: [Info]
+      summary: Viešas CMS turinys pagal tipą JSON
+      parameters:
+        - in: path
+          name: type
+          required: true
+          schema:
+            type: string
+            enum: [faq, privacy, cookies, contacts, help]
+          examples:
+            faq:
+              value: faq
+            privacy:
+              value: privacy
+            help:
+              value: help
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PublicContentResponse'
+        '404':
+          description: Not found
+
   /api/info/file-upload-settings:
     get:
       tags: [Info]
-      summary: File upload limits/settings (JSON)
+      summary: File upload limits and settings JSON
       security:
         - bearerAuth: []
       responses:
@@ -211,17 +285,531 @@ paths:
           content:
             application/json:
               schema:
-                type: object
-                additionalProperties: true
+                $ref: '#/components/schemas/FileUploadSettingsResponse'
         '401':
           description: Unauthorized
+
+  /api/reporter/problems:
+    get:
+      tags: [Reporter]
+      summary: Reporter own problems list
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: search
+          required: false
+          schema:
+            type: string
+        - in: query
+          name: report_number
+          required: false
+          schema:
+            type: string
+        - in: query
+          name: category
+          required: false
+          schema:
+            type: string
+        - in: query
+          name: date_from
+          required: false
+          schema:
+            type: string
+            format: date
+        - in: query
+          name: date_to
+          required: false
+          schema:
+            type: string
+            format: date
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReporterProblemsListResponse'
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden ne reporter role
+
+  /api/reporter/problems/{problem}:
+    get:
+      tags: [Reporter]
+      summary: Reporter own problem details
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/problemPath'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReporterProblemShowResponse'
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden ne reporter role
+        '404':
+          description: Not found
+
+  /api/reporter/statistics:
+    get:
+      tags: [Reporter]
+      summary: Reporter statistics authenticated
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: period
+          required: false
+          schema:
+            type: string
+            enum: [all, week, month, quarter, year]
+        - in: query
+          name: category
+          required: false
+          schema:
+            type: string
+        - in: query
+          name: date_from
+          required: false
+          schema:
+            type: string
+            format: date
+        - in: query
+          name: date_to
+          required: false
+          schema:
+            type: string
+            format: date
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReporterStatisticsResponse'
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden ne reporter role
+
+  /api/reporter/report-meta:
+    get:
+      tags: [Reporter]
+      summary: Reporter report metadata
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReporterReportMetaResponse'
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden ne reporter role
+
+  /api/reporter/wizard-dismissed:
+    post:
+      tags: [Reporter]
+      summary: Mark reporter wizard as dismissed
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OkResponse'
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden ne reporter role
+
+  /api/reporter/report-terms-accepted:
+    post:
+      tags: [Reporter]
+      summary: Mark reporter terms as accepted
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OkResponse'
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden ne reporter role
+
+  /api/internal/problems/{problem}:
+    put:
+      tags: [Internal]
+      summary: Atnaujinti klasifikaciją numeris kategorija adresas
+      description: JSON API. Reikia teisės keisti klasifikaciją. Prieiga prie problemos tikrinama pagal paskyrą.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/problemPath'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/InternalProblemUpdateRequest'
+      responses:
+        '200':
+          description: Atnaujinta
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InternalProblemUpdateResult'
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '422':
+          $ref: '#/components/responses/ValidationError'
+    delete:
+      tags: [Internal]
+      summary: Archyvuoti problemą ir apjungtą grupę
+      description: JSON API. Reikia teisės trinti. Archyvuojamos susijusios apjungtos problemos.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/problemPath'
+      responses:
+        '200':
+          description: Perkelta į archyvą
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InternalProblemArchiveResult'
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+
+  /api/internal/problems/{problem}/status:
+    patch:
+      tags: [Internal]
+      summary: Keisti būseną apjungtai grupei
+      description: JSON API. Leidžiamos visos darbinės būsenos išskyrus nauja.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/problemPath'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/InternalProblemStatusUpdateRequest'
+      responses:
+        '200':
+          description: Būsena pakeista
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InternalProblemStatusBatchResult'
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '422':
+          $ref: '#/components/responses/ValidationError'
+
+  /api/internal/problems/{problem}/publish:
+    patch:
+      tags: [Internal]
+      summary: Viešas skelbimas arba nuėmimas
+      description: JSON API. Reikia teisės publikuoti.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/problemPath'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/InternalProblemPublishUpdateRequest'
+      responses:
+        '200':
+          description: Publikuota arba nuimta
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InternalProblemPublishBatchResult'
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '422':
+          $ref: '#/components/responses/ValidationError'
+
+  /api/internal/problems/{problem}/merge:
+    post:
+      tags: [Internal]
+      summary: Apjungti kitas problemas į šią
+      description: JSON API. problem_ids nurodo kurias problemas sujungti į šio kelio problem identifikatoriaus šaknį.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/problemPath'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/InternalProblemMergeRequest'
+      responses:
+        '200':
+          description: Apjungta arba nieko nebuvo keisti
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InternalProblemMergeResult'
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '422':
+          $ref: '#/components/responses/ValidationError'
+
+  /api/internal/problems/assign:
+    post:
+      tags: [Internal]
+      summary: Masinis priskyrimas įstaigai admin
+      description: JSON API. Tik sistemos arba problemų administratoriams. Galima kartu pakeisti būseną.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/InternalBulkAssignRequest'
+      responses:
+        '200':
+          description: Pavyko
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InternalAssignBulkResult'
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '422':
+          description: Validacijos klaida arba išspręstos problemos
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageOnlyError'
+
+  /api/internal/problems/{problem}/assign-institution:
+    post:
+      tags: [Internal]
+      summary: Priskirti įstaigos viduje darbuotojui arba komandai
+      description: JSON API. Turi būti užpildytas tik employee_id arba tik institution_team_id.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/problemPath'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/InternalInstitutionAssignRequest'
+      responses:
+        '200':
+          description: Priskirta
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InternalOkProblemId'
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '422':
+          description: Klaidingi priskyrimo duomenys arba komanda be narių arba problema išspręsta
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageOnlyError'
+
+  /api/internal/problems/{problem}/reassign-institution:
+    post:
+      tags: [Internal]
+      summary: Perduoti kitai įstaigai
+      description: JSON API.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/problemPath'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/InternalInstitutionReassignRequest'
+      responses:
+        '200':
+          description: Perduota arba jau buvo toje įstaigoje
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InternalOkProblemId'
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '422':
+          description: Problema jau išspręsta
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageOnlyError'
+
+  /api/internal/problems/{problem}/unmerge:
+    patch:
+      tags: [Internal]
+      summary: Atskirti problemą iš apjungimo
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/problemPath'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InternalOkProblemId'
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+
+  /api/internal/problems/{problem}/return:
+    patch:
+      tags: [Internal]
+      summary: Grąžinti problemą administratoriui įstaigos kontekste
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/problemPath'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InternalOkProblemId'
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+
+  /api/internal/problems/bulk-update-status:
+    post:
+      tags: [Internal]
+      summary: Masiškai keisti būseną
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/InternalBulkStatusUpdateRequest'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InternalBulkStatusResult'
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '422':
+          $ref: '#/components/responses/ValidationError'
+
+  /api/internal/problems/bulk-destroy:
+    post:
+      tags: [Internal]
+      summary: Masiškai archyvuoti
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/InternalBulkIdsRequest'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InternalBulkArchiveResult'
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '422':
+          $ref: '#/components/responses/ValidationError'
+
+  /api/internal/problems/bulk-update-publish:
+    post:
+      tags: [Internal]
+      summary: Masiškai keisti viešinimą
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/InternalBulkPublishUpdateRequest'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InternalBulkPublishResult'
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '422':
+          $ref: '#/components/responses/ValidationError'
 
 components:
   securitySchemes:
     bearerAuth:
       type: http
       scheme: bearer
-      bearerFormat: API token
+      bearerFormat: Sanctum personal access token
+      description: POST /api/login atsakyme token laukas. Authorize įvedamas be Bearer prefikso.
 
   parameters:
     problemPath:
@@ -253,9 +841,12 @@ components:
         login_type:
           type: string
           enum: [pareiskejas, darbuotojas]
+          default: darbuotojas
+          description: Pasirinkite prisijungimo tipą.
         device_name:
           type: string
-          example: swagger
+          description: Sanctum tokeno etiketė administravimo sąraše.
+          example: api-client
 
     ApiRegisterRequest:
       type: object
@@ -274,7 +865,7 @@ components:
           format: password
         device_name:
           type: string
-          example: swagger
+          example: api-client
 
     AuthTokenResponse:
       type: object
@@ -300,17 +891,55 @@ components:
           type: string
           format: email
 
+    MeResponse:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        surname:
+          type: string
+          nullable: true
+        email:
+          type: string
+          format: email
+        email_verified_at:
+          type: string
+          format: date-time
+          nullable: true
+        terms_accepted_at:
+          type: string
+          format: date-time
+          nullable: true
+        reporter_report_terms_accepted_at:
+          type: string
+          format: date-time
+          nullable: true
+        reporter_wizard_completed_at:
+          type: string
+          format: date-time
+          nullable: true
+        roles:
+          type: array
+          items:
+            type: string
+        permissions:
+          type: array
+          items:
+            type: string
+
     ReporterProblemCreateRequest:
       type: object
       required: [problem_type_id, description, address]
       properties:
         problem_type_id:
           type: integer
-          description: Rūšis - report-meta typeValues[].id (šaknis).
+          description: Rūšies id iš report meta typeValues šaknies elemento.
         problem_nature_id:
           type: integer
           nullable: true
-          description: Pobūdis - to paties typeValues įrašo natures[].id; ne rūšies id, jei skiriasi.
+          description: Pobūžio id iš to paties typeValues įrašo natures sąrašo gali skirtis nuo rūšies id.
         description:
           type: string
         address:
@@ -331,7 +960,499 @@ components:
 
     PublicProblemResponse:
       type: object
+      properties:
+        id:
+          type: integer
+        internal_number:
+          type: string
+        status:
+          type: string
+        category:
+          type: string
+        address:
+          type: string
+        description:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+        is_published_publicly:
+          type: boolean
+        attachments:
+          type: array
+          items:
+            $ref: '#/components/schemas/PublicAttachment'
+
+    PublicAttachment:
+      type: object
       additionalProperties: true
+
+    PublicMapResponse:
+      type: object
+      properties:
+        center:
+          type: object
+          properties:
+            lat:
+              type: number
+              format: double
+            lng:
+              type: number
+              format: double
+        problems:
+          type: array
+          items:
+            type: object
+            additionalProperties: true
+
+    PublicContentResponse:
+      type: object
+      properties:
+        type:
+          type: string
+        title:
+          type: string
+        body:
+          type: string
+
+    FileUploadSettingsResponse:
+      type: object
+      properties:
+        web:
+          $ref: '#/components/schemas/FileUploadChannel'
+        mobile:
+          $ref: '#/components/schemas/FileUploadChannel'
+      additionalProperties: true
+
+    FileUploadChannel:
+      type: object
+      properties:
+        allow_photo:
+          type: boolean
+        allow_video:
+          type: boolean
+        max_photo_size_kb:
+          type: integer
+        max_video_size_kb:
+          type: integer
+        max_photo_files_per_problem:
+          type: integer
+        max_video_files_per_problem:
+          type: integer
+        max_total_upload_kb:
+          type: integer
+        description_max_chars:
+          type: integer
+
+    ReporterProblemListItem:
+      type: object
+      properties:
+        id:
+          type: integer
+        internal_number:
+          type: string
+        status:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+        category:
+          type: string
+        address:
+          type: string
+        description:
+          type: string
+        is_published_publicly:
+          type: boolean
+        merged_into_problem_id:
+          type: integer
+          nullable: true
+
+    ReporterProblemsListResponse:
+      type: object
+      properties:
+        problems:
+          type: array
+          items:
+            $ref: '#/components/schemas/ReporterProblemListItem'
+        categories:
+          type: array
+          items:
+            type: string
+        filters:
+          type: object
+          additionalProperties: true
+
+    ReporterStatisticsListItem:
+      type: object
+      properties:
+        id:
+          type: integer
+        internal_number:
+          type: string
+        date:
+          type: string
+          format: date
+        description:
+          type: string
+        status:
+          type: string
+
+    ReporterStatisticsResponse:
+      type: object
+      properties:
+        categories:
+          type: array
+          items:
+            type: string
+        filters:
+          type: object
+          additionalProperties: true
+        total:
+          type: integer
+        solvedCount:
+          type: integer
+        byCategory:
+          type: array
+          items:
+            type: object
+            properties:
+              category:
+                type: string
+              count:
+                type: integer
+        monthlyReports:
+          type: array
+          items:
+            type: object
+            additionalProperties: true
+        nagrinejamosProblemos:
+          type: array
+          items:
+            $ref: '#/components/schemas/ReporterStatisticsListItem'
+        issprestosProblemos:
+          type: array
+          items:
+            $ref: '#/components/schemas/ReporterStatisticsListItem'
+
+    ReporterReportMetaResponse:
+      type: object
+      properties:
+        typeValues:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: integer
+              name:
+                type: string
+              natures:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    id:
+                      type: integer
+                    name:
+                      type: string
+        showReporterWizard:
+          type: boolean
+        hasAcceptedReportTerms:
+          type: boolean
+        fileUpload:
+          $ref: '#/components/schemas/FileUploadChannel'
+
+    ReporterProblemShowResponse:
+      type: object
+      properties:
+        problem:
+          $ref: '#/components/schemas/PublicProblemResponse'
+        mergeTarget:
+          type: object
+          nullable: true
+          additionalProperties: true
+        mergedChildren:
+          type: array
+          items:
+            type: object
+            additionalProperties: true
+        mergedSiblings:
+          type: array
+          items:
+            type: object
+            additionalProperties: true
+
+    OkResponse:
+      type: object
+      properties:
+        ok:
+          type: boolean
+          example: true
+
+    MessageOnlyError:
+      type: object
+      properties:
+        message:
+          type: string
+
+    InternalProblemUpdateResult:
+      type: object
+      required: [ok, message, problem_id]
+      properties:
+        ok:
+          type: boolean
+        message:
+          type: string
+        problem_id:
+          type: integer
+
+    InternalProblemArchiveResult:
+      type: object
+      required: [ok, message, problem_ids]
+      properties:
+        ok:
+          type: boolean
+        message:
+          type: string
+        problem_ids:
+          type: array
+          items:
+            type: integer
+
+    InternalProblemStatusBatchResult:
+      type: object
+      required: [ok, message, problem_ids, status]
+      properties:
+        ok:
+          type: boolean
+        message:
+          type: string
+        problem_ids:
+          type: array
+          items:
+            type: integer
+        status:
+          type: string
+
+    InternalProblemPublishBatchResult:
+      type: object
+      required: [ok, message, problem_ids, is_published_publicly]
+      properties:
+        ok:
+          type: boolean
+        message:
+          type: string
+        problem_ids:
+          type: array
+          items:
+            type: integer
+        is_published_publicly:
+          type: boolean
+
+    InternalProblemMergeResult:
+      type: object
+      required: [ok, message]
+      properties:
+        ok:
+          type: boolean
+        message:
+          type: string
+        root_problem_id:
+          type: integer
+        merged_problem_ids:
+          type: array
+          items:
+            type: integer
+        problem_ids:
+          type: array
+          items:
+            type: integer
+
+    InternalAssignBulkResult:
+      type: object
+      required: [ok, message, problem_ids]
+      properties:
+        ok:
+          type: boolean
+        message:
+          type: string
+        problem_ids:
+          type: array
+          items:
+            type: integer
+
+    InternalOkProblemId:
+      type: object
+      required: [ok, message, problem_id]
+      properties:
+        ok:
+          type: boolean
+        message:
+          type: string
+        problem_id:
+          type: integer
+
+    InternalBulkStatusResult:
+      type: object
+      required: [ok, message, problem_ids, status]
+      properties:
+        ok:
+          type: boolean
+        message:
+          type: string
+        problem_ids:
+          type: array
+          items:
+            type: integer
+        status:
+          type: string
+
+    InternalBulkArchiveResult:
+      type: object
+      required: [ok, message, problem_ids]
+      properties:
+        ok:
+          type: boolean
+        message:
+          type: string
+        problem_ids:
+          type: array
+          items:
+            type: integer
+
+    InternalBulkPublishResult:
+      type: object
+      required: [ok, message, problem_ids, is_published_publicly]
+      properties:
+        ok:
+          type: boolean
+        message:
+          type: string
+        problem_ids:
+          type: array
+          items:
+            type: integer
+        is_published_publicly:
+          type: boolean
+
+    InternalProblemUpdateRequest:
+      type: object
+      required: [internal_number, category, address]
+      properties:
+        internal_number:
+          type: string
+        category:
+          type: string
+        address:
+          type: string
+        description:
+          type: string
+          nullable: true
+
+    InternalProblemStatusUpdateRequest:
+      type: object
+      required: [status]
+      properties:
+        status:
+          type: string
+          description: Negalima nauja. Leistinos reikšmės žemiau.
+          enum:
+            - neuzregistruota
+            - nagrinejama
+            - grazinta_nagrinejimui
+            - isspresta
+            - neaktuali
+
+    InternalProblemPublishUpdateRequest:
+      type: object
+      required: [is_published_publicly]
+      properties:
+        is_published_publicly:
+          type: boolean
+
+    InternalProblemMergeRequest:
+      type: object
+      required: [problem_ids]
+      properties:
+        problem_ids:
+          type: array
+          items:
+            type: integer
+
+    InternalBulkAssignRequest:
+      type: object
+      required: [problem_ids]
+      properties:
+        problem_ids:
+          type: array
+          items:
+            type: integer
+        institution_id:
+          type: integer
+          nullable: true
+        status:
+          type: string
+          nullable: true
+
+    InternalInstitutionAssignRequest:
+      type: object
+      properties:
+        employee_id:
+          type: integer
+          nullable: true
+        institution_team_id:
+          type: integer
+          nullable: true
+        completion_deadline:
+          type: string
+          format: date
+          nullable: true
+
+    InternalInstitutionReassignRequest:
+      type: object
+      required: [institution_id]
+      properties:
+        institution_id:
+          type: integer
+
+    InternalBulkIdsRequest:
+      type: object
+      required: [problem_ids]
+      properties:
+        problem_ids:
+          type: array
+          items:
+            type: integer
+
+    InternalBulkStatusUpdateRequest:
+      type: object
+      required: [problem_ids, status]
+      properties:
+        problem_ids:
+          type: array
+          items:
+            type: integer
+        status:
+          type: string
+          description: Tas pats kaip vienos problemos PATCH be būsenos nauja.
+          enum:
+            - neuzregistruota
+            - nagrinejama
+            - grazinta_nagrinejimui
+            - isspresta
+            - neaktuali
+
+    InternalBulkPublishUpdateRequest:
+      type: object
+      required: [problem_ids, is_published_publicly]
+      properties:
+        problem_ids:
+          type: array
+          items:
+            type: integer
+        is_published_publicly:
+          type: boolean
 
     LaravelValidationErrorResponse:
       type: object

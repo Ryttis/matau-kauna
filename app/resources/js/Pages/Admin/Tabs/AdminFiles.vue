@@ -8,7 +8,6 @@ import { adminApi } from '@/constants/api/adminApi'
 
 const CHANNEL = {
     web: 'Naršyklė',
-    mobile: 'Mobili aplikacija',
 }
 
 const defaultChannel = () => ({
