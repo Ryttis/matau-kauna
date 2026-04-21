@@ -8,6 +8,7 @@ use App\Models\Employee;
 use App\Models\InstitutionTeam;
 use App\Models\Problem;
 use App\Services\ProblemAssignmentNotifier;
+use App\Services\ProblemDashboardQueryService;
 use App\Services\ProblemResolutionTermService;
 use App\Services\ProblemScopeService;
 use Illuminate\Http\JsonResponse;
@@ -19,7 +20,35 @@ class InternalProblemApiController extends Controller
         private ProblemScopeService $scopeService,
         private ProblemAssignmentNotifier $assignmentNotifier,
         private ProblemResolutionTermService $resolutionTermService,
+        private ProblemDashboardQueryService $dashboardQuery,
     ) {}
+
+    public function index(Request $request): JsonResponse
+    {
+        $user = $request->user();
+        if ($user->isReporterOnly()) {
+            abort(403);
+        }
+        if (! $user->hasPermission('issues.view')) {
+            abort(403);
+        }
+
+        $filters = [
+            'search' => $request->query('search'),
+            'status' => $request->query('status'),
+            'category' => $request->query('category'),
+            'report_number' => $request->query('report_number'),
+            'date_from' => $request->query('date_from'),
+            'date_to' => $request->query('date_to'),
+        ];
+        $sortBy = (string) $request->query('sort_by', 'created_at');
+        $sortDirection = (string) $request->query('sort_direction', 'desc');
+        $perPage = (int) $request->query('per_page', 20);
+
+        $paginator = $this->dashboardQuery->paginatedStaffProblems($user, $filters, $sortBy, $sortDirection, $perPage);
+
+        return response()->json($paginator);
+    }
 
     public function update(Request $request, Problem $problem): JsonResponse
     {
