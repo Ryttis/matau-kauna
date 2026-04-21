@@ -53,7 +53,7 @@ async function loadSettings() {
             retention_is_active: res.retention_is_active ?? true,
         }
         settingsForm.value = { ...settings.value }
-    } catch (_) {}
+    } catch {}
 }
 
 async function load() {

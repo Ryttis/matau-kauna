@@ -304,7 +304,7 @@ onMounted(load)
 .actions {
     margin-top: 24px;
     display: flex;
-    justify-content: center;
+    justify-content: flex-start;
     width: 100%;
 }
 </style>

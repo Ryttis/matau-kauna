@@ -5,7 +5,7 @@ import LandingFooter from '@/Components/Landing/LandingFooter.vue';
 import { Head, Link, useForm } from '@inertiajs/vue3';
 import { computed } from 'vue';
 
-const props = defineProps({
+defineProps({
     terms_title: { type: String, default: 'Sistemos taisyklės ir asmens duomenų tvarkymas' },
     terms_body: { type: String, default: '' }
 });

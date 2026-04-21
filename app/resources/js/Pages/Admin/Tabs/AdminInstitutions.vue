@@ -148,7 +148,7 @@ onMounted(async () => {
     loading.value = true
     try {
         await loadInstitutions()
-    } catch (e) {
+    } catch {
         errorMessage.value = 'Nepavyko užkrauti įstaigų.'
     } finally {
         loading.value = false

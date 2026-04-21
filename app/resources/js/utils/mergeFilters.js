@@ -1,4 +1,4 @@
-export function normalizeInternalNumber(s) {
+function normalizeInternalNumber(s) {
     return String(s || '').replace(/\s/g, '').toUpperCase()
 }
 

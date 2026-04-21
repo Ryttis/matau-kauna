@@ -26,7 +26,7 @@ import {
     PROBLEM_STATUS_LABELS,
     PUBLIC_MAP_LEGEND_STATUS_ORDER,
 } from '@/constants/domain/problemStatus'
-import { MAP_CLUSTER_COLOR, MAP_LEGEND_DOT_SIZE_PX } from '@/constants/ui/theme'
+import { MAP_CLUSTER_COLOR } from '@/constants/ui/theme'
 import { clusterProblems } from '@/utils/mapClustering'
 import { truncateMapPopupText } from '@/utils/mapPopupText'
 

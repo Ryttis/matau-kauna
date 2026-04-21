@@ -1,7 +1,7 @@
 <script setup>
 import { Link } from '@inertiajs/vue3'
 
-const props = defineProps({
+defineProps({
     title: { type: String, required: true },
     problems: { type: Array, default: () => [] },
     emptyMessage: { type: String, default: 'Nėra problemų' },

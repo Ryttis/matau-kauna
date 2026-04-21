@@ -19,7 +19,7 @@ const loadInvitations = async () => {
     try {
         const { data } = await axios.get(adminApi.invitations)
         invitationsPage.value = data
-    } catch (e) {
+    } catch {
         errorMessage.value = 'Nepavyko užkrauti pakvietimų.'
     } finally {
         loading.value = false

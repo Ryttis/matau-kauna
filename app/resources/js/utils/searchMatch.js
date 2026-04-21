@@ -1,6 +1,6 @@
 import { foldLithuanianForSearch } from '@/utils/foldLithuanianForSearch'
 
-export function normalizeSearchText(value) {
+function normalizeSearchText(value) {
     return foldLithuanianForSearch(String(value ?? '').trim())
 }
 
