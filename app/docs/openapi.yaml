@@ -1,7 +1,7 @@
 openapi: 3.0.3
 
 info:
-  title: Kauno problemos API
+  title: Kaunas Problems API
   version: 2.0.0
 
 tags:
@@ -13,9 +13,9 @@ tags:
 
 servers:
   - url: /
-    description: Šis hostas
+    description: Current host
   - url: http://kauno-problemos.local
-    description: Lokalus hostname
+    description: Local hostname
   - url: http://185.80.129.163
     description: Live HTTP
 
@@ -23,7 +23,7 @@ paths:
   /api/login:
     post:
       tags: [Auth]
-      summary: Prisijungimas Sanctum tokenas
+      summary: Login Sanctum token
       requestBody:
         required: true
         content:
@@ -32,14 +32,14 @@ paths:
               $ref: '#/components/schemas/ApiLoginRequest'
             examples:
               darbuotojas:
-                summary: Darbuotojo prisijungimas
+                summary: Staff login example
                 value:
                   email: "darbuotojas@example.com"
                   password: "Slaptazodis123!"
                   login_type: "darbuotojas"
                   device_name: "api-client"
               pareiskejas:
-                summary: Pareiškėjo prisijungimas
+                summary: Reporter login example
                 value:
                   email: "pareiskejas@example.com"
                   password: "Slaptazodis123!"
@@ -61,7 +61,7 @@ paths:
   /api/register:
     post:
       tags: [Auth]
-      summary: Registracija pareiškėjui su tokeno grąža
+      summary: Reporter registration returns token
       requestBody:
         required: true
         content:
@@ -70,7 +70,7 @@ paths:
               $ref: '#/components/schemas/ApiRegisterRequest'
             examples:
               pavyzdys:
-                summary: Pavyzdinė užklausa
+                summary: Sample request
                 value:
                   name: "Testas"
                   email: "testas.reporter@example.com"
@@ -90,7 +90,7 @@ paths:
   /api/me:
     get:
       tags: [Auth]
-      summary: Dabartinis naudotojas roles ir permissions
+      summary: Current user roles and permissions
       security:
         - bearerAuth: []
       responses:
@@ -106,7 +106,7 @@ paths:
   /api/logout:
     post:
       tags: [Auth]
-      summary: Atsijungimas panaikina dabartinį tokeną
+      summary: Logout revokes current token
       security:
         - bearerAuth: []
       responses:
@@ -127,6 +127,7 @@ paths:
     get:
       tags: [Problems]
       summary: Public problems list JSON
+      description: Anonymous or any user. Only problems published to the public map. Does not list all issues for staff. Staff with Bearer use GET /api/internal/problems instead.
       parameters:
         - in: query
           name: per_page
@@ -146,19 +147,19 @@ paths:
                 additionalProperties: true
     post:
       tags: [Problems]
-      summary: Naujas pranešimas pareiškėjui
+      summary: Create problem reporter
       description: >
-        Reikia Bearer ir reporter rolės. Pirmiausia GET /api/reporter/report-meta.
-        problem_type_id imama iš report meta typeValues elemento id.
-        problem_nature_id neprivaloma, imama iš to paties elemento natures sąrašo id.
-        Failams naudokite multipart form data.
+        Requires Bearer and reporter role. Call GET /api/reporter/report-meta first.
+        problem_type_id comes from report meta typeValues item id.
+        problem_nature_id is optional from the same item natures list id.
+        Use multipart form data when sending files.
       security:
         - bearerAuth: []
       parameters:
         - in: header
           name: X-Upload-Channel
           required: false
-          description: Nuostatos pagal GET /api/info/file-upload-settings.
+          description: Upload channel from GET /api/info/file-upload-settings.
           schema:
             type: string
             enum: [web, mobile]
@@ -248,7 +249,7 @@ paths:
   /api/content/{type}:
     get:
       tags: [Info]
-      summary: Viešas CMS turinys pagal tipą JSON
+      summary: Public CMS content by type JSON
       parameters:
         - in: path
           name: type
@@ -333,7 +334,7 @@ paths:
         '401':
           description: Unauthorized
         '403':
-          description: Forbidden ne reporter role
+          description: Forbidden not reporter
 
   /api/reporter/problems/{problem}:
     get:
@@ -353,7 +354,7 @@ paths:
         '401':
           description: Unauthorized
         '403':
-          description: Forbidden ne reporter role
+          description: Forbidden not reporter
         '404':
           description: Not found
 
@@ -397,7 +398,7 @@ paths:
         '401':
           description: Unauthorized
         '403':
-          description: Forbidden ne reporter role
+          description: Forbidden not reporter
 
   /api/reporter/report-meta:
     get:
@@ -415,7 +416,7 @@ paths:
         '401':
           description: Unauthorized
         '403':
-          description: Forbidden ne reporter role
+          description: Forbidden not reporter
 
   /api/reporter/wizard-dismissed:
     post:
@@ -433,7 +434,7 @@ paths:
         '401':
           description: Unauthorized
         '403':
-          description: Forbidden ne reporter role
+          description: Forbidden not reporter
 
   /api/reporter/report-terms-accepted:
     post:
@@ -451,13 +452,87 @@ paths:
         '401':
           description: Unauthorized
         '403':
-          description: Forbidden ne reporter role
+          description: Forbidden not reporter
+
+  /api/internal/problems:
+    get:
+      tags: [Internal]
+      summary: Staff problems list
+      description: Bearer required. Permission issues.view. Same filters and scope as web staff dashboard. Public catalogue stays GET /api/problems.
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: per_page
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+        - in: query
+          name: search
+          required: false
+          schema:
+            type: string
+        - in: query
+          name: status
+          required: false
+          schema:
+            type: string
+        - in: query
+          name: category
+          required: false
+          schema:
+            type: string
+        - in: query
+          name: report_number
+          required: false
+          schema:
+            type: string
+        - in: query
+          name: date_from
+          required: false
+          schema:
+            type: string
+            format: date
+        - in: query
+          name: date_to
+          required: false
+          schema:
+            type: string
+            format: date
+        - in: query
+          name: sort_by
+          required: false
+          schema:
+            type: string
+            default: created_at
+        - in: query
+          name: sort_direction
+          required: false
+          schema:
+            type: string
+            enum: [asc, desc]
+            default: desc
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
 
   /api/internal/problems/{problem}:
     put:
       tags: [Internal]
-      summary: Atnaujinti klasifikaciją numeris kategorija adresas
-      description: JSON API. Reikia teisės keisti klasifikaciją. Prieiga prie problemos tikrinama pagal paskyrą.
+      summary: Update problem classification fields
+      description: Requires classification edit permission. Access checked per user scope.
       security:
         - bearerAuth: []
       parameters:
@@ -470,7 +545,7 @@ paths:
               $ref: '#/components/schemas/InternalProblemUpdateRequest'
       responses:
         '200':
-          description: Atnaujinta
+          description: Updated
           content:
             application/json:
               schema:
@@ -483,15 +558,15 @@ paths:
           $ref: '#/components/responses/ValidationError'
     delete:
       tags: [Internal]
-      summary: Archyvuoti problemą ir apjungtą grupę
-      description: JSON API. Reikia teisės trinti. Archyvuojamos susijusios apjungtos problemos.
+      summary: Archive problem and merge group
+      description: Requires delete permission. Archives related merged problems.
       security:
         - bearerAuth: []
       parameters:
         - $ref: '#/components/parameters/problemPath'
       responses:
         '200':
-          description: Perkelta į archyvą
+          description: Archived
           content:
             application/json:
               schema:
@@ -504,8 +579,8 @@ paths:
   /api/internal/problems/{problem}/status:
     patch:
       tags: [Internal]
-      summary: Keisti būseną apjungtai grupei
-      description: JSON API. Leidžiamos visos darbinės būsenos išskyrus nauja.
+      summary: Update status for merge group
+      description: All staff workflow statuses allowed except nauja.
       security:
         - bearerAuth: []
       parameters:
@@ -518,7 +593,7 @@ paths:
               $ref: '#/components/schemas/InternalProblemStatusUpdateRequest'
       responses:
         '200':
-          description: Būsena pakeista
+          description: Status updated
           content:
             application/json:
               schema:
@@ -533,8 +608,8 @@ paths:
   /api/internal/problems/{problem}/publish:
     patch:
       tags: [Internal]
-      summary: Viešas skelbimas arba nuėmimas
-      description: JSON API. Reikia teisės publikuoti.
+      summary: Publish or unpublish public visibility
+      description: Requires publish permission.
       security:
         - bearerAuth: []
       parameters:
@@ -547,7 +622,7 @@ paths:
               $ref: '#/components/schemas/InternalProblemPublishUpdateRequest'
       responses:
         '200':
-          description: Publikuota arba nuimta
+          description: Publish toggled
           content:
             application/json:
               schema:
@@ -562,8 +637,8 @@ paths:
   /api/internal/problems/{problem}/merge:
     post:
       tags: [Internal]
-      summary: Apjungti kitas problemas į šią
-      description: JSON API. problem_ids nurodo kurias problemas sujungti į šio kelio problem identifikatoriaus šaknį.
+      summary: Merge other problems into this root
+      description: JSON API. problem_ids lists problems to merge under this path problem id root.
       security:
         - bearerAuth: []
       parameters:
@@ -576,7 +651,7 @@ paths:
               $ref: '#/components/schemas/InternalProblemMergeRequest'
       responses:
         '200':
-          description: Apjungta arba nieko nebuvo keisti
+          description: Merged or no changes
           content:
             application/json:
               schema:
@@ -591,8 +666,8 @@ paths:
   /api/internal/problems/assign:
     post:
       tags: [Internal]
-      summary: Masinis priskyrimas įstaigai admin
-      description: JSON API. Tik sistemos arba problemų administratoriams. Galima kartu pakeisti būseną.
+      summary: Bulk assign to institution admin
+      description: JSON API. System or problem admins only. Optional status change in same request.
       security:
         - bearerAuth: []
       requestBody:
@@ -603,7 +678,7 @@ paths:
               $ref: '#/components/schemas/InternalBulkAssignRequest'
       responses:
         '200':
-          description: Pavyko
+          description: OK
           content:
             application/json:
               schema:
@@ -613,7 +688,7 @@ paths:
         '403':
           description: Forbidden
         '422':
-          description: Validacijos klaida arba išspręstos problemos
+          description: Validation error or resolved problems blocked
           content:
             application/json:
               schema:
@@ -622,8 +697,8 @@ paths:
   /api/internal/problems/{problem}/assign-institution:
     post:
       tags: [Internal]
-      summary: Priskirti įstaigos viduje darbuotojui arba komandai
-      description: JSON API. Turi būti užpildytas tik employee_id arba tik institution_team_id.
+      summary: Assign inside institution to employee or team
+      description: JSON API. Send only employee_id or only institution_team_id.
       security:
         - bearerAuth: []
       parameters:
@@ -636,7 +711,7 @@ paths:
               $ref: '#/components/schemas/InternalInstitutionAssignRequest'
       responses:
         '200':
-          description: Priskirta
+          description: Assigned
           content:
             application/json:
               schema:
@@ -646,7 +721,7 @@ paths:
         '403':
           description: Forbidden
         '422':
-          description: Klaidingi priskyrimo duomenys arba komanda be narių arba problema išspręsta
+          description: Bad assignment payload empty team or resolved problem
           content:
             application/json:
               schema:
@@ -655,7 +730,7 @@ paths:
   /api/internal/problems/{problem}/reassign-institution:
     post:
       tags: [Internal]
-      summary: Perduoti kitai įstaigai
+      summary: Reassign to another institution
       description: JSON API.
       security:
         - bearerAuth: []
@@ -669,7 +744,7 @@ paths:
               $ref: '#/components/schemas/InternalInstitutionReassignRequest'
       responses:
         '200':
-          description: Perduota arba jau buvo toje įstaigoje
+          description: Reassigned or already at institution
           content:
             application/json:
               schema:
@@ -679,7 +754,7 @@ paths:
         '403':
           description: Forbidden
         '422':
-          description: Problema jau išspręsta
+          description: Problem already resolved
           content:
             application/json:
               schema:
@@ -688,7 +763,7 @@ paths:
   /api/internal/problems/{problem}/unmerge:
     patch:
       tags: [Internal]
-      summary: Atskirti problemą iš apjungimo
+      summary: Unmerge problem from group
       security:
         - bearerAuth: []
       parameters:
@@ -708,7 +783,7 @@ paths:
   /api/internal/problems/{problem}/return:
     patch:
       tags: [Internal]
-      summary: Grąžinti problemą administratoriui įstaigos kontekste
+      summary: Return problem to admin from institution context
       security:
         - bearerAuth: []
       parameters:
@@ -728,7 +803,7 @@ paths:
   /api/internal/problems/bulk-update-status:
     post:
       tags: [Internal]
-      summary: Masiškai keisti būseną
+      summary: Bulk update status
       security:
         - bearerAuth: []
       requestBody:
@@ -754,7 +829,7 @@ paths:
   /api/internal/problems/bulk-destroy:
     post:
       tags: [Internal]
-      summary: Masiškai archyvuoti
+      summary: Bulk archive
       security:
         - bearerAuth: []
       requestBody:
@@ -780,7 +855,7 @@ paths:
   /api/internal/problems/bulk-update-publish:
     post:
       tags: [Internal]
-      summary: Masiškai keisti viešinimą
+      summary: Bulk update publish flag
       security:
         - bearerAuth: []
       requestBody:
@@ -809,7 +884,7 @@ components:
       type: http
       scheme: bearer
       bearerFormat: Sanctum personal access token
-      description: POST /api/login atsakyme token laukas. Authorize įvedamas be Bearer prefikso.
+      description: Paste token value from POST /api/login into Authorize without Bearer prefix.
 
   parameters:
     problemPath:
@@ -842,10 +917,10 @@ components:
           type: string
           enum: [pareiskejas, darbuotojas]
           default: darbuotojas
-          description: Pasirinkite prisijungimo tipą.
+          description: Login type must match account role.
         device_name:
           type: string
-          description: Sanctum tokeno etiketė administravimo sąraše.
+          description: Sanctum token label shown in admin token list.
           example: api-client
 
     ApiRegisterRequest:
@@ -935,11 +1010,11 @@ components:
       properties:
         problem_type_id:
           type: integer
-          description: Rūšies id iš report meta typeValues šaknies elemento.
+          description: Type id from GET /api/reporter/report-meta typeValues root item.
         problem_nature_id:
           type: integer
           nullable: true
-          description: Pobūžio id iš to paties typeValues įrašo natures sąrašo gali skirtis nuo rūšies id.
+          description: Optional nature id from same typeValues item natures list may differ from type id.
         description:
           type: string
         address:
@@ -1356,7 +1431,7 @@ components:
       properties:
         status:
           type: string
-          description: Negalima nauja. Leistinos reikšmės žemiau.
+          description: Status nauja is not allowed. Allowed values in enum below.
           enum:
             - neuzregistruota
             - nagrinejama
@@ -1435,7 +1510,7 @@ components:
             type: integer
         status:
           type: string
-          description: Tas pats kaip vienos problemos PATCH be būsenos nauja.
+          description: Same rules as single problem PATCH without status nauja.
           enum:
             - neuzregistruota
             - nagrinejama
