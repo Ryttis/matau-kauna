@@ -6,7 +6,6 @@ import { adminRbacApi } from '@/constants/api/adminRbacApi'
 import { invitationsApi } from '@/constants/api/invitationsApi'
 import ConfirmModal from '@/Components/App/ConfirmModal.vue'
 import AppButton from '@/Components/App/AppButton.vue'
-import AppInput from '@/Components/App/AppInput.vue'
 import { ROLE_INSTITUTION_ADMIN, ROLE_EMPLOYEE } from '@/constants/domain/roles'
 
 const props = defineProps({

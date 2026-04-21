@@ -10,6 +10,7 @@ import { ref, computed, watch, onMounted } from 'vue'
 import { ROLE_INSTITUTION_ADMIN, ROLE_REPORTER } from '@/constants/domain/roles'
 import { SETTINGS_PAGE_STYLE } from '@/constants/ui/theme'
 import { useAuth } from '@/composables/useAuth'
+import '@/Components/App/settings-profile-page.css'
 
 const {
     user,
@@ -170,87 +171,3 @@ const saveReporterEmailWatched = (value) => {
 
     </AuthenticatedLayout>
 </template>
-
-<style scoped>
-.settings-container {
-    width: 100%;
-    max-width: var(--settings-container-max);
-    margin: 0;
-    background: var(--color-white);
-    padding: 24px;
-    box-sizing: border-box;
-}
-
-.settings-content {
-    width: 100%;
-    box-sizing: border-box;
-}
-
-.settings-inner {
-    width: 100%;
-    max-width: var(--settings-inner-max);
-    margin: 0;
-    box-sizing: border-box;
-}
-
-.form-error {
-    color: var(--color-error);
-    font-size: 14px;
-    margin-bottom: 0;
-}
-
-.form-grid {
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-    width: 100%;
-    max-width: var(--settings-inner-max);
-    box-sizing: border-box;
-    align-items: flex-start;
-}
-
-.settings-page .form-grid :deep(.app-input-group) {
-    width: 100% !important;
-    max-width: 100%;
-    box-sizing: border-box;
-}
-
-.settings-page .form-grid :deep(.app-input-wrapper-edit),
-.settings-page .form-grid :deep(.app-input-edit) {
-    width: 100%;
-    box-sizing: border-box;
-}
-
-.settings-page .form-grid :deep(.app-button) {
-    width: var(--settings-button-width) !important;
-    max-width: var(--settings-button-width) !important;
-    height: var(--settings-button-height) !important;
-    min-height: var(--settings-button-height) !important;
-    border-radius: var(--settings-radius) !important;
-    padding: 0 24px !important;
-    display: inline-flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-    align-self: flex-start !important;
-    font-family: var(--font-family-base, 'Open Sans', sans-serif) !important;
-    font-weight: 400 !important;
-}
-
-.settings-page .form-grid :deep(.app-button--primary) {
-    background-color: var(--color-primary) !important;
-    color: var(--color-white) !important;
-}
-
-.settings-page :deep(.app-input-edit),
-.settings-page :deep(.app-input-wrapper-edit .app-input-edit) {
-    background-color: var(--color-white) !important;
-    border: 1px solid var(--color-border) !important;
-    border-radius: var(--settings-input-radius) !important;
-}
-
-.settings-page :deep(.app-input-wrapper-edit .app-input-icon) {
-    width: 15px !important;
-    height: 15px !important;
-}
-
-</style>

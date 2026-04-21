@@ -36,7 +36,7 @@ const localErrors = ref({
 });
 
 const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-const phonePattern = /^[0-9+\s\-]+$/;
+const phonePattern = /^[0-9+\s-]+$/;
 
 function isValidLithuanianPhone(str) {
     const d = (str.match(/\d/g) || []).join('');

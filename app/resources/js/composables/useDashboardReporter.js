@@ -201,7 +201,6 @@ export function useDashboardReporter(props) {
         reporterHandleFilterApply,
         reporterHandleFilterClear,
         reporterOpenProblemView,
-        reporterSelectedProblemId,
         reporterHandleStebeti,
         reporterToggleWatchFromList,
         isReporterProblemWatched,

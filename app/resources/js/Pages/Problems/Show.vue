@@ -1,5 +1,4 @@
 <script setup>
-import { ref, computed } from 'vue'
 import { Head, router } from '@inertiajs/vue3'
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue'
 import ConfirmModal from '@/Components/App/ConfirmModal.vue'
@@ -8,23 +7,21 @@ import StatusChangeModal from '@/Components/App/Modals/StatusChangeModal.vue'
 import EditModal from '@/Components/App/Modals/EditModal.vue'
 import SuccessModal from '@/Components/App/SuccessModal.vue'
 import AppButton from '@/Components/App/AppButton.vue'
-import { useSuccessModal } from '@/composables/useSuccessModal'
 import AppInput from '@/Components/App/AppInput.vue'
 import AppBackButton from '@/Components/App/AppBackButton.vue'
 import ProblemMergeLinks from '@/Components/Problems/ProblemMergeLinks.vue'
 import ProblemAttachmentsPanel from '@/Components/Problems/ProblemAttachmentsPanel.vue'
 import StatusBadge from '@/Components/Problems/StatusBadge.vue'
-import { useAuth } from '@/composables/useAuth'
 import { ICON_RIGHT_ARROW } from '@/constants/ui/icons'
-import { PROBLEM_STATUS } from '@/constants/domain/problemStatus'
-import { buildInactiveReviewPostBody } from '@/constants/domain/reviewProgressEntry'
+import { useProblemShowPage } from '@/composables/useProblemShowPage'
+import '@/Components/Problems/problem-show-page.css'
 
 const props = defineProps({
     problem: Object,
     mergeTarget: { type: Object, default: null },
     mergedChildren: { type: Array, default: () => [] },
     mergedSiblings: { type: Array, default: () => [] },
-    statusOptions: Array,
+    statusOptions: { type: Array, default: () => [] },
     categories: Array,
     fileUpload: {
         type: Object,
@@ -40,149 +37,33 @@ const {
     canDeleteProblem,
     canPublish,
     isEmployee,
-} = useAuth()
-
-const canAssignProblem = computed(() => props.problem?.status !== PROBLEM_STATUS.RESOLVED)
-
-const { showSuccessModal, successMessage, closeSuccessModal } = useSuccessModal()
-const showStatusModal = ref(false)
-const showEditModal = ref(false)
-const showDeleteModal = ref(false)
-const showInactiveReasonModal = ref(false)
-const inactiveComment = ref('')
-const inactiveSubmitting = ref(false)
-const inactiveSubmitChannel = ref(null)
-const statusSubmitting = ref(false)
-const deleteSubmitting = ref(false)
-
-const handleBack = () => {
-    router.visit(route('dashboard'))
-}
-
-const closeStatusModal = () => {
-    if (statusSubmitting.value) return
-    showStatusModal.value = false
-}
-
-const handleStatusChange = (status) => {
-    if (statusSubmitting.value) return
-    if (status === PROBLEM_STATUS.INACTIVE) {
-        showStatusModal.value = false
-        inactiveComment.value = ''
-        showInactiveReasonModal.value = true
-        return
-    }
-
-    statusSubmitting.value = true
-    router.patch(route('problems.updateStatus', props.problem.id), {
-        status,
-    }, {
-        preserveScroll: true,
-        onSuccess: () => {
-            showStatusModal.value = false
-        },
-        onFinish: () => {
-            statusSubmitting.value = false
-        },
-    })
-}
-
-const closeInactiveReasonModal = () => {
-    if (inactiveSubmitting.value) return
-    showInactiveReasonModal.value = false
-}
-
-const submitInactiveReason = (visibility) => {
-    if (inactiveSubmitting.value) return
-    inactiveSubmitting.value = true
-    inactiveSubmitChannel.value = visibility
-    router.post(
-        route('problems.reviewProgress.store', props.problem.id),
-        buildInactiveReviewPostBody(inactiveComment.value, visibility),
-        {
-            preserveScroll: true,
-            onSuccess: () => {
-                showInactiveReasonModal.value = false
-                inactiveComment.value = ''
-            },
-            onFinish: () => {
-                inactiveSubmitting.value = false
-                inactiveSubmitChannel.value = null
-            },
-        },
-    )
-}
-
-const openStatusModal = () => {
-    showStatusModal.value = true
-}
-
-const openEditModal = () => {
-    showEditModal.value = true
-}
-
-const closeEditModal = () => {
-    showEditModal.value = false
-}
-
-const handleConfirmDelete = () => {
-    if (deleteSubmitting.value) return
-    deleteSubmitting.value = true
-    router.delete(route('problems.destroy', props.problem.id), {
-        preserveScroll: false,
-        onSuccess: () => {
-            showDeleteModal.value = false
-        },
-        onFinish: () => {
-            deleteSubmitting.value = false
-        },
-    })
-}
-
-const handleGrazintiAdmin = () => {
-    router.patch(route('problems.return', props.problem.id), {}, { preserveScroll: true })
-}
-
-const handleTogglePublish = () => {
-    const next = !props.problem.is_published_publicly
-    router.patch(route('problems.updatePublish', props.problem.id), {
-        is_published_publicly: next
-    }, { preserveScroll: true })
-}
-
-const mainProblem = computed(() => props.problem?.merged_into || props.problem?.merged_into_problem || null)
-const isMergedIntoOther = computed(
-    () => Boolean(props.problem?.merged_into_problem_id && mainProblem.value)
-)
-
-const mergeTargetId = computed(() =>
-    isMergedIntoOther.value && mainProblem.value ? mainProblem.value.id : props.problem?.id
-)
-
-const employeeDisplayName = (emp) => {
-    if (!emp) return ''
-    const full = [emp.name, emp.surname].filter(Boolean).join(' ').trim()
-    return full || emp.email || ''
-}
-
-const assignmentInfo = computed(() => {
-    const p = props.problem
-    if (!p) {
-        return { hasAny: false, institutionName: null, employeeName: null, teamName: null }
-    }
-    const inst = p.institution
-    const emp = p.assigned_employee ?? p.assignedEmployee
-    const team = p.assigned_institution_team ?? p.assignedInstitutionTeam
-    const institutionName = inst?.name?.trim() || null
-    const employeeName = employeeDisplayName(emp) || null
-    const teamName = team?.name?.trim() || null
-    return {
-        hasAny: Boolean(institutionName || employeeName || teamName),
-        institutionName,
-        employeeName,
-        teamName,
-    }
-})
+    canAssignProblem,
+    showSuccessModal,
+    successMessage,
+    closeSuccessModal,
+    showStatusModal,
+    showEditModal,
+    showDeleteModal,
+    showInactiveReasonModal,
+    inactiveComment,
+    inactiveSubmitting,
+    inactiveSubmitChannel,
+    statusSubmitting,
+    deleteSubmitting,
+    goToDashboard,
+    closeStatusModal,
+    saveProblemStatus,
+    closeInactiveReasonModal,
+    submitInactiveReason,
+    openStatusModal,
+    openEditModal,
+    closeEditModal,
+    deleteProblemPermanently,
+    returnProblemToAdmin,
+    togglePublicPublishState,
+    problemIdForMergePage,
+    assignmentSummary,
+} = useProblemShowPage(props)
 </script>
 
 <template>
@@ -196,7 +77,7 @@ const assignmentInfo = computed(() => {
         />
         <div class="problem-detail">
             <div class="problem-header">
-                <AppBackButton @click="handleBack" />
+                <AppBackButton @click="goToDashboard" />
                 <div class="header-info header-info-left">
                     <span class="header-label">Nr</span>
                     <span class="header-value">{{ problem.internal_number }}</span>
@@ -228,28 +109,28 @@ const assignmentInfo = computed(() => {
             <div class="problem-content">
                 <div class="problem-fields-top">
                     <AppInput
-                        v-if="assignmentInfo.institutionName"
-                        :model-value="assignmentInfo.institutionName"
+                        v-if="assignmentSummary.institutionName"
+                        :model-value="assignmentSummary.institutionName"
                         label="Įstaiga"
                         type="text"
                         readonly
                     />
                     <AppInput
-                        v-if="assignmentInfo.employeeName"
-                        :model-value="assignmentInfo.employeeName"
+                        v-if="assignmentSummary.employeeName"
+                        :model-value="assignmentSummary.employeeName"
                         label="Darbuotojas"
                         type="text"
                         readonly
                     />
                     <AppInput
-                        v-if="assignmentInfo.teamName"
-                        :model-value="assignmentInfo.teamName"
+                        v-if="assignmentSummary.teamName"
+                        :model-value="assignmentSummary.teamName"
                         label="Komanda"
                         type="text"
                         readonly
                     />
                     <AppInput
-                        v-if="!assignmentInfo.hasAny"
+                        v-if="!assignmentSummary.hasAny"
                         model-value="Dar nepriskirta įstaigai, darbuotojui arba komandai."
                         label="Skirta"
                         type="text"
@@ -307,47 +188,47 @@ const assignmentInfo = computed(() => {
                     text="Priskirti problemą"
                     variant="primary"
                     as-button
-                    @click="() => router.visit(route('problems.assign.single', problem.id))"
                     class="action-btn"
+                    @click="() => router.visit(route('problems.assign.single', problem.id))"
                 />
                 <AppButton
                     text="Atvaizduoti/keisti būseną"
                     variant="primary"
                     as-button
-                    @click="openStatusModal"
                     class="action-btn"
+                    @click="openStatusModal"
                 />
                 <AppButton
                     v-if="canPublish"
                     :text="problem.is_published_publicly ? 'Nebepaskelbti viešai' : 'Paskelbti viešai'"
                     variant="secondary"
                     as-button
-                    @click="handleTogglePublish"
                     class="action-btn"
+                    @click="togglePublicPublishState"
                 />
                 <AppButton
                     v-if="canEditProblem"
                     text="Koreguoti"
                     variant="secondary"
                     as-button
-                    @click="openEditModal"
                     class="action-btn"
+                    @click="openEditModal"
                 />
                 <AppButton
                     v-if="canMergeProblem"
                     text="Apjungti"
                     variant="secondary"
                     as-button
-                    @click="() => router.visit(route('problems.merge', mergeTargetId))"
                     class="action-btn"
+                    @click="() => router.visit(route('problems.merge', problemIdForMergePage))"
                 />
                 <AppButton
                     v-if="canDeleteProblem"
                     text="Šalinti"
                     variant="secondary"
                     as-button
-                    @click="showDeleteModal = true"
                     class="action-btn"
+                    @click="showDeleteModal = true"
                 />
             </div>
 
@@ -357,22 +238,22 @@ const assignmentInfo = computed(() => {
                     text="Priskirti/Peradresuoti problemą"
                     variant="primary"
                     as-button
-                    @click="() => router.visit(route('problems.assignInstitution', problem.id))"
                     class="action-btn"
+                    @click="() => router.visit(route('problems.assignInstitution', problem.id))"
                 />
                 <AppButton
                     text="Atvaizduoti/keisti būseną"
                     variant="primary"
                     as-button
-                    @click="openStatusModal"
                     class="action-btn"
+                    @click="openStatusModal"
                 />
                 <AppButton
                     text="Apjungti"
                     variant="secondary"
                     as-button
-                    @click="() => router.visit(route('problems.merge', mergeTargetId))"
                     class="action-btn"
+                    @click="() => router.visit(route('problems.merge', problemIdForMergePage))"
                 />
             </div>
 
@@ -381,15 +262,15 @@ const assignmentInfo = computed(() => {
                     text="Atvaizduoti/keisti būseną"
                     variant="primary"
                     as-button
-                    @click="openStatusModal"
                     class="action-btn"
+                    @click="openStatusModal"
                 />
                 <AppButton
                     text="Grąžinti problemos administratoriui"
                     variant="primary"
                     as-button
-                    @click="handleGrazintiAdmin"
                     class="action-btn"
+                    @click="returnProblemToAdmin"
                 />
             </div>
 
@@ -399,7 +280,7 @@ const assignmentInfo = computed(() => {
                 :selected-problem-ids="[]"
                 :saving="statusSubmitting"
                 @close="closeStatusModal"
-                @save="handleStatusChange"
+                @save="saveProblemStatus"
             />
 
             <EditModal
@@ -420,7 +301,7 @@ const assignmentInfo = computed(() => {
                 width="369px"
                 :loading="deleteSubmitting"
                 @close="showDeleteModal = false"
-                @confirm="handleConfirmDelete"
+                @confirm="deleteProblemPermanently"
             />
 
             <InactiveReasonModal
@@ -434,271 +315,3 @@ const assignmentInfo = computed(() => {
         </div>
     </AuthenticatedLayout>
 </template>
-
-<style scoped>
-.problem-detail {
-    max-width: 1200px;
-    margin: 0 auto;
-    width: 100%;
-    min-width: 0;
-    box-sizing: border-box;
-}
-
-.problem-header {
-    display: flex;
-    align-items: center;
-    flex-wrap: wrap;
-    gap: 16px;
-    margin-bottom: 24px;
-    padding-bottom: 16px;
-    border-bottom: 1px solid #e0e0e0;
-    width: 100%;
-    min-width: 0;
-}
-
-.header-spacer {
-    flex: 1;
-}
-
-.header-info {
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-}
-
-.header-label {
-    font-size: 14px;
-    color: #666;
-    font-family: var(--font-family-base, 'Open Sans', sans-serif);
-}
-
-.header-value {
-    font-size: 16px;
-    font-weight: 600;
-    color: #333;
-    font-family: var(--font-family-base, 'Open Sans', sans-serif);
-}
-
-.problem-status-section {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 12px;
-    margin-bottom: 20px;
-}
-
-.problem-public-label {
-    box-sizing: border-box;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    min-height: var(--button-height, 45px);
-    padding: 12px 24px;
-    border-radius: 15px;
-    font-size: 16px;
-    font-weight: 600;
-    line-height: 1.25;
-    font-family: var(--font-family-base, 'Open Sans', sans-serif);
-    border: 1px solid #cfd8dc;
-    background: #eceff1;
-    color: #455a64;
-}
-
-.problem-public-label--on {
-    border-color: #81c784;
-    background: #e8f5e9;
-    color: #1b5e20;
-}
-
-.problem-content {
-    display: flex;
-    flex-direction: column;
-    gap: 20px;
-    margin-bottom: 32px;
-    width: 100%;
-    min-width: 0;
-}
-
-.problem-content :deep(.app-input-group) {
-    min-width: 0;
-    max-width: 100%;
-}
-
-.problem-fields-top {
-    display: flex;
-    flex-direction: column;
-    gap: 20px;
-    max-width: 600px;
-    width: 100%;
-}
-
-.problem-fields-top .app-input-group {
-    margin-bottom: 0;
-    width: 100%;
-}
-
-.problem-content-bottom {
-    display: flex;
-    flex-direction: column;
-    gap: 20px;
-    margin-top: 20px;
-    align-items: stretch;
-    width: 100%;
-    max-width: 600px;
-    min-width: 0;
-}
-
-.problem-content-bottom .app-input-group {
-    margin-bottom: 0;
-}
-
-.problem-content-bottom .app-input-group textarea {
-    height: 150px;
-    min-height: 150px;
-    max-height: 150px;
-    resize: none;
-}
-
-.field-group {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-}
-
-.field-group-description {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-    height: 100%;
-}
-
-.field-label {
-    font-size: 16px;
-    font-weight: 600;
-    color: #333;
-    font-family: var(--font-family-base, 'Open Sans', sans-serif);
-}
-
-
-.problem-attachments-below {
-    min-width: 0;
-    width: 100%;
-}
-
-.problem-attachments-below :deep(.attachments-panel) {
-    max-width: 100%;
-}
-
-.review-progress-section {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    margin-top: 20px;
-    margin-bottom: 20px;
-    cursor: pointer;
-    transition: opacity 0.2s;
-}
-
-.review-progress-section:hover {
-    opacity: 0.7;
-}
-
-.review-progress-text {
-    font-size: 16px;
-    font-weight: 400;
-    color: #333333;
-    font-family: var(--font-family-base, 'Open Sans', sans-serif);
-}
-
-.review-progress-arrow {
-    display: block;
-    width: 16px;
-    height: 16px;
-}
-
-
-.problem-actions {
-    display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    align-items: stretch;
-    gap: var(--button-grid-gap);
-    margin-top: 40px;
-    width: 100%;
-    min-width: 0;
-}
-
-.problem-actions > * {
-    margin-bottom: 0 !important;
-    min-width: 0;
-}
-
-.problem-actions :deep(.action-btn) {
-    width: var(--button-width);
-    max-width: 100%;
-    min-height: var(--button-height);
-    box-sizing: border-box;
-    border-radius: var(--button-border-radius);
-    padding: 10px 20px;
-    flex-shrink: 0;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    font-family: var(--font-family-base, 'Open Sans', sans-serif);
-    font-size: 16px;
-    font-weight: 400;
-    line-height: 1.4;
-    letter-spacing: normal;
-    text-align: center;
-    white-space: normal;
-    word-break: break-word;
-}
-
-@media (max-width: 900px) {
-    .problem-content-bottom {
-        max-width: 100%;
-    }
-
-    .problem-content-bottom :deep(.app-input-group textarea.app-input-edit) {
-        max-height: none;
-        min-height: 140px;
-        height: auto;
-    }
-
-    .problem-fields-top {
-        max-width: 100%;
-    }
-
-    .problem-actions {
-        grid-template-columns: 1fr;
-    }
-
-    .problem-actions :deep(.action-btn),
-    .problem-actions :deep(.app-button) {
-        width: 100% !important;
-        max-width: 100%;
-    }
-
-    .problem-header {
-        gap: 12px;
-    }
-
-    .header-spacer {
-        display: none;
-    }
-
-    .header-info-right {
-        margin-left: auto;
-    }
-}
-
-@media (max-width: 480px) {
-    .problem-header {
-        flex-direction: column;
-        align-items: flex-start;
-    }
-
-    .header-info-right {
-        margin-left: 0;
-    }
-}
-</style>

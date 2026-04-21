@@ -7,7 +7,7 @@ import ConfirmModal from '@/Components/App/ConfirmModal.vue'
 import AppButton from '@/Components/App/AppButton.vue'
 import AppInput from '@/Components/App/AppInput.vue'
 
-const props = defineProps({
+defineProps({
     permissions: {
         type: Array,
         default: () => []

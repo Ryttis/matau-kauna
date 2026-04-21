@@ -1,0 +1,205 @@
+.automation-page {
+    box-sizing: border-box;
+    width: 100%;
+    min-width: 0;
+    max-width: 1000px;
+    margin: 0;
+    padding: 24px 32px;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+@media (max-width: 640px) {
+    .automation-page {
+        padding: 16px 12px;
+    }
+}
+
+.automation-section-select-wrap {
+    margin-bottom: 24px;
+    width: 100%;
+    max-width: 420px;
+}
+
+.automation-section-select-wrap .app-select-wrapper,
+.automation-section-select-wrap .app-select {
+    width: 100%;
+    max-width: 100%;
+}
+
+.automation-section-select .app-select-group {
+    margin-bottom: 0;
+}
+
+.automation-form-hint {
+    margin: -8px 0 0 0;
+    font-size: 13px;
+    color: var(--color-text-muted, #666);
+}
+
+.automation-form-error {
+    margin: 8px 0 0 0;
+    font-size: 13px;
+    color: var(--color-danger, #b42318);
+    line-height: 1.4;
+}
+
+.automation-title {
+    font-size: 24px;
+    font-weight: 600;
+    color: var(--color-text, #333);
+    margin: 0 0 8px 0;
+    font-family: var(--font-family-base, 'Open Sans', sans-serif);
+}
+
+.automation-desc {
+    font-size: 14px;
+    color: var(--color-text-muted, #666);
+    margin: 0 0 24px 0;
+    line-height: 1.5;
+}
+
+.automation-subtitle {
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--color-text, #333);
+    margin: 32px 0 8px 0;
+    font-family: var(--font-family-base, 'Open Sans', sans-serif);
+}
+
+.automation-toolbar {
+    margin-bottom: 20px;
+}
+
+.automation-table-wrap {
+    overflow-x: auto;
+}
+
+.automation-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 14px;
+}
+
+.automation-table th,
+.automation-table td {
+    padding: 12px 16px;
+    text-align: left;
+    border-bottom: 1px solid var(--color-border, #e0e0e0);
+    vertical-align: middle;
+    box-sizing: border-box;
+}
+
+.automation-table th {
+    font-weight: var(--table-header-font-weight);
+    font-size: var(--table-header-font-size);
+    color: var(--table-header-text);
+    background: var(--table-header-bg);
+}
+
+.automation-table td {
+    color: var(--color-text, #333);
+}
+
+.automation-link {
+    background: none;
+    border: none;
+    color: var(--color-primary, #1946A0);
+    cursor: pointer;
+    font-size: 14px;
+    padding: 0;
+    text-decoration: none;
+    font-family: inherit;
+}
+
+.automation-link:hover {
+    color: var(--color-primary-hover, #153a8a);
+    text-decoration: none;
+}
+
+.automation-sep {
+    margin: 0 6px;
+    color: var(--color-text-muted, #999);
+}
+
+.automation-empty {
+    color: var(--color-text-muted, #666);
+    font-size: 14px;
+    margin: 0;
+    padding: 24px 0;
+}
+
+.automation-inactive-settings {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    max-width: 360px;
+    margin-bottom: 24px;
+}
+
+.automation-email {
+    color: var(--color-text-muted, #666);
+    font-size: 13px;
+}
+
+.automation-inactive-table-block {
+    margin-top: 8px;
+}
+
+.automation-inactive-search {
+    max-width: 360px;
+    margin-bottom: 16px;
+}
+
+.automation-inactive-table-scroll {
+    max-height: min(320px, 55vh);
+    overflow-y: auto;
+    overflow-x: auto;
+    border: 1px solid var(--color-border, #e0e0e0);
+    border-radius: 8px;
+}
+
+.automation-inactive-table-scroll .automation-table {
+    margin-bottom: 0;
+}
+
+.automation-inactive-table-scroll .automation-table thead th {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    box-shadow: 0 1px 0 var(--color-border, #e0e0e0);
+}
+
+.automation-inactive-no-match {
+    padding-top: 12px;
+}
+
+.automation-form {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.automation-form-checkbox {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    cursor: pointer;
+    font-size: 14px;
+    color: var(--color-text, #333);
+}
+
+.automation-rule-modal .modal-footer {
+    flex-direction: column;
+    flex-wrap: nowrap;
+    gap: var(--button-grid-gap, 12px);
+}
+
+.automation-rule-modal .modal-footer .app-button {
+    width: var(--button-width, 290px);
+    min-width: var(--button-min-width);
+    height: var(--button-height, 45px);
+    min-height: var(--button-height, 45px);
+    border-radius: var(--button-border-radius);
+    flex: 0 0 auto;
+}

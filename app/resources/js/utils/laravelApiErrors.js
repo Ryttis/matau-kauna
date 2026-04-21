@@ -19,7 +19,7 @@ function flattenValidationErrors(errors) {
     return messages
 }
 
-export function laravelValidationMessages(errors) {
+function laravelValidationMessages(errors) {
     return flattenValidationErrors(errors).join(' ')
 }
 

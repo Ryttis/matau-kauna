@@ -72,7 +72,7 @@ const setTab = async (tab) => {
         if (tab === 'permissions') {
             await loadPermissions()
         }
-    } catch (e) {
+    } catch {
         errorMessage.value = 'Nepavyko užkrauti duomenų.'
     } finally {
         loading.value = false

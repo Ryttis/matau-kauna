@@ -3,7 +3,7 @@ export function parseDateFilterInput(dateString) {
         return null
     }
     const trimmed = dateString.trim()
-    const dayMonthYear = trimmed.match(/^(\d{1,2})[\/.-](\d{1,2})[\/.-](\d{4})$/)
+    const dayMonthYear = trimmed.match(/^(\d{1,2})[./-](\d{1,2})[./-](\d{4})$/)
     if (dayMonthYear) {
         return new Date(+dayMonthYear[3], +dayMonthYear[2] - 1, +dayMonthYear[1])
     }
