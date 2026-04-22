@@ -54,6 +54,7 @@ const TECHNICAL_UPLOAD_PATTERNS = [
     /file_put_contents/i,
     /unable to create/i,
     /no such file or directory/i,
+    /failed to upload/i,
 ]
 
 export function humanizeTechnicalUploadError(message, fallback = 'Įkelti nepavyko. Bandykite vėliau arba kreipkitės į administratorių.') {

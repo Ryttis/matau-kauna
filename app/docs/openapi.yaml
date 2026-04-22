@@ -1108,13 +1108,11 @@ components:
           type: boolean
         max_photo_size_kb:
           type: integer
-        max_video_size_kb:
-          type: integer
         max_photo_files_per_problem:
           type: integer
         max_video_files_per_problem:
           type: integer
-        max_total_upload_kb:
+        max_video_duration_seconds:
           type: integer
         description_max_chars:
           type: integer
