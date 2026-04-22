@@ -10,7 +10,7 @@ import { problemMatchesNumberQuery } from '@/utils/mergeFilters'
 
 export function useMergePage(props) {
     const { showSuccessModal, successMessage, closeSuccessModal } = useSuccessModal()
-    const selectedCategory = ref(props.selectedCategory || null)
+    const selectedCategory = ref(props.selectedCategory ?? '')
     const selectedProblems = ref([])
     const showCategoryDropdown = ref(false)
     const categoryDropdownRef = ref(null)
@@ -219,6 +219,13 @@ export function useMergePage(props) {
             el?.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
         })
     }
+
+    watch(
+        () => props.selectedCategory,
+        (v) => {
+            selectedCategory.value = v ?? ''
+        },
+    )
 
     const handleBack = () => {
         router.visit(route('problems.show', props.problem.id))

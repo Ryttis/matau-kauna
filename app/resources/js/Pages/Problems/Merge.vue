@@ -27,6 +27,7 @@ const {
     closeSuccessModal,
     ICON_ARROW,
     MAP_LEGEND_STATUS_ORDER,
+    selectedCategory,
     selectedProblems,
     showCategoryDropdown,
     numberSearchQuery,
@@ -71,7 +72,7 @@ const {
                             class="merge-category-btn"
                             @click="showCategoryDropdown = !showCategoryDropdown"
                         >
-                            <span>{{ mergePage.selectedCategory || 'Kategorija' }}</span>
+                            <span>{{ selectedCategory || 'Visos kategorijos' }}</span>
                             <img
                                 :src="ICON_ARROW"
                                 alt="Dropdown"
@@ -82,7 +83,7 @@ const {
                         <div v-if="showCategoryDropdown" class="merge-category-dropdown">
                             <button
                                 class="merge-category-option"
-                                :class="{ 'merge-category-option-active': !mergePage.selectedCategory }"
+                                :class="{ 'merge-category-option-active': !selectedCategory }"
                                 @click="handleCategoryChange('')"
                             >
                                 Visos kategorijos
@@ -91,7 +92,7 @@ const {
                                 v-for="category in categories"
                                 :key="category"
                                 class="merge-category-option"
-                                :class="{ 'merge-category-option-active': mergePage.selectedCategory === category }"
+                                :class="{ 'merge-category-option-active': selectedCategory === category }"
                                 @click="handleCategoryChange(category)"
                             >
                                 {{ category }}
