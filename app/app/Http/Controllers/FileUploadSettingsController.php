@@ -12,7 +12,6 @@ class FileUploadSettingsController extends Controller
         return response()->json([
             'web' => FileUploadSettings::getChannelForClient(FileUploadSettings::CHANNEL_WEB),
             'mobile' => FileUploadSettings::getChannelForClient(FileUploadSettings::CHANNEL_MOBILE),
-            ...FileUploadSettings::phpIniLimits(),
         ]);
     }
 }

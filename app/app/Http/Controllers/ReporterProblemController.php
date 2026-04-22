@@ -236,6 +236,7 @@ class ReporterProblemController extends Controller
                 'lng.numeric' => 'Netinkama vieta žemėlapyje.',
                 'files.array' => 'Netinkami priedai.',
                 'files.*.file' => 'Failas per didelis arba nepriimtas.',
+                'files.*.uploaded' => 'Nepavyko įkelti failo. Patikrinkite failo dydį ir bandykite dar kartą.',
             ]
         );
 

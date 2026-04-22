@@ -1,16 +1,14 @@
 export function attachmentsToUploadBaseline(attachments = []) {
     let photos = 0
     let videos = 0
-    let totalKb = 0
     for (const attachment of attachments) {
-        totalKb += (Number(attachment.size_bytes) || 0) / 1024
         if (attachment.kind === 'photo') {
             photos += 1
         } else {
             videos += 1
         }
     }
-    return { photos, videos, totalKb }
+    return { photos, videos }
 }
 
 export function fileUploadPickerLabel(uploadRules) {
@@ -25,29 +23,27 @@ export function fileUploadPickerLabel(uploadRules) {
     return 'Pridėkite nuotrauką'
 }
 
-export function formatDetailedFileUploadHint(uploadRules, options = {}) {
-    const includeExistingInTotal = options.includeExistingInTotal === true
+export function formatDetailedFileUploadHint(uploadRules) {
     const hintParts = []
     const maxPhotoFiles = Number(uploadRules.max_photo_files_per_problem) || 0
     const maxVideoFiles = Number(uploadRules.max_video_files_per_problem) || 0
 
     if (uploadRules.allow_photo && maxPhotoFiles > 0) {
-        hintParts.push(
-            `nuotr.: iki ${maxPhotoFiles} vnt., po ${uploadRules.max_photo_size_kb} KB (JPEG, PNG)`,
-        )
+        hintParts.push(`nuotr.: iki ${maxPhotoFiles} vnt., po ${uploadRules.max_photo_size_kb} KB (JPEG, PNG)`)
     }
     if (uploadRules.allow_video && maxVideoFiles > 0) {
+        const maxSec = Math.min(60, Math.max(1, Number(uploadRules.max_video_duration_seconds) || 60))
+        const durLabel = maxSec >= 60 ? '1 min. trukmės' : `${maxSec} s trukmės`
         hintParts.push(
             maxVideoFiles === 1
-                ? `1 vaizdas iki ${uploadRules.max_video_size_kb} KB`
-                : `vaizdai: iki ${maxVideoFiles} vnt., po ${uploadRules.max_video_size_kb} KB`,
+                ? `1 vaizdas iki ${durLabel}`
+                : `vaizdai: iki ${maxVideoFiles} vnt., iki ${durLabel}`,
         )
     }
-    let totalLine = `bendra suma iki ${uploadRules.max_total_upload_kb} KB`
-    if (includeExistingInTotal) {
-        totalLine += ' (įskaitant jau įkeltus)'
+    if (!hintParts.length) {
+        return ''
     }
-    hintParts.push(totalLine)
+
     return hintParts.join('; ')
 }
 

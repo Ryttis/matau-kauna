@@ -45,6 +45,7 @@ class StoreProblemReviewHistoryRequest extends FormRequest
             'comment.max' => 'Komentaras per ilgas.',
             'files.array' => 'Netinkami priedai.',
             'files.*.file' => 'Failas per didelis arba nepriimtas.',
+            'files.*.uploaded' => 'Nepavyko įkelti failo. Patikrinkite failo dydį ir bandykite dar kartą.',
         ];
     }
 }

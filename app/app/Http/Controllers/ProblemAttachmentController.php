@@ -40,6 +40,7 @@ class ProblemAttachmentController extends Controller
                 'files.required' => 'Pasirinkite failą.',
                 'files.min' => 'Pasirinkite failą.',
                 'files.*.file' => 'Failas per didelis arba nepriimtas.',
+                'files.*.uploaded' => 'Nepavyko įkelti failo. Patikrinkite failo dydį ir bandykite dar kartą.',
             ]
         );
 
