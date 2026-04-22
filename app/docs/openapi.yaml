@@ -6,6 +6,7 @@ info:
 
 tags:
   - name: Auth
+  - name: VIISP
   - name: Info
   - name: Problems
   - name: Reporter
@@ -123,6 +124,77 @@ paths:
         '401':
           description: Unauthorized
 
+  /api/viisp/init:
+    post:
+      tags: [VIISP]
+      summary: Initialize VIISP mobile login flow
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ViispInitRequest'
+      responses:
+        '200':
+          description: Redirect URL created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ViispInitResponse'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+        '503':
+          description: VIISP unavailable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageOnlyError'
+
+  /api/viisp/callback:
+    get:
+      tags: [VIISP]
+      summary: VIISP callback endpoint for mobile flow
+      parameters:
+        - in: query
+          name: state
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: token
+          required: true
+          schema:
+            type: string
+      responses:
+        '302':
+          description: Redirect back to mobile redirect_uri with code or error
+
+  /api/viisp/exchange:
+    post:
+      tags: [VIISP]
+      summary: Exchange VIISP callback code for Sanctum token
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ViispExchangeRequest'
+      responses:
+        '200':
+          description: Token issued
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthTokenResponse'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+        '404':
+          description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageOnlyError'
+
   /api/problems:
     get:
       tags: [Problems]
@@ -210,6 +282,110 @@ paths:
                 $ref: '#/components/schemas/PublicProblemResponse'
         '404':
           description: Problem not found or not public
+
+  /api/problems/{problem}/watch:
+    post:
+      tags: [Reporter]
+      summary: Toggle watch for reporter on problem
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/problemPath'
+      responses:
+        '200':
+          description: Toggled
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  watched:
+                    type: boolean
+        '401':
+          description: Unauthorized
+        '404':
+          description: Not found
+
+  /api/problems/{problem}/attachments:
+    post:
+      tags: [Reporter]
+      summary: Upload attachments to existing problem
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/problemPath'
+        - in: header
+          name: X-Upload-Channel
+          required: false
+          schema:
+            type: string
+            enum: [web, mobile]
+            default: web
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ProblemAttachmentsUploadRequest'
+      responses:
+        '200':
+          description: Uploaded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OkResponse'
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '422':
+          $ref: '#/components/responses/ValidationError'
+
+  /api/problems/{problem}/attachments/{attachment}:
+    delete:
+      tags: [Reporter]
+      summary: Delete problem attachment
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/problemPath'
+        - $ref: '#/components/parameters/attachmentPath'
+      responses:
+        '200':
+          description: Deleted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OkResponse'
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Not found
+
+  /api/problems/{problem}/review-progress:
+    get:
+      tags: [Reporter]
+      summary: Get problem review progress entries
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/problemPath'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Not found
 
   /api/info/statistics:
     get:
@@ -800,6 +976,106 @@ paths:
         '403':
           description: Forbidden
 
+  /api/internal/problems/{problem}/review-progress:
+    post:
+      tags: [Internal]
+      summary: Create review progress entry
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/problemPath'
+        - in: header
+          name: X-Upload-Channel
+          required: false
+          schema:
+            type: string
+            enum: [web, mobile]
+            default: web
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ReviewProgressUpsertRequest'
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReviewProgressUpsertRequest'
+      responses:
+        '200':
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OkResponse'
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '422':
+          $ref: '#/components/responses/ValidationError'
+
+  /api/internal/problems/{problem}/review-progress/{entry}:
+    put:
+      tags: [Internal]
+      summary: Update review progress entry
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/problemPath'
+        - $ref: '#/components/parameters/entryPath'
+        - in: header
+          name: X-Upload-Channel
+          required: false
+          schema:
+            type: string
+            enum: [web, mobile]
+            default: web
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ReviewProgressUpsertRequest'
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReviewProgressUpsertRequest'
+      responses:
+        '200':
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OkResponse'
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '422':
+          $ref: '#/components/responses/ValidationError'
+
+  /api/internal/problems/{problem}/review-progress/attachments/{attachment}:
+    delete:
+      tags: [Internal]
+      summary: Delete review progress attachment
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/problemPath'
+        - $ref: '#/components/parameters/attachmentPath'
+      responses:
+        '200':
+          description: Deleted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OkResponse'
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Not found
+
   /api/internal/problems/bulk-update-status:
     post:
       tags: [Internal]
@@ -893,6 +1169,18 @@ components:
       required: true
       schema:
         type: integer
+    attachmentPath:
+      in: path
+      name: attachment
+      required: true
+      schema:
+        type: integer
+    entryPath:
+      in: path
+      name: entry
+      required: true
+      schema:
+        type: integer
 
   responses:
     ValidationError:
@@ -941,6 +1229,35 @@ components:
         device_name:
           type: string
           example: api-client
+
+    ViispInitRequest:
+      type: object
+      required: [redirect_uri]
+      properties:
+        redirect_uri:
+          type: string
+          description: Mobile deep link, e.g. kaunoproblemos://auth/viisp
+
+    ViispInitResponse:
+      type: object
+      required: [state, redirect_url]
+      properties:
+        state:
+          type: string
+        redirect_url:
+          type: string
+
+    ViispExchangeRequest:
+      type: object
+      required: [code]
+      properties:
+        code:
+          type: string
+          minLength: 64
+          maxLength: 64
+        device_name:
+          type: string
+          example: mobile-ios
 
     AuthTokenResponse:
       type: object
@@ -1029,6 +1346,17 @@ components:
           nullable: true
         files:
           type: array
+          items:
+            type: string
+            format: binary
+
+    ProblemAttachmentsUploadRequest:
+      type: object
+      required: [files]
+      properties:
+        files:
+          type: array
+          minItems: 1
           items:
             type: string
             format: binary
@@ -1526,6 +1854,24 @@ components:
             type: integer
         is_published_publicly:
           type: boolean
+
+    ReviewProgressUpsertRequest:
+      type: object
+      required: [status, visibility]
+      properties:
+        status:
+          type: string
+        comment:
+          type: string
+          nullable: true
+        visibility:
+          type: string
+          description: See backend enum values.
+        files:
+          type: array
+          items:
+            type: string
+            format: binary
 
     LaravelValidationErrorResponse:
       type: object
