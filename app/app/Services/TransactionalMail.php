@@ -34,7 +34,50 @@ class TransactionalMail
 
     private static function bodyMarkdownToHtml(string $body): string
     {
+        $body = self::expandSoftParagraphBreaksForMarkdown($body);
+
         return trim(Str::markdown($body, EmailBody::markdownConverterOptions()));
+    }
+
+    private static function expandSoftParagraphBreaksForMarkdown(string $body): string
+    {
+        $body = str_replace(["\r\n", "\r"], "\n", $body);
+        $chunks = preg_split('/\n{2,}/', $body);
+        if ($chunks === false) {
+            return $body;
+        }
+
+        $out = [];
+        foreach ($chunks as $chunk) {
+            $chunk = trim($chunk);
+            if ($chunk === '') {
+                continue;
+            }
+            if (str_starts_with($chunk, '```')) {
+                $out[] = $chunk;
+
+                continue;
+            }
+            if (self::markdownChunkLooksLikeList($chunk)) {
+                $out[] = $chunk;
+
+                continue;
+            }
+            $out[] = preg_replace('/(?<!\n)\n(?!\n)/', "  \n", $chunk) ?? $chunk;
+        }
+
+        return implode("\n\n", $out);
+    }
+
+    private static function markdownChunkLooksLikeList(string $chunk): bool
+    {
+        foreach (explode("\n", $chunk) as $line) {
+            if (preg_match('/^[ \t]{0,3}(?:[-*+]|\d{1,9}\.)\s+/', $line) === 1) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private static function markdownHtmlToPlainEmail(string $html): string
