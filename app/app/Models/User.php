@@ -189,7 +189,7 @@ class User extends Authenticatable implements MustVerifyEmail
 
     public function canManageTeams(): bool
     {
-        return $this->canManageInvitations();
+        return $this->hasPermission('teams.manage');
     }
 
     public function canAssignInstitutionProblems(): bool
