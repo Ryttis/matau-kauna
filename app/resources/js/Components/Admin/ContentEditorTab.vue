@@ -1,7 +1,8 @@
 <script setup>
-import { ref, watch, nextTick } from 'vue'
+import { ref, watch, nextTick, computed } from 'vue'
 import axios from 'axios'
 import AppButton from '@/Components/App/AppButton.vue'
+import AppInput from '@/Components/App/AppInput.vue'
 import AppCheckbox from '@/Components/App/AppCheckbox.vue'
 import SuccessModal from '@/Components/App/SuccessModal.vue'
 import ConfirmModal from '@/Components/App/ConfirmModal.vue'
@@ -19,6 +20,9 @@ const loading = ref(true)
 const saving = ref(false)
 const editingId = ref(null)
 const form = ref({ title: '', body: '' })
+const showEditorModal = ref(false)
+const editingIsPublished = ref(false)
+const bodyTextareaRef = ref(null)
 const publishModalVersion = ref(null)
 const versionToDelete = ref(null)
 const versionToUnpublish = ref(null)
@@ -29,33 +33,68 @@ const errorMessage = ref('')
 
 const isTerms = () => props.type === 'terms'
 
+const editorModalTitle = computed(() => {
+    if (!editingId.value) {
+        return `Nauja versija — ${props.label}`
+    }
+    const v = versions.value.find((x) => x.id === editingId.value)
+    return v ? `Redaguoti versiją ${v.version}` : 'Redaguoti versiją'
+})
+
 function loadVersions() {
+    const requestType = props.type
     loading.value = true
     errorMessage.value = ''
-    axios.get(adminApi.contentVersions, { params: { type: props.type } })
-        .then(res => { versions.value = res.data.versions })
-        .catch(() => { errorMessage.value = 'Nepavyko gauti versijų' })
-        .finally(() => { loading.value = false })
+    axios.get(adminApi.contentVersions, { params: { type: requestType } })
+        .then((res) => {
+            if (props.type !== requestType) return
+            versions.value = res.data.versions
+        })
+        .catch(() => {
+            if (props.type !== requestType) return
+            errorMessage.value = 'Nepavyko gauti versijų'
+        })
+        .finally(() => {
+            if (props.type !== requestType) return
+            loading.value = false
+        })
 }
 
-watch(() => props.type, () => {
-    loadVersions()
-    editingId.value = null
-    publishModalVersion.value = null
-}, { immediate: true })
+watch(
+    () => props.type,
+    () => {
+        closeEditorModal()
+        publishModalVersion.value = null
+        versionToDelete.value = null
+        versionToUnpublish.value = null
+        loadVersions()
+    },
+    { immediate: true },
+)
 
-function startNew() {
+function closeEditorModal() {
+    showEditorModal.value = false
     editingId.value = null
+    editingIsPublished.value = false
     form.value = { title: '', body: '' }
 }
 
-function startEdit(v) {
+function openCreateModal() {
+    editingId.value = null
+    editingIsPublished.value = false
+    form.value = { title: '', body: '' }
+    showEditorModal.value = true
+}
+
+function openEditModal(v) {
     editingId.value = v.id
+    editingIsPublished.value = !!v.is_published
     form.value = { title: v.title ?? '', body: v.body ?? '' }
+    showEditorModal.value = true
 }
 
 function insertTag(open, close = open) {
-    const ta = document.getElementById('content-body-editor')
+    const ta = bodyTextareaRef.value
     if (!ta) return
     const start = ta.selectionStart
     const end = ta.selectionEnd
@@ -71,7 +110,7 @@ function insertTag(open, close = open) {
 }
 
 function insertList() {
-    const ta = document.getElementById('content-body-editor')
+    const ta = bodyTextareaRef.value
     if (!ta) return
     const start = ta.selectionStart
     const text = form.value.body
@@ -81,7 +120,7 @@ function insertList() {
 }
 
 function insertLink() {
-    const ta = document.getElementById('content-body-editor')
+    const ta = bodyTextareaRef.value
     if (!ta) return
     const start = ta.selectionStart
     const end = ta.selectionEnd
@@ -103,15 +142,24 @@ function save() {
     saving.value = true
     successMessage.value = ''
     errorMessage.value = ''
-    const promise = editingId.value
-        ? axios.put(adminApi.contentVersion(editingId.value), { title: form.value.title, body: form.value.body })
+    const isEdit = !!editingId.value
+    const wasPublishedEdit = isEdit && editingIsPublished.value
+    const id = editingId.value
+    const promise = isEdit
+        ? axios.put(adminApi.contentVersion(id), { title: form.value.title, body: form.value.body })
         : axios.post(adminApi.contentVersions, { type: props.type, title: form.value.title, body: form.value.body })
     promise
         .then(() => {
-            successMessage.value = editingId.value ? 'Versija atnaujinta sėkmingai.' : 'Nauja versija sukurta sėkmingai.'
+            if (!isEdit) {
+                successMessage.value = 'Nauja versija sukurta sėkmingai.'
+            } else if (wasPublishedEdit) {
+                successMessage.value = 'Paskelbtas turinys atnaujintas.'
+            } else {
+                successMessage.value = 'Versija atnaujinta sėkmingai.'
+            }
             showSuccessModal.value = true
             loadVersions()
-            startNew()
+            closeEditorModal()
         })
         .catch(err => { errorMessage.value = err.response?.data?.message ?? 'Klaida išsaugant' })
         .finally(() => { saving.value = false })
@@ -164,7 +212,7 @@ function doDeleteVersion() {
     errorMessage.value = ''
     axios.delete(adminApi.contentVersion(v.id))
         .then(() => {
-            if (editingId.value === v.id) startNew()
+            if (editingId.value === v.id) closeEditorModal()
             closeDeleteModal()
             successMessage.value = 'Versija pašalinta sėkmingai.'
             showSuccessModal.value = true
@@ -238,6 +286,16 @@ function formatDate(s) {
 
         <div v-if="loading" class="loading">Kraunama…</div>
         <template v-else>
+            <div class="editor-start-row">
+                <AppButton
+                    text="Nauja versija"
+                    variant="primary"
+                    as-button
+                    :disabled="saving"
+                    @click="openCreateModal"
+                />
+            </div>
+
             <table v-if="versions.length" class="versions-table">
                 <thead>
                     <tr>
@@ -262,10 +320,12 @@ function formatDate(s) {
                         <td>{{ v.creator_name || '–' }}</td>
                         <td>
                             <template v-if="v.is_published">
+                                <button type="button" class="btn-link" @click="openEditModal(v)">Redaguoti</button>
+                                <span class="sep">|</span>
                                 <button type="button" class="btn-link" @click="openUnpublishModal(v)">Atšaukti skelbimą</button>
                             </template>
                             <template v-else>
-                                <button type="button" class="btn-link" @click="startEdit(v)">Redaguoti</button>
+                                <button type="button" class="btn-link" @click="openEditModal(v)">Redaguoti</button>
                                 <span class="sep">|</span>
                                 <button type="button" class="btn-link" @click="openPublishModal(v)">Paskelbti</button>
                                 <span class="sep">|</span>
@@ -275,16 +335,26 @@ function formatDate(s) {
                     </tr>
                 </tbody>
             </table>
-            <p v-else class="empty">Nėra versijų. Redaguokite formoje žemiau ir išsaugokite.</p>
+            <p v-else class="empty">Nėra versijų. Sukurkite pirmą versiją mygtuku aukščiau.</p>
+        </template>
 
-            <div v-if="form !== null" class="editor-form">
-                <h3 class="editor-form-title">{{ editingId ? 'Redaguoti versiją' : 'Kurti versiją' }}</h3>
-                <label class="field">
-                    <span>Pavadinimas</span>
-                    <input v-model="form.title" type="text" class="input" placeholder="Neprivaloma" />
-                </label>
-                <label class="field">
-                    <span>Turinys</span>
+        <BaseModal
+            class="content-editor-modal"
+            :open="showEditorModal"
+            :title="editorModalTitle"
+            width="min(100%, 720px)"
+            :maxWidth="'720px'"
+            @close="closeEditorModal"
+        >
+            <div class="editor-modal-body">
+                <AppInput
+                    v-model="form.title"
+                    type="text"
+                    label="Pavadinimas"
+                    placeholder="Neprivaloma"
+                />
+                <div class="field field--body">
+                    <span class="field-label">Turinys (HTML)</span>
                     <div class="toolbar">
                         <button type="button" class="toolbar-btn" @click="insertTag('<b>', '</b>')">B</button>
                         <button type="button" class="toolbar-btn" @click="insertTag('<i>', '</i>')">I</button>
@@ -292,19 +362,24 @@ function formatDate(s) {
                         <button type="button" class="toolbar-btn" @click="insertList()">Sąrašas</button>
                     </div>
                     <textarea
-                        id="content-body-editor"
+                        ref="bodyTextareaRef"
                         v-model="form.body"
                         class="body-textarea"
-                        rows="14"
+                        rows="8"
                         placeholder="Įrašykite turinį…"
                     />
-                </label>
-                <div class="form-actions">
-                    <AppButton text="Atšaukti" variant="secondary" as-button @click="startNew" />
-                    <AppButton :text="editingId ? 'Išsaugoti' : 'Sukurti versiją'" variant="primary" as-button :disabled="saving" @click="save" />
                 </div>
             </div>
-        </template>
+            <template #footer>
+                <ModalFooterActions
+                    cancel-text="Atšaukti"
+                    :primary-text="editingId ? 'Išsaugoti' : 'Sukurti versiją'"
+                    :primary-disabled="saving"
+                    @cancel="closeEditorModal"
+                    @primary="save"
+                />
+            </template>
+        </BaseModal>
 
         <BaseModal
             class="publish-modal"
@@ -341,12 +416,15 @@ function formatDate(s) {
     font-size: 14px;
 }
 .message-error { background: #f8d7da; color: #721c24; }
+.editor-start-row {
+    margin: 0 0 16px 0;
+}
 .loading, .empty { color: #666; margin: 0 0 16px 0; font-size: 14px; }
 .versions-table {
     width: 100%;
     border-collapse: collapse;
     font-size: 14px;
-    margin-bottom: 24px;
+    margin-bottom: 12px;
 }
 .versions-table th,
 .versions-table td {
@@ -385,16 +463,20 @@ function formatDate(s) {
     opacity: 0.9;
 }
 .sep { color: #9ca3af; margin: 0 4px; }
-.editor-form {
-    border: 1px solid #e5e7eb;
-    border-radius: 12px;
-    padding: 20px;
-    background: #fafafa;
+.editor-modal-body {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    min-width: 0;
 }
-.editor-form-title { margin: 0 0 16px 0; font-size: 16px; }
-.field { display: block; margin-bottom: 12px; }
-.field > span { display: block; font-size: 14px; font-weight: 500; margin-bottom: 4px; color: #374151; }
-.input { width: 100%; max-width: 400px; padding: 8px 10px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 14px; }
+.field--body { margin: 0; }
+.field-label {
+    display: block;
+    font-size: 13px;
+    font-weight: 500;
+    margin-bottom: 4px;
+    color: #374151;
+}
 .toolbar { margin-bottom: 4px; }
 .toolbar-btn {
     margin-right: 8px;
@@ -408,18 +490,77 @@ function formatDate(s) {
 .toolbar-btn:hover { background: #f3f4f6; }
 .body-textarea {
     width: 100%;
-    min-height: 200px;
-    padding: 10px;
+    min-height: 140px;
+    max-height: min(45vh, 360px);
+    padding: 8px 10px;
     border: 1px solid #d1d5db;
     border-radius: 8px;
     font-size: 14px;
+    line-height: 1.4;
     font-family: inherit;
     box-sizing: border-box;
+    resize: vertical;
 }
-.form-actions { display: flex; gap: 12px; margin-top: 16px; }
 
 .publish-modal .checkbox-row { display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 14px; color: #333; }
 .publish-modal .checkbox-row span { flex: 1; }
 .publish-modal :deep(.modal-body) { padding-top: 8px; padding-bottom: 16px; }
 .publish-modal :deep(.modal-footer) { display: flex; justify-content: flex-end; gap: 12px; padding: 16px 20px; }
+</style>
+<style>
+/* BaseModal + Teleport: scoped neveikia .modal (dedama į body) */
+.modal.content-editor-modal {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    max-height: min(88vh, 88dvh);
+}
+.modal.content-editor-modal .modal-header {
+    padding: 20px 18px 12px 18px;
+    flex-shrink: 0;
+    align-items: flex-start;
+    gap: 10px;
+    min-height: 0;
+    box-sizing: border-box;
+}
+.modal.content-editor-modal .x-btn {
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    flex-shrink: 0;
+    margin-top: 0;
+}
+.modal.content-editor-modal .modal-title {
+    flex: 1;
+    min-width: 0;
+    font-size: 16px;
+    line-height: 1.35;
+    font-weight: 700;
+    padding: 0;
+    margin: 0;
+    color: var(--color-text, #1a1a1a);
+}
+.modal.content-editor-modal .modal-body {
+    padding: 12px 18px 16px !important;
+    min-height: 0;
+    flex: 1 1 auto;
+    overflow-y: auto;
+    overflow-x: hidden;
+    box-sizing: border-box;
+}
+.modal.content-editor-modal .modal-footer {
+    flex-shrink: 0;
+    padding: 12px 18px 16px;
+    box-sizing: border-box;
+}
+.modal.content-editor-modal .app-input-group {
+    width: 100%;
+    max-width: 100%;
+    gap: 4px;
+}
+.modal.content-editor-modal .app-input-label {
+    margin: 0;
+    font-size: 13px;
+    font-weight: 600;
+}
 </style>

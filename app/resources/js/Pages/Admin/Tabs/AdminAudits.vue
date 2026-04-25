@@ -129,9 +129,13 @@ loadSettings()
 </script>
 
 <template>
-    <div class="admin-tab audits-tab">
-        <h2 class="title">Auditai</h2>
-        <p class="desc">Žurnalas apima prisijungimus, naudotojų veiksmus ir sistemos įvykius. Prieiga tik sistemos administratoriui.</p>
+    <div class="admin-tab">
+        <div class="admin-tab-intro">
+            <h2 class="admin-tab-intro__title">Auditai</h2>
+            <p class="admin-tab-intro__desc">
+                Žurnalas fiksuoja prisijungimus, naudotojų veiksmus ir sistemos įvykius, prieinamus tik sistemos administratoriui.
+            </p>
+        </div>
 
         <div class="settings-block">
             <h3 class="block-title">Nustatymai</h3>
@@ -244,27 +248,17 @@ loadSettings()
 </template>
 
 <style scoped>
-.audits-tab {
-    padding: 8px 0;
-}
-.title {
-    font-size: 18px;
-    font-weight: 700;
-    margin: 0 0 4px 0;
-}
-.desc {
-    font-size: 14px;
-    color: var(--color-text-muted);
-    margin: 0 0 24px 0;
-}
 .settings-block,
 .filters-block {
     margin-bottom: 24px;
 }
 .block-title {
     font-size: 15px;
-    font-weight: 600;
+    font-weight: 700;
+    line-height: 1.35;
     margin: 0 0 12px 0;
+    padding: 0;
+    color: #1a1a1a;
 }
 .settings-form {
     display: flex;

@@ -39,48 +39,62 @@ class ProblemInstitutionAssignmentController extends Controller
         $employees = [];
         $teams = [];
         if ($user->institution_id) {
-            $institutionUsers = User::where('institution_id', $user->institution_id)
-                ->whereHas('roles.permissions', fn ($query) => $query->where('permission', 'issues.assign'))
-                ->get(['id', 'name', 'surname', 'email']);
+            $assignableInstitutionUserQuery = User::queryAssignableInstitutionEmployeeUsers(
+                (int) $user->institution_id,
+                $user->email,
+            );
 
-            foreach ($institutionUsers as $institutionUser) {
+            foreach ($assignableInstitutionUserQuery->get(['id', 'name', 'surname', 'email']) as $u) {
                 Employee::firstOrCreate(
                     [
-                        'email' => $institutionUser->email,
+                        'email' => $u->email,
                         'institution_id' => $user->institution_id,
                     ],
                     [
-                        'name' => $institutionUser->name ?? '',
-                        'surname' => $institutionUser->surname ?? '',
+                        'name' => $u->name ?? '',
+                        'surname' => $u->surname ?? '',
                     ]
                 );
             }
 
-            $employees = Employee::where('institution_id', $user->institution_id)
-                ->where('email', '!=', $user->email)
-                ->orderBy('name')
-                ->orderBy('surname')
-                ->get(['id', 'name', 'surname', 'email'])
-                ->map(fn ($employee) => [
-                    'id' => $employee->id,
-                    'name' => trim($employee->name.' '.$employee->surname) ?: $employee->email,
-                    'email' => $employee->email,
-                ])
-                ->values()
-                ->all();
+            $assignableEmails = $assignableInstitutionUserQuery->pluck('email');
 
-            $teams = InstitutionTeam::query()
-                ->where('institution_id', $user->institution_id)
-                ->withCount('employees')
-                ->orderBy('name')
-                ->get()
-                ->map(fn (InstitutionTeam $team) => [
-                    'id' => $team->id,
-                    'name' => $team->name,
-                    'members_count' => (int) $team->employees_count,
-                ])
-                ->values()
-                ->all();
+            if ($assignableEmails->isNotEmpty()) {
+                $employees = Employee::query()
+                    ->where('institution_id', $user->institution_id)
+                    ->whereIn('email', $assignableEmails)
+                    ->orderBy('name')
+                    ->orderBy('surname')
+                    ->get(['id', 'name', 'surname', 'email'])
+                    ->map(fn ($employee) => [
+                        'id' => $employee->id,
+                        'name' => trim($employee->name.' '.$employee->surname) ?: $employee->email,
+                        'email' => $employee->email,
+                    ])
+                    ->values()
+                    ->all();
+            }
+
+            if ($assignableEmails->isEmpty()) {
+                $teams = [];
+            } else {
+                $teams = InstitutionTeam::query()
+                    ->where('institution_id', $user->institution_id)
+                    ->withCount([
+                        'employees as members_count' => function ($q) use ($assignableEmails) {
+                            $q->whereIn('email', $assignableEmails);
+                        },
+                    ])
+                    ->orderBy('name')
+                    ->get()
+                    ->map(fn (InstitutionTeam $team) => [
+                        'id' => $team->id,
+                        'name' => $team->name,
+                        'members_count' => (int) $team->members_count,
+                    ])
+                    ->values()
+                    ->all();
+            }
         }
 
         $institutionsQuery = Institution::query()->notArchived()->orderBy('name');
@@ -127,8 +141,16 @@ class ProblemInstitutionAssignmentController extends Controller
             : null;
 
         if ($employeeId !== null) {
+            $assignableEmails = User::queryAssignableInstitutionEmployeeUsers(
+                (int) $user->institution_id,
+                $user->email,
+            )->pluck('email');
+            if ($assignableEmails->isEmpty()) {
+                abort(403);
+            }
             $employee = Employee::where('id', $employeeId)
                 ->where('institution_id', $user->institution_id)
+                ->whereIn('email', $assignableEmails)
                 ->first();
 
             if (! $employee) {
@@ -158,8 +180,15 @@ class ProblemInstitutionAssignmentController extends Controller
         if (! $team) {
             abort(403);
         }
-        if ($team->employees->isEmpty()) {
-            return redirect()->back()->with('error', 'Komanda neturi narių.');
+        $assignableEmails = User::queryAssignableInstitutionEmployeeUsers(
+            (int) $user->institution_id,
+            $user->email,
+        )->pluck('email');
+        $teamAssignees = $assignableEmails->isEmpty()
+            ? collect()
+            : $team->employees->whereIn('email', $assignableEmails);
+        if ($teamAssignees->isEmpty()) {
+            return redirect()->back()->with('error', 'Komanda neturi priskirtinų darbuotojų narių.');
         }
 
         $problem->update([
@@ -168,7 +197,7 @@ class ProblemInstitutionAssignmentController extends Controller
             'completion_deadline' => $deadline,
         ]);
 
-        foreach ($team->employees as $employee) {
+        foreach ($teamAssignees as $employee) {
             if ($employee->email !== $user->email) {
                 $this->assignmentNotifier->notifyEmployeeOfAssignment($problem->fresh(), $employee);
             }
@@ -200,6 +229,13 @@ class ProblemInstitutionAssignmentController extends Controller
                 Rule::exists('employees', 'email')->where('institution_id', $user->institution_id),
             ],
         ]);
+
+        $assignable = User::queryAssignableInstitutionEmployeeUsers((int) $user->institution_id, $user->email)
+            ->where('email', $validated['email'])
+            ->exists();
+        if (! $assignable) {
+            return redirect()->back()->with('error', 'Šis el. paštas nepriskirtas Įstaigos darbuotojo vaidmeniui šioje įstaigoje.');
+        }
 
         $mail = $this->assignmentNotifier->buildInstitutionProblemShareEmail($problem);
         TransactionalMail::send(

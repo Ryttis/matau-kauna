@@ -4,9 +4,9 @@ namespace App\Services;
 
 use App\Enums\ProblemStatus;
 use App\Models\Problem;
-use App\Support\LithuanianSearchFold;
 use App\Models\ProblemWatch;
 use App\Models\User;
+use App\Support\LithuanianSearchFold;
 use Illuminate\Support\Collection;
 
 class ProblemMapService
@@ -117,7 +117,7 @@ class ProblemMapService
             );
     }
 
-    public function getPublicProblemsForMap(?int $reportedByUserId = null, ?User $currentUser = null): array
+    public function getPublicProblemsForMap(?int $reportedByUserId = null, ?User $currentUser = null, bool $includeReporterOwnAlongsidePublic = false): array
     {
         $centerLat = $this->getCenterLat();
         $centerLng = $this->getCenterLng();
@@ -127,7 +127,20 @@ class ProblemMapService
         $query = Problem::query()
             ->notArchived()
             ->whereIn('status', $statusFilter)
-            ->when($reportedByUserId === null, fn ($q) => $q->where('is_published_publicly', true))
+            ->when(
+                $reportedByUserId === null && ! $includeReporterOwnAlongsidePublic,
+                fn ($q) => $q->where('is_published_publicly', true)
+            )
+            ->when(
+                $reportedByUserId === null && $includeReporterOwnAlongsidePublic && $currentUser !== null,
+                function ($q) use ($currentUser) {
+                    $q->where(function ($q2) use ($currentUser) {
+                        $q2->where('is_published_publicly', true)
+                            ->orWhere('reported_by_user_id', $currentUser->id)
+                            ->orWhereHas('mergedInto', fn ($q3) => $q3->where('reported_by_user_id', $currentUser->id));
+                    });
+                }
+            )
             ->when($reportedByUserId !== null, function ($q) use ($reportedByUserId) {
                 $q->where(function ($q2) use ($reportedByUserId) {
                     $q2->where('reported_by_user_id', $reportedByUserId)
@@ -136,7 +149,8 @@ class ProblemMapService
             })
             ->orderBy('address')
             ->orderBy('created_at', 'desc')
-            ->get(['id', 'internal_number', 'description', 'status', 'category', 'address', 'lat', 'lng', 'created_at', 'merged_into_problem_id', 'is_published_publicly']);
+            ->with('mergedInto:id,reported_by_user_id')
+            ->get(['id', 'internal_number', 'description', 'status', 'category', 'address', 'lat', 'lng', 'created_at', 'merged_into_problem_id', 'is_published_publicly', 'reported_by_user_id']);
 
         $index = 0;
 
@@ -151,7 +165,7 @@ class ProblemMapService
                 ->all();
         }
 
-        return $query->map(function ($problem) use ($centerLat, $centerLng, &$index, $watchedSet) {
+        return $query->map(function ($problem) use ($centerLat, $centerLng, &$index, $watchedSet, $currentUser) {
             $item = $this->mapProblemToMapItem($problem, $centerLat, $centerLng, $index);
             $index++;
             if ($problem->merged_into_problem_id !== null) {
@@ -159,6 +173,10 @@ class ProblemMapService
             }
             $watchRootId = $problem->merged_into_problem_id ?? $problem->id;
             $item['is_watched'] = isset($watchedSet[$watchRootId]);
+            if ($currentUser !== null) {
+                $item['reported_by_me'] = (int) ($problem->reported_by_user_id ?? 0) === (int) $currentUser->id
+                    || (int) ($problem->mergedInto?->reported_by_user_id ?? 0) === (int) $currentUser->id;
+            }
 
             return $item;
         })->values()->all();

@@ -9,7 +9,12 @@ function watchRootId(problem) {
 }
 
 export function useDashboardReporter(props) {
-    const reporterProblems = computed(() => {
+    const showOnlyMyReports = ref(props.onlyMine ?? false)
+    watch(() => props.onlyMine, (onlyMine) => {
+        showOnlyMyReports.value = !!onlyMine
+    })
+
+    const reporterAllProblems = computed(() => {
         if (!props.reporterView) return []
         const raw = props.problems
         if (Array.isArray(raw)) return raw
@@ -17,6 +22,14 @@ export function useDashboardReporter(props) {
             return Object.values(raw)
         }
         return []
+    })
+
+    const reporterProblems = computed(() => {
+        const all = reporterAllProblems.value
+        if (!showOnlyMyReports.value) {
+            return all
+        }
+        return all.filter((problem) => !!problem?.reported_by_me)
     })
 
     const {
@@ -29,7 +42,7 @@ export function useDashboardReporter(props) {
         toggle: reporterToggle,
         applyFilters: reporterApplyFilters,
         clearFilters: reporterClearFilters,
-    } = useProblemsMapFilter(reporterProblems)
+    } = useProblemsMapFilter(reporterProblems, { restrictToCurrentYear: true })
 
     const reporterDisplayRows = computed(() => buildReporterProblemDisplayRows(reporterFilteredProblems.value))
 
@@ -166,24 +179,13 @@ export function useDashboardReporter(props) {
         return watchRootId(p) === reporterWatchLoadingRootId.value
     })
 
-    const showOnlyMyReports = ref(props.onlyMine ?? false)
-    watch(() => props.onlyMine, (onlyMine) => {
-        showOnlyMyReports.value = !!onlyMine
-    })
-
     function reporterToggleOnlyMine() {
-        reporterClearFilters()
-        const base = route('dashboard')
-        const query = showOnlyMyReports.value ? '?only_mine=1' : ''
-        router.visit(base + query, { preserveState: false })
+        reporterSelectedIds.value = new Set()
     }
 
     function reporterToggleOnlyMineFromFilter(onlyMine) {
-        reporterShowFilterModal.value = false
-        reporterClearFilters()
-        const base = route('dashboard')
-        const query = onlyMine ? '?only_mine=1' : ''
-        router.visit(base + query, { preserveState: false })
+        showOnlyMyReports.value = !!onlyMine
+        reporterSelectedIds.value = new Set()
     }
 
     return {

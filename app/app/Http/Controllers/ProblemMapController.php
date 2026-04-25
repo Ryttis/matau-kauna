@@ -2,8 +2,6 @@
 
 namespace App\Http\Controllers;
 
-use App\Enums\ProblemStatus;
-use App\Models\ClassifierValue;
 use App\Services\ProblemMapService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -19,11 +17,8 @@ class ProblemMapController extends Controller
     public function map(): Response
     {
         $user = request()->user();
-        $categories = ClassifierValue::getActiveTypeNames()->values();
 
         return Inertia::render('Map', [
-            'categories' => $categories,
-            'statusOptions' => ProblemStatus::selectableOptions(),
             'problems' => $this->mapService->getProblemsForMapForUser($user),
         ]);
     }

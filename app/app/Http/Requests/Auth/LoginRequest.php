@@ -36,7 +36,7 @@ class LoginRequest extends FormRequest
             RateLimiter::hit($this->throttleKey());
 
             throw ValidationException::withMessages([
-                'email' => 'Šiai paskyrai slaptažodžio prisijungimas dar neįjungtas. Prisijunkite per el. valdžios vartus arba nustatykite slaptažodį skiltyje Profilis.',
+                'email' => 'Prisijunkite per el. valdžios vartus arba nustatykite slaptažodį skiltyje Profilis.',
             ]);
         }
 

@@ -8,6 +8,7 @@ import AutomationAssignmentSection from '@/Components/Automation/AutomationAssig
 import AutomationPublishSection from '@/Components/Automation/AutomationPublishSection.vue'
 import AutomationResolutionTermsSection from '@/Components/Automation/AutomationResolutionTermsSection.vue'
 import AutomationInactiveReporterSection from '@/Components/Automation/AutomationInactiveReporterSection.vue'
+import AutomationResolvedProblemPrivacySection from '@/Components/Automation/AutomationResolvedProblemPrivacySection.vue'
 import { useSuccessModal } from '@/composables/useSuccessModal'
 import { AUTOMATION_SECTIONS } from '@/constants/domain/automation'
 import '@/Components/Automation/automation-shared.css'
@@ -24,6 +25,8 @@ defineProps({
     statusOptions: Array,
     inactiveReporterSetting: Object,
     inactiveReportersList: Array,
+    resolvedProblemPrivacySetting: Object,
+    resolvedPublicProblemsList: Array,
 })
 
 const activeSection = ref('assignment')
@@ -39,6 +42,7 @@ const activeSection = ref('assignment')
         />
         <div class="automation-page">
             <h1 id="automation-page-title" class="automation-title">Automatizacija</h1>
+            <p class="automation-desc">Automatizavimo taisyklių valdymas problemų skyrimui, viešinimui ir terminams.</p>
             <div
                 class="automation-section-select-wrap"
                 role="group"
@@ -76,6 +80,11 @@ const activeSection = ref('assignment')
                 v-if="activeSection === 'inactive_reporter'"
                 :inactive-reporter-setting="inactiveReporterSetting"
                 :inactive-reporters-list="inactiveReportersList"
+            />
+            <AutomationResolvedProblemPrivacySection
+                v-if="activeSection === 'resolved_problem_privacy'"
+                :resolved-problem-privacy-setting="resolvedProblemPrivacySetting"
+                :resolved-public-problems-list="resolvedPublicProblemsList"
             />
         </div>
     </AuthenticatedLayout>

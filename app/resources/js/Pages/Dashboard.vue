@@ -6,12 +6,12 @@ import KaunasProblemsMap from '@/Components/Map/KaunasProblemsMap.vue'
 import ProblemMapStatusLegend from '@/Components/Map/ProblemMapStatusLegend.vue'
 import ProblemsMapList from '@/Components/Map/ProblemsMapList.vue'
 import DashboardInternalView from '@/Components/Dashboard/DashboardInternalView.vue'
+import SearchFilterBar from '@/Components/App/SearchFilterBar.vue'
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue'
 import { onMounted } from 'vue'
 import { Head, usePage } from '@inertiajs/vue3'
 import { useSuccessModal } from '@/composables/useSuccessModal'
 import { useDashboardReporter } from '@/composables/useDashboardReporter'
-import { ICON_FILTER, ICON_SEARCH } from '@/constants/ui/icons'
 import {
     REPORTER_MAP_FILTER_STATUS_OPTIONS,
     REPORTER_MAP_LEGEND_STATUS_ORDER,
@@ -76,6 +76,10 @@ const {
     reporterToggleOnlyMineFromFilter,
     reporterProblems,
 } = useDashboardReporter(props)
+
+const currentYear = new Date().getFullYear()
+const reporterDateMin = `${currentYear}-01-01`
+const reporterDateMax = `${currentYear}-12-31`
 </script>
 
 <template>
@@ -88,36 +92,15 @@ const {
             @close="closeSuccessModal"
         />
         <div v-if="reporterView" class="reporter-dashboard">
+            <h1 class="reporter-dashboard-title">Žemėlapis</h1>
+            <p class="reporter-dashboard-desc">Mano ir viešai skelbiamos problemos žemėlapyje</p>
             <div class="reporter-dashboard-top">
                 <div class="reporter-dashboard-toolbar">
-                    <div class="reporter-dashboard-search-wrap">
-                        <img :src="ICON_SEARCH" class="reporter-dashboard-search-icon" alt="" aria-hidden="true" />
-                        <input
-                            v-model="reporterSearchQuery"
-                            type="search"
-                            class="reporter-dashboard-search"
-                            placeholder="Ieškoti"
-                            autocomplete="off"
-                            enterkeyhint="search"
-                        />
-                        <button
-                            v-show="(reporterSearchQuery || '').trim().length > 0"
-                            type="button"
-                            class="reporter-dashboard-search-clear"
-                            aria-label="Išvalyti paiešką"
-                            @click="reporterSearchQuery = ''"
-                        >
-                            ×
-                        </button>
-                    </div>
-                    <button
-                        type="button"
-                        class="reporter-dashboard-filter-btn"
-                        aria-label="Filtruoti"
-                        @click="reporterOpenFilterModal"
-                    >
-                        <img :src="ICON_FILTER" class="reporter-dashboard-filter-icon" alt="" />
-                    </button>
+                    <SearchFilterBar
+                        v-model="reporterSearchQuery"
+                        placeholder="Ieškoti"
+                        @filter-click="reporterOpenFilterModal"
+                    />
                 </div>
                 <label class="reporter-dashboard-checkbox-label">
                     <input
@@ -173,6 +156,8 @@ const {
                 :categories="reporterCategoryOptions"
                 :status-checkbox-options="REPORTER_MAP_FILTER_STATUS_OPTIONS"
                 :only-mine="showOnlyMyReports"
+                :date-min="reporterDateMin"
+                :date-max="reporterDateMax"
                 @close="reporterShowFilterModal = false"
                 @apply="reporterHandleFilterApply"
                 @clear="reporterHandleFilterClear"

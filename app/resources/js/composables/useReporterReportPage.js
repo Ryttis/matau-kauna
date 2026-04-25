@@ -21,8 +21,8 @@ export function useReporterReportPage(props) {
     const wizardStep = ref(0)
     const wizardClosed = ref(false)
     const wizardHiddenUntilNextStep = ref(false)
-    const showReviewModal = ref(false)
-    const reviewModalMode = ref('terms-first')
+    const showReviewModal = ref(!props.hasAcceptedReportTerms)
+    const reviewModalMode = ref(props.hasAcceptedReportTerms ? 'submit' : 'terms-first')
     const termsAcceptedThisSession = ref(false)
     const showCancelModal = ref(false)
     const isSubmitting = ref(false)
@@ -104,10 +104,15 @@ export function useReporterReportPage(props) {
         previewUrls.value.clear()
     })
 
+    const hasAcceptedTerms = computed(
+        () => props.hasAcceptedReportTerms || termsAcceptedThisSession.value,
+    )
+
     const isWizardVisible = computed(() => {
         if (wizardClosed.value) return false
         if (!isStep1.value) return false
         if (!props.showReporterWizard) return false
+        if (!hasAcceptedTerms.value) return false
 
         return !wizardHiddenUntilNextStep.value
     })
@@ -148,41 +153,57 @@ export function useReporterReportPage(props) {
         dismissWizard()
     }
 
-    const step1Error = ref('')
+    const step1Errors = ref({
+        problemTypeId: '',
+        problemNatureId: '',
+        description: '',
+    })
 
     const ADDRESS_REQUIRED_MSG = 'Pasirinkite problemos vietą žemėlapyje arba įveskite adresą.'
 
-    function getStep1ValidationError() {
-        if (!problemTypeId.value) return 'Pasirinkite problemos rūšį.'
+    function getStep1ValidationErrors() {
+        const errors = {
+            problemTypeId: '',
+            problemNatureId: '',
+            description: '',
+        }
+
+        if (!problemTypeId.value) {
+            errors.problemTypeId = 'Pasirinkite problemos rūšį.'
+        }
 
         const natures = natureOptionsForSelectedType.value
         const natureRequired = natures.length > 0
 
-        if (natureRequired && !problemNatureId.value) return 'Pasirinkite problemos pobūdį.'
+        if (natureRequired && !problemNatureId.value) {
+            errors.problemNatureId = 'Pasirinkite problemos pobūdį.'
+        }
 
-        return null
+        if (!(description.value ?? '').trim()) {
+            errors.description = 'Įveskite aprašymą.'
+        }
+
+        return errors
     }
 
     function handleNext() {
         if (step.value !== 1) return
 
-        step1Error.value = ''
-        const validationError = getStep1ValidationError()
+        step1Errors.value = {
+            problemTypeId: '',
+            problemNatureId: '',
+            description: '',
+        }
+        const validationErrors = getStep1ValidationErrors()
+        const hasErrors = Object.values(validationErrors).some((message) => !!message)
 
-        if (validationError) {
-            step1Error.value = validationError
+        if (hasErrors) {
+            step1Errors.value = validationErrors
             return
         }
 
         step.value = 2
         wizardStep.value = 0
-
-        const needsTermsModal = !props.hasAcceptedReportTerms
-
-        if (needsTermsModal) {
-            reviewModalMode.value = 'terms-first'
-            showReviewModal.value = true
-        }
     }
 
     function getAddressError() {
@@ -194,10 +215,6 @@ export function useReporterReportPage(props) {
         wizardHiddenUntilNextStep.value = false
         submitError.value = ''
     }
-
-    const hasAcceptedTerms = computed(
-        () => props.hasAcceptedReportTerms || termsAcceptedThisSession.value,
-    )
 
     function handlePateikti() {
         if (isSubmitting.value) {
@@ -221,17 +238,24 @@ export function useReporterReportPage(props) {
     }
 
     const termsAcceptBusy = ref(false)
+    const termsSaveError = ref('')
 
     function handleReviewContinue() {
         if (termsAcceptBusy.value) {
             return
         }
+        termsSaveError.value = ''
         termsAcceptBusy.value = true
         api.post(route('reporter.termsAccepted'))
-            .finally(() => {
-                termsAcceptBusy.value = false
+            .then(() => {
                 termsAcceptedThisSession.value = true
                 showReviewModal.value = false
+            })
+            .catch((err) => {
+                termsSaveError.value = messageFromAxiosError(err, 'Nepavyko išsaugoti sutikimo. Bandykite dar kartą.')
+            })
+            .finally(() => {
+                termsAcceptBusy.value = false
             })
     }
 
@@ -302,6 +326,11 @@ export function useReporterReportPage(props) {
         showCancelModal.value = true
     }
 
+    function handleReviewModalClose() {
+        showReviewModal.value = false
+        termsSaveError.value = ''
+    }
+
     return {
         KAUNAS_CENTER,
         REPORTER_WIZARD_STEPS,
@@ -333,16 +362,19 @@ export function useReporterReportPage(props) {
         filePreviews,
         selectedFiles,
         fileHint,
-        step1Error,
+        step1Errors,
         termsAcceptBusy,
+        termsSaveError,
         wizardClose,
         wizardNext,
         wizardBack,
         handleNext,
         handlePerziureti,
         handlePateikti,
+        hasAcceptedTerms,
         handleReviewContinue,
         handleReviewConfirm,
+        handleReviewModalClose,
         handleCloseCancelModal,
         handleConfirmCancel,
         openCancelModal,

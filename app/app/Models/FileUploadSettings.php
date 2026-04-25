@@ -119,6 +119,26 @@ class FileUploadSettings extends Model
         ]);
     }
 
+    public static function getReviewProgressChannelForClient(): array
+    {
+        $c = self::getChannel(self::CHANNEL_WEB);
+        $c['allow_video'] = false;
+        $c['max_video_files_per_problem'] = 0;
+
+        return array_merge($c, [
+            'accept_attr' => self::buildAcceptAttribute($c),
+        ]);
+    }
+
+    public static function getChannelForReviewEntry(string $channel): array
+    {
+        $c = self::getChannel($channel);
+        $c['allow_video'] = false;
+        $c['max_video_files_per_problem'] = 0;
+
+        return $c;
+    }
+
     private static function buildAcceptAttribute(array $channelConfig): string
     {
         $parts = [];

@@ -1,12 +1,14 @@
 <script setup>
 import { ref, watch, computed } from 'vue'
 import axios from 'axios'
+import { ICON_SEARCH } from '@/constants/ui/icons'
 
 const props = defineProps({
     placeholder: { type: String, default: 'Suveskite adresą' },
     variant: { type: String, default: 'default' },
     searchMode: { type: String, default: 'all' },
     resetToken: { type: Number, default: 0 },
+    showSearchIcon: { type: Boolean, default: false },
 })
 
 const emit = defineEmits(['select', 'clear'])
@@ -109,6 +111,7 @@ watch(
         :class="{
             'map-address-autocomplete--pill': variant === 'pill',
             'map-address-autocomplete--pill-bordered': variant === 'pill-bordered',
+            'map-address-autocomplete--with-search-icon': showSearchIcon,
         }"
     >
         <input
@@ -120,6 +123,13 @@ watch(
             @input="onInput"
             @focus="onFocus"
             @blur="onBlur"
+        />
+        <img
+            v-if="showSearchIcon"
+            :src="ICON_SEARCH"
+            class="map-address-autocomplete-search-icon"
+            alt=""
+            aria-hidden="true"
         />
         <div v-if="open" class="map-address-autocomplete-dropdown">
             <div v-if="loading" class="map-address-autocomplete-item map-address-autocomplete-item--muted">
@@ -163,9 +173,24 @@ watch(
     box-sizing: border-box;
 }
 
+.map-address-autocomplete-search-icon {
+    position: absolute;
+    left: 14px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 20px;
+    height: 20px;
+    pointer-events: none;
+    object-fit: contain;
+}
+
+.map-address-autocomplete--with-search-icon .map-address-autocomplete-input {
+    padding-left: 44px;
+}
+
 .map-address-autocomplete--pill .map-address-autocomplete-input {
-    height: 40px;
-    border-radius: 20px;
+    height: 44px;
+    border-radius: 15px;
     background-color: #f6f7f9;
     box-shadow: none;
 }

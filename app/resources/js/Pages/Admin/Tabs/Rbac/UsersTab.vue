@@ -27,16 +27,16 @@ const assignRolesError = ref('')
 const createError = ref('')
 const createErrors = ref([])
 
-const createForm = ref({ name: '', email: '', password: '', password_confirmation: '', institution_id: '', role_ids: [] })
+const createForm = ref({ name: '', email: '', password: '', password_confirmation: '', institution_id: '', role_id: '' })
 const inviteForm = ref({ email: '', institution_id: '', role_id: '' })
 const editForm = ref({ id: null, name: '', email: '', password: '', institution_id: '' })
 const deleteTarget = ref({ id: null, name: '', email: '' })
 
 const selectedUser = ref(null)
-const selectedRoleIds = ref([])
+const selectedRoleId = ref('')
 
 const openCreate = () => {
-    createForm.value = { name: '', email: '', password: '', password_confirmation: '', institution_id: '', role_ids: [] }
+    createForm.value = { name: '', email: '', password: '', password_confirmation: '', institution_id: '', role_id: '' }
     createError.value = ''
     createErrors.value = []
     isCreateOpen.value = true
@@ -54,7 +54,7 @@ const openDelete = (u) => {
 
 const openAssignRoles = (u) => {
     selectedUser.value = u
-    selectedRoleIds.value = (u.roles ?? []).map(r => r.id)
+    selectedRoleId.value = (u.roles ?? [])[0]?.id ?? ''
     assignRolesError.value = ''
     isAssignRolesOpen.value = true
 }
@@ -110,7 +110,7 @@ const createUser = async () => {
             password: createForm.value.password,
             password_confirmation: createForm.value.password_confirmation,
             institution_id: createForm.value.institution_id || null,
-            role_ids: createForm.value.role_ids.length ? createForm.value.role_ids : null
+            role_id: createForm.value.role_id || null
         })
         isCreateOpen.value = false
         emit('show-success', 'Naudotojas sukurtas.')
@@ -171,7 +171,7 @@ const saveUserRoles = async () => {
     emit('set-saving', true)
     try {
         await axios.post(adminRbacApi.userRoles(selectedUser.value.id), {
-            role_ids: selectedRoleIds.value
+            role_id: selectedRoleId.value || null
         })
         isAssignRolesOpen.value = false
         emit('show-success', 'Naudotojo rolės atnaujintos.')
@@ -258,15 +258,13 @@ const saveUserRoles = async () => {
                 </select>
             </label>
 
-            <div class="field">
-                <span>Rolės</span>
-                <div class="checklist">
-                    <label v-for="r in assignableRoles" :key="r.id" class="check">
-                        <input type="checkbox" :value="r.id" v-model="createForm.role_ids" />
-                        <span>{{ r.name }}</span>
-                    </label>
-                </div>
-            </div>
+            <label class="field">
+                <span>Rolė</span>
+                <select class="input" v-model="createForm.role_id">
+                    <option value="">- Pasirinkite</option>
+                    <option v-for="r in assignableRoles" :key="r.id" :value="r.id">{{ r.name }}</option>
+                </select>
+            </label>
 
             <template #footer>
                 <AppButton text="Atšaukti" variant="secondary" as-button @click="isCreateOpen = false" />
@@ -359,9 +357,10 @@ const saveUserRoles = async () => {
             <div class="checklist">
                 <label v-for="r in assignableRoles" :key="r.id" class="check">
                     <input
-                        type="checkbox"
+                        type="radio"
+                        name="assign-role"
                         :value="r.id"
-                        v-model="selectedRoleIds"
+                        v-model="selectedRoleId"
                     />
                     <span>
                         {{ r.name }} ({{ r.role }})

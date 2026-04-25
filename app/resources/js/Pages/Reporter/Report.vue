@@ -61,8 +61,10 @@ const {
     filePreviews,
     selectedFiles,
     fileHint,
-    step1Error,
+    step1Errors,
     termsAcceptBusy,
+    termsSaveError,
+    hasAcceptedTerms,
     wizardClose,
     wizardNext,
     wizardBack,
@@ -71,6 +73,7 @@ const {
     handlePateikti,
     handleReviewContinue,
     handleReviewConfirm,
+    handleReviewModalClose,
     handleCloseCancelModal,
     handleConfirmCancel,
     openCancelModal,
@@ -92,7 +95,9 @@ const {
             :show="showReviewModal"
             :mode="reviewModalMode"
             :submitting="isSubmitting || termsAcceptBusy"
-            @close="showReviewModal = false"
+            :save-error="termsSaveError"
+            :dismissible="reviewModalMode !== 'terms-first' || hasAcceptedTerms"
+            @close="handleReviewModalClose"
             @confirm="handleReviewConfirm"
             @continue="handleReviewContinue"
         />
@@ -116,6 +121,9 @@ const {
                 </header>
 
                 <div class="reporter-report-body">
+                    <p class="reporter-report-desc">
+                        Užpildykite informaciją apie problemą ir pateikite naują pranešimą.
+                    </p>
                     <template v-if="step === 1">
                         <div class="reporter-report-field">
                             <AppSelect
@@ -123,6 +131,7 @@ const {
                                 label="Problemos rūšis"
                                 placeholder="Pasirinkti rūšį"
                                 variant="white"
+                                required
                             >
                                 <option
                                     v-for="v in typeValues"
@@ -132,6 +141,9 @@ const {
                                     {{ v.name }}
                                 </option>
                             </AppSelect>
+                            <p v-if="step1Errors.problemTypeId" class="reporter-report-error">
+                                {{ step1Errors.problemTypeId }}
+                            </p>
                         </div>
                         <div class="reporter-report-field">
                             <AppSelect
@@ -140,6 +152,7 @@ const {
                                 placeholder="Pasirinkti pobūdį"
                                 variant="white"
                                 :disabled="!problemTypeId || !natureOptionsForSelectedType.length"
+                                required
                             >
                                 <option
                                     v-for="v in natureOptionsForSelectedType"
@@ -149,11 +162,15 @@ const {
                                     {{ v.name }}
                                 </option>
                             </AppSelect>
+                            <p v-if="step1Errors.problemNatureId" class="reporter-report-error">
+                                {{ step1Errors.problemNatureId }}
+                            </p>
                         </div>
-                        <p v-if="step1Error" class="reporter-report-error">{{ step1Error }}</p>
 
                         <div class="reporter-report-field">
-                            <label class="reporter-report-label">Aprašykite problemą</label>
+                            <label class="reporter-report-label">
+                                Aprašykite problemą<span class="reporter-report-required"> *</span>
+                            </label>
                             <textarea
                                 v-model="description"
                                 class="reporter-report-textarea"
@@ -161,6 +178,9 @@ const {
                                 rows="6"
                                 :maxlength="descriptionMaxChars"
                             />
+                            <p v-if="step1Errors.description" class="reporter-report-error">
+                                {{ step1Errors.description }}
+                            </p>
                         </div>
 
                         <div v-if="showFileSection" class="reporter-report-field">
@@ -225,7 +245,9 @@ const {
                         </div>
                     </template>
                     <template v-else>
-                        <h2 class="reporter-report-step2-title">Pasirinkite problemos vietą</h2>
+                        <h2 class="reporter-report-step2-title">
+                            Pasirinkite problemos vietą<span class="reporter-report-required"> *</span>
+                        </h2>
                         <ReporterLocationMap
                             :initial-lat="latStep2 ?? KAUNAS_CENTER[0]"
                             :initial-lng="lngStep2 ?? KAUNAS_CENTER[1]"

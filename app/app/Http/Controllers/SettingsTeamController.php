@@ -42,7 +42,9 @@ class SettingsTeamController extends Controller
             'name' => $validated['name'],
         ]);
 
-        return $team->load('employees:id,name,surname,email');
+        return $team->load(
+            $this->assignableEmployeesEagerLoadForInstitution($institutionId, 'id,name,surname,email')
+        );
     }
 
     public function updateTeam(Request $request, InstitutionTeam $team): mixed
@@ -60,7 +62,9 @@ class SettingsTeamController extends Controller
 
         $team->update($validated);
 
-        return $team->fresh()->load('employees:id,name,surname,email');
+        return $team->fresh()->load(
+            $this->assignableEmployeesEagerLoadForInstitution($team->institution_id, 'id,name,surname,email')
+        );
     }
 
     public function destroyTeam(InstitutionTeam $team): mixed
@@ -86,17 +90,20 @@ class SettingsTeamController extends Controller
         $this->ensureTeamManagementAccess($user);
         $this->ensureCanManageTeam($user, $team);
 
+        $assignableIds = $this->assignableEmployeeIdsForInstitution($team->institution_id);
         $validated = $request->validate([
             'employee_ids' => ['array'],
             'employee_ids.*' => [
                 'integer',
-                Rule::exists('employees', 'id')->where('institution_id', $team->institution_id),
+                Rule::in($assignableIds->all()),
             ],
         ]);
 
         $team->employees()->sync($validated['employee_ids'] ?? []);
 
-        return $team->fresh()->load('employees:id,name,surname,email');
+        return $team->fresh()->load(
+            $this->assignableEmployeesEagerLoadForInstitution($team->institution_id, 'id,name,surname,email')
+        );
     }
 
     public function listTeams(Request $request): mixed
@@ -122,15 +129,30 @@ class SettingsTeamController extends Controller
             ]);
         }
 
-        $employees = Employee::query()
-            ->where('institution_id', $institutionId)
-            ->select(['id', 'name', 'surname', 'email'])
-            ->orderBy('surname')
-            ->get();
+        $assignableEmails = User::queryAssignableInstitutionEmployeeUsers($institutionId)->pluck('email');
+        if ($assignableEmails->isEmpty()) {
+            $employees = collect();
+        } else {
+            $employees = Employee::query()
+                ->where('institution_id', $institutionId)
+                ->whereIn('email', $assignableEmails)
+                ->select(['id', 'name', 'surname', 'email'])
+                ->orderBy('surname')
+                ->get();
+        }
 
         $teams = InstitutionTeam::query()
             ->where('institution_id', $institutionId)
-            ->with(['employees:id,name,surname,email'])
+            ->with($this->assignableEmployeesEagerLoadForInstitution($institutionId, 'id,name,surname,email'))
+            ->withCount([
+                'employees as members_count' => function ($q) use ($assignableEmails) {
+                    if ($assignableEmails->isEmpty()) {
+                        $q->whereRaw('0 = 1');
+                    } else {
+                        $q->whereIn('email', $assignableEmails);
+                    }
+                },
+            ])
             ->orderBy('name')
             ->get();
 
@@ -138,6 +160,42 @@ class SettingsTeamController extends Controller
             'employees' => $employees,
             'teams' => $teams,
         ]);
+    }
+
+    private function assignableInstitutionEmployeeEmails(int $institutionId): \Illuminate\Support\Collection
+    {
+        return User::queryAssignableInstitutionEmployeeUsers($institutionId)->pluck('email');
+    }
+
+    private function assignableEmployeeIdsForInstitution(int $institutionId): \Illuminate\Support\Collection
+    {
+        $emails = $this->assignableInstitutionEmployeeEmails($institutionId);
+        if ($emails->isEmpty()) {
+            return collect();
+        }
+
+        return Employee::query()
+            ->where('institution_id', $institutionId)
+            ->whereIn('email', $emails)
+            ->pluck('id');
+    }
+
+    private function assignableEmployeesEagerLoadForInstitution(int $institutionId, string $selectColumns): array
+    {
+        $emails = $this->assignableInstitutionEmployeeEmails($institutionId);
+        $selectFields = array_map('trim', explode(',', $selectColumns));
+        $closure = function ($q) use ($emails, $selectFields) {
+            if ($emails->isEmpty()) {
+                $q->whereRaw('0 = 1');
+            } else {
+                $q->select($selectFields);
+                $q->whereIn('email', $emails);
+            }
+        };
+
+        return [
+            'employees' => $closure,
+        ];
     }
 
     private function ensureSameInstitution(User $user, InstitutionTeam $team): void

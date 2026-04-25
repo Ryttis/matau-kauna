@@ -172,6 +172,7 @@ const canRender = computed(() => {
             <h3 class="title">Komandos (grupės)</h3>
             <AppButton text="+ Kurti" variant="primary" as-button class="btn-header" @click="openCreate" />
         </div>
+        <p class="page-desc">Kurkite komandas ir priskirkite įstaigos darbuotojus problemoms spręsti grupėmis.</p>
 
         <div v-if="errorMessage" class="error">{{ errorMessage }}</div>
 
@@ -266,12 +267,15 @@ const canRender = computed(() => {
     align-items: center;
     justify-content: space-between;
     gap: 12px;
-    margin-bottom: 12px;
+    margin-bottom: 0;
 }
 
 .title {
     margin: 0;
+    padding: 0;
     font-size: 18px;
+    font-weight: 700;
+    line-height: 1.35;
 }
 
 .btn-header {

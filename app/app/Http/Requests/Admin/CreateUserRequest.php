@@ -22,8 +22,7 @@ class CreateUserRequest extends FormRequest
             'password' => $policy->rules(),
             'password_confirmation' => ['required_with:password', 'same:password'],
             'institution_id' => ['nullable', 'integer', 'exists:institutions,id'],
-            'role_ids' => ['nullable', 'array'],
-            'role_ids.*' => ['uuid', 'exists:user_role,id'],
+            'role_id' => ['required', 'uuid', 'exists:user_role,id'],
         ];
     }
 
@@ -42,6 +41,8 @@ class CreateUserRequest extends FormRequest
                 'email.max' => 'El. paštas per ilgas.',
                 'password.required' => 'Slaptažodis privalomas.',
                 'institution_id.exists' => 'Pasirinkta įstaiga neegzistuoja.',
+                'role_id.required' => 'Rolė privaloma.',
+                'role_id.exists' => 'Pasirinkta rolė neegzistuoja.',
             ],
         );
     }

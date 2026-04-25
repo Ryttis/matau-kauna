@@ -12,7 +12,7 @@ class ContentVersionService
         return ContentVersion::query()
             ->ofType($type)
             ->with('creator:id,name')
-            ->orderByDesc('version')
+            ->orderBy('version')
             ->get()
             ->map(fn (ContentVersion $v) => [
                 'id' => $v->id,

@@ -69,12 +69,8 @@ Route::middleware('auth')->group(function () {
         return redirect()
             ->route('verification.notice')
             ->with('status', __('Patvirtinimo nuoroda išsiųsta. Patikrinkite el. paštą.'));
-    })->middleware('throttle:12,1')->name('verification.send');
+    })->middleware('throttle:1,2')->name('verification.send');
 
-    Route::get('role-select', [\App\Http\Controllers\Auth\RoleSelectController::class, 'show'])
-        ->name('role.select');
-    Route::post('role-select', [\App\Http\Controllers\Auth\RoleSelectController::class, 'store'])
-        ->name('role.select.store');
     Route::post('logout', [AuthenticatedSessionController::class, 'destroy'])
         ->name('logout');
 });

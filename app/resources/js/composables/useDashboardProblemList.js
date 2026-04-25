@@ -134,7 +134,6 @@ export function useDashboardProblemList(props) {
     }, { immediate: true, deep: true })
 
     const handleSearch = debounce(() => {
-        problemsList.value = []
         loadProblems(true)
     }, 300)
 
@@ -444,6 +443,7 @@ export function useDashboardProblemList(props) {
 
     onUnmounted(() => {
         document.removeEventListener('click', handleClickOutside)
+        handleSearch.cancel()
     })
 
     return {

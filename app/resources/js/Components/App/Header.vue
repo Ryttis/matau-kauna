@@ -1,26 +1,19 @@
 <script setup>
-import { computed, ref, inject } from 'vue'
+import { computed, inject } from 'vue'
 import { Link, router } from '@inertiajs/vue3'
 import { ICON_USER, ICON_BELL, ICON_LOGOUT } from '@/constants/ui/icons'
 import { useAuth } from '@/composables/useAuth'
 import { useBrandHomeHref } from '@/composables/useBrandHomeHref'
 
-const roleDropdownOpen = ref(false)
 const appShell = inject('appShell', null)
 
-const { user, roles, activeRole } = useAuth()
+const { user } = useAuth()
 const brandHomeHref = useBrandHomeHref()
 
 const isAuthenticated = computed(() => !!user.value)
-const showRoleSwitcher = computed(() => roles.value.length > 1)
 
 const logout = () => {
     router.post('/logout')
-}
-
-const switchRole = (roleId) => {
-    roleDropdownOpen.value = false
-    router.post(route('role.select.store'), { role_id: roleId }, { preserveState: false })
 }
 
 const showNavToggle = computed(() => isAuthenticated.value && !!appShell?.toggleSidebar)
@@ -43,28 +36,6 @@ const showNavToggle = computed(() => isAuthenticated.value && !!appShell?.toggle
             </Link>
         </div>
         <div class="header-icons" v-if="isAuthenticated">
-            <div v-if="showRoleSwitcher" class="role-switcher-wrp">
-                <button
-                    type="button"
-                    class="role-switcher-btn"
-                    @click="roleDropdownOpen = !roleDropdownOpen"
-                    title="Keisti rolę"
-                >
-                    {{ activeRole?.name ?? 'Rolė' }}
-                </button>
-                <div v-if="roleDropdownOpen" class="role-dropdown">
-                    <button
-                        v-for="r in roles"
-                        :key="r.id"
-                        type="button"
-                        class="role-dropdown-item"
-                        :class="{ active: activeRole?.id === r.id }"
-                        @click="switchRole(r.id)"
-                    >
-                        {{ r.name }}
-                    </button>
-                </div>
-            </div>
             <Link :href="route('profile')" class="icon-text-wrp link-reset">
                 <div class="active-img-wrp">
                     <img class="active" :src="ICON_USER" alt="" />
@@ -326,76 +297,4 @@ const showNavToggle = computed(() => isAuthenticated.value && !!appShell?.toggle
         background-color: rgba(255, 255, 255, 0.12);
     }
 
-    .role-switcher-wrp {
-        position: relative;
-    }
-
-    .role-switcher-btn {
-        padding: 6px 10px;
-        background: rgba(255,255,255,0.2);
-        color: var(--color-white, #fff);
-        border: 1px solid rgba(255,255,255,0.4);
-        border-radius: 8px;
-        font-size: 12px;
-        cursor: pointer;
-        max-width: 36vw;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
-    }
-
-    @media (min-width: 480px) {
-        .role-switcher-btn {
-            font-size: 14px;
-            padding: 6px 12px;
-            max-width: none;
-        }
-    }
-
-    .role-switcher-btn:hover {
-        background: rgba(255,255,255,0.3);
-    }
-
-    .role-dropdown {
-        position: absolute;
-        top: 100%;
-        left: 0;
-        right: auto;
-        margin-top: 4px;
-        min-width: 180px;
-        max-width: min(280px, calc(100vw - 24px));
-        background: var(--color-white, #fff);
-        border: 1px solid var(--color-border, #e0e0e0);
-        border-radius: 8px;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-        z-index: 1100;
-    }
-
-    .role-dropdown-item {
-        display: block;
-        width: 100%;
-        padding: 10px 14px;
-        text-align: left;
-        border: none;
-        background: none;
-        color: var(--color-text, #333);
-        font-size: 14px;
-        cursor: pointer;
-    }
-
-    .role-dropdown-item:hover {
-        background: #f5f5f5;
-    }
-
-    .role-dropdown-item.active {
-        background: #e8eef7;
-        color: #1946a0;
-    }
-
-    @media (max-width: 480px) {
-        .role-dropdown {
-            left: auto;
-            right: 0;
-        }
-    }
 </style>
