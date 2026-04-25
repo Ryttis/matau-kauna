@@ -194,6 +194,12 @@ const uploadHintText = computed(() =>
     }),
 )
 
+const attachFileLabel = computed(() =>
+    uploadRules.value.allow_photo && !uploadRules.value.allow_video
+        ? 'Prisegti nuotrauką'
+        : 'Prisegti failą',
+)
+
 const filesErrorText = computed(() => firstInertiaErrorForPrefix(form.errors, 'files'))
 const sanitizedFilesErrorText = computed(() => humanizeTechnicalUploadError(filesErrorText.value))
 
@@ -308,7 +314,7 @@ const queuedAttachmentCount = computed(() => selectedFiles.value.length)
                         </div>
                     </div>
                     <div class="add-entry-photo-area" @click="triggerPicker">
-                        <span class="add-entry-photo-text">Prisegti failą</span>
+                        <span class="add-entry-photo-text">{{ attachFileLabel }}</span>
                     </div>
                     <p class="add-entry-file-hint">{{ uploadHintText }}</p>
                     <p v-if="fileHint" class="add-entry-field-error">{{ fileHint }}</p>

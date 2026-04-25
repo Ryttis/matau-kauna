@@ -31,10 +31,10 @@ class RbacUserController extends Controller
 
     public function syncUserRoles(SyncUserRolesRequest $request, User $user)
     {
-        $roleIds = $request->validated('role_ids') ?? [];
+        $roleId = $request->validated('role_id');
 
         try {
-            $user->roles()->sync($roleIds);
+            $user->roles()->sync([$roleId]);
             $this->auditLogService->logUserAction($request->user(), 'rbac.user.sync_roles', 'User', $user->id, AuditLogResult::Success, null, ['user_id' => $user->id]);
 
             return $user->load('roles:id,role,name');

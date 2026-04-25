@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Auth\MustVerifyEmail as MustVerifyEmailTrait;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
@@ -245,5 +246,14 @@ class User extends Authenticatable implements MustVerifyEmail
         }
 
         return $this->viisp_local_password_set_at !== null;
+    }
+
+    public static function queryAssignableInstitutionEmployeeUsers(int $institutionId, ?string $exceptEmail = null): Builder
+    {
+        return self::query()
+            ->notArchived()
+            ->where('institution_id', $institutionId)
+            ->whereHas('roles', fn ($q) => $q->where('role', UserRole::ROLE_EMPLOYEE))
+            ->when($exceptEmail, fn ($q) => $q->where('email', '!=', $exceptEmail));
     }
 }

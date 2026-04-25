@@ -1,6 +1,8 @@
 <script setup>
 import AuthInput from '@/Components/Auth/AuthInput.vue';
 import AppButton from '@/Components/App/AppButton.vue';
+import AppPhoneInternational from '@/Components/App/AppPhoneInternational.vue';
+import { isValidOptionalPhone } from '@/constants/phoneInternational';
 import GuestHeader from '@/Components/Landing/GuestHeader.vue';
 import LandingFooter from '@/Components/Landing/LandingFooter.vue';
 import { Head, useForm } from '@inertiajs/vue3';
@@ -36,20 +38,6 @@ const localErrors = ref({
 });
 
 const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-const phonePattern = /^[0-9+\s-]+$/;
-
-function isValidLithuanianPhone(str) {
-    const d = (str.match(/\d/g) || []).join('');
-    if (!d) {
-        return false;
-    }
-    return (
-        /^370\d{8}$/.test(d) ||
-        /^0[1-9]\d{7,9}$/.test(d) ||
-        /^8\d{8}$/.test(d) ||
-        /^6\d{7}$/.test(d)
-    );
-}
 
 function dropLocalError(field) {
     if (!localErrors.value[field]) {
@@ -116,12 +104,9 @@ function validateClient() {
         err.email = 'El. paštas negali būti ilgesnis nei 255 simbolių.';
     }
 
-    if (ph && !phonePattern.test(ph)) {
+    if (ph && !isValidOptionalPhone(ph)) {
         err.phone =
-            'Telefono numerį įveskite skaitmenimis; galimi simboliai: +, tarpas, brūkšnys.';
-    } else if (ph && !isValidLithuanianPhone(ph)) {
-        err.phone =
-            'Įveskite lietuvišką telefono numerį (pvz. 067670895, +370 676 70895 arba 8 676 70895).';
+            'Įveskite teisingą numerį: pasirinkite šalį ir užpildykite lauką, arba palikite telefoną tuščią.';
     } else if (ph.length > 32) {
         err.phone = 'Telefono numeris negali būti ilgesnis nei 32 simboliai.';
     }
@@ -224,13 +209,10 @@ const submit = () => {
                 </div>
 
                 <div class="viisp-register-field">
-                    <label class="viisp-register-label" for="viisp-phone">Telefono numeris</label>
-                    <AuthInput
+                    <label class="viisp-register-label" for="viisp-phone-national">Telefono numeris</label>
+                    <AppPhoneInternational
                         id="viisp-phone"
-                        type="text"
-                        placeholder="Įveskite telefono numerį"
                         v-model="form.phone"
-                        :required="false"
                         :error="fieldError('phone')"
                     />
                 </div>

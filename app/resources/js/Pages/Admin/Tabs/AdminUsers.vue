@@ -86,6 +86,12 @@ onMounted(async () => {
 
 <template>
     <div>
+        <div class="admin-tab-intro">
+            <h2 class="admin-tab-intro__title">Naudotojai</h2>
+            <p class="admin-tab-intro__desc">
+                Tvarkykite paskyras, roles, teises, pakvietimus ir saugumo politikas vienoje administravimo srityje.
+            </p>
+        </div>
         <div class="subtabs">
             <button type="button" class="subtab" :class="{ active: activeSubTab === 'users' }" @click="setTab('users')">
                 Naudotojai

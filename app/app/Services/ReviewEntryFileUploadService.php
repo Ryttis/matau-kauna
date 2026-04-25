@@ -31,7 +31,7 @@ class ReviewEntryFileUploadService
 
         $photoBase = (int) $entry->reviewAttachments()->where('kind', 'photo')->count();
         $videoBase = (int) $entry->reviewAttachments()->where('kind', 'video')->count();
-        $config = FileUploadSettings::getChannel($channel);
+        $config = FileUploadSettings::getChannelForReviewEntry($channel);
 
         if (empty($config['allow_photo']) && empty($config['allow_video'])) {
             throw ValidationException::withMessages([

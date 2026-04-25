@@ -97,13 +97,13 @@ function formatTermDate(isoDate) {
 
 <style scoped>
 .resolution-terms-page {
-    padding: 24px 32px;
-    max-width: 1100px;
+    padding: 0;
+    max-width: 100%;
 }
 
 .page-title {
-    font-size: 22px;
-    font-weight: 700;
+    font-size: 24px;
+    font-weight: 600;
     margin: 0 0 8px 0;
 }
 

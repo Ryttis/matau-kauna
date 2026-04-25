@@ -257,10 +257,12 @@ async function removeNature(nature) {
 
 <template>
     <div class="admin-classifiers">
-        <h2 class="title">Problemos rūšys ir pobūdžiai</h2>
-        <p class="desc">
-            Čia valdomos problemos rūšys ir jų pobūdžiai. Pobūdžiai rodomi pareiškėjui problemą registruojant, kai pasirenkama atitinkama rūšis.
-        </p>
+        <div class="admin-tab-intro">
+            <h2 class="admin-tab-intro__title">Problemos rūšys ir pobūdžiai</h2>
+            <p class="admin-tab-intro__desc">
+                Kurkite rūšis ir jų pobūdžius, kurie pasirodo pareiškėjo formoje renkantis problemos tipą.
+            </p>
+        </div>
         <p v-if="errorMessage" class="error-msg">{{ errorMessage }}</p>
 
         <SuccessModal
@@ -272,7 +274,6 @@ async function removeNature(nature) {
         <div v-if="loading" class="loading">Kraunama…</div>
         <template v-else>
             <div class="classifier-block">
-                <h3 class="category-title">Problemos rūšis</h3>
                 <div class="toolbar">
                     <AppButton
                         text="Pridėti problemos rūšį"
@@ -519,19 +520,9 @@ async function removeNature(nature) {
 
 <style scoped>
 .admin-classifiers {
-    padding: 24px 32px;
-    max-width: 900px;
-}
-.title {
-    font-size: 18px;
-    font-weight: 700;
-    margin: 0 0 8px 0;
-}
-.desc {
-    font-size: 14px;
-    color: #555;
-    margin: 0 0 20px 0;
-    line-height: 1.5;
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
 }
 .error-msg {
     color: #c00;
@@ -549,15 +540,10 @@ async function removeNature(nature) {
     color: #666;
 }
 .classifier-block {
-    margin-bottom: 32px;
-}
-.category-title {
-    font-size: 16px;
-    font-weight: 600;
-    margin: 0 0 12px 0;
+    margin-bottom: 24px;
 }
 .toolbar {
-    margin-bottom: 12px;
+    margin-bottom: 8px;
 }
 .table-wrap {
     overflow-x: auto;
@@ -574,6 +560,11 @@ async function removeNature(nature) {
     border-bottom: 1px solid #e8e8e8;
     vertical-align: middle;
     box-sizing: border-box;
+}
+.values-table th:nth-child(2),
+.values-table td:nth-child(2) {
+    width: 1%;
+    white-space: nowrap;
 }
 .values-table th {
     font-weight: var(--table-header-font-weight);

@@ -30,6 +30,7 @@ use Inertia\Inertia;
 
 Route::get('/', [GuestProblemController::class, 'landing'])->name('landing');
 
+Route::get('/taisykles', [\App\Http\Controllers\GuestContentController::class, 'terms'])->name('taisykles');
 Route::get('/faq', [\App\Http\Controllers\GuestContentController::class, 'faq'])->name('faq');
 Route::get('/privacy', [\App\Http\Controllers\GuestContentController::class, 'privacy'])->name('privacy');
 Route::get('/slapukai', [\App\Http\Controllers\GuestContentController::class, 'cookies'])->name('cookies');
@@ -66,6 +67,7 @@ Route::middleware(['auth', 'verified', 'reporter.terms'])->group(function () {
             Route::get('/automation', [AutomationController::class, 'index'])->name('automation.index');
             Route::post('/automation', [AutomationAssignmentRuleController::class, 'store'])->name('automation.store');
             Route::put('/automation/inactive-reporter-setting', [AutomationController::class, 'updateInactiveReporterSetting'])->name('automation.inactiveReporterSetting.update');
+            Route::put('/automation/resolved-problem-privacy-setting', [AutomationController::class, 'updateResolvedProblemPrivacySetting'])->name('automation.resolvedProblemPrivacySetting.update');
             Route::put('/automation/{rule}', [AutomationAssignmentRuleController::class, 'update'])->name('automation.update');
             Route::delete('/automation/{rule}', [AutomationAssignmentRuleController::class, 'destroy'])->name('automation.destroy');
             Route::post('/automation/publish-rules', [AutomationPublishRuleController::class, 'store'])->name('automation.publishRules.store');

@@ -11,6 +11,11 @@ final class GuestPublishedContentCatalog
         static $cache = null;
 
         return $cache ??= [
+            ContentVersion::TYPE_TERMS => new GuestPublishedContentDefinition(
+                ContentVersion::TYPE_TERMS,
+                'Guest/Terms',
+                'Taisyklės',
+            ),
             ContentVersion::TYPE_FAQ => new GuestPublishedContentDefinition(
                 ContentVersion::TYPE_FAQ,
                 'Guest/Faq',

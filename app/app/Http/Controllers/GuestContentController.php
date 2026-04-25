@@ -9,6 +9,11 @@ use Inertia\Response;
 
 class GuestContentController extends Controller
 {
+    public function terms(): Response
+    {
+        return $this->renderGuestPage(ContentVersion::TYPE_TERMS);
+    }
+
     public function faq(): Response
     {
         return $this->renderGuestPage(ContentVersion::TYPE_FAQ);

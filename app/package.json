@@ -26,6 +26,7 @@
     },
     "dependencies": {
         "@fortawesome/fontawesome-free": "^7.1.0",
+        "flag-icons": "^7.5.0",
         "lodash-es": "^4.17.23",
         "vue-click-outside": "^1.1.0"
     }

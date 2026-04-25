@@ -72,7 +72,7 @@ class ProblemHttpSupport
             'showWatchToggle' => $showWatchToggle,
             'isWatched' => $isWatched,
             'watchProblemId' => $watchProblemId,
-            'fileUpload' => FileUploadSettings::getChannelForClient(FileUploadSettings::CHANNEL_WEB),
+            'fileUpload' => FileUploadSettings::getReviewProgressChannelForClient(),
             'authUserId' => $user?->id,
             'isSystemAdmin' => $user ? $user->canAccessAdmin() : false,
         ]);
@@ -120,25 +120,45 @@ class ProblemHttpSupport
             ->exists();
     }
 
-    public function reporterMergeRootIdsForFilters(User $user, array $filters): Collection
+    public function reporterMergeRootIdsForFilters(User $user, array $filters, bool $includeAllStatuses = false): Collection
     {
         $fromMainFilter = Problem::query()
-            ->forReporter($user->id)
+            ->notArchived()
+            ->whereNull('merged_into_problem_id')
+            ->where(function ($q) use ($user) {
+                $q->where('reported_by_user_id', $user->id)
+                    ->orWhereHas('mergedProblems', fn ($q2) => $q2->where('reported_by_user_id', $user->id));
+            })
+            ->when(
+                ! $includeAllStatuses,
+                fn ($query) => $query->whereIn('status', ProblemStatus::reporterOwnedProblemsQueryStatusValues())
+            )
             ->filtered($filters)
             ->pluck('id');
 
         $childMatchRootIds = collect(Problem::mergeGroupRootIdsFromMatchingMergedChildren($filters));
 
-        $fromChildFilter = $childMatchRootIds->filter(
-            fn ($id) => Problem::query()->forReporter($user->id)->whereKey((int) $id)->exists()
+        $fromChildFilter = $childMatchRootIds->filter(fn ($id) => Problem::query()
+            ->notArchived()
+            ->whereNull('merged_into_problem_id')
+            ->whereKey((int) $id)
+            ->where(function ($q) use ($user) {
+                $q->where('reported_by_user_id', $user->id)
+                    ->orWhereHas('mergedProblems', fn ($q2) => $q2->where('reported_by_user_id', $user->id));
+            })
+            ->when(
+                ! $includeAllStatuses,
+                fn ($query) => $query->whereIn('status', ProblemStatus::reporterOwnedProblemsQueryStatusValues())
+            )
+            ->exists()
         );
 
         return $fromMainFilter->merge($fromChildFilter)->unique()->values();
     }
 
-    public function reporterProblemsFlatOrderedForList(User $user, array $filters): Collection
+    public function reporterProblemsFlatOrderedForList(User $user, array $filters, bool $includeAllStatuses = false): Collection
     {
-        $rootIds = $this->reporterMergeRootIdsForFilters($user, $filters);
+        $rootIds = $this->reporterMergeRootIdsForFilters($user, $filters, $includeAllStatuses);
         if ($rootIds->isEmpty()) {
             return collect();
         }
@@ -151,7 +171,10 @@ class ProblemHttpSupport
                     ->orWhereIn('merged_into_problem_id', $rootIdArr);
             })
             ->notArchived()
-            ->whereIn('status', ProblemStatus::reporterOwnedProblemsQueryStatusValues())
+            ->when(
+                ! $includeAllStatuses,
+                fn ($query) => $query->whereIn('status', ProblemStatus::reporterOwnedProblemsQueryStatusValues())
+            )
             ->get([
                 'id',
                 'internal_number',

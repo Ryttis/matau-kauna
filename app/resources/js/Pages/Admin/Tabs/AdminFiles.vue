@@ -87,6 +87,7 @@ onMounted(load)
 <template>
     <div class="admin-files">
         <h2 class="title">Failai</h2>
+        <p class="page-desc">Nustatykite, kokius failus pareiškėjas gali įkelti prie problemos naršyklėje.</p>
 
         <p v-if="errorMessage" class="error">{{ errorMessage }}</p>
         <SuccessModal
@@ -177,10 +178,16 @@ onMounted(load)
     box-sizing: border-box;
 }
 
+.admin-files > .page-desc {
+    margin-bottom: 18px;
+}
+
 .title {
-    font-size: 20px;
-    font-weight: 600;
-    margin: 0 0 20px;
+    font-size: 18px;
+    font-weight: 700;
+    line-height: 1.35;
+    margin: 0;
+    padding: 0;
     color: #1a1a1a;
 }
 

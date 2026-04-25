@@ -94,7 +94,10 @@ const downloadReport = () => {
     <AuthenticatedLayout>
         <div class="statistics-page">
             <div class="page-header">
-                <h1 class="page-title">Statistika</h1>
+                <div class="page-header-left">
+                    <h1 class="page-title">Statistika</h1>
+                    <p class="page-desc">Suvestinė apie gautus pranešimus, sprendimo laiką ir įstaigų rezultatus.</p>
+                </div>
                 <button @click="downloadReport" class="download-header-btn">
                     <img :src="ICON_DOWNLOAD" alt="Download" class="download-icon" />
                     <span>Atsisiųsti</span>

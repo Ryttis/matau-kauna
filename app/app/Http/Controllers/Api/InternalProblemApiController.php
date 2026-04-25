@@ -7,6 +7,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Employee;
 use App\Models\InstitutionTeam;
 use App\Models\Problem;
+use App\Models\User;
 use App\Services\ProblemAssignmentNotifier;
 use App\Services\ProblemDashboardQueryService;
 use App\Services\ProblemResolutionTermService;
@@ -319,28 +320,35 @@ class InternalProblemApiController extends Controller
             return response()->json(['message' => 'Išspręstų problemų negalima priskirti.'], 422);
         }
 
-        $update = ['institution_id' => $validated['institution_id'] ?? null];
-        if (empty($validated['institution_id'])) {
-            $update['assigned_employee_id'] = null;
-            $update['assigned_institution_team_id'] = null;
-        }
-        if (! empty($validated['status'])) {
-            $update['status'] = $validated['status'];
-            $update['status_updated_at'] = now();
+        $newInstitutionId = $validated['institution_id'] ?? null;
+        $newStatus = $validated['status'] ?? null;
+
+        foreach ($problemsToUpdate as $problem) {
+            $attrs = ['institution_id' => $newInstitutionId];
+            if ($newInstitutionId === null) {
+                $attrs['assigned_employee_id'] = null;
+                $attrs['assigned_institution_team_id'] = null;
+            } elseif ((int) ($problem->institution_id ?? 0) !== (int) $newInstitutionId) {
+                $attrs['assigned_employee_id'] = null;
+                $attrs['assigned_institution_team_id'] = null;
+            }
+            if (! empty($newStatus)) {
+                $attrs['status'] = $newStatus;
+                $attrs['status_updated_at'] = now();
+            }
+            $problem->update($attrs);
         }
 
-        Problem::query()->whereIn('id', $validated['problem_ids'])->update($update);
-
-        if (! empty($validated['institution_id'])) {
+        if (! empty($newInstitutionId)) {
             foreach (Problem::query()->whereIn('id', $validated['problem_ids'])->get() as $p) {
                 $this->resolutionTermService->applyRules($p);
             }
-            $this->assignmentNotifier->notifyInstitutionOfAssignment($validated['problem_ids'], (int) $validated['institution_id']);
+            $this->assignmentNotifier->notifyInstitutionOfAssignment($validated['problem_ids'], (int) $newInstitutionId);
         }
 
         return response()->json([
             'ok' => true,
-            'message' => empty($validated['institution_id']) ? 'Problemos atšauktos nuo įstaigos.' : 'Problemos priskirtos įstaigai.',
+            'message' => empty($newInstitutionId) ? 'Problemos atšauktos nuo įstaigos.' : 'Problemos priskirtos įstaigai.',
             'problem_ids' => array_values(array_map('intval', $validated['problem_ids'])),
         ]);
     }
@@ -374,9 +382,17 @@ class InternalProblemApiController extends Controller
             : null;
 
         if ($employeeId !== null) {
+            $assignableEmails = User::queryAssignableInstitutionEmployeeUsers(
+                (int) $user->institution_id,
+                $user->email,
+            )->pluck('email');
+            if ($assignableEmails->isEmpty()) {
+                abort(403);
+            }
             $employee = Employee::query()
                 ->where('id', $employeeId)
                 ->where('institution_id', $user->institution_id)
+                ->whereIn('email', $assignableEmails)
                 ->first();
             if (! $employee || $employee->email === $user->email) {
                 abort(403);
@@ -401,8 +417,15 @@ class InternalProblemApiController extends Controller
         if (! $team) {
             abort(403);
         }
-        if ($team->employees->isEmpty()) {
-            return response()->json(['message' => 'Komanda neturi narių.'], 422);
+        $assignableEmails = User::queryAssignableInstitutionEmployeeUsers(
+            (int) $user->institution_id,
+            $user->email,
+        )->pluck('email');
+        $teamAssignees = $assignableEmails->isEmpty()
+            ? collect()
+            : $team->employees->whereIn('email', $assignableEmails);
+        if ($teamAssignees->isEmpty()) {
+            return response()->json(['message' => 'Komanda neturi priskirtinų darbuotojų narių.'], 422);
         }
 
         $problem->update([
@@ -411,7 +434,7 @@ class InternalProblemApiController extends Controller
             'completion_deadline' => $deadline,
         ]);
 
-        foreach ($team->employees as $employee) {
+        foreach ($teamAssignees as $employee) {
             if ($employee->email !== $user->email) {
                 $this->assignmentNotifier->notifyEmployeeOfAssignment($problem->fresh(), $employee);
             }
@@ -485,4 +508,3 @@ class InternalProblemApiController extends Controller
         return response()->json(['ok' => true, 'message' => 'Problema grąžinta administratoriui.', 'problem_id' => $problem->id]);
     }
 }
-

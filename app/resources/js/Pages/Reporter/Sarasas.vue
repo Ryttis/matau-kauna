@@ -6,7 +6,7 @@ import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue'
 import EntityTable from '@/Components/App/Tables/EntityTable.vue'
 import TableViewLink from '@/Components/Reporter/TableViewLink.vue'
 import FilterModal from '@/Components/App/Modals/FilterModal.vue'
-import { ICON_FILTER, ICON_SEARCH } from '@/constants/ui/icons'
+import SearchFilterBar from '@/Components/App/SearchFilterBar.vue'
 import { PROBLEM_STATUS_LABELS } from '@/constants/domain/problemStatus'
 import { buildReporterProblemDisplayRows } from '@/utils/reporterProblemRows'
 
@@ -155,24 +155,12 @@ function sarasasRowClass(row) {
             <h1 class="reporter-sarasas-title">Sąrašas</h1>
             <p class="reporter-sarasas-desc">Mano iškeltos problemos</p>
             <div class="reporter-sarasas-toolbar">
-                <div class="reporter-sarasas-search-wrap">
-                    <img :src="ICON_SEARCH" class="reporter-sarasas-search-icon" alt="" aria-hidden="true" />
-                    <input
-                        v-model="searchQuery"
-                        type="text"
-                        class="reporter-sarasas-search"
-                        placeholder="ieškoti"
-                        @input="debouncedSearch"
-                    />
-                </div>
-                <button
-                    type="button"
-                    class="reporter-sarasas-filter-btn"
-                    aria-label="Filtruoti"
-                    @click="openFilterModal"
-                >
-                    <img :src="ICON_FILTER" class="reporter-sarasas-filter-icon" alt="" />
-                </button>
+                <SearchFilterBar
+                    v-model="searchQuery"
+                    placeholder="Ieškoti"
+                    @input="debouncedSearch"
+                    @filter-click="openFilterModal"
+                />
             </div>
             <div class="reporter-sarasas-table-wrap table">
                 <EntityTable
@@ -222,68 +210,8 @@ function sarasasRowClass(row) {
 }
 
 .reporter-sarasas-toolbar {
-    display: flex;
-    align-items: center;
-    gap: 16px;
     margin-bottom: 24px;
-}
-
-.reporter-sarasas-search-wrap {
-    position: relative;
-    flex: 1;
-    min-width: 0;
     max-width: 400px;
-    display: flex;
-    align-items: center;
-}
-
-.reporter-sarasas-search-icon {
-    position: absolute;
-    left: 14px;
-    width: 20px;
-    height: 20px;
-    pointer-events: none;
-    object-fit: contain;
-}
-
-.reporter-sarasas-search {
-    width: 100%;
-    height: 40px;
-    border: none;
-    border-radius: 15px;
-    background: #f6f7f9;
-    color: #333;
-    padding: 0 16px 0 44px;
-    font-size: 14px;
-    box-sizing: border-box;
-}
-
-.reporter-sarasas-search::placeholder {
-    color: #999;
-}
-
-.reporter-sarasas-filter-btn {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 40px;
-    height: 40px;
-    padding: 0;
-    border: none;
-    border-radius: 15px;
-    background: transparent;
-    cursor: pointer;
-    flex-shrink: 0;
-}
-
-.reporter-sarasas-filter-btn:hover {
-    background: #f0f0f0;
-}
-
-.reporter-sarasas-filter-icon {
-    width: 20px;
-    height: 20px;
-    object-fit: contain;
 }
 
 .reporter-sarasas-table-wrap {

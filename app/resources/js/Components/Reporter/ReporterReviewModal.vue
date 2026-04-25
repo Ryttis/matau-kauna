@@ -15,17 +15,34 @@ const props = defineProps({
         type: Boolean,
         default: false,
     },
+    dismissible: {
+        type: Boolean,
+        default: true,
+    },
+    saveError: {
+        type: String,
+        default: '',
+    },
 })
 
 const emit = defineEmits(['close', 'confirm', 'continue'])
 
 const agreeTerms = ref(false)
-const agreeUpdates = ref(false)
 
 const canContinue = computed(() => agreeTerms.value)
 
 const primaryButtonText = computed(() =>
-    props.mode === 'terms-first' ? 'Toliau' : 'Registruoti problemą'
+    props.mode === 'terms-first' ? 'Patvirtinti' : 'Registruoti problemą',
+)
+
+const modalTitle = computed(() =>
+    props.mode === 'terms-first' ? 'Vienkartinis sutikimas' : 'Peržiūrėti',
+)
+
+const introText = computed(() =>
+    props.mode === 'terms-first'
+        ? 'Pranešimų nagrinėjimas vyksta pagal taisykles ir tvarką. Tai taikoma visiems jūsų pranešimams šioje sistemoje; sutikimą patvirtinate vieną kartą.'
+        : 'Prieš siųsdami pranešimą patvirtinkite, kad vis dar sutinkate su pranešimų nagrinėjimo taisyklėmis ir tvarka.',
 )
 
 function onPrimary() {
@@ -44,25 +61,30 @@ function onPrimary() {
         :z-index="1001"
         :max-width="'480px'"
         :footer-layout="'column'"
-        :show-close-button="true"
+        :show-close-button="dismissible"
+        :close-on-overlay-click="dismissible"
         @close="emit('close')"
     >
         <template #header>
-            <h2 class="reporter-review-title">Peržiūrėti</h2>
+            <h2 class="reporter-review-title">{{ modalTitle }}</h2>
         </template>
 
         <div class="reporter-review-body">
-            <label class="reporter-review-checkbox">
-                <input v-model="agreeTerms" type="checkbox" class="reporter-review-input" />
-                <span>
-                    Registruodamasi sutinku su prašymo nagrinėjimo taisyklėmis
-                    <Link :href="route('help')" class="reporter-review-link" target="_blank">skaityti</Link>
-                </span>
-            </label>
-            <label class="reporter-review-checkbox">
-                <input v-model="agreeUpdates" type="checkbox" class="reporter-review-input" />
-                <span>Sutinku gauti informaciją apie prašymo nagrinėjimo eigą</span>
-            </label>
+            <p id="reporter-review-intro" class="reporter-review-intro">
+                {{ introText }}
+                <Link :href="route('taisykles')" class="reporter-review-link" target="_blank">skaityti</Link>
+            </p>
+            <div class="reporter-review-confirm">
+                <input
+                    id="reporter-review-agree"
+                    v-model="agreeTerms"
+                    type="checkbox"
+                    class="reporter-review-input"
+                    aria-describedby="reporter-review-intro"
+                />
+                <label for="reporter-review-agree" class="reporter-review-confirm-label">Sutinku</label>
+            </div>
+            <p v-if="saveError" class="reporter-review-save-error">{{ saveError }}</p>
         </div>
 
         <template #footer>
@@ -91,35 +113,56 @@ function onPrimary() {
 .reporter-review-body {
     display: flex;
     flex-direction: column;
-    gap: 20px;
+    gap: 16px;
 }
 
-.reporter-review-checkbox {
-    display: flex;
-    align-items: flex-start;
-    gap: 12px;
-    cursor: pointer;
-    font-size: 16px;
-    color: #333;
-    line-height: 1.5;
+.reporter-review-intro {
+    margin: 0;
+    font-size: 15px;
+    line-height: 1.55;
+    color: #444;
     font-family: 'Open Sans', sans-serif;
+}
+
+.reporter-review-confirm {
+    display: flex;
+    align-items: center;
+    gap: 10px;
 }
 
 .reporter-review-input {
     flex-shrink: 0;
-    margin-top: 3px;
     width: 18px;
     height: 18px;
     accent-color: var(--color-primary);
+    cursor: pointer;
+}
+
+.reporter-review-confirm-label {
+    font-size: 16px;
+    font-weight: 600;
+    color: #222;
+    cursor: pointer;
+    font-family: 'Open Sans', sans-serif;
+    user-select: none;
+}
+
+.reporter-review-save-error {
+    margin: 0;
+    font-size: 14px;
+    color: #b91c1c;
+    line-height: 1.4;
 }
 
 .reporter-review-link {
     color: var(--color-primary);
-    text-decoration: underline;
+    text-decoration: none;
+    margin-left: 0.25em;
 }
 
 .reporter-review-link:hover {
     color: var(--color-primary-hover);
+    text-decoration: none;
 }
 
 :deep(.modal-footer) {

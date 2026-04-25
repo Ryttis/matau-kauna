@@ -167,6 +167,7 @@ onMounted(async () => {
             <h3 class="title">Įstaigos</h3>
             <AppButton text="+ Kurti įstaigą" variant="primary" as-button @click="openCreate" />
         </div>
+        <p class="page-desc">Registruokite įstaigas, kurios tvarko problemas ir gauna pranešimus.</p>
 
         <p v-if="errorMessage" class="error">{{ errorMessage }}</p>
 
@@ -330,12 +331,15 @@ onMounted(async () => {
     justify-content: space-between;
     align-items: center;
     gap: 12px;
-    margin-bottom: 10px;
+    margin-bottom: 0;
 }
 
 .title {
     font-size: 18px;
     font-weight: 700;
+    line-height: 1.35;
+    margin: 0;
+    padding: 0;
 }
 
 .table-wrap {

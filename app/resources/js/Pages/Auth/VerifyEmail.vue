@@ -4,15 +4,63 @@ import SuccessModal from '@/Components/App/SuccessModal.vue';
 import GuestHeader from '@/Components/Landing/GuestHeader.vue';
 import LandingFooter from '@/Components/Landing/LandingFooter.vue';
 import { Head, useForm, usePage } from '@inertiajs/vue3';
-import { nextTick, onMounted, ref } from 'vue';
+import { computed, nextTick, onBeforeUnmount, onMounted, ref } from 'vue';
 
 const page = usePage();
 
 const showSuccessModal = ref(false);
 const successModalText = ref('');
 const resendError = ref('');
+const COOLDOWN_SECONDS = 120;
+const COOLDOWN_STORAGE_KEY = 'verify-email-resend-next-at';
+const remainingSeconds = ref(0);
+let cooldownIntervalId = null;
 
 const form = useForm({});
+
+const resendButtonText = computed(() => {
+    if (remainingSeconds.value <= 0) {
+        return 'Siųsti patvirtinimo nuorodą dar kartą';
+    }
+
+    const minutes = Math.floor(remainingSeconds.value / 60);
+    const seconds = String(remainingSeconds.value % 60).padStart(2, '0');
+
+    return `Galėsite siųsti po ${minutes}:${seconds}`;
+});
+
+const isResendDisabled = computed(() => form.processing || remainingSeconds.value > 0);
+
+function getRemainingCooldown() {
+    const nextAtRaw = window.localStorage.getItem(COOLDOWN_STORAGE_KEY);
+    const nextAt = Number(nextAtRaw);
+    if (!nextAt || Number.isNaN(nextAt)) {
+        return 0;
+    }
+
+    const diffMs = nextAt - Date.now();
+
+    return diffMs > 0 ? Math.ceil(diffMs / 1000) : 0;
+}
+
+function startCooldown(seconds = COOLDOWN_SECONDS) {
+    const nextAt = Date.now() + (seconds * 1000);
+    window.localStorage.setItem(COOLDOWN_STORAGE_KEY, String(nextAt));
+    remainingSeconds.value = seconds;
+
+    if (cooldownIntervalId !== null) {
+        window.clearInterval(cooldownIntervalId);
+    }
+
+    cooldownIntervalId = window.setInterval(() => {
+        remainingSeconds.value = getRemainingCooldown();
+        if (remainingSeconds.value <= 0 && cooldownIntervalId !== null) {
+            window.clearInterval(cooldownIntervalId);
+            cooldownIntervalId = null;
+            window.localStorage.removeItem(COOLDOWN_STORAGE_KEY);
+        }
+    }, 1000);
+}
 
 function openSuccessModal(text) {
     successModalText.value = text || 'Patvirtinimo nuoroda išsiųsta. Patikrinkite el. paštą.';
@@ -21,25 +69,48 @@ function openSuccessModal(text) {
 }
 
 function resend() {
+    if (isResendDisabled.value) {
+        return;
+    }
+
     resendError.value = '';
     form.post(route('verification.send'), {
         preserveScroll: true,
         onSuccess: async () => {
+            startCooldown();
             await nextTick();
             const msg = page.props.flash?.status;
             openSuccessModal(typeof msg === 'string' && msg !== '' ? msg : '');
         },
         onError: () => {
-            resendError.value =
-                'Nepavyko išsiųsti patvirtinimo nuorodos. Pabandykite vėliau.';
+            const cooldown = getRemainingCooldown();
+            if (cooldown > 0) {
+                remainingSeconds.value = cooldown;
+                resendError.value = 'Laiškas jau išsiųstas. Pabandykite dar kartą po 2 min.';
+            } else {
+                resendError.value =
+                    'Nepavyko išsiųsti patvirtinimo nuorodos. Pabandykite vėliau.';
+            }
         },
     });
 }
 
 onMounted(() => {
+    const cooldown = getRemainingCooldown();
+    if (cooldown > 0) {
+        startCooldown(cooldown);
+    }
+
     const initial = page.props.flash?.status;
     if (typeof initial === 'string' && initial !== '') {
         openSuccessModal(initial);
+    }
+});
+
+onBeforeUnmount(() => {
+    if (cooldownIntervalId !== null) {
+        window.clearInterval(cooldownIntervalId);
+        cooldownIntervalId = null;
     }
 });
 </script>
@@ -61,9 +132,10 @@ onMounted(() => {
                 </p>
                 <div class="verify-email-actions">
                     <AppButton
-                        text="Siųsti patvirtinimo nuorodą dar kartą"
+                        :text="resendButtonText"
                         :as-button="true"
                         :loading="form.processing"
+                        :disabled="isResendDisabled"
                         @click="resend"
                     />
                 </div>

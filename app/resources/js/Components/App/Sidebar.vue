@@ -62,7 +62,7 @@ const isActive = (path) => {
     return page.url.startsWith(path)
 }
 
-const isStatesOpen = ref(isActive('/dashboard'))
+const isStatesOpen = ref(!!dashboardStatusParam.value)
 const toggleStates = () => {
     if (!isStatesOpen.value) isStatisticsOpen.value = false
     isStatesOpen.value = !isStatesOpen.value
@@ -72,6 +72,10 @@ const isStatisticsOpen = ref(isActive('/statistics'))
 const toggleStatistics = () => {
     if (!isStatisticsOpen.value) isStatesOpen.value = false
     isStatisticsOpen.value = !isStatisticsOpen.value
+}
+
+const handleDashboardListClick = () => {
+    isStatesOpen.value = false
 }
 
 </script>
@@ -124,6 +128,7 @@ const toggleStatistics = () => {
                         :href="route('dashboard')"
                         class="nav-link"
                         :class="{ active: isActive('/dashboard') && !dashboardStatusParam }"
+                        @click="handleDashboardListClick"
                     >
                         <img :src="ICON_LIST" class="nav-icon" alt="" />
                         <span>Sąrašas</span>
@@ -189,7 +194,7 @@ const toggleStatistics = () => {
                 <button
                     type="button"
                     class="nav-link states-trigger"
-                    :class="{ active: isActive('/dashboard') }"
+                    :class="{ active: isStatesOpen || !!dashboardStatusParam }"
                     @click="toggleStates"
                 >
                     <img :src="ICON_STATE" class="nav-icon nav-icon--symbol" alt="" />
@@ -291,7 +296,7 @@ const toggleStatistics = () => {
 
 .nav-bottom {
     margin-top: auto;
-    padding-bottom: 16px;
+    padding: 0 12px 16px;
     position: sticky;
     bottom: 0;
     background: #F6F7F9;
@@ -334,6 +339,21 @@ const toggleStatistics = () => {
 .nav-link.active img,
 .nav-link:hover img {
     filter: brightness(0) invert(1);
+}
+
+.nav-bottom .nav-link:hover,
+.nav-bottom .nav-link.active {
+    background: rgba(25, 70, 160, 0.1);
+    color: var(--color-primary);
+}
+
+.nav-bottom .nav-link:hover img,
+.nav-bottom .nav-link.active img {
+    filter: brightness(0);
+}
+
+.nav-bottom .nav-link {
+    border-radius: 12px;
 }
 
 .states-trigger {
