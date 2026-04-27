@@ -186,10 +186,13 @@ class ProblemMapService
     {
         $centerLat = $this->getCenterLat();
         $centerLng = $this->getCenterLng();
-        $problemsForMap = collect([$problem])->concat($mergedProblems);
+        $problemsForMap = collect([$problem])->concat(
+            $mergedProblems->filter(fn ($m) => ! $m->is_archived)
+        );
         foreach ($similarProblems as $s) {
             $problemsForMap->push($s);
-            $problemsForMap = $problemsForMap->merge($s->mergedProblems ?? collect());
+            $nested = ($s->mergedProblems ?? collect())->filter(fn ($m) => ! $m->is_archived);
+            $problemsForMap = $problemsForMap->merge($nested);
         }
         $mapProblems = [];
         $index = 0;

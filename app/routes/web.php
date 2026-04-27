@@ -97,7 +97,7 @@ Route::middleware(['auth', 'verified', 'reporter.terms'])->group(function () {
         Route::delete('/problems/{problem}', [ProblemController::class, 'destroy'])->name('problems.destroy');
         Route::patch('/problems/{problem}/status', [ProblemController::class, 'updateStatus'])->name('problems.updateStatus');
         Route::post('/problems/{problem}/review-progress', [ProblemReviewController::class, 'storeReviewProgress'])->name('problems.reviewProgress.store');
-        Route::put('/problems/{problem}/review-progress/{entry}', [ProblemReviewController::class, 'updateReviewProgress'])->name('problems.reviewProgress.update');
+        Route::match(['put', 'post'], '/problems/{problem}/review-progress/{entry}', [ProblemReviewController::class, 'updateReviewProgress'])->name('problems.reviewProgress.update');
         Route::delete('/problems/{problem}/review-progress/attachments/{attachment}', [ProblemReviewController::class, 'destroyReviewAttachment'])->name('problems.reviewProgress.attachments.destroy');
         Route::post('/problems/bulk-update-status', [ProblemController::class, 'bulkUpdateStatus'])->name('problems.bulkUpdateStatus');
         Route::post('/problems/bulk-destroy', [ProblemController::class, 'bulkDestroy'])->name('problems.bulkDestroy');
@@ -141,6 +141,10 @@ Route::middleware(['auth', 'verified', 'reporter.terms'])->group(function () {
             Route::put('/rbac/users/{user}', [RbacUserController::class, 'updateUser']);
             Route::delete('/rbac/users/{user}', [RbacUserController::class, 'deleteUser']);
             Route::post('/rbac/users/{user}/roles', [RbacUserController::class, 'syncUserRoles']);
+            Route::get('/rbac/users-2fa', [RbacUserController::class, 'usersTwoFactor']);
+            Route::post('/rbac/users/{user}/two-factor', [RbacUserController::class, 'updateUserTwoFactor']);
+            Route::post('/rbac/users/two-factor/disable-all-staff', [RbacUserController::class, 'disableTwoFactorForAllStaff']);
+            Route::post('/rbac/users/two-factor/global', [RbacUserController::class, 'updateTwoFactorGlobal']);
 
             Route::get('/rbac/roles', [RbacRoleController::class, 'roles']);
             Route::post('/rbac/roles', [RbacRoleController::class, 'createRole']);

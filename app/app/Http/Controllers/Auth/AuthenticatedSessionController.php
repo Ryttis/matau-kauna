@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Auth\LoginRequest;
 use App\Models\LoginLog;
 use App\Services\AuditLogService;
+use App\Services\TwoFactorService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -16,11 +17,16 @@ use Inertia\Response;
 class AuthenticatedSessionController extends Controller
 {
     public function __construct(
-        private AuditLogService $auditLogService
+        private AuditLogService $auditLogService,
+        private TwoFactorService $twoFactorService,
     ) {}
 
     public function create(): Response|RedirectResponse
     {
+        if (request()->session()->has('two_factor_pending_user_id')) {
+            return redirect()->route('two-factor.challenge');
+        }
+
         $user = Auth::user();
 
         if ($user !== null && $user->hasVerifiedEmail()) {
@@ -37,9 +43,20 @@ class AuthenticatedSessionController extends Controller
     {
         $request->authenticate();
 
+        $user = $request->user();
+        $this->twoFactorService->ensurePrepared($user);
+        $user->refresh();
+        if ($this->twoFactorService->requiresChallenge($user)) {
+            Auth::logout();
+            $request->session()->put('two_factor_pending_user_id', $user->id);
+            $request->session()->put('two_factor_pending_remember', $request->boolean('remember'));
+            $request->session()->regenerateToken();
+
+            return redirect()->route('two-factor.challenge');
+        }
+
         $request->session()->regenerate();
 
-        $user = $request->user();
         $updates = ['last_login_at' => now(), 'inactive_reporter_reminder_sent_at' => null];
         if ($user->archived_at !== null) {
             $updates['archived_at'] = null;

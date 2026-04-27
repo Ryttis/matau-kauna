@@ -27,6 +27,12 @@ RUN apt-get update && apt-get install -y \
     && docker-php-ext-enable imagick \
     && rm -rf /var/lib/apt/lists/*
 
+RUN set -eux; \
+    ini="${PHP_INI_DIR}/php.ini"; \
+    if [ ! -f "$ini" ]; then cp "${PHP_INI_DIR}/php.ini-production" "$ini"; fi; \
+    sed -i -E 's/^;?[[:space:]]*upload_max_filesize[[:space:]]*=.*/upload_max_filesize = 80M/' "$ini"; \
+    sed -i -E 's/^;?[[:space:]]*post_max_size[[:space:]]*=.*/post_max_size = 80M/' "$ini"
+
 # Install the latest stable version of Node.js and npm
 RUN curl -fsSL https://deb.nodesource.com/setup_lts.x | bash - \
     && apt-get install -y nodejs \

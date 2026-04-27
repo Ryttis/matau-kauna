@@ -22,6 +22,9 @@ class ProblemMergeController extends Controller
     {
         $user = $request->user();
         $this->scopeService->authorizeMergeAccess($user, $problem);
+        if ($problem->is_archived) {
+            abort(404);
+        }
         if ($this->scopeService->isEmployeeScoped($user)) {
             $employeeId = $this->scopeService->employeeIdForUser($user);
             if (! $this->scopeService->employeeHasAccessToAssignment($employeeId, $problem)) {
@@ -46,7 +49,8 @@ class ProblemMergeController extends Controller
 
         $query = Problem::where('id', '!=', $problem->id)
             ->where('status', '!=', 'neuzregistruota')
-            ->whereNull('merged_into_problem_id');
+            ->whereNull('merged_into_problem_id')
+            ->notArchived();
         if ($this->scopeService->isInstitutionScoped($user)) {
             $query->where('institution_id', $user->institution_id);
         }
@@ -63,11 +67,18 @@ class ProblemMergeController extends Controller
             $query->where('category', $categoryFilter);
         }
 
-        $similarProblems = $query->with('mergedProblems:id,internal_number,description,merged_into_problem_id,lat,lng,address')
+        $similarProblems = $query->with([
+            'mergedProblems' => fn ($q) => $q->notArchived()
+                ->select(['id', 'internal_number', 'description', 'merged_into_problem_id', 'lat', 'lng', 'address']),
+        ])
             ->orderBy('created_at', 'desc')
             ->get();
 
-        $problem->load(['mergedProblems.mergedProblems']);
+        $problem->load([
+            'mergedProblems' => fn ($q) => $q->notArchived()->with([
+                'mergedProblems' => fn ($q2) => $q2->notArchived(),
+            ]),
+        ]);
         $directMerged = $problem->mergedProblems;
         $mergedProblems = $directMerged->flatMap(function ($merged) {
             return collect([$merged])->merge($merged->mergedProblems ?? collect());
@@ -89,6 +100,9 @@ class ProblemMergeController extends Controller
     {
         $user = $request->user();
         $this->scopeService->authorizeMergeAccess($user, $problem);
+        if ($problem->is_archived) {
+            return redirect()->route('dashboard')->with('error', 'Archyvuotos problemos apjungti negalima.');
+        }
 
         $validated = $request->validate([
             'problem_ids' => 'required|array',
@@ -112,6 +126,10 @@ class ProblemMergeController extends Controller
             $collectDescendants($id);
         }
         $idsToMerge = array_keys($idsToMerge);
+
+        if (Problem::query()->whereIn('id', $idsToMerge)->where('is_archived', true)->exists()) {
+            return redirect()->back()->with('error', 'Negalima apjungti archyvuotų problemų.');
+        }
 
         $query = Problem::whereIn('id', $idsToMerge);
         if ($this->scopeService->isInstitutionScoped($user)) {

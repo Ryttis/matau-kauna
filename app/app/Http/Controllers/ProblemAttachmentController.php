@@ -12,6 +12,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\Validator;
 
 class ProblemAttachmentController extends Controller
 {
@@ -31,7 +32,10 @@ class ProblemAttachmentController extends Controller
             abort(403);
         }
 
-        $request->validate(
+        $normalizedFiles = $this->httpSupport->uploadedFilesForStorage($request);
+
+        Validator::make(
+            ['files' => $normalizedFiles],
             [
                 'files' => 'required|array|min:1',
                 'files.*' => 'file',
@@ -42,20 +46,26 @@ class ProblemAttachmentController extends Controller
                 'files.*.file' => 'Failas per didelis arba nepriimtas.',
                 'files.*.uploaded' => 'Nepavyko įkelti failo. Patikrinkite failo dydį ir bandykite dar kartą.',
             ]
-        );
+        )->validate();
 
         $channel = FileUploadSettings::resolveUploadChannel($request->header('X-Upload-Channel'));
 
-        $this->reporterFileUploadService->validateAndStore(
+        $created = $this->reporterFileUploadService->validateAndStore(
             $problem,
-            $this->httpSupport->normalizedUploadedFiles($request),
+            $normalizedFiles,
             $channel,
             true,
             false
         );
 
         if ($request->expectsJson()) {
-            return response()->json(['ok' => true]);
+            return response()->json([
+                'ok' => true,
+                'attachments' => collect($created)
+                    ->map(fn (ProblemAttachment $attachment) => $attachment->toPublicPayload())
+                    ->values()
+                    ->all(),
+            ]);
         }
 
         return redirect()->back()->with('success', 'Failai įkelti.');

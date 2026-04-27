@@ -322,6 +322,23 @@ class Problem extends Model
         return $ids;
     }
 
+    public function mergeGroupRootId(): int
+    {
+        $current = $this;
+        for ($i = 0; $i < 32; $i++) {
+            if ($current->merged_into_problem_id === null) {
+                return (int) $current->id;
+            }
+            $parent = static::query()->find($current->merged_into_problem_id);
+            if ($parent === null) {
+                return (int) $current->id;
+            }
+            $current = $parent;
+        }
+
+        return (int) $current->id;
+    }
+
     public static function expandIdsToMergeGroups(array $ids): array
     {
         $unique = collect($ids)->map(fn ($id) => (int) $id)->unique()->filter()->values();

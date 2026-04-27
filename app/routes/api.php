@@ -3,6 +3,7 @@
 use App\Http\Controllers\Api\AuthApiController;
 use App\Http\Controllers\Api\InfoApiController;
 use App\Http\Controllers\Api\InternalProblemApiController;
+use App\Http\Controllers\Api\InternalTwoFactorApiController;
 use App\Http\Controllers\Api\ProblemApiController;
 use App\Http\Controllers\Api\ReporterProblemApiController;
 use App\Http\Controllers\Api\ViispApiController;
@@ -15,6 +16,7 @@ use Illuminate\Support\Facades\Route;
 
 // Auth (el. paštas / slaptažodis)
 Route::post('/login', [AuthApiController::class, 'login']);
+Route::post('/two-factor/challenge', [AuthApiController::class, 'verifyTwoFactorLogin']);
 Route::post('/register', [AuthApiController::class, 'register']);
 
 // VIISP (mobile flow: init -> callback -> exchange)
@@ -55,6 +57,15 @@ Route::middleware(['auth:sanctum', 'verified', 'reporter.terms'])->group(functio
 
 // Vidiniai naudotojai (darbuotojai / admin)
 Route::middleware(['auth:sanctum', 'verified'])->prefix('internal')->group(function () {
+    Route::middleware('admin')->prefix('two-factor')->group(function () {
+        Route::get('/users', [InternalTwoFactorApiController::class, 'index']);
+        Route::post('/users/{user}', [InternalTwoFactorApiController::class, 'updateUser']);
+        Route::post('/global', [InternalTwoFactorApiController::class, 'updateGlobal']);
+        Route::post('/disable-all-staff', [InternalTwoFactorApiController::class, 'disableAllStaff']);
+    });
+
+    Route::get('/institutions', [InternalProblemApiController::class, 'institutionsForAssign']);
+
     // Problemų sąrašas ir bulk veiksmai
     Route::get('/problems', [InternalProblemApiController::class, 'index']);
     Route::post('/problems/assign', [InternalProblemApiController::class, 'assignBulk']);
@@ -63,18 +74,19 @@ Route::middleware(['auth:sanctum', 'verified'])->prefix('internal')->group(funct
     Route::post('/problems/bulk-update-publish', [InternalProblemApiController::class, 'bulkUpdatePublish']);
 
     // Vienos problemos veiksmai
-    Route::put('/problems/{problem}', [InternalProblemApiController::class, 'update']);
+    Route::match(['put', 'post'], '/problems/{problem}', [InternalProblemApiController::class, 'update']);
     Route::delete('/problems/{problem}', [InternalProblemApiController::class, 'destroy']);
     Route::patch('/problems/{problem}/status', [InternalProblemApiController::class, 'updateStatus']);
     Route::patch('/problems/{problem}/publish', [InternalProblemApiController::class, 'updatePublish']);
     Route::post('/problems/{problem}/merge', [InternalProblemApiController::class, 'merge']);
     Route::patch('/problems/{problem}/unmerge', [InternalProblemApiController::class, 'unmerge']);
+    Route::get('/problems/{problem}/assign-institution-options', [InternalProblemApiController::class, 'assignInstitutionOptions']);
     Route::post('/problems/{problem}/assign-institution', [InternalProblemApiController::class, 'assignInstitution']);
     Route::post('/problems/{problem}/reassign-institution', [InternalProblemApiController::class, 'reassignInstitution']);
     Route::patch('/problems/{problem}/return', [InternalProblemApiController::class, 'returnToAdmin']);
 
-    // Review progreso CRUD
+    Route::get('/problems/{problem}/review-progress', [ProblemReviewController::class, 'reviewProgress']);
     Route::post('/problems/{problem}/review-progress', [ProblemReviewController::class, 'storeReviewProgress']);
-    Route::put('/problems/{problem}/review-progress/{entry}', [ProblemReviewController::class, 'updateReviewProgress']);
+    Route::match(['put', 'post'], '/problems/{problem}/review-progress/{entry}', [ProblemReviewController::class, 'updateReviewProgress']);
     Route::delete('/problems/{problem}/review-progress/attachments/{attachment}', [ProblemReviewController::class, 'destroyReviewAttachment']);
 });

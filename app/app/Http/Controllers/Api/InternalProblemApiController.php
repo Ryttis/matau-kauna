@@ -5,15 +5,22 @@ namespace App\Http\Controllers\Api;
 use App\Enums\ProblemStatus;
 use App\Http\Controllers\Controller;
 use App\Models\Employee;
+use App\Models\FileUploadSettings;
+use App\Models\Institution;
 use App\Models\InstitutionTeam;
 use App\Models\Problem;
+use App\Models\ProblemAttachment;
 use App\Models\User;
 use App\Services\ProblemAssignmentNotifier;
 use App\Services\ProblemDashboardQueryService;
+use App\Services\ProblemHttpSupport;
+use App\Services\ProblemInstitutionAssignmentPickerService;
 use App\Services\ProblemResolutionTermService;
 use App\Services\ProblemScopeService;
+use App\Services\ReporterFileUploadService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Validator;
 
 class InternalProblemApiController extends Controller
 {
@@ -22,7 +29,33 @@ class InternalProblemApiController extends Controller
         private ProblemAssignmentNotifier $assignmentNotifier,
         private ProblemResolutionTermService $resolutionTermService,
         private ProblemDashboardQueryService $dashboardQuery,
+        private ProblemHttpSupport $problemHttpSupport,
+        private ReporterFileUploadService $reporterFileUploadService,
+        private ProblemInstitutionAssignmentPickerService $institutionAssignmentPickerService,
     ) {}
+
+    public function institutionsForAssign(Request $request): JsonResponse
+    {
+        $user = $request->user();
+        if (! $user->isProblemAdminOrSystemAdmin()) {
+            abort(403);
+        }
+
+        $rows = Institution::query()
+            ->notArchived()
+            ->where('is_active', true)
+            ->orderBy('name')
+            ->get(['id', 'name', 'code']);
+
+        return response()->json([
+            'ok' => true,
+            'institutions' => $rows->map(fn (Institution $i) => [
+                'id' => $i->id,
+                'name' => $i->name,
+                'code' => $i->code,
+            ])->values()->all(),
+        ]);
+    }
 
     public function index(Request $request): JsonResponse
     {
@@ -68,10 +101,40 @@ class InternalProblemApiController extends Controller
 
         $problem->update($validated);
 
+        $normalizedFiles = $this->problemHttpSupport->uploadedFilesForStorage($request);
+        Validator::make(
+            ['files' => $normalizedFiles],
+            [
+                'files' => 'nullable|array',
+                'files.*' => 'file',
+            ],
+            [
+                'files.array' => 'Netinkami priedai.',
+                'files.*.file' => 'Failas per didelis arba nepriimtas.',
+                'files.*.uploaded' => 'Nepavyko įkelti failo. Patikrinkite failo dydį ir bandykite dar kartą.',
+            ]
+        )->validate();
+
+        $createdAttachments = [];
+        if ($normalizedFiles !== []) {
+            $channel = FileUploadSettings::resolveUploadChannel($request->header('X-Upload-Channel'));
+            $createdAttachments = $this->reporterFileUploadService->validateAndStore(
+                $problem,
+                $normalizedFiles,
+                $channel,
+                true,
+                false
+            );
+        }
+
         return response()->json([
             'ok' => true,
             'message' => 'Problema atnaujinta.',
             'problem_id' => $problem->id,
+            'attachments' => collect($createdAttachments)
+                ->map(fn (ProblemAttachment $attachment) => $attachment->toPublicPayload())
+                ->values()
+                ->all(),
         ]);
     }
 
@@ -239,6 +302,9 @@ class InternalProblemApiController extends Controller
     {
         $user = $request->user();
         $this->scopeService->authorizeMergeAccess($user, $problem);
+        if ($problem->is_archived) {
+            return response()->json(['message' => 'Archyvuotos problemos apjungti negalima.'], 422);
+        }
 
         $validated = $request->validate([
             'problem_ids' => 'required|array|min:1',
@@ -268,6 +334,10 @@ class InternalProblemApiController extends Controller
 
         if (count($idsToMerge) === 0) {
             return response()->json(['ok' => true, 'message' => 'Nėra ką apjungti.', 'problem_ids' => []]);
+        }
+
+        if (Problem::query()->whereIn('id', $idsToMerge)->where('is_archived', true)->exists()) {
+            return response()->json(['message' => 'Negalima apjungti archyvuotų problemų.'], 422);
         }
 
         $query = Problem::query()->whereIn('id', $idsToMerge);
@@ -350,6 +420,29 @@ class InternalProblemApiController extends Controller
             'ok' => true,
             'message' => empty($newInstitutionId) ? 'Problemos atšauktos nuo įstaigos.' : 'Problemos priskirtos įstaigai.',
             'problem_ids' => array_values(array_map('intval', $validated['problem_ids'])),
+        ]);
+    }
+
+    public function assignInstitutionOptions(Request $request, Problem $problem): JsonResponse
+    {
+        $user = $request->user();
+        if (! $user->canAssignInstitutionProblems()) {
+            abort(403);
+        }
+        $this->scopeService->authorizeProblemAccess($user, $problem);
+
+        if ($problem->status === ProblemStatus::RESOLVED->value) {
+            return response()->json(['message' => 'Išspręstos problemos priskirti negalima.'], 422);
+        }
+
+        $picker = $this->institutionAssignmentPickerService->pickerDataFor($user);
+
+        return response()->json([
+            'ok' => true,
+            'problem_id' => $problem->id,
+            'employees' => $picker['employees'],
+            'teams' => $picker['teams'],
+            'institutions' => $picker['institutions'],
         ]);
     }
 

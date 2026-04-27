@@ -2,8 +2,8 @@
 
 namespace App\Http\Requests\Auth;
 
+use App\Enums\UserRoleEnum;
 use App\Models\User;
-use App\Models\UserRole;
 use Illuminate\Auth\Events\Lockout;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\Facades\Auth;
@@ -51,16 +51,9 @@ class LoginRequest extends FormRequest
         $user = Auth::user();
         $loginType = $this->string('login_type')->toString();
 
-        $staffRoles = [
-            UserRole::ROLE_SYSTEM_ADMIN,
-            UserRole::ROLE_PROBLEM_ADMIN,
-            UserRole::ROLE_INSTITUTION_ADMIN,
-            UserRole::ROLE_MUNICIPALITY_REP,
-            UserRole::ROLE_EMPLOYEE,
-        ];
-        $hasStaffRole = collect($staffRoles)->contains(fn ($role) => $user->hasRole($role));
+        $hasStaffRole = collect(UserRoleEnum::staffValues())->contains(fn ($role) => $user->hasRole($role));
 
-        $invalidReporter = $loginType === 'pareiskejas' && (! $user->hasRole(UserRole::ROLE_REPORTER) || $hasStaffRole);
+        $invalidReporter = $loginType === 'pareiskejas' && (! $user->hasRole(UserRoleEnum::Reporter->value) || $hasStaffRole);
         $invalidStaff = $loginType !== 'pareiskejas' && ! $hasStaffRole;
 
         if ($invalidReporter || $invalidStaff) {

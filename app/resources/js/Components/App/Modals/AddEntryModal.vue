@@ -1,5 +1,6 @@
 <script setup>
 import { ref, computed, watch, onBeforeUnmount } from 'vue'
+import { router } from '@inertiajs/vue3'
 import BaseModal from '@/Components/App/BaseModal.vue'
 import ConfirmModal from '@/Components/App/ConfirmModal.vue'
 import AppButton from '@/Components/App/AppButton.vue'
@@ -29,6 +30,7 @@ const props = defineProps({
         type: Object,
         default: () => ({}),
     },
+    canDeleteReviewAttachments: { type: Boolean, default: false },
 })
 
 const emit = defineEmits(['close'])
@@ -120,6 +122,40 @@ function confirmRemoveQueued() {
     closeRemoveQueuedConfirm()
 }
 
+const showDeleteExistingReviewConfirm = ref(false)
+const pendingExistingReviewAttachment = ref(null)
+const deleteExistingReviewLoading = ref(false)
+
+function openDeleteExistingReviewConfirm(attachment) {
+    pendingExistingReviewAttachment.value = attachment
+    showDeleteExistingReviewConfirm.value = true
+}
+
+function closeDeleteExistingReviewConfirm() {
+    if (deleteExistingReviewLoading.value) return
+    showDeleteExistingReviewConfirm.value = false
+    pendingExistingReviewAttachment.value = null
+}
+
+function confirmDeleteExistingReview() {
+    const a = pendingExistingReviewAttachment.value
+    if (!a || !props.problemId) return
+    deleteExistingReviewLoading.value = true
+    router.delete(
+        route('problems.reviewProgress.attachments.destroy', {
+            problem: props.problemId,
+            attachment: a.id,
+        }),
+        {
+            preserveScroll: true,
+            onFinish: () => {
+                deleteExistingReviewLoading.value = false
+                closeDeleteExistingReviewConfirm()
+            },
+        },
+    )
+}
+
 const { form, submit } = useReviewProgressEntryForm(
     () => props.problemId,
     {
@@ -164,6 +200,9 @@ watch(
             selectedKey.value = null
             localStatusHint.value = ''
             closeRemoveQueuedConfirm()
+            if (!deleteExistingReviewLoading.value) {
+                closeDeleteExistingReviewConfirm()
+            }
             return
         }
         localStatusHint.value = ''
@@ -203,7 +242,13 @@ const attachFileLabel = computed(() =>
 const filesErrorText = computed(() => firstInertiaErrorForPrefix(form.errors, 'files'))
 const sanitizedFilesErrorText = computed(() => humanizeTechnicalUploadError(filesErrorText.value))
 
-const queuedAttachmentCount = computed(() => selectedFiles.value.length)
+const existingEntryAttachments = computed(() =>
+    props.entry?.id ? (props.entry.attachments ?? []) : [],
+)
+
+const totalAttachmentTileCount = computed(
+    () => existingEntryAttachments.value.length + selectedFiles.value.length,
+)
 </script>
 
 <template>
@@ -271,13 +316,44 @@ const queuedAttachmentCount = computed(() => selectedFiles.value.length)
                         @change="handleFileChange"
                     >
                     <div
-                        v-if="selectedFiles.length"
+                        v-if="existingEntryAttachments.length || selectedFiles.length"
                         class="add-entry-attachments-grid"
-                        :class="{ 'add-entry-attachments-grid--scroll': queuedAttachmentCount > 3 }"
+                        :class="{ 'add-entry-attachments-grid--scroll': totalAttachmentTileCount > 3 }"
                     >
                         <div
+                            v-for="a in existingEntryAttachments"
+                            :key="'ex-' + a.id"
+                            class="add-entry-att-tile"
+                        >
+                            <div class="add-entry-att-thumb-wrap">
+                                <img
+                                    v-if="a.kind === 'photo'"
+                                    :src="a.url"
+                                    alt=""
+                                    class="add-entry-att-thumb"
+                                />
+                                <video
+                                    v-else
+                                    :src="a.url"
+                                    class="add-entry-att-thumb add-entry-att-thumb--video"
+                                    muted
+                                    playsinline
+                                />
+                            </div>
+                            <button
+                                v-if="canDeleteReviewAttachments"
+                                type="button"
+                                class="add-entry-att-remove-corner"
+                                :disabled="form.processing || deleteExistingReviewLoading"
+                                aria-label="Pašalinti priedą"
+                                @click.stop="openDeleteExistingReviewConfirm(a)"
+                            >
+                                Šalinti
+                            </button>
+                        </div>
+                        <div
                             v-for="(f, idx) in selectedFiles"
-                            :key="idx + f.name"
+                            :key="'new-' + idx + f.name"
                             class="add-entry-att-tile"
                         >
                             <div class="add-entry-att-thumb-wrap">
@@ -355,6 +431,20 @@ const queuedAttachmentCount = computed(() => selectedFiles.value.length)
             :z-index="5000"
             @close="closeRemoveQueuedConfirm"
             @confirm="confirmRemoveQueued"
+        />
+
+        <ConfirmModal
+            :open="showDeleteExistingReviewConfirm"
+            message="Ar tikrai pašalinti šį priedą?"
+            confirm-text="Pašalinti"
+            cancel-text="Atšaukti"
+            footer-layout="column"
+            confirm-variant="danger"
+            width="400px"
+            :z-index="5000"
+            :loading="deleteExistingReviewLoading"
+            @close="closeDeleteExistingReviewConfirm"
+            @confirm="confirmDeleteExistingReview"
         />
     </div>
 </template>
