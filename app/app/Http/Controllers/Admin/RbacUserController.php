@@ -98,6 +98,26 @@ class RbacUserController extends Controller
         ];
     }
 
+    public function resetUserTwoFactorConfirmation(User $user): array
+    {
+        if (! $this->twoFactorService->isStaffUser($user)) {
+            abort(422, '2FA galima tik vidiniams naudotojams.');
+        }
+        if (! (bool) $user->two_factor_enabled) {
+            abort(422, '2FA turi būti įjungta.');
+        }
+        if (! filled($user->two_factor_secret)) {
+            abort(422, 'Nerastas 2FA raktas.');
+        }
+
+        $user->update(['two_factor_confirmed_at' => null]);
+
+        return [
+            'ok' => true,
+            'message' => '2FA patvirtinimas atšauktas. Naudotojas autentifikatorių turi nusistatyti iš naujo.',
+        ];
+    }
+
     public function updateTwoFactorGlobal(Request $request)
     {
         $enabled = (bool) $request->validate([

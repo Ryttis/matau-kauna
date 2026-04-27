@@ -51,6 +51,33 @@ const toggleTwoFactor = async (user, enabled) => {
     }
 }
 
+const resetTwoFactorConfirmation = async (user) => {
+    errorMessage.value = ''
+    emit('set-saving', true)
+    try {
+        const { data } = await axios.post(adminRbacApi.userTwoFactorResetConfirmation(user.id))
+        emit('show-success', data?.message || '2FA patvirtinimas atnaujintas.')
+        emit('refresh')
+    } catch (e) {
+        errorMessage.value = e.response?.data?.message || 'Nepavyko atstatyti 2FA patvirtinimo.'
+    } finally {
+        emit('set-saving', false)
+    }
+}
+
+const statusLabel = (u) => {
+    if (!u.is_staff) {
+        return { text: '—', class: 'pill-off' }
+    }
+    if (!u.two_factor_enabled) {
+        return { text: 'Išjungta', class: 'pill-off' }
+    }
+    if (u.two_factor_ready) {
+        return { text: 'Įjungta', class: 'pill-on' }
+    }
+    return { text: 'Įjungta (nepatvirtinta)', class: 'pill-warn' }
+}
+
 const roleNames = (u) => (u.roles ?? []).map((r) => r.name).join(', ')
 
 const toggleGlobalRequired = async (checked) => {
@@ -98,47 +125,57 @@ const toggleGlobalRequired = async (checked) => {
             <table class="table">
                 <thead>
                     <tr>
-                        <th>ID</th>
                         <th>Vardas</th>
                         <th>Paštas</th>
-                        <th>Įstaiga</th>
-                        <th>Rolės</th>
+                        <th>Rolė</th>
                         <th>Būsena</th>
                         <th>Veiksmai</th>
                     </tr>
                 </thead>
                 <tbody>
                     <tr v-for="u in usersPage.data" :key="u.id">
-                        <td>{{ u.id }}</td>
                         <td>{{ u.name }}</td>
                         <td>{{ u.email }}</td>
-                        <td>{{ u.institution?.name ?? '-' }}</td>
-                        <td>{{ roleNames(u) || '-' }}</td>
+                        <td>{{ roleNames(u) || '—' }}</td>
                         <td>
-                            <span class="pill" :class="u.two_factor_enabled ? 'pill-on' : 'pill-off'">
-                                {{ u.two_factor_enabled ? 'Įjungta' : 'Išjungta' }}
-                            </span>
+                            <span
+                                v-for="st in [statusLabel(u)]"
+                                :key="u.id + '-b'"
+                                class="pill"
+                                :class="st.class"
+                            >{{ st.text }}</span>
                         </td>
-                        <td>
+                        <td class="twofa-actions">
                             <span v-if="!u.is_staff" class="muted">Tik vidiniams</span>
-                            <AppButton
-                                v-else-if="u.two_factor_enabled"
-                                text="Išjungti"
-                                variant="secondary"
-                                as-button
-                                class="twofa-row-btn"
-                                :disabled="saving"
-                                @click="toggleTwoFactor(u, false)"
-                            />
-                            <AppButton
-                                v-else
-                                text="Įjungti"
-                                variant="primary"
-                                as-button
-                                class="twofa-row-btn"
-                                :disabled="saving"
-                                @click="toggleTwoFactor(u, true)"
-                            />
+                            <div v-else class="twofa-actions-btns">
+                                <AppButton
+                                    v-if="u.two_factor_enabled"
+                                    text="Atkurti"
+                                    variant="secondary"
+                                    as-button
+                                    class="twofa-row-btn"
+                                    :disabled="saving"
+                                    @click="resetTwoFactorConfirmation(u)"
+                                />
+                                <AppButton
+                                    v-if="u.two_factor_enabled"
+                                    text="Išjungti"
+                                    variant="secondary"
+                                    as-button
+                                    class="twofa-row-btn"
+                                    :disabled="saving"
+                                    @click="toggleTwoFactor(u, false)"
+                                />
+                                <AppButton
+                                    v-else
+                                    text="Įjungti"
+                                    variant="primary"
+                                    as-button
+                                    class="twofa-row-btn"
+                                    :disabled="saving"
+                                    @click="toggleTwoFactor(u, true)"
+                                />
+                            </div>
                         </td>
                     </tr>
                 </tbody>
@@ -234,6 +271,10 @@ const toggleGlobalRequired = async (checked) => {
     background: #f2f3f5;
     color: #555;
 }
+.pill-warn {
+    background: #fff8e6;
+    color: #8a5a00;
+}
 .muted {
     color: #777;
     font-size: 13px;
@@ -300,23 +341,25 @@ const toggleGlobalRequired = async (checked) => {
 }
 
 .twofa-table-wrap .table th:nth-child(1),
-.twofa-table-wrap .table td:nth-child(1) { width: 48px; }
+.twofa-table-wrap .table td:nth-child(1) { min-width: 120px; }
 .twofa-table-wrap .table th:nth-child(2),
-.twofa-table-wrap .table td:nth-child(2) { width: 150px; }
+.twofa-table-wrap .table td:nth-child(2) { min-width: 180px; }
 .twofa-table-wrap .table th:nth-child(3),
-.twofa-table-wrap .table td:nth-child(3) { width: 170px; }
+.twofa-table-wrap .table td:nth-child(3) { min-width: 130px; }
 .twofa-table-wrap .table th:nth-child(4),
-.twofa-table-wrap .table td:nth-child(4) { width: 170px; }
+.twofa-table-wrap .table td:nth-child(4) { min-width: 130px; }
 .twofa-table-wrap .table th:nth-child(5),
-.twofa-table-wrap .table td:nth-child(5) { width: 160px; }
-.twofa-table-wrap .table th:nth-child(6),
-.twofa-table-wrap .table td:nth-child(6) { width: 95px; }
-.twofa-table-wrap .table th:nth-child(7),
-.twofa-table-wrap .table td:nth-child(7) { width: 130px; }
+.twofa-table-wrap .table td:nth-child(5) { min-width: 220px; }
 
+.twofa-actions-btns {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+}
 :deep(.twofa-row-btn.app-button--fixed) {
-    width: 112px !important;
-    min-width: 112px !important;
+    width: 100px !important;
+    min-width: 100px !important;
     height: 36px !important;
     min-height: 36px !important;
     padding: 0 10px !important;

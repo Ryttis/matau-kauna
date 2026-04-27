@@ -143,6 +143,7 @@ Route::middleware(['auth', 'verified', 'reporter.terms'])->group(function () {
             Route::post('/rbac/users/{user}/roles', [RbacUserController::class, 'syncUserRoles']);
             Route::get('/rbac/users-2fa', [RbacUserController::class, 'usersTwoFactor']);
             Route::post('/rbac/users/{user}/two-factor', [RbacUserController::class, 'updateUserTwoFactor']);
+            Route::post('/rbac/users/{user}/two-factor/reset-confirmation', [RbacUserController::class, 'resetUserTwoFactorConfirmation']);
             Route::post('/rbac/users/two-factor/disable-all-staff', [RbacUserController::class, 'disableTwoFactorForAllStaff']);
             Route::post('/rbac/users/two-factor/global', [RbacUserController::class, 'updateTwoFactorGlobal']);
 
