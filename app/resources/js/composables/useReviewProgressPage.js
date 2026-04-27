@@ -35,6 +35,19 @@ export function useReviewProgressPage(props) {
         (isWatched) => { problemIsWatched.value = isWatched },
     )
 
+    watch(
+        () => props.reviewEntries,
+        (entries) => {
+            if (editingEntry.value && Array.isArray(entries)) {
+                const u = entries.find((e) => e.id === editingEntry.value.id)
+                if (u) {
+                    editingEntry.value = u
+                }
+            }
+        },
+        { deep: true },
+    )
+
     async function toggleProblemWatchSubscription() {
         if (!props.watchProblemId || watchToggleInProgress.value) return
         watchToggleInProgress.value = true

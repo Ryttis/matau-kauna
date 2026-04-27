@@ -50,8 +50,12 @@ return Application::configure(basePath: dirname(__DIR__))
             }
 
             if ($e instanceof NotFoundHttpException) {
+                $raw = $e->getMessage();
+                $fallback = 'Puslapis ar resursas nerastas.';
+                $message = ($raw !== '' && $raw !== 'Not Found') ? $raw : $fallback;
+
                 return response()->json([
-                    'message' => 'Puslapis ar resursas nerastas.',
+                    'message' => $message,
                     'code' => 'not_found',
                 ], 404);
             }

@@ -25,6 +25,8 @@ class User extends Authenticatable implements MustVerifyEmail
         'password',
         'viisp_local_password_set_at',
         'two_factor_enabled',
+        'two_factor_secret',
+        'two_factor_confirmed_at',
         'email_notifications_enabled',
         'email_updates_institution_admin',
         'institution_id',
@@ -41,6 +43,7 @@ class User extends Authenticatable implements MustVerifyEmail
     protected $hidden = [
         'password',
         'remember_token',
+        'two_factor_secret',
     ];
 
     protected function casts(): array
@@ -53,6 +56,8 @@ class User extends Authenticatable implements MustVerifyEmail
             'password' => 'hashed',
             'viisp_local_password_set_at' => 'datetime',
             'two_factor_enabled' => 'boolean',
+            'two_factor_secret' => 'encrypted',
+            'two_factor_confirmed_at' => 'datetime',
             'email_notifications_enabled' => 'boolean',
             'email_updates_institution_admin' => 'boolean',
             'archived_at' => 'datetime',

@@ -11,6 +11,7 @@ tags:
   - name: Problems
   - name: Reporter
   - name: Internal
+  - name: TwoFactor
 
 servers:
   - url: /
@@ -24,31 +25,38 @@ paths:
   /api/login:
     post:
       tags: [Auth]
-      summary: Login Sanctum token
+      summary: "[PUBLIC] Login Sanctum token"
+      requestBody:
+        required: true
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/ApiLoginRequest'
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ApiLoginRequest'
+      responses:
+        '200':
+          description: OK — arba `token` (be 2FA), arba `login_token` (2FA, tada antras žingsnis)
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - $ref: '#/components/schemas/AuthTokenResponse'
+                  - $ref: '#/components/schemas/LoginTwoFactorRequiredResponse'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+
+  /api/two-factor/challenge:
+    post:
+      tags: [Auth]
+      summary: "[PUBLIC] 2FA po sėkmingo /api/login (login_token + 6 skaitmenų kodas)"
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/ApiLoginRequest'
-            examples:
-              darbuotojas:
-                summary: Staff login example
-                value:
-                  email: "darbuotojas@example.com"
-                  password: "Slaptazodis123!"
-                  login_type: "darbuotojas"
-                  device_name: "api-client"
-              pareiskejas:
-                summary: Reporter login example
-                value:
-                  email: "pareiskejas@example.com"
-                  password: "Slaptazodis123!"
-                  login_type: "pareiskejas"
-                  device_name: "api-client"
-          application/x-www-form-urlencoded:
-            schema:
-              $ref: '#/components/schemas/ApiLoginRequest'
+              $ref: '#/components/schemas/ApiTwoFactorChallengeRequest'
       responses:
         '200':
           description: OK
@@ -62,7 +70,7 @@ paths:
   /api/register:
     post:
       tags: [Auth]
-      summary: Reporter registration returns token
+      summary: "[PUBLIC] Reporter registration returns token"
       requestBody:
         required: true
         content:
@@ -91,7 +99,7 @@ paths:
   /api/me:
     get:
       tags: [Auth]
-      summary: Current user roles and permissions
+      summary: "[AUTH] Current user roles and permissions"
       security:
         - bearerAuth: []
       responses:
@@ -107,7 +115,7 @@ paths:
   /api/logout:
     post:
       tags: [Auth]
-      summary: Logout revokes current token
+      summary: "[AUTH] Logout revokes current token"
       security:
         - bearerAuth: []
       responses:
@@ -127,7 +135,7 @@ paths:
   /api/viisp/init:
     post:
       tags: [VIISP]
-      summary: Initialize VIISP mobile login flow
+      summary: "[PUBLIC] Initialize VIISP mobile login flow"
       requestBody:
         required: true
         content:
@@ -153,7 +161,7 @@ paths:
   /api/viisp/callback:
     get:
       tags: [VIISP]
-      summary: VIISP callback endpoint for mobile flow
+      summary: "[PUBLIC] VIISP callback endpoint for mobile flow"
       parameters:
         - in: query
           name: state
@@ -172,7 +180,7 @@ paths:
   /api/viisp/exchange:
     post:
       tags: [VIISP]
-      summary: Exchange VIISP callback code for Sanctum token
+      summary: "[PUBLIC] Exchange VIISP callback code for Sanctum token"
       requestBody:
         required: true
         content:
@@ -198,8 +206,8 @@ paths:
   /api/problems:
     get:
       tags: [Problems]
-      summary: Public problems list JSON
-      description: Anonymous or any user. Only problems published to the public map. Does not list all issues for staff. Staff with Bearer use GET /api/internal/problems instead.
+      summary: "[PUBLIC] Problems list"
+      description: "No authentication required. Returns only publicly published problems."
       parameters:
         - in: query
           name: per_page
@@ -219,12 +227,11 @@ paths:
                 additionalProperties: true
     post:
       tags: [Problems]
-      summary: Create problem reporter
+      summary: "[AUTH] Create reporter problem"
       description: >
-        Requires Bearer and reporter role. Call GET /api/reporter/report-meta first.
-        problem_type_id comes from report meta typeValues item id.
-        problem_nature_id is optional from the same item natures list id.
-        Use multipart form data when sending files.
+        Requires authentication (Bearer) and reporter role.
+        Call GET /api/reporter/report-meta first.
+        Nuotraukoms / vaizdams: multipart/form-data (rekomenduojama Swagger ir mobilėje). Alternatyva: application/json su files kaip base64 (JsonFileUploadItem).
       security:
         - bearerAuth: []
       parameters:
@@ -241,7 +248,7 @@ paths:
         content:
           multipart/form-data:
             schema:
-              $ref: '#/components/schemas/ReporterProblemCreateRequest'
+              $ref: '#/components/schemas/ReporterProblemCreateMultipartRequest'
           application/json:
             schema:
               $ref: '#/components/schemas/ReporterProblemCreateRequest'
@@ -252,7 +259,7 @@ paths:
             application/json:
               schema:
                 type: object
-                required: [ok, problem_id]
+                required: [ok, problem_id, attachments]
                 properties:
                   ok:
                     type: boolean
@@ -260,6 +267,10 @@ paths:
                   problem_id:
                     type: integer
                     example: 123
+                  attachments:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/PublicAttachment'
         '401':
           description: Unauthorized
         '403':
@@ -270,7 +281,8 @@ paths:
   /api/problems/{problem}:
     get:
       tags: [Problems]
-      summary: Public problem details JSON
+      summary: "[PUBLIC] Problem details"
+      description: "No authentication required. Returns only public problem details."
       parameters:
         - $ref: '#/components/parameters/problemPath'
       responses:
@@ -286,7 +298,7 @@ paths:
   /api/problems/{problem}/watch:
     post:
       tags: [Reporter]
-      summary: Toggle watch for reporter on problem
+      summary: "[AUTH] Toggle watch for reporter on problem"
       security:
         - bearerAuth: []
       parameters:
@@ -309,7 +321,7 @@ paths:
   /api/problems/{problem}/attachments:
     post:
       tags: [Reporter]
-      summary: Upload attachments to existing problem
+      summary: "[AUTH] Upload attachments to existing problem"
       security:
         - bearerAuth: []
       parameters:
@@ -326,6 +338,13 @@ paths:
         content:
           multipart/form-data:
             schema:
+              $ref: '#/components/schemas/ProblemAttachmentsUploadMultipartRequest'
+            encoding:
+              files:
+                style: form
+                explode: true
+          application/json:
+            schema:
               $ref: '#/components/schemas/ProblemAttachmentsUploadRequest'
       responses:
         '200':
@@ -333,7 +352,15 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/OkResponse'
+                type: object
+                properties:
+                  ok:
+                    type: boolean
+                    example: true
+                  attachments:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/PublicAttachment'
         '401':
           description: Unauthorized
         '403':
@@ -344,7 +371,7 @@ paths:
   /api/problems/{problem}/attachments/{attachment}:
     delete:
       tags: [Reporter]
-      summary: Delete problem attachment
+      summary: "[AUTH] Delete problem attachment"
       security:
         - bearerAuth: []
       parameters:
@@ -367,7 +394,7 @@ paths:
   /api/problems/{problem}/review-progress:
     get:
       tags: [Reporter]
-      summary: Get problem review progress entries
+      summary: "[AUTH] Get problem review progress entries"
       security:
         - bearerAuth: []
       parameters:
@@ -390,18 +417,25 @@ paths:
   /api/info/statistics:
     get:
       tags: [Info]
-      summary: Public statistics data JSON
+      summary: "[PUBLIC] Public statistics data JSON"
       parameters:
         - in: query
           name: period
           required: false
+          description: "Period filter. Allowed values: all, week, month, quarter, year."
           schema:
             type: string
+            enum: [all, week, month, quarter, year]
+            default: all
+          example: month
         - in: query
           name: category
           required: false
+          description: "Category name or all."
           schema:
             type: string
+            default: all
+          example: all
       responses:
         '200':
           description: OK
@@ -413,7 +447,7 @@ paths:
   /api/info/map:
     get:
       tags: [Info]
-      summary: Public map problems data JSON
+      summary: "[PUBLIC] Public map problems data JSON"
       responses:
         '200':
           description: OK
@@ -425,7 +459,7 @@ paths:
   /api/content/{type}:
     get:
       tags: [Info]
-      summary: Public CMS content by type JSON
+      summary: "[PUBLIC] Public CMS content by type JSON"
       parameters:
         - in: path
           name: type
@@ -433,13 +467,6 @@ paths:
           schema:
             type: string
             enum: [faq, privacy, cookies, contacts, help]
-          examples:
-            faq:
-              value: faq
-            privacy:
-              value: privacy
-            help:
-              value: help
       responses:
         '200':
           description: OK
@@ -453,7 +480,7 @@ paths:
   /api/info/file-upload-settings:
     get:
       tags: [Info]
-      summary: File upload limits and settings JSON
+      summary: "[AUTH] File upload limits and settings JSON"
       security:
         - bearerAuth: []
       responses:
@@ -469,7 +496,8 @@ paths:
   /api/reporter/problems:
     get:
       tags: [Reporter]
-      summary: Reporter own problems list
+      summary: "[AUTH] Reporter own problems list"
+      description: "This endpoint is the Reporter page 'Sąrašas' in the web app."
       security:
         - bearerAuth: []
       parameters:
@@ -515,7 +543,7 @@ paths:
   /api/reporter/problems/{problem}:
     get:
       tags: [Reporter]
-      summary: Reporter own problem details
+      summary: "[AUTH] Reporter own problem details"
       security:
         - bearerAuth: []
       parameters:
@@ -537,33 +565,44 @@ paths:
   /api/reporter/statistics:
     get:
       tags: [Reporter]
-      summary: Reporter statistics authenticated
+      summary: "[AUTH] Reporter statistics authenticated"
+      description: "Same data model used by the web reporter statistics page."
       security:
         - bearerAuth: []
       parameters:
         - in: query
           name: period
           required: false
+          description: "Period filter. If omitted, full scope is returned."
           schema:
             type: string
-            enum: [all, week, month, quarter, year]
+            enum: [all, 6, 12, year, week, month, quarter]
+            default: all
+          example: 12
         - in: query
           name: category
           required: false
+          description: "Category name or all."
           schema:
             type: string
+            default: all
+          example: all
         - in: query
           name: date_from
           required: false
+          description: "Optional date-from filter (YYYY-MM-DD)."
           schema:
             type: string
             format: date
+          example: '2026-01-01'
         - in: query
           name: date_to
           required: false
+          description: "Optional date-to filter (YYYY-MM-DD)."
           schema:
             type: string
             format: date
+          example: '2026-12-31'
       responses:
         '200':
           description: OK
@@ -579,7 +618,7 @@ paths:
   /api/reporter/report-meta:
     get:
       tags: [Reporter]
-      summary: Reporter report metadata
+      summary: "[AUTH] Reporter report metadata"
       security:
         - bearerAuth: []
       responses:
@@ -597,7 +636,7 @@ paths:
   /api/reporter/wizard-dismissed:
     post:
       tags: [Reporter]
-      summary: Mark reporter wizard as dismissed
+      summary: "[AUTH] Mark reporter wizard as dismissed"
       security:
         - bearerAuth: []
       responses:
@@ -615,7 +654,7 @@ paths:
   /api/reporter/report-terms-accepted:
     post:
       tags: [Reporter]
-      summary: Mark reporter terms as accepted
+      summary: "[AUTH] Mark reporter terms as accepted"
       security:
         - bearerAuth: []
       responses:
@@ -630,10 +669,139 @@ paths:
         '403':
           description: Forbidden not reporter
 
+  /api/internal/two-factor/users:
+    get:
+      tags: [TwoFactor]
+      summary: "[AUTH] Darbuotojai ir 2FA būsena"
+      description: "Grąžina `users` (paginacija) ir `global_required` (slaptažodžio politika)."
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: per_page
+          required: false
+          schema:
+            type: integer
+            default: 20
+            maximum: 100
+        - in: query
+          name: page
+          required: false
+          schema:
+            type: integer
+            default: 1
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TwoFactorUsersListResponse'
+        '401':
+          description: Unauthorized
+        '403':
+          description: Prieiga uždrausta
+
+  /api/internal/two-factor/users/{user}:
+    post:
+      tags: [TwoFactor]
+      summary: "[AUTH] Įjungti / išjungti 2FA naudotojui"
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: user
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TwoFactorToggleRequest'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TwoFactorUserUpdateResponse'
+        '401':
+          description: Unauthorized
+        '403':
+          description: Prieiga uždrausta
+        '422':
+          $ref: '#/components/responses/ValidationError'
+
+  /api/internal/two-factor/global:
+    post:
+      tags: [TwoFactor]
+      summary: "[AUTH] Globalus 2FA visiems darbuotojams"
+      description: "Įjungus: nustato slaptažodžio politikos 2FA ir `two_factor_enabled` visiems staff; išjungus: visiems `two_factor_enabled: false`."
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TwoFactorToggleRequest'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TwoFactorOkMessageResponse'
+        '401':
+          description: Unauthorized
+        '403':
+          description: Prieiga uždrausta
+        '422':
+          $ref: '#/components/responses/ValidationError'
+
+  /api/internal/two-factor/disable-all-staff:
+    post:
+      tags: [TwoFactor]
+      summary: "[AUTH] Išjungti 2FA visiems darbuotojams"
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TwoFactorOkMessageResponse'
+        '401':
+          description: Unauthorized
+        '403':
+          description: Prieiga uždrausta
+
+  /api/internal/institutions:
+    get:
+      tags: [Internal]
+      summary: "[AUTH] List institutions (id, name, code) for bulk assign"
+      description: Same access as POST /api/internal/problems/assign (system or problem admin). Active, non-archived institutions only. Use returned id as institution_id.
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InternalInstitutionsListResponse'
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+
   /api/internal/problems:
     get:
       tags: [Internal]
-      summary: Staff problems list
+      summary: "[AUTH] Staff problems list"
       description: Bearer required. Permission issues.view. Same filters and scope as web staff dashboard. Public catalogue stays GET /api/problems.
       security:
         - bearerAuth: []
@@ -705,10 +873,10 @@ paths:
           description: Forbidden
 
   /api/internal/problems/{problem}:
-    put:
+    post:
       tags: [Internal]
-      summary: Update problem classification fields
-      description: Requires classification edit permission. Access checked per user scope.
+      summary: "[AUTH] Update problem (classification fields and optional attachments)"
+      description: Priedams rekomenduojama multipart/form-data; alternatyva — JSON su files base64.
       security:
         - bearerAuth: []
       parameters:
@@ -716,9 +884,16 @@ paths:
       requestBody:
         required: true
         content:
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/InternalProblemUpdateMultipartRequest'
+            encoding:
+              files:
+                style: form
+                explode: true
           application/json:
             schema:
-              $ref: '#/components/schemas/InternalProblemUpdateRequest'
+              $ref: '#/components/schemas/InternalProblemUpdateRequestJson'
       responses:
         '200':
           description: Updated
@@ -734,7 +909,7 @@ paths:
           $ref: '#/components/responses/ValidationError'
     delete:
       tags: [Internal]
-      summary: Archive problem and merge group
+      summary: "[AUTH] Archive problem and merge group"
       description: Requires delete permission. Archives related merged problems.
       security:
         - bearerAuth: []
@@ -755,7 +930,7 @@ paths:
   /api/internal/problems/{problem}/status:
     patch:
       tags: [Internal]
-      summary: Update status for merge group
+      summary: "[AUTH] Update status for merge group"
       description: All staff workflow statuses allowed except nauja.
       security:
         - bearerAuth: []
@@ -784,7 +959,7 @@ paths:
   /api/internal/problems/{problem}/publish:
     patch:
       tags: [Internal]
-      summary: Publish or unpublish public visibility
+      summary: "[AUTH] Publish or unpublish public visibility"
       description: Requires publish permission.
       security:
         - bearerAuth: []
@@ -813,7 +988,7 @@ paths:
   /api/internal/problems/{problem}/merge:
     post:
       tags: [Internal]
-      summary: Merge other problems into this root
+      summary: "[AUTH] Merge other problems into this root"
       description: JSON API. problem_ids lists problems to merge under this path problem id root.
       security:
         - bearerAuth: []
@@ -842,8 +1017,8 @@ paths:
   /api/internal/problems/assign:
     post:
       tags: [Internal]
-      summary: Bulk assign to institution admin
-      description: JSON API. System or problem admins only. Optional status change in same request.
+      summary: "[AUTH] Bulk assign to institution admin"
+      description: Same as web POST `/problems/assign` (route `problems.assign.store`). problem_ids may contain one or many ids. institution_id from GET /api/internal/institutions. System or problem admin only; optional status in the same request.
       security:
         - bearerAuth: []
       requestBody:
@@ -870,11 +1045,38 @@ paths:
               schema:
                 $ref: '#/components/schemas/MessageOnlyError'
 
+  /api/internal/problems/{problem}/assign-institution-options:
+    get:
+      tags: [Internal]
+      summary: "[AUTH] Assign-institution picker (employees, teams, institutions)"
+      description: Same data as web page GET /problems/{problem}/assign-institution. Use returned ids for POST assign-institution (exactly one of employee_id or institution_team_id). employees/teams require user institution context; may be empty for users without institution_id.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/problemPath'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InternalAssignInstitutionOptionsResponse'
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '422':
+          description: Resolved problem
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageOnlyError'
+
   /api/internal/problems/{problem}/assign-institution:
     post:
       tags: [Internal]
-      summary: Assign inside institution to employee or team
-      description: JSON API. Send only employee_id or only institution_team_id.
+      summary: "[AUTH] Assign inside institution to employee or team"
+      description: Send exactly one of employee_id or institution_team_id. Valid ids from GET .../assign-institution-options on the same problem.
       security:
         - bearerAuth: []
       parameters:
@@ -906,7 +1108,7 @@ paths:
   /api/internal/problems/{problem}/reassign-institution:
     post:
       tags: [Internal]
-      summary: Reassign to another institution
+      summary: "[AUTH] Reassign to another institution"
       description: JSON API.
       security:
         - bearerAuth: []
@@ -939,7 +1141,7 @@ paths:
   /api/internal/problems/{problem}/unmerge:
     patch:
       tags: [Internal]
-      summary: Unmerge problem from group
+      summary: "[AUTH] Unmerge problem from group"
       security:
         - bearerAuth: []
       parameters:
@@ -959,7 +1161,7 @@ paths:
   /api/internal/problems/{problem}/return:
     patch:
       tags: [Internal]
-      summary: Return problem to admin from institution context
+      summary: "[AUTH] Return problem to admin from institution context"
       security:
         - bearerAuth: []
       parameters:
@@ -977,9 +1179,30 @@ paths:
           description: Forbidden
 
   /api/internal/problems/{problem}/review-progress:
+    get:
+      tags: [Internal]
+      summary: "[AUTH] Get review progress"
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/problemPath'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Not found
     post:
       tags: [Internal]
-      summary: Create review progress entry
+      summary: "[AUTH] Create review progress entry"
       security:
         - bearerAuth: []
       parameters:
@@ -996,17 +1219,20 @@ paths:
         content:
           multipart/form-data:
             schema:
-              $ref: '#/components/schemas/ReviewProgressUpsertRequest'
+              $ref: '#/components/schemas/ReviewProgressUpsertMultipartRequest'
+            encoding:
+              files:
+                explode: true
           application/json:
             schema:
-              $ref: '#/components/schemas/ReviewProgressUpsertRequest'
+              $ref: '#/components/schemas/ReviewProgressUpsertRequestJson'
       responses:
         '200':
           description: Created
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/OkResponse'
+                $ref: '#/components/schemas/ReviewProgressOkResponse'
         '401':
           description: Unauthorized
         '403':
@@ -1017,7 +1243,7 @@ paths:
   /api/internal/problems/{problem}/review-progress/{entry}:
     put:
       tags: [Internal]
-      summary: Update review progress entry
+      summary: "[AUTH] Update (tik JSON, be realių failų)"
       security:
         - bearerAuth: []
       parameters:
@@ -1031,21 +1257,55 @@ paths:
             enum: [web, mobile]
             default: web
       requestBody:
-        required: true
+        required: false
         content:
-          multipart/form-data:
-            schema:
-              $ref: '#/components/schemas/ReviewProgressUpsertRequest'
           application/json:
             schema:
-              $ref: '#/components/schemas/ReviewProgressUpsertRequest'
+              $ref: '#/components/schemas/ReviewProgressPartialBody'
       responses:
         '200':
           description: Updated
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/OkResponse'
+                $ref: '#/components/schemas/ReviewProgressOkResponse'
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '422':
+          $ref: '#/components/responses/ValidationError'
+    post:
+      tags: [Internal]
+      summary: "[AUTH] Update (multipart + failai — naudokite šitą, ne PUT)"
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/problemPath'
+        - $ref: '#/components/parameters/entryPath'
+        - in: header
+          name: X-Upload-Channel
+          required: false
+          schema:
+            type: string
+            enum: [web, mobile]
+            default: web
+      requestBody:
+        required: false
+        content:
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ReviewProgressPartialMultipartRequest'
+            encoding:
+              files:
+                explode: true
+      responses:
+        '200':
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReviewProgressOkResponse'
         '401':
           description: Unauthorized
         '403':
@@ -1056,7 +1316,7 @@ paths:
   /api/internal/problems/{problem}/review-progress/attachments/{attachment}:
     delete:
       tags: [Internal]
-      summary: Delete review progress attachment
+      summary: "[AUTH] Delete review progress attachment"
       security:
         - bearerAuth: []
       parameters:
@@ -1079,7 +1339,7 @@ paths:
   /api/internal/problems/bulk-update-status:
     post:
       tags: [Internal]
-      summary: Bulk update status
+      summary: "[AUTH] Bulk update status"
       security:
         - bearerAuth: []
       requestBody:
@@ -1105,7 +1365,7 @@ paths:
   /api/internal/problems/bulk-destroy:
     post:
       tags: [Internal]
-      summary: Bulk archive
+      summary: "[AUTH] Bulk archive"
       security:
         - bearerAuth: []
       requestBody:
@@ -1131,7 +1391,7 @@ paths:
   /api/internal/problems/bulk-update-publish:
     post:
       tags: [Internal]
-      summary: Bulk update publish flag
+      summary: "[AUTH] Bulk update publish flag"
       security:
         - bearerAuth: []
       requestBody:
@@ -1208,7 +1468,7 @@ components:
           description: Login type must match account role.
         device_name:
           type: string
-          description: Sanctum token label shown in admin token list.
+          description: Optional. Sanctum token label. If omitted, backend uses a default value.
           example: api-client
 
     ApiRegisterRequest:
@@ -1272,6 +1532,38 @@ components:
         user:
           $ref: '#/components/schemas/UserSummary'
 
+    LoginTwoFactorRequiredResponse:
+      type: object
+      required: [two_factor_required, login_token]
+      properties:
+        two_factor_required:
+          type: boolean
+          const: true
+        login_token:
+          type: string
+          description: Naudokite POST /api/two-factor/challenge su šiuo lauku ir 6 skaitmenų TOTP.
+        needs_setup:
+          type: boolean
+          description: "Jei true – programėlė dar nepatvirtinta: naudokite `setup_qr_image_url` / `setup_secret`, tada POST /api/two-factor/challenge"
+        setup_secret:
+          type: string
+        otpauth_url:
+          type: string
+        setup_qr_image_url:
+          type: string
+          format: uri
+
+    ApiTwoFactorChallengeRequest:
+      type: object
+      required: [login_token, code]
+      properties:
+        login_token:
+          type: string
+        code:
+          type: string
+          pattern: '^[0-9]{6}$'
+          example: "123456"
+
     UserSummary:
       type: object
       properties:
@@ -1321,7 +1613,7 @@ components:
           items:
             type: string
 
-    ReporterProblemCreateRequest:
+    ReporterProblemCreateRequestBase:
       type: object
       required: [problem_type_id, description, address]
       properties:
@@ -1340,12 +1632,43 @@ components:
           type: number
           format: double
           nullable: true
+          description: Optional. If omitted, backend tries to resolve from address.
         lng:
           type: number
           format: double
           nullable: true
+          description: Optional. If omitted, backend tries to resolve from address.
+
+    ReporterProblemCreateRequest:
+      allOf:
+        - $ref: '#/components/schemas/ReporterProblemCreateRequestBase'
+        - type: object
+          properties:
+            files:
+              type: array
+              description: Neprivaloma. Base64 (žr. JsonFileUploadItem).
+              items:
+                $ref: '#/components/schemas/JsonFileUploadItem'
+
+    ReporterProblemCreateMultipartRequest:
+      allOf:
+        - $ref: '#/components/schemas/ReporterProblemCreateRequestBase'
+        - type: object
+          properties:
+            files:
+              type: array
+              description: Neprivaloma. Nuotraukos / vaizdai kaip binary laukai.
+              items:
+                type: string
+                format: binary
+
+    ProblemAttachmentsUploadMultipartRequest:
+      type: object
+      required: [files]
+      properties:
         files:
           type: array
+          minItems: 1
           items:
             type: string
             format: binary
@@ -1358,8 +1681,7 @@ components:
           type: array
           minItems: 1
           items:
-            type: string
-            format: binary
+            $ref: '#/components/schemas/JsonFileUploadItem'
 
     PublicProblemResponse:
       type: object
@@ -1389,6 +1711,21 @@ components:
     PublicAttachment:
       type: object
       additionalProperties: true
+
+    JsonFileUploadItem:
+      description: >
+        Vienas failas JSON užklausoje: arba viena base64 eilutė (gali prasidėti data:image/jpeg;base64,),
+        arba objektas su content_base64 ir neprivalomu original_name.
+      oneOf:
+        - type: string
+        - type: object
+          required: [content_base64]
+          properties:
+            content_base64:
+              type: string
+            original_name:
+              type: string
+              description: Failo vardas su plėtiniu, pvz. nuotrauka.jpg
 
     PublicMapResponse:
       type: object
@@ -1501,6 +1838,7 @@ components:
 
     ReporterStatisticsResponse:
       type: object
+      required: [categories, filters, total, solvedCount, byCategory, monthlyReports, nagrinejamosProblemos, issprestosProblemos]
       properties:
         categories:
           type: array
@@ -1508,11 +1846,29 @@ components:
             type: string
         filters:
           type: object
-          additionalProperties: true
+          properties:
+            period:
+              type: string
+              nullable: true
+              example: month
+            category:
+              type: string
+              nullable: true
+              example: all
+            date_from:
+              type: string
+              format: date
+              nullable: true
+            date_to:
+              type: string
+              format: date
+              nullable: true
         total:
           type: integer
+          description: "Iš viso problemų (atitinka web kortelę 'Iš viso problemų')."
         solvedCount:
           type: integer
+          description: "Išspręstų problemų skaičius (atitinka web kortelę 'Išspręsta')."
         byCategory:
           type: array
           items:
@@ -1526,7 +1882,14 @@ components:
           type: array
           items:
             type: object
-            additionalProperties: true
+            required: [month, value]
+            properties:
+              month:
+                type: string
+                example: '2026-04'
+              value:
+                type: integer
+                example: 3
         nagrinejamosProblemos:
           type: array
           items:
@@ -1591,15 +1954,145 @@ components:
           type: boolean
           example: true
 
+    ReviewProgressOkResponse:
+      type: object
+      required: [ok]
+      properties:
+        ok:
+          type: boolean
+          example: true
+        message:
+          type: string
+          example: Įrašas išsaugotas.
+        entry_id:
+          type: integer
+
+    ReviewProgressUpsertBody:
+      type: object
+      required: [status, visibility]
+      properties:
+        status:
+          type: string
+          enum:
+            - nagrinejama
+            - grazinta_nagrinejimui
+            - isspresta
+            - neaktuali
+        comment:
+          type: string
+          nullable: true
+        visibility:
+          type: string
+          enum: [public, internal]
+
+    ReviewProgressUpsertRequestJson:
+      allOf:
+        - $ref: '#/components/schemas/ReviewProgressUpsertBody'
+        - type: object
+          properties:
+            files:
+              type: array
+              description: Neprivalomi JPEG/PNG (base64).
+              items:
+                $ref: '#/components/schemas/JsonFileUploadItem'
+
+    ReviewProgressUpsertMultipartRequest:
+      allOf:
+        - $ref: '#/components/schemas/ReviewProgressUpsertBody'
+        - type: object
+          properties:
+            files:
+              type: array
+              items:
+                type: string
+                format: binary
+
+    ReviewProgressPartialBody:
+      type: object
+      properties:
+        status:
+          type: string
+          description: Jei praleidžiate, lieka esama būsena.
+          enum:
+            - nagrinejama
+            - grazinta_nagrinejimui
+            - isspresta
+            - neaktuali
+        comment:
+          type: string
+          nullable: true
+          description: Jei praleidžiate, lieka esamas komentaras.
+        visibility:
+          type: string
+          description: Jei praleidžiate, lieka esamas matomumas (public arba internal).
+          enum: [public, internal]
+
+    ReviewProgressPartialMultipartRequest:
+      allOf:
+        - $ref: '#/components/schemas/ReviewProgressPartialBody'
+        - type: object
+          properties:
+            files:
+              type: array
+              items:
+                type: string
+                format: binary
+
     MessageOnlyError:
       type: object
       properties:
         message:
           type: string
 
+    TwoFactorToggleRequest:
+      type: object
+      required: [enabled]
+      properties:
+        enabled:
+          type: boolean
+          example: true
+
+    TwoFactorOkMessageResponse:
+      type: object
+      required: [ok, message]
+      properties:
+        ok:
+          type: boolean
+        message:
+          type: string
+
+    TwoFactorUserUpdateResponse:
+      type: object
+      required: [ok, message]
+      properties:
+        ok:
+          type: boolean
+        message:
+          type: string
+        needs_setup:
+          type: boolean
+          description: "Jei true — dar reikia patvirtinti programėlėje (TOTP)."
+        secret:
+          type: string
+          description: TOTP secret (tik įjungus pirmą kartą arba re-setup).
+        otpauth_url:
+          type: string
+        qr_image_url:
+          type: string
+
+    TwoFactorUsersListResponse:
+      type: object
+      required: [users, global_required]
+      properties:
+        global_required:
+          type: boolean
+        users:
+          type: object
+          description: Laravel paginator (data, current_page, last_page, per_page, total, ...)
+
     InternalProblemUpdateResult:
       type: object
-      required: [ok, message, problem_id]
+      required: [ok, message, problem_id, attachments]
       properties:
         ok:
           type: boolean
@@ -1607,6 +2100,10 @@ components:
           type: string
         problem_id:
           type: integer
+        attachments:
+          type: array
+          items:
+            $ref: '#/components/schemas/PublicAttachment'
 
     InternalProblemArchiveResult:
       type: object
@@ -1737,19 +2234,44 @@ components:
         is_published_publicly:
           type: boolean
 
-    InternalProblemUpdateRequest:
+    InternalProblemUpdateRequestBase:
       type: object
       required: [internal_number, category, address]
       properties:
         internal_number:
           type: string
+          description: Internal registration number.
         category:
           type: string
+          description: Category identifier (classifier value id or key).
         address:
           type: string
         description:
           type: string
           nullable: true
+
+    InternalProblemUpdateRequestJson:
+      allOf:
+        - $ref: '#/components/schemas/InternalProblemUpdateRequestBase'
+        - type: object
+          properties:
+            files:
+              type: array
+              description: Neprivalomi nauji priedai (base64).
+              items:
+                $ref: '#/components/schemas/JsonFileUploadItem'
+
+    InternalProblemUpdateMultipartRequest:
+      allOf:
+        - $ref: '#/components/schemas/InternalProblemUpdateRequestBase'
+        - type: object
+          properties:
+            files:
+              type: array
+              description: Neprivalomi nauji priedai (failai).
+              items:
+                type: string
+                format: binary
 
     InternalProblemStatusUpdateRequest:
       type: object
@@ -1781,6 +2303,26 @@ components:
           items:
             type: integer
 
+    InternalInstitutionsListResponse:
+      type: object
+      required: [ok, institutions]
+      properties:
+        ok:
+          type: boolean
+        institutions:
+          type: array
+          items:
+            type: object
+            required: [id, name]
+            properties:
+              id:
+                type: integer
+              name:
+                type: string
+              code:
+                type: string
+                nullable: true
+
     InternalBulkAssignRequest:
       type: object
       required: [problem_ids]
@@ -1792,9 +2334,53 @@ components:
         institution_id:
           type: integer
           nullable: true
+          description: Use id from GET /api/internal/institutions. Omit or null to unassign from institution.
         status:
           type: string
           nullable: true
+
+    InternalAssignInstitutionOptionsResponse:
+      type: object
+      required: [ok, problem_id, employees, teams, institutions]
+      properties:
+        ok:
+          type: boolean
+        problem_id:
+          type: integer
+        employees:
+          type: array
+          items:
+            type: object
+            required: [id, name, email]
+            properties:
+              id:
+                type: integer
+              name:
+                type: string
+              email:
+                type: string
+        teams:
+          type: array
+          items:
+            type: object
+            required: [id, name, members_count]
+            properties:
+              id:
+                type: integer
+              name:
+                type: string
+              members_count:
+                type: integer
+        institutions:
+          type: array
+          items:
+            type: object
+            required: [id, name]
+            properties:
+              id:
+                type: integer
+              name:
+                type: string
 
     InternalInstitutionAssignRequest:
       type: object
@@ -1802,9 +2388,11 @@ components:
         employee_id:
           type: integer
           nullable: true
+          description: From GET .../assign-institution-options employees[].id (mutually exclusive with institution_team_id).
         institution_team_id:
           type: integer
           nullable: true
+          description: From GET .../assign-institution-options teams[].id (mutually exclusive with employee_id).
         completion_deadline:
           type: string
           format: date
@@ -1854,24 +2442,6 @@ components:
             type: integer
         is_published_publicly:
           type: boolean
-
-    ReviewProgressUpsertRequest:
-      type: object
-      required: [status, visibility]
-      properties:
-        status:
-          type: string
-        comment:
-          type: string
-          nullable: true
-        visibility:
-          type: string
-          description: See backend enum values.
-        files:
-          type: array
-          items:
-            type: string
-            format: binary
 
     LaravelValidationErrorResponse:
       type: object

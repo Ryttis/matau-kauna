@@ -217,6 +217,7 @@ const {
             :current-status="problem.status || ''"
             :entry="editingEntry"
             :file-upload="fileUpload"
+            :can-delete-review-attachments="canDeleteReviewAttachments"
             @close="closeAddEntryModal"
         />
 

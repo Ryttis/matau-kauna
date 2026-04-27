@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Enums\AuditLogResult;
+use App\Enums\UserRoleEnum;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\CreateUserRequest;
 use App\Http\Requests\Admin\SyncUserRolesRequest;
@@ -10,6 +11,7 @@ use App\Http\Requests\Admin\UpdateUserRequest;
 use App\Models\User;
 use App\Services\AuditLogService;
 use App\Services\RbacService;
+use App\Services\TwoFactorService;
 use Illuminate\Http\Request;
 
 class RbacUserController extends Controller
@@ -17,16 +19,153 @@ class RbacUserController extends Controller
     public function __construct(
         private AuditLogService $auditLogService,
         private RbacService $rbacService,
+        private TwoFactorService $twoFactorService,
     ) {}
 
     public function users()
     {
         return User::query()
             ->notArchived()
-            ->select(['id', 'name', 'email', 'institution_id'])
+            ->select(['id', 'name', 'email', 'institution_id', 'two_factor_enabled'])
             ->with(['roles:id,role,name', 'institution:id,name'])
             ->orderBy('id', 'desc')
             ->paginate(20);
+    }
+
+    public function usersTwoFactor()
+    {
+        $users = User::query()
+            ->notArchived()
+            ->whereHas('roles', fn ($q) => $q->whereIn('role', UserRoleEnum::staffValues()))
+            ->select(['id', 'name', 'email', 'institution_id', 'two_factor_enabled', 'two_factor_secret', 'two_factor_confirmed_at'])
+            ->with(['roles:id,role,name', 'institution:id,name'])
+            ->orderBy('id', 'desc')
+            ->paginate(20)
+            ->through(function (User $user) {
+                return [
+                    'id' => $user->id,
+                    'name' => $user->name,
+                    'email' => $user->email,
+                    'institution' => $user->institution,
+                    'roles' => $user->roles,
+                    'two_factor_enabled' => (bool) $user->two_factor_enabled,
+                    'two_factor_ready' => filled($user->two_factor_secret) && $user->two_factor_confirmed_at !== null,
+                    'is_staff' => true,
+                ];
+            });
+
+        return [
+            'users' => $users,
+            'global_required' => $this->twoFactorService->isGloballyRequired(),
+        ];
+    }
+
+    public function updateUserTwoFactor(Request $request, User $user)
+    {
+        $enabled = (bool) $request->validate([
+            'enabled' => ['required', 'boolean'],
+        ])['enabled'];
+
+        if (! $this->twoFactorService->isStaffUser($user)) {
+            abort(422, '2FA galima tik vidiniams naudotojams.');
+        }
+
+        if ($enabled) {
+            $hadSecret = filled($user->two_factor_secret);
+            $wasConfirmed = $user->two_factor_confirmed_at !== null;
+            $secret = $this->twoFactorService->ensureSecret($user);
+            $user->update(['two_factor_enabled' => true]);
+            $freshUser = $user->fresh();
+            $needsSetup = ! $hadSecret || ! $wasConfirmed || $freshUser?->two_factor_confirmed_at === null;
+
+            return [
+                'ok' => true,
+                'message' => '2FA įjungta.',
+                'needs_setup' => $needsSetup,
+                'secret' => $needsSetup ? $secret : '',
+                'otpauth_url' => $needsSetup && $freshUser ? $this->twoFactorService->otpauthUrl($freshUser) : '',
+                'qr_image_url' => $needsSetup && $freshUser ? $this->twoFactorService->qrImageUrl($freshUser) : '',
+            ];
+        }
+
+        $user->update([
+            'two_factor_enabled' => false,
+        ]);
+
+        return [
+            'ok' => true,
+            'message' => '2FA išjungta.',
+        ];
+    }
+
+    public function resetUserTwoFactorConfirmation(User $user): array
+    {
+        if (! $this->twoFactorService->isStaffUser($user)) {
+            abort(422, '2FA galima tik vidiniams naudotojams.');
+        }
+        if (! (bool) $user->two_factor_enabled) {
+            abort(422, '2FA turi būti įjungta.');
+        }
+        if (! filled($user->two_factor_secret)) {
+            abort(422, 'Nerastas 2FA raktas.');
+        }
+
+        $user->update(['two_factor_confirmed_at' => null]);
+
+        return [
+            'ok' => true,
+            'message' => '2FA patvirtinimas atšauktas. Naudotojas autentifikatorių turi nusistatyti iš naujo.',
+        ];
+    }
+
+    public function updateTwoFactorGlobal(Request $request)
+    {
+        $enabled = (bool) $request->validate([
+            'enabled' => ['required', 'boolean'],
+        ])['enabled'];
+
+        $this->twoFactorService->setGlobalRequired($enabled);
+
+        if ($enabled) {
+            User::query()
+                ->notArchived()
+                ->whereHas('roles', fn ($q) => $q->whereIn('role', UserRoleEnum::staffValues()))
+                ->each(function (User $user) {
+                    $this->twoFactorService->ensureSecret($user);
+                    $user->update([
+                        'two_factor_enabled' => true,
+                    ]);
+                });
+        } else {
+            User::query()
+                ->notArchived()
+                ->whereHas('roles', fn ($q) => $q->whereIn('role', UserRoleEnum::staffValues()))
+                ->update([
+                    'two_factor_enabled' => false,
+                ]);
+        }
+
+        return [
+            'ok' => true,
+            'message' => $enabled
+                ? 'Globalus 2FA įjungtas visiems vidiniams naudotojams.'
+                : 'Globalus 2FA išjungtas. 2FA nereikalingas niekam.',
+        ];
+    }
+
+    public function disableTwoFactorForAllStaff()
+    {
+        User::query()
+            ->notArchived()
+            ->whereHas('roles', fn ($q) => $q->whereIn('role', UserRoleEnum::staffValues()))
+            ->update([
+                'two_factor_enabled' => false,
+            ]);
+
+        return [
+            'ok' => true,
+            'message' => '2FA išjungta visiems vidiniams naudotojams.',
+        ];
     }
 
     public function syncUserRoles(SyncUserRolesRequest $request, User $user)

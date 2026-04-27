@@ -4,11 +4,11 @@ namespace App\Http\Controllers;
 
 use App\Enums\ProblemStatus;
 use App\Models\Employee;
-use App\Models\Institution;
 use App\Models\InstitutionTeam;
 use App\Models\Problem;
 use App\Models\User;
 use App\Services\ProblemAssignmentNotifier;
+use App\Services\ProblemInstitutionAssignmentPickerService;
 use App\Services\ProblemScopeService;
 use App\Services\TransactionalMail;
 use Illuminate\Http\RedirectResponse;
@@ -22,6 +22,7 @@ class ProblemInstitutionAssignmentController extends Controller
     public function __construct(
         private ProblemScopeService $scopeService,
         private ProblemAssignmentNotifier $assignmentNotifier,
+        private ProblemInstitutionAssignmentPickerService $assignmentPickerService,
     ) {}
 
     public function assignInstitution(Problem $problem): Response|RedirectResponse
@@ -36,78 +37,13 @@ class ProblemInstitutionAssignmentController extends Controller
             return redirect()->route('problems.show', $problem)->with('error', 'Išspręstos problemos priskirti negalima.');
         }
 
-        $employees = [];
-        $teams = [];
-        if ($user->institution_id) {
-            $assignableInstitutionUserQuery = User::queryAssignableInstitutionEmployeeUsers(
-                (int) $user->institution_id,
-                $user->email,
-            );
-
-            foreach ($assignableInstitutionUserQuery->get(['id', 'name', 'surname', 'email']) as $u) {
-                Employee::firstOrCreate(
-                    [
-                        'email' => $u->email,
-                        'institution_id' => $user->institution_id,
-                    ],
-                    [
-                        'name' => $u->name ?? '',
-                        'surname' => $u->surname ?? '',
-                    ]
-                );
-            }
-
-            $assignableEmails = $assignableInstitutionUserQuery->pluck('email');
-
-            if ($assignableEmails->isNotEmpty()) {
-                $employees = Employee::query()
-                    ->where('institution_id', $user->institution_id)
-                    ->whereIn('email', $assignableEmails)
-                    ->orderBy('name')
-                    ->orderBy('surname')
-                    ->get(['id', 'name', 'surname', 'email'])
-                    ->map(fn ($employee) => [
-                        'id' => $employee->id,
-                        'name' => trim($employee->name.' '.$employee->surname) ?: $employee->email,
-                        'email' => $employee->email,
-                    ])
-                    ->values()
-                    ->all();
-            }
-
-            if ($assignableEmails->isEmpty()) {
-                $teams = [];
-            } else {
-                $teams = InstitutionTeam::query()
-                    ->where('institution_id', $user->institution_id)
-                    ->withCount([
-                        'employees as members_count' => function ($q) use ($assignableEmails) {
-                            $q->whereIn('email', $assignableEmails);
-                        },
-                    ])
-                    ->orderBy('name')
-                    ->get()
-                    ->map(fn (InstitutionTeam $team) => [
-                        'id' => $team->id,
-                        'name' => $team->name,
-                        'members_count' => (int) $team->members_count,
-                    ])
-                    ->values()
-                    ->all();
-            }
-        }
-
-        $institutionsQuery = Institution::query()->notArchived()->orderBy('name');
-        if ($this->scopeService->isInstitutionScoped($user)) {
-            $institutionsQuery->where('id', '!=', $user->institution_id);
-        }
-        $institutions = $institutionsQuery->get(['id', 'name'])->map(fn ($i) => ['id' => $i->id, 'name' => $i->name]);
+        $picker = $this->assignmentPickerService->pickerDataFor($user);
 
         return Inertia::render('Problems/AssignInstitution', [
             'problem' => $problem,
-            'employees' => $employees,
-            'teams' => $teams,
-            'institutions' => $institutions,
+            'employees' => $picker['employees'],
+            'teams' => $picker['teams'],
+            'institutions' => $picker['institutions'],
         ]);
     }
 
