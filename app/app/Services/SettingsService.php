@@ -9,9 +9,13 @@ use App\Models\UserRole;
 
 class SettingsService
 {
+    public function __construct(
+        private InstitutionGisConfigService $institutionGisConfigService,
+    ) {}
+
     public function getSettingsPageData(User $user): array
     {
-        $user->load('institution');
+        $user->load('institution.gisConfig');
 
         $employees = Employee::query()
             ->where('institution_id', $user->institution_id)
@@ -28,9 +32,21 @@ class SettingsService
             ->get(['id', 'role', 'name']);
 
         return [
+            'institution' => $user->institution,
+            'institutionGis' => $this->institutionGisConfigService->settingsPayload($user->institution?->gisConfig),
             'employees' => $employees,
             'teams' => $teams,
             'inviteRoles' => $inviteRoles,
         ];
+    }
+
+    public function updateInstitutionGisConfig(User $user, array $payload): void
+    {
+        $institution = $user->institution;
+        if (! $institution) {
+            return;
+        }
+
+        $this->institutionGisConfigService->updateForInstitution($institution, $payload);
     }
 }

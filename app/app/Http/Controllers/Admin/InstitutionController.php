@@ -6,20 +6,35 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\StoreInstitutionRequest;
 use App\Http\Requests\Admin\UpdateInstitutionRequest;
 use App\Models\Institution;
+use App\Services\InstitutionGisConfigService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Arr;
 use Illuminate\Support\Collection;
 use Throwable;
 
 class InstitutionController extends Controller
 {
+    public function __construct(
+        private InstitutionGisConfigService $gisConfigService,
+    ) {}
+
     public function index(): LengthAwarePaginator
     {
-        return Institution::query()
+        $paginator = Institution::query()
             ->notArchived()
+            ->with('gisConfig')
             ->withCount('users')
             ->orderBy('name')
             ->paginate(20);
+
+        $paginator->getCollection()->transform(function (Institution $institution) {
+            $institution->setAttribute('gis', $this->gisConfigService->settingsPayload($institution->gisConfig));
+
+            return $institution;
+        });
+
+        return $paginator;
     }
 
     public function list(): Collection
@@ -32,22 +47,38 @@ class InstitutionController extends Controller
 
     public function store(StoreInstitutionRequest $request): Institution
     {
-        $data = $request->validated();
-        $data['is_active'] = $data['is_active'] ?? true;
-        $data['is_email_only'] = $data['is_email_only'] ?? false;
-        $data['created_by'] = $request->user()->id;
-        $data['updated_by'] = $request->user()->id;
+        $validated = $request->validated();
+        $gisPayload = Arr::pull($validated, 'gis', []);
 
-        return Institution::create($data);
+        $validated['is_active'] = $validated['is_active'] ?? true;
+        $validated['is_email_only'] = $validated['is_email_only'] ?? false;
+        $validated['created_by'] = $request->user()->id;
+        $validated['updated_by'] = $request->user()->id;
+
+        $institution = Institution::create($validated);
+
+        $this->gisConfigService->updateForInstitution($institution, $gisPayload);
+
+        $institution->load('gisConfig');
+        $institution->setAttribute('gis', $this->gisConfigService->settingsPayload($institution->gisConfig));
+
+        return $institution;
     }
 
     public function update(UpdateInstitutionRequest $request, Institution $institution): Institution
     {
-        $data = $request->validated();
-        $data['updated_by'] = $request->user()->id;
-        $institution->update($data);
+        $validated = $request->validated();
+        $gisPayload = Arr::pull($validated, 'gis', []);
 
-        return $institution->fresh();
+        $validated['updated_by'] = $request->user()->id;
+        $institution->update($validated);
+
+        $this->gisConfigService->updateForInstitution($institution, $gisPayload);
+
+        $fresh = $institution->fresh(['gisConfig']);
+        $fresh->setAttribute('gis', $this->gisConfigService->settingsPayload($fresh->gisConfig));
+
+        return $fresh;
     }
 
     public function destroy(Institution $institution): JsonResponse

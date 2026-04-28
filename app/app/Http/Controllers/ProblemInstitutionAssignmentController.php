@@ -7,6 +7,8 @@ use App\Models\Employee;
 use App\Models\InstitutionTeam;
 use App\Models\Problem;
 use App\Models\User;
+use App\Models\UserRole;
+use App\Services\ArcGisProblemTransferService;
 use App\Services\ProblemAssignmentNotifier;
 use App\Services\ProblemInstitutionAssignmentPickerService;
 use App\Services\ProblemScopeService;
@@ -23,6 +25,7 @@ class ProblemInstitutionAssignmentController extends Controller
         private ProblemScopeService $scopeService,
         private ProblemAssignmentNotifier $assignmentNotifier,
         private ProblemInstitutionAssignmentPickerService $assignmentPickerService,
+        private ArcGisProblemTransferService $arcGisProblemTransferService,
     ) {}
 
     public function assignInstitution(Problem $problem): Response|RedirectResponse
@@ -37,6 +40,35 @@ class ProblemInstitutionAssignmentController extends Controller
             return redirect()->route('problems.show', $problem)->with('error', 'Išspręstos problemos priskirti negalima.');
         }
 
+        if ($user->institution_id) {
+            $institutionUsers = User::where('institution_id', $user->institution_id)
+                ->whereHas('roles.permissions', fn ($query) => $query->where('permission', 'issues.assign'))
+                ->get(['id', 'name', 'surname', 'email']);
+
+            foreach ($institutionUsers as $institutionUser) {
+                Employee::firstOrCreate(
+                    [
+                        'email' => $institutionUser->email,
+                        'institution_id' => $user->institution_id,
+                    ],
+                    [
+                        'name' => $institutionUser->name ?? '',
+                        'surname' => $institutionUser->surname ?? '',
+                    ]
+                );
+            }
+        }
+
+        $institutionsQuery = Institution::query()->notArchived()->orderBy('name');
+        if ($this->scopeService->isInstitutionScoped($user)) {
+            $institutionsQuery->where('id', '!=', $user->institution_id);
+        }
+
+        $problem->loadMissing([
+            'institution.gisConfig',
+            'gisTransfer.attachmentTransfers.attachment',
+        ]);
+
         $picker = $this->assignmentPickerService->pickerDataFor($user);
 
         return Inertia::render('Problems/AssignInstitution', [
@@ -44,6 +76,8 @@ class ProblemInstitutionAssignmentController extends Controller
             'employees' => $picker['employees'],
             'teams' => $picker['teams'],
             'institutions' => $picker['institutions'],
+            'gisAvailable' => (bool) $problem->institution?->gisConfig?->enabled,
+            'gisTransfer' => $problem->gisTransfer?->loadMissing('attachmentTransfers.attachment'),
         ]);
     }
 
@@ -183,6 +217,72 @@ class ProblemInstitutionAssignmentController extends Controller
         );
 
         return redirect()->back()->with('success', 'Informacija išsiųsta el. paštu.');
+    }
+
+    public function sendToGis(Request $request, Problem $problem): RedirectResponse
+    {
+        $user = $request->user();
+        if (! $user->isInstitutionAdminOrSystemAdmin()) {
+            abort(403);
+        }
+        $this->scopeService->authorizeProblemAccess($user, $problem);
+
+        if ($problem->status === ProblemStatus::RESOLVED->value) {
+            return redirect()->back()->with('error', 'Išspręstos problemos perduoti negalima.');
+        }
+
+        try {
+            $result = $this->arcGisProblemTransferService->transferProblem($problem);
+        } catch (\Throwable $e) {
+            return redirect()->back()->with('error', $e->getMessage());
+        }
+
+        $message = $result['attachments_failed'] > 0
+            ? 'Problema perduota į GIS, bet dalies priedų išsiųsti nepavyko.'
+            : 'Problema sėkmingai perduota į GIS.';
+
+        return redirect()->back()->with('success', $message);
+    }
+
+    public function pullFromGis(Request $request, Problem $problem): RedirectResponse
+    {
+        $user = $request->user();
+        if (! $user->isInstitutionAdminOrSystemAdmin()) {
+            abort(403);
+        }
+        $this->scopeService->authorizeProblemAccess($user, $problem);
+
+        $problem->loadMissing('gisTransfer');
+        if (! $problem->gisTransfer || ! filled($problem->gisTransfer->external_object_id)) {
+            return redirect()->back()->with('error', 'Problema dar nebuvo perduota į GIS.');
+        }
+
+        try {
+            $result = $this->arcGisProblemTransferService->syncFromGis($problem->gisTransfer);
+        } catch (\Throwable $e) {
+            return redirect()->back()->with('error', $e->getMessage());
+        }
+
+        $parts = [];
+
+        if ($result['status_changed']) {
+            $newLabel = ProblemStatus::tryFrom((string) $result['new_status'])?->label() ?? (string) $result['new_status'];
+            $parts[] = 'būsena pakeista į „'.$newLabel.'"';
+        }
+
+        if ($result['deadline_changed']) {
+            $parts[] = 'atnaujintas atlikimo terminas';
+        }
+
+        if (($result['attachments_downloaded'] ?? 0) > 0) {
+            $parts[] = 'atsisiųsta priedų: '.$result['attachments_downloaded'];
+        }
+
+        $message = $parts === []
+            ? 'GIS pusėje pakeitimų nerasta.'
+            : 'Atnaujinta iš GIS: '.implode(', ', $parts).'.';
+
+        return redirect()->back()->with('success', $message);
     }
 
     public function returnToAdmin(Request $request, Problem $problem): RedirectResponse

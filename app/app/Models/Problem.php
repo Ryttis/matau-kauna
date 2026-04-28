@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Support\Str;
 
 class Problem extends Model
@@ -306,6 +307,11 @@ class Problem extends Model
     public function attachments(): HasMany
     {
         return $this->hasMany(ProblemAttachment::class, 'problem_id')->orderBy('id');
+    }
+
+    public function gisTransfer(): HasOne
+    {
+        return $this->hasOne(ProblemGisTransfer::class);
     }
 
     public function getMergeGroupIds(): array

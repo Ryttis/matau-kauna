@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class Institution extends Model
 {
@@ -20,7 +21,6 @@ class Institution extends Model
         'contact_address',
         'integration_email',
         'integration_dvs',
-        'integration_gis',
         'is_active',
         'created_by',
         'updated_by',
@@ -52,6 +52,11 @@ class Institution extends Model
     public function teams(): HasMany
     {
         return $this->hasMany(InstitutionTeam::class);
+    }
+
+    public function gisConfig(): HasOne
+    {
+        return $this->hasOne(InstitutionGisConfig::class);
     }
 
     public function creator(): BelongsTo

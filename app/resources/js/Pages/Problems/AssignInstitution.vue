@@ -24,6 +24,14 @@ const props = defineProps({
         type: Array,
         default: () => [],
     },
+    gisAvailable: {
+        type: Boolean,
+        default: false,
+    },
+    gisTransfer: {
+        type: Object,
+        default: null,
+    },
 })
 
 const {
@@ -31,35 +39,244 @@ const {
     showSuccessModal,
     successMessage,
     closeSuccessModal,
-    selectedEmployeeIds,
-    selectedTeamIds,
-    deadline,
-    emailForInfo,
-    returnComment,
-    employeeEmailOptions,
-    canSendInfoEmail,
-    selectedReassignIds,
-    assignSubmitting,
-    emailSubmitting,
-    returnSubmitting,
-    reassignSubmitting,
-    teamsList,
-    membersModalOpen,
-    membersModalTeam,
-    membersModalEmployees,
-    teamMembersLoading,
-    handleBack,
-    selectEmployee,
-    selectTeam,
-    closeTeamMembersModal,
-    openTeamMembersModal,
-    onTeamMembersSaved,
-    selectInstitution,
-    handleSendAssign,
-    handleSendEmail,
-    handleReturnToAdmin,
-    handleReassign,
 } = useAssignInstitutionPage(props)
+
+const selectedEmployeeIds = ref([])
+const selectedTeamIds = ref([])
+const deadline = ref(
+    props.problem?.completion_deadline
+        ? (typeof props.problem.completion_deadline === 'string'
+            ? props.problem.completion_deadline.slice(0, 10)
+            : '')
+        : ''
+)
+const emailForInfo = ref('')
+const returnComment = ref('')
+
+const employeeEmailOptions = computed(() =>
+    (props.employees ?? []).map((emp) => ({
+        value: emp.email,
+        label: `${emp.name} - ${emp.email}`,
+    })),
+)
+
+const canSendInfoEmail = computed(() => {
+    const raw = (emailForInfo.value || '').trim()
+    if (!raw) {
+        return false
+    }
+    return (props.employees ?? []).some(
+        (e) => String(e.email).toLowerCase() === raw.toLowerCase(),
+    )
+})
+const selectedReassignIds = ref([])
+
+const assignSubmitting = ref(false)
+const emailSubmitting = ref(false)
+const gisSubmitting = ref(false)
+const returnSubmitting = ref(false)
+const reassignSubmitting = ref(false)
+
+const teamsList = ref([])
+const membersModalOpen = ref(false)
+const membersModalTeam = ref(null)
+const membersModalEmployees = ref([])
+const teamMembersLoading = ref(false)
+
+watch(
+    () => props.teams,
+    (t) => {
+        teamsList.value = (t ?? []).map((row) => ({ ...row }))
+    },
+    { immediate: true }
+)
+
+watch(
+    () => props.employees,
+    (list) => {
+        if (!Array.isArray(list) || list.length === 0) {
+            emailForInfo.value = ''
+            return
+        }
+        const cur = (emailForInfo.value || '').trim().toLowerCase()
+        const ok = list.some((e) => String(e.email).toLowerCase() === cur)
+        if (!ok) {
+            emailForInfo.value = list[0].email ?? ''
+        }
+    },
+    { immediate: true, deep: true },
+)
+
+const finishVisit = (flag) => ({
+    preserveScroll: true,
+    onFinish: () => {
+        flag.value = false
+    },
+})
+
+const handleBack = () => {
+    router.visit(route('problems.show', props.problem.id))
+}
+
+const selectEmployee = (id) => {
+    selectedTeamIds.value = []
+    selectedEmployeeIds.value = selectedEmployeeIds.value[0] === id ? [] : [id]
+}
+
+const selectTeam = (id) => {
+    selectedEmployeeIds.value = []
+    selectedTeamIds.value = selectedTeamIds.value[0] === id ? [] : [id]
+}
+
+const closeTeamMembersModal = () => {
+    membersModalOpen.value = false
+    membersModalTeam.value = null
+    membersModalEmployees.value = []
+}
+
+const openTeamMembersModal = async (teamRow) => {
+    if (teamMembersLoading.value) return
+    teamMembersLoading.value = true
+    try {
+        const { data } = await axios.get(settingsApi.teams)
+        const fullTeam = (data?.teams ?? []).find((t) => t.id === teamRow.id)
+        if (!fullTeam) {
+            alert('Komanda nerasta.')
+            return
+        }
+        membersModalEmployees.value = data?.employees ?? []
+        membersModalTeam.value = fullTeam
+        membersModalOpen.value = true
+    } catch (e) {
+        alert(e.response?.data?.message ?? 'Nepavyko užkrauti komandos duomenų.')
+    } finally {
+        teamMembersLoading.value = false
+    }
+}
+
+const onTeamMembersSaved = (data) => {
+    const idx = teamsList.value.findIndex((x) => x.id === data.id)
+    if (idx !== -1) {
+        teamsList.value[idx] = {
+            ...teamsList.value[idx],
+            name: data.name,
+            members_count: (data.employees ?? []).length,
+        }
+    }
+    showWithMessage('Komandos nariai atnaujinti.')
+}
+
+const selectInstitution = (id) => {
+    selectedReassignIds.value = selectedReassignIds.value[0] === id ? [] : [id]
+}
+
+const handleSendAssign = () => {
+    if (assignSubmitting.value) {
+        return
+    }
+    const employeeId = selectedEmployeeIds.value[0]
+    const teamId = selectedTeamIds.value[0]
+    if (!employeeId && !teamId) return
+
+    assignSubmitting.value = true
+    const payload = {
+        completion_deadline: deadline.value || null,
+    }
+    if (employeeId) {
+        payload.employee_id = employeeId
+    } else {
+        payload.institution_team_id = teamId
+    }
+    router.post(route('problems.assignInstitution.store', props.problem.id), payload, finishVisit(assignSubmitting))
+}
+
+const handleSendEmail = () => {
+    if (emailSubmitting.value) {
+        return
+    }
+    if (!canSendInfoEmail.value) {
+        alert('Pasirinkite darbuotoją iš sąrašo.')
+        return
+    }
+    const email = (emailForInfo.value || '').trim()
+    emailSubmitting.value = true
+    router.post(
+        route('problems.assignInstitution.sendEmail', props.problem.id),
+        { email },
+        finishVisit(emailSubmitting)
+    )
+}
+
+const gisStatusLabel = (status) => {
+    switch (status) {
+        case 'pending':
+            return 'Ruošiama'
+        case 'feature_created':
+            return 'Objektas sukurtas'
+        case 'sent':
+            return 'Išsiųsta'
+        case 'attachment_failed':
+            return 'Priedų klaida'
+        case 'failed':
+            return 'Klaida'
+        default:
+            return status || 'Nėra'
+    }
+}
+
+const handleSendToGis = () => {
+    gisSubmitting.value = true
+    router.post(route('problems.assignInstitution.sendGis', props.problem.id), {}, finishVisit(gisSubmitting))
+}
+
+const gisPullSubmitting = ref(false)
+
+const handlePullFromGis = () => {
+    if (gisPullSubmitting.value) return
+    gisPullSubmitting.value = true
+    router.post(route('problems.assignInstitution.pullGis', props.problem.id), {}, finishVisit(gisPullSubmitting))
+}
+
+const handleReturnToAdmin = () => {
+    if (returnSubmitting.value) {
+        return
+    }
+    returnSubmitting.value = true
+    router.patch(route('problems.return', props.problem.id), {}, finishVisit(returnSubmitting))
+}
+
+const handleReassign = () => {
+    if (reassignSubmitting.value) {
+        return
+    }
+    if (selectedReassignIds.value.length !== 1) {
+        alert('Pasirinkite vieną įstaigą, kuriai perduoti problemą.')
+        return
+    }
+    reassignSubmitting.value = true
+    router.post(route('problems.reassignInstitution', props.problem.id), {
+        institution_id: selectedReassignIds.value[0],
+    }, finishVisit(reassignSubmitting))
+}
+
+watch(
+    () => props.problem,
+    (newProblem) => {
+        const assignedEmp = newProblem?.assigned_employee_id
+        const assignedTeam = newProblem?.assigned_institution_team_id
+        if (assignedEmp) {
+            selectedEmployeeIds.value = [assignedEmp]
+            selectedTeamIds.value = []
+        } else if (assignedTeam) {
+            selectedTeamIds.value = [assignedTeam]
+            selectedEmployeeIds.value = []
+        } else {
+            selectedEmployeeIds.value = []
+            selectedTeamIds.value = []
+        }
+    },
+    { immediate: true }
+)
 </script>
 
 <template>
@@ -180,6 +397,51 @@ const {
                         :loading="assignSubmitting"
                         @click="handleSendAssign"
                     />
+                </div>
+            </div>
+
+            <div class="assign-institution-section">
+                <h2 class="section-title">Perduoti į GIS</h2>
+                <div v-if="gisAvailable" class="gis-transfer-card">
+                    <p class="gis-transfer-text">
+                        GIS būsena:
+                        <strong>{{ gisStatusLabel(gisTransfer?.send_status) }}</strong>
+                    </p>
+                    <p v-if="gisTransfer?.external_object_id" class="gis-transfer-text">
+                        Išorinis objekto ID: {{ gisTransfer.external_object_id }}
+                    </p>
+                    <p v-if="gisTransfer?.external_global_id" class="gis-transfer-text">
+                        GlobalID: {{ gisTransfer.external_global_id }}
+                    </p>
+                    <p v-if="gisTransfer?.last_error" class="gis-transfer-error">
+                        Paskutinė klaida: {{ gisTransfer.last_error }}
+                    </p>
+                    <p
+                        v-if="gisTransfer?.attachment_transfers?.length"
+                        class="gis-transfer-text"
+                    >
+                        Priedų įrašų: {{ gisTransfer.attachment_transfers.length }}
+                    </p>
+                    <div class="btn-row">
+                        <AppButton
+                            :text="gisTransfer?.external_object_id ? 'Siųsti priedus dar kartą' : 'Siųsti į GIS'"
+                            variant="primary"
+                            as-button
+                            :loading="gisSubmitting"
+                            @click="handleSendToGis"
+                        />
+                        <AppButton
+                            v-if="gisTransfer?.external_object_id"
+                            text="Patikrinti GIS statusą"
+                            variant="secondary"
+                            as-button
+                            :loading="gisPullSubmitting"
+                            @click="handlePullFromGis"
+                        />
+                    </div>
+                </div>
+                <div v-else class="assign-empty-state assign-empty-state--left">
+                    <span class="assign-empty-text">Šiai įstaigai GIS siuntimas dar nesukonfigūruotas.</span>
                 </div>
             </div>
 
@@ -444,9 +706,39 @@ const {
     text-align: center;
 }
 
+.assign-empty-state--left {
+    justify-content: flex-start;
+    text-align: left;
+    padding: 0;
+}
+
 .assign-empty-text {
     font-size: 16px;
     color: #666;
+}
+
+.gis-transfer-card {
+    width: 100%;
+    max-width: 720px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 18px 20px;
+    border-radius: 12px;
+    border: 1px solid var(--color-border, #e5e5e5);
+    background: color-mix(in srgb, var(--color-primary, #1946A0) 5%, white);
+    box-sizing: border-box;
+}
+
+.gis-transfer-text,
+.gis-transfer-error {
+    margin: 0;
+    font-size: 15px;
+    line-height: 1.4;
+}
+
+.gis-transfer-error {
+    color: #b42318;
 }
 
 .field-fixed-width {
