@@ -11,6 +11,7 @@ use App\Models\User;
 use App\Models\UserRole;
 use App\Services\ProblemHttpSupport;
 use App\Services\ProblemMergeContextService;
+use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -24,11 +25,12 @@ class ReporterProblemApiController extends Controller
     public function index(Request $request): JsonResponse
     {
         $reporter = $this->authenticatedReporterOrAbort($request);
+        $category = $this->normalizeCategoryFilter($request->query('category'));
 
         $filters = [
             'search' => $request->query('search'),
             'report_number' => $request->query('report_number'),
-            'category' => $request->query('category'),
+            'category' => $category,
             'date_from' => $request->query('date_from'),
             'date_to' => $request->query('date_to'),
         ];
@@ -58,12 +60,18 @@ class ReporterProblemApiController extends Controller
     public function statistics(Request $request): JsonResponse
     {
         $reporter = $this->authenticatedReporterOrAbort($request);
+        [$dateFrom, $dateTo] = $this->normalizeDateRangeFromPeriod(
+            $request->query('period'),
+            $request->query('date_from'),
+            $request->query('date_to')
+        );
+        $category = $this->normalizeCategoryFilter($request->query('category'));
 
         $filters = [
             'period' => $request->query('period'),
-            'category' => $request->query('category'),
-            'date_from' => $request->query('date_from'),
-            'date_to' => $request->query('date_to'),
+            'category' => $category,
+            'date_from' => $dateFrom,
+            'date_to' => $dateTo,
         ];
 
         $problems = $this->problemHttpSupport->reporterProblemsFlatOrderedForList($reporter, $filters);
@@ -179,5 +187,39 @@ class ReporterProblemApiController extends Controller
         }
 
         return $user;
+    }
+
+    private function normalizeCategoryFilter(mixed $category): ?string
+    {
+        $value = is_string($category) ? trim($category) : '';
+
+        return ($value === '' || strtolower($value) === 'all') ? null : $value;
+    }
+
+    private function normalizeDateRangeFromPeriod(mixed $period, mixed $dateFrom, mixed $dateTo): array
+    {
+        $from = is_string($dateFrom) ? trim($dateFrom) : '';
+        $to = is_string($dateTo) ? trim($dateTo) : '';
+
+        if ($from !== '' || $to !== '') {
+            return [$from !== '' ? $from : null, $to !== '' ? $to : null];
+        }
+
+        $periodValue = is_string($period) ? trim($period) : '';
+        if ($periodValue === '' || $periodValue === 'all') {
+            return [null, null];
+        }
+
+        $today = Carbon::today();
+
+        return match ($periodValue) {
+            '6' => [$today->copy()->subMonths(6)->format('Y-m-d'), $today->format('Y-m-d')],
+            '12' => [$today->copy()->subMonths(12)->format('Y-m-d'), $today->format('Y-m-d')],
+            'year' => [$today->copy()->startOfYear()->format('Y-m-d'), $today->format('Y-m-d')],
+            'week' => [$today->copy()->subDays(7)->format('Y-m-d'), $today->format('Y-m-d')],
+            'month' => [$today->copy()->subMonth()->format('Y-m-d'), $today->format('Y-m-d')],
+            'quarter' => [$today->copy()->subMonths(3)->format('Y-m-d'), $today->format('Y-m-d')],
+            default => [null, null],
+        };
     }
 }

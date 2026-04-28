@@ -11,7 +11,10 @@ use App\Models\ProblemWatch;
 use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Arr;
 use Illuminate\Support\Collection;
+use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -72,7 +75,7 @@ class ProblemHttpSupport
             'showWatchToggle' => $showWatchToggle,
             'isWatched' => $isWatched,
             'watchProblemId' => $watchProblemId,
-            'fileUpload' => FileUploadSettings::getChannelForClient(FileUploadSettings::CHANNEL_WEB),
+            'fileUpload' => FileUploadSettings::getReviewProgressChannelForClient(),
             'authUserId' => $user?->id,
             'isSystemAdmin' => $user ? $user->canAccessAdmin() : false,
         ]);
@@ -120,25 +123,45 @@ class ProblemHttpSupport
             ->exists();
     }
 
-    public function reporterMergeRootIdsForFilters(User $user, array $filters): Collection
+    public function reporterMergeRootIdsForFilters(User $user, array $filters, bool $includeAllStatuses = false): Collection
     {
         $fromMainFilter = Problem::query()
-            ->forReporter($user->id)
+            ->notArchived()
+            ->whereNull('merged_into_problem_id')
+            ->where(function ($q) use ($user) {
+                $q->where('reported_by_user_id', $user->id)
+                    ->orWhereHas('mergedProblems', fn ($q2) => $q2->where('reported_by_user_id', $user->id));
+            })
+            ->when(
+                ! $includeAllStatuses,
+                fn ($query) => $query->whereIn('status', ProblemStatus::reporterOwnedProblemsQueryStatusValues())
+            )
             ->filtered($filters)
             ->pluck('id');
 
         $childMatchRootIds = collect(Problem::mergeGroupRootIdsFromMatchingMergedChildren($filters));
 
-        $fromChildFilter = $childMatchRootIds->filter(
-            fn ($id) => Problem::query()->forReporter($user->id)->whereKey((int) $id)->exists()
+        $fromChildFilter = $childMatchRootIds->filter(fn ($id) => Problem::query()
+            ->notArchived()
+            ->whereNull('merged_into_problem_id')
+            ->whereKey((int) $id)
+            ->where(function ($q) use ($user) {
+                $q->where('reported_by_user_id', $user->id)
+                    ->orWhereHas('mergedProblems', fn ($q2) => $q2->where('reported_by_user_id', $user->id));
+            })
+            ->when(
+                ! $includeAllStatuses,
+                fn ($query) => $query->whereIn('status', ProblemStatus::reporterOwnedProblemsQueryStatusValues())
+            )
+            ->exists()
         );
 
         return $fromMainFilter->merge($fromChildFilter)->unique()->values();
     }
 
-    public function reporterProblemsFlatOrderedForList(User $user, array $filters): Collection
+    public function reporterProblemsFlatOrderedForList(User $user, array $filters, bool $includeAllStatuses = false): Collection
     {
-        $rootIds = $this->reporterMergeRootIdsForFilters($user, $filters);
+        $rootIds = $this->reporterMergeRootIdsForFilters($user, $filters, $includeAllStatuses);
         if ($rootIds->isEmpty()) {
             return collect();
         }
@@ -151,7 +174,10 @@ class ProblemHttpSupport
                     ->orWhereIn('merged_into_problem_id', $rootIdArr);
             })
             ->notArchived()
-            ->whereIn('status', ProblemStatus::reporterOwnedProblemsQueryStatusValues())
+            ->when(
+                ! $includeAllStatuses,
+                fn ($query) => $query->whereIn('status', ProblemStatus::reporterOwnedProblemsQueryStatusValues())
+            )
             ->get([
                 'id',
                 'internal_number',
@@ -243,11 +269,158 @@ class ProblemHttpSupport
 
     public function normalizedUploadedFiles(Request $request): array
     {
-        $uploadedFiles = $request->file('files');
+        $primary = $this->flattenUploadedFileInput(
+            $request->file('files')
+            ?? $request->file('files.*')
+            ?? $request->file('files[]')
+        );
+
+        if ($primary !== []) {
+            return $primary;
+        }
+
+        return $this->flattenUploadedFilesFromAllFiles($request);
+    }
+
+    public function uploadedFilesForStorage(Request $request): array
+    {
+        $multipart = $this->normalizedUploadedFiles($request);
+        if ($multipart !== []) {
+            return $multipart;
+        }
+
+        return $this->uploadedFilesFromJsonFilesField($request->input('files'));
+    }
+
+    private function uploadedFilesFromJsonFilesField(mixed $files): array
+    {
+        if ($files === null || $files === [] || $files === '') {
+            return [];
+        }
+
+        if (! is_array($files)) {
+            throw ValidationException::withMessages([
+                'files' => ['Netinkami priedai.'],
+            ]);
+        }
+
+        $out = [];
+        foreach (array_values($files) as $i => $item) {
+            if (is_string($item)) {
+                $out[] = $this->base64ToUploadedFile($item, 'file_'.$i);
+
+                continue;
+            }
+
+            if (is_array($item)) {
+                $b64 = $item['content_base64'] ?? $item['data'] ?? null;
+                if (! is_string($b64)) {
+                    throw ValidationException::withMessages([
+                        'files' => ['Netinkami priedai.'],
+                    ]);
+                }
+                $name = $item['original_name'] ?? $item['name'] ?? 'file_'.$i;
+                $name = is_string($name) ? basename($name) : 'file_'.$i;
+                if ($name === '' || $name === '.' || $name === '..') {
+                    $name = 'file_'.$i;
+                }
+                $out[] = $this->base64ToUploadedFile($b64, $name);
+
+                continue;
+            }
+
+            throw ValidationException::withMessages([
+                'files' => ['Netinkami priedai.'],
+            ]);
+        }
+
+        return $out;
+    }
+
+    private function base64ToUploadedFile(string $base64, string $clientFilename): UploadedFile
+    {
+        $trimmed = preg_replace('#^data:[^;]+;base64,#', '', $base64) ?? $base64;
+        $binary = base64_decode($trimmed, true);
+        if ($binary === false) {
+            throw ValidationException::withMessages([
+                'files' => ['Netinkamas base64 kodavimas.'],
+            ]);
+        }
+
+        $maxBytes = (int) min(40 * 1024 * 1024, UploadedFile::getMaxFilesize() ?: 12 * 1024 * 1024);
+        if (strlen($binary) > $maxBytes) {
+            throw ValidationException::withMessages([
+                'files' => ['Failas per didelis.'],
+            ]);
+        }
+
+        $tmp = tempnam(sys_get_temp_dir(), 'jsonup');
+        if ($tmp === false) {
+            throw ValidationException::withMessages([
+                'files' => ['Nepavyko apdoroti failo.'],
+            ]);
+        }
+
+        if (file_put_contents($tmp, $binary) === false) {
+            @unlink($tmp);
+            throw ValidationException::withMessages([
+                'files' => ['Nepavyko apdoroti failo.'],
+            ]);
+        }
+
+        $mime = @mime_content_type($tmp) ?: 'application/octet-stream';
+
+        return new UploadedFile($tmp, $clientFilename, $mime, null, true);
+    }
+
+    private function flattenUploadedFileInput(mixed $uploadedFiles): array
+    {
         if ($uploadedFiles === null) {
             return [];
         }
 
-        return is_array($uploadedFiles) ? $uploadedFiles : [$uploadedFiles];
+        $flat = Arr::flatten(is_array($uploadedFiles) ? $uploadedFiles : [$uploadedFiles]);
+
+        return array_values(array_filter($flat, fn ($file) => $file instanceof UploadedFile));
+    }
+
+    private function flattenUploadedFilesFromAllFiles(Request $request): array
+    {
+        $out = [];
+        $seen = [];
+        foreach ($request->allFiles() as $key => $value) {
+            if (! $this->isMultipartFilesFieldKey((string) $key)) {
+                continue;
+            }
+            $flat = Arr::flatten(is_array($value) ? $value : [$value]);
+            foreach ($flat as $item) {
+                if (! $item instanceof UploadedFile) {
+                    continue;
+                }
+                $oid = spl_object_id($item);
+                if (isset($seen[$oid])) {
+                    continue;
+                }
+                $seen[$oid] = true;
+                $out[] = $item;
+            }
+        }
+
+        return $out;
+    }
+
+    public function isMultipartFilesFieldKey(string $key): bool
+    {
+        if ($key === 'files' || $key === 'files[]') {
+            return true;
+        }
+        if (str_starts_with($key, 'files.')) {
+            return true;
+        }
+        if (preg_match('/^files\[\d+\]$/', $key) === 1) {
+            return true;
+        }
+
+        return preg_match('/^files_\d+$/', $key) === 1;
     }
 }

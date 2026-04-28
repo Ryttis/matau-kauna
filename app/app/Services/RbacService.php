@@ -46,8 +46,8 @@ class RbacService
             'institution_id' => $data['institution_id'] ?? null,
         ]);
 
-        if (! empty($data['role_ids'])) {
-            $user->roles()->sync($data['role_ids']);
+        if (! empty($data['role_id'])) {
+            $user->roles()->sync([$data['role_id']]);
         }
 
         $this->ensureEmployeeForInstitution($user);

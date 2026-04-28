@@ -21,12 +21,13 @@ class ProblemDashboardQueryService
         return [
             'reporterView' => true,
             'onlyMine' => $onlyMine,
-            'problems' => $this->mapService->getPublicProblemsForMap($onlyMine ? $user->id : null, $user),
+            'problems' => $this->mapService->getPublicProblemsForMap(null, $user, true),
         ];
     }
 
-    public function paginatedStaffProblems(User $user, array $filters, string $sortBy, string $sortDirection): LengthAwarePaginator
+    public function paginatedStaffProblems(User $user, array $filters, string $sortBy, string $sortDirection, ?int $perPage = null): LengthAwarePaginator
     {
+        $pageSize = $perPage === null ? 6 : min(max($perPage, 1), 100);
         $employeeId = $this->scopeService->employeeIdForUser($user);
         $mergeRootIdsFromChildMatch = Problem::mergeGroupRootIdsFromMatchingMergedChildren($filters);
 
@@ -63,7 +64,7 @@ class ProblemDashboardQueryService
             })
             ->sorted($sortBy, $sortDirection)
             ->with('mergedProblems')
-            ->paginate(6)
+            ->paginate($pageSize)
             ->withQueryString();
     }
 

@@ -13,7 +13,6 @@ class FileUploadSettingsController extends Controller
     {
         return response()->json([
             'config' => FileUploadSettings::getFull(),
-            ...FileUploadSettings::phpIniLimits(),
         ]);
     }
 

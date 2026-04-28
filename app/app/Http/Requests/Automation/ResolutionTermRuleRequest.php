@@ -15,7 +15,7 @@ class ResolutionTermRuleRequest extends FormRequest
     {
         return [
             'days' => ['required', 'integer', 'min:1', 'max:365'],
-            'institution_id' => ['nullable', 'integer', 'exists:institutions,id'],
+            'institution_id' => ['required', 'integer', 'exists:institutions,id'],
             'category' => ['nullable', 'string', 'max:100'],
             'problem_type_id' => ['nullable', 'integer', 'exists:classifier_values,id'],
             'problem_nature_id' => ['nullable', 'integer', 'exists:classifier_values,id'],

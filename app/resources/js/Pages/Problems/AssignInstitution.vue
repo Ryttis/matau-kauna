@@ -1,7 +1,5 @@
 <script setup>
-import { ref, watch, computed } from 'vue'
-import { Head, router } from '@inertiajs/vue3'
-import axios from 'axios'
+import { Head } from '@inertiajs/vue3'
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue'
 import AppButton from '@/Components/App/AppButton.vue'
 import AppInput from '@/Components/App/AppInput.vue'
@@ -10,12 +8,7 @@ import AppBackButton from '@/Components/App/AppBackButton.vue'
 import SearchableSelect from '@/Components/App/SearchableSelect.vue'
 import SuccessModal from '@/Components/App/SuccessModal.vue'
 import InstitutionTeamMembersModal from '@/Components/InstitutionTeams/InstitutionTeamMembersModal.vue'
-import { useAuth } from '@/composables/useAuth'
-import { useSuccessModal } from '@/composables/useSuccessModal'
-import { settingsApi } from '@/constants/api/settingsApi'
-
-const { canSeeInstitutionAdminButtons } = useAuth()
-const { showSuccessModal, successMessage, closeSuccessModal, showWithMessage } = useSuccessModal()
+import { useAssignInstitutionPage } from '@/composables/useAssignInstitutionPage'
 
 const props = defineProps({
     problem: Object,
@@ -40,6 +33,13 @@ const props = defineProps({
         default: null,
     },
 })
+
+const {
+    canSeeInstitutionAdminButtons,
+    showSuccessModal,
+    successMessage,
+    closeSuccessModal,
+} = useAssignInstitutionPage(props)
 
 const selectedEmployeeIds = ref([])
 const selectedTeamIds = ref([])
@@ -209,18 +209,18 @@ const handleSendEmail = () => {
 
 const gisStatusLabel = (status) => {
     switch (status) {
-    case 'pending':
-        return 'Ruošiama'
-    case 'feature_created':
-        return 'Objektas sukurtas'
-    case 'sent':
-        return 'Išsiųsta'
-    case 'attachment_failed':
-        return 'Priedų klaida'
-    case 'failed':
-        return 'Klaida'
-    default:
-        return status || 'Nėra'
+        case 'pending':
+            return 'Ruošiama'
+        case 'feature_created':
+            return 'Objektas sukurtas'
+        case 'sent':
+            return 'Išsiųsta'
+        case 'attachment_failed':
+            return 'Priedų klaida'
+        case 'failed':
+            return 'Klaida'
+        default:
+            return status || 'Nėra'
     }
 }
 

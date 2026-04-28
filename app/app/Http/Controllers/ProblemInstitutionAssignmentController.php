@@ -4,13 +4,13 @@ namespace App\Http\Controllers;
 
 use App\Enums\ProblemStatus;
 use App\Models\Employee;
-use App\Models\Institution;
 use App\Models\InstitutionTeam;
 use App\Models\Problem;
 use App\Models\User;
 use App\Models\UserRole;
 use App\Services\ArcGisProblemTransferService;
 use App\Services\ProblemAssignmentNotifier;
+use App\Services\ProblemInstitutionAssignmentPickerService;
 use App\Services\ProblemScopeService;
 use App\Services\TransactionalMail;
 use Illuminate\Http\RedirectResponse;
@@ -24,6 +24,7 @@ class ProblemInstitutionAssignmentController extends Controller
     public function __construct(
         private ProblemScopeService $scopeService,
         private ProblemAssignmentNotifier $assignmentNotifier,
+        private ProblemInstitutionAssignmentPickerService $assignmentPickerService,
         private ArcGisProblemTransferService $arcGisProblemTransferService,
     ) {}
 
@@ -39,8 +40,6 @@ class ProblemInstitutionAssignmentController extends Controller
             return redirect()->route('problems.show', $problem)->with('error', 'Išspręstos problemos priskirti negalima.');
         }
 
-        $employees = [];
-        $teams = [];
         if ($user->institution_id) {
             $institutionUsers = User::where('institution_id', $user->institution_id)
                 ->whereHas('roles.permissions', fn ($query) => $query->where('permission', 'issues.assign'))
@@ -58,50 +57,25 @@ class ProblemInstitutionAssignmentController extends Controller
                     ]
                 );
             }
-
-            $employees = Employee::where('institution_id', $user->institution_id)
-                ->where('email', '!=', $user->email)
-                ->orderBy('name')
-                ->orderBy('surname')
-                ->get(['id', 'name', 'surname', 'email'])
-                ->map(fn ($employee) => [
-                    'id' => $employee->id,
-                    'name' => trim($employee->name.' '.$employee->surname) ?: $employee->email,
-                    'email' => $employee->email,
-                ])
-                ->values()
-                ->all();
-
-            $teams = InstitutionTeam::query()
-                ->where('institution_id', $user->institution_id)
-                ->withCount('employees')
-                ->orderBy('name')
-                ->get()
-                ->map(fn (InstitutionTeam $team) => [
-                    'id' => $team->id,
-                    'name' => $team->name,
-                    'members_count' => (int) $team->employees_count,
-                ])
-                ->values()
-                ->all();
         }
 
         $institutionsQuery = Institution::query()->notArchived()->orderBy('name');
         if ($this->scopeService->isInstitutionScoped($user)) {
             $institutionsQuery->where('id', '!=', $user->institution_id);
         }
-        $institutions = $institutionsQuery->get(['id', 'name'])->map(fn ($i) => ['id' => $i->id, 'name' => $i->name]);
 
         $problem->loadMissing([
             'institution.gisConfig',
             'gisTransfer.attachmentTransfers.attachment',
         ]);
 
+        $picker = $this->assignmentPickerService->pickerDataFor($user);
+
         return Inertia::render('Problems/AssignInstitution', [
             'problem' => $problem,
-            'employees' => $employees,
-            'teams' => $teams,
-            'institutions' => $institutions,
+            'employees' => $picker['employees'],
+            'teams' => $picker['teams'],
+            'institutions' => $picker['institutions'],
             'gisAvailable' => (bool) $problem->institution?->gisConfig?->enabled,
             'gisTransfer' => $problem->gisTransfer?->loadMissing('attachmentTransfers.attachment'),
         ]);
@@ -137,8 +111,16 @@ class ProblemInstitutionAssignmentController extends Controller
             : null;
 
         if ($employeeId !== null) {
+            $assignableEmails = User::queryAssignableInstitutionEmployeeUsers(
+                (int) $user->institution_id,
+                $user->email,
+            )->pluck('email');
+            if ($assignableEmails->isEmpty()) {
+                abort(403);
+            }
             $employee = Employee::where('id', $employeeId)
                 ->where('institution_id', $user->institution_id)
+                ->whereIn('email', $assignableEmails)
                 ->first();
 
             if (! $employee) {
@@ -168,8 +150,15 @@ class ProblemInstitutionAssignmentController extends Controller
         if (! $team) {
             abort(403);
         }
-        if ($team->employees->isEmpty()) {
-            return redirect()->back()->with('error', 'Komanda neturi narių.');
+        $assignableEmails = User::queryAssignableInstitutionEmployeeUsers(
+            (int) $user->institution_id,
+            $user->email,
+        )->pluck('email');
+        $teamAssignees = $assignableEmails->isEmpty()
+            ? collect()
+            : $team->employees->whereIn('email', $assignableEmails);
+        if ($teamAssignees->isEmpty()) {
+            return redirect()->back()->with('error', 'Komanda neturi priskirtinų darbuotojų narių.');
         }
 
         $problem->update([
@@ -178,7 +167,7 @@ class ProblemInstitutionAssignmentController extends Controller
             'completion_deadline' => $deadline,
         ]);
 
-        foreach ($team->employees as $employee) {
+        foreach ($teamAssignees as $employee) {
             if ($employee->email !== $user->email) {
                 $this->assignmentNotifier->notifyEmployeeOfAssignment($problem->fresh(), $employee);
             }
@@ -210,6 +199,13 @@ class ProblemInstitutionAssignmentController extends Controller
                 Rule::exists('employees', 'email')->where('institution_id', $user->institution_id),
             ],
         ]);
+
+        $assignable = User::queryAssignableInstitutionEmployeeUsers((int) $user->institution_id, $user->email)
+            ->where('email', $validated['email'])
+            ->exists();
+        if (! $assignable) {
+            return redirect()->back()->with('error', 'Šis el. paštas nepriskirtas Įstaigos darbuotojo vaidmeniui šioje įstaigoje.');
+        }
 
         $mail = $this->assignmentNotifier->buildInstitutionProblemShareEmail($problem);
         TransactionalMail::send(

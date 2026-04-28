@@ -268,12 +268,9 @@ class ViispAuthController extends Controller
         ]);
         $this->auditLogService->logLogin($user, $request);
 
-        $roles = $user->roles()->get();
-        if ($roles->count() > 1) {
-            return redirect()->route('role.select');
-        }
-        if ($roles->count() === 1) {
-            $request->session()->put('active_role_id', $roles->first()->id);
+        $role = $user->roles()->first();
+        if ($role) {
+            $request->session()->put('active_role_id', $role->id);
         }
 
         return redirect()->intended(route('dashboard', absolute: false));

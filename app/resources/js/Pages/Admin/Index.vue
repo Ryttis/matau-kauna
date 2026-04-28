@@ -99,3 +99,7 @@ const activeComponent = computed(() => {
 }
 
 </style>
+
+<style>
+@import '@/Components/Admin/admin-tab-intro.css';
+</style>

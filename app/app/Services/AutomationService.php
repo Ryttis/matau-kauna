@@ -7,9 +7,11 @@ use App\Models\ClassifierValue;
 use App\Models\InactiveReporterDeletionSetting;
 use App\Models\Institution;
 use App\Models\LoginLog;
+use App\Models\Problem;
 use App\Models\ProblemAutoAssignmentRule;
 use App\Models\ProblemAutoPublishRule;
 use App\Models\ProblemResolutionTermRule;
+use App\Models\ResolvedProblemPrivacySetting;
 use App\Models\User;
 use Illuminate\Support\Carbon;
 
@@ -76,6 +78,7 @@ class AutomationService
             ->all();
 
         $inactiveReporterSetting = InactiveReporterDeletionSetting::firstOrCreateDefault();
+        $resolvedProblemPrivacySetting = ResolvedProblemPrivacySetting::firstOrCreateDefault();
 
         return [
             'rules' => $rules,
@@ -95,6 +98,15 @@ class AutomationService
                 'inactivity_days_default' => InactiveReporterDeletionSetting::INACTIVITY_DAYS_DEFAULT,
             ],
             'inactiveReportersList' => $this->getInactiveReportersList(),
+            'resolvedProblemPrivacySetting' => [
+                'id' => $resolvedProblemPrivacySetting->id,
+                'days_after_resolution' => $resolvedProblemPrivacySetting->days_after_resolution,
+                'is_active' => $resolvedProblemPrivacySetting->is_active,
+                'days_min' => ResolvedProblemPrivacySetting::DAYS_AFTER_RESOLUTION_MIN,
+                'days_max' => ResolvedProblemPrivacySetting::DAYS_AFTER_RESOLUTION_MAX,
+                'days_default' => ResolvedProblemPrivacySetting::DAYS_AFTER_RESOLUTION_DEFAULT,
+            ],
+            'resolvedPublicProblemsList' => $this->getResolvedPublicProblemsList(),
         ];
     }
 
@@ -138,6 +150,41 @@ class AutomationService
         }
 
         usort($list, fn ($a, $b) => ($b['inactive_days'] ?? -1) <=> ($a['inactive_days'] ?? -1));
+
+        return $list;
+    }
+
+    public function getResolvedPublicProblemsList(): array
+    {
+        $problems = Problem::query()
+            ->resolvedPublicRoot()
+            ->orderByDesc('status_updated_at')
+            ->get(['id', 'internal_number', 'address', 'description', 'status_updated_at']);
+
+        $list = [];
+        foreach ($problems as $problem) {
+            $resolvedAt = $problem->status_updated_at;
+
+            $list[] = [
+                'id' => $problem->id,
+                'internal_number' => $problem->internal_number,
+                'address' => $problem->address,
+                'description_preview' => Problem::descriptionPreview(
+                    $problem->description,
+                    Problem::AUTOMATION_RESOLVED_SEARCH_PREVIEW
+                ),
+                'problem_line' => $problem->automationResolvedListingLine(),
+                'resolved_at' => $resolvedAt?->format('Y-m-d H:i'),
+                'resolved_at_ts' => $resolvedAt?->timestamp,
+            ];
+        }
+
+        usort($list, function ($a, $b) {
+            $ta = $a['resolved_at_ts'] ?? 0;
+            $tb = $b['resolved_at_ts'] ?? 0;
+
+            return $ta <=> $tb;
+        });
 
         return $list;
     }

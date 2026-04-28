@@ -56,13 +56,6 @@ class ContentVersionController extends Controller
 
     public function update(ContentVersionUpdateRequest $request, ContentVersion $contentVersion): JsonResponse
     {
-        if ($contentVersion->is_published) {
-            $msg = 'Publikuotos versijos redaguoti negalima.';
-            $this->auditLogService->logUserAction($request->user(), 'content_version.update', 'ContentVersion', $contentVersion->id, AuditLogResult::Error, $msg);
-
-            return response()->json(['message' => $msg], 422);
-        }
-
         try {
             $data = $request->validated();
             $contentVersion->update([

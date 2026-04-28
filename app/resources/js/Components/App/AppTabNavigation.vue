@@ -1,5 +1,5 @@
 <script setup>
-const props = defineProps({
+defineProps({
     tabs: {
         type: Array,
         required: true,
@@ -57,7 +57,9 @@ const setTab = (key) => {
     cursor: pointer;
     color: #1946A0;
     font-size: var(--admin-font-size, 14px);
-    font-weight: 500;
+    font-family: inherit;
+    font-weight: 400;
+    line-height: 1.35;
     text-decoration: none;
 }
 
@@ -69,6 +71,7 @@ const setTab = (key) => {
 .app-tab-navigation .nav-item.active {
     background-color: #1946A0;
     color: #ffffff;
+    font-weight: 400;
 }
 
 @media (min-width: 1024px) {

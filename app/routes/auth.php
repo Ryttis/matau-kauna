@@ -4,6 +4,7 @@ use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Http\Controllers\Auth\InvitationRegistrationController;
 use App\Http\Controllers\Auth\PasswordResetController;
 use App\Http\Controllers\Auth\PasswordResetLinkController;
+use App\Http\Controllers\Auth\TwoFactorChallengeController;
 use App\Http\Controllers\Auth\VerifyEmailController;
 use App\Http\Controllers\Auth\ViispAuthController;
 use Illuminate\Http\Request;
@@ -15,6 +16,12 @@ Route::get('login', [AuthenticatedSessionController::class, 'create'])
 Route::post('login', [AuthenticatedSessionController::class, 'store']);
 
 Route::middleware('guest')->group(function () {
+    Route::get('two-factor-challenge', [TwoFactorChallengeController::class, 'create'])
+        ->name('two-factor.challenge');
+    Route::post('two-factor-challenge', [TwoFactorChallengeController::class, 'store'])
+        ->name('two-factor.challenge.store');
+    Route::post('two-factor-challenge/cancel', [TwoFactorChallengeController::class, 'destroy'])
+        ->name('two-factor.challenge.cancel');
 
     Route::get('viisp/redirect', [ViispAuthController::class, 'redirectToViisp'])
         ->name('viisp.redirect');
@@ -69,12 +76,8 @@ Route::middleware('auth')->group(function () {
         return redirect()
             ->route('verification.notice')
             ->with('status', __('Patvirtinimo nuoroda išsiųsta. Patikrinkite el. paštą.'));
-    })->middleware('throttle:12,1')->name('verification.send');
+    })->middleware('throttle:1,2')->name('verification.send');
 
-    Route::get('role-select', [\App\Http\Controllers\Auth\RoleSelectController::class, 'show'])
-        ->name('role.select');
-    Route::post('role-select', [\App\Http\Controllers\Auth\RoleSelectController::class, 'store'])
-        ->name('role.select.store');
     Route::post('logout', [AuthenticatedSessionController::class, 'destroy'])
         ->name('logout');
 });

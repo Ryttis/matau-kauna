@@ -73,44 +73,50 @@ class ProblemAdminAssignController extends Controller
             return redirect()->back()->with('error', 'Išspręstų problemų negalima priskirti.');
         }
 
-        $update = [
-            'institution_id' => $validated['institution_id'] ?? null,
-        ];
+        $newInstitutionId = $validated['institution_id'] ?? null;
+        $newStatus = $validated['status'] ?? null;
+        $rootIdsMap = ! empty($newStatus)
+            ? Problem::rootIdsMapFromProblemIds($validated['problem_ids'])
+            : [];
+        $oldByMain = $rootIdsMap !== []
+            ? Problem::statusesByRootId($rootIdsMap)
+            : [];
 
-        if (empty($validated['institution_id'])) {
-            $update['assigned_employee_id'] = null;
-            $update['assigned_institution_team_id'] = null;
+        foreach ($problemsToUpdate as $problem) {
+            $attrs = ['institution_id' => $newInstitutionId];
+            if ($newInstitutionId === null) {
+                $attrs['assigned_employee_id'] = null;
+                $attrs['assigned_institution_team_id'] = null;
+            } elseif ((int) ($problem->institution_id ?? 0) !== (int) $newInstitutionId) {
+                $attrs['assigned_employee_id'] = null;
+                $attrs['assigned_institution_team_id'] = null;
+            }
+            if (! empty($newStatus)) {
+                $attrs['status'] = $newStatus;
+                $attrs['status_updated_at'] = now();
+            }
+            $problem->update($attrs);
         }
 
-        if (! empty($validated['status'])) {
-            $update['status'] = $validated['status'];
-            $update['status_updated_at'] = now();
-
-            $rootIdsMap = Problem::rootIdsMapFromProblemIds($validated['problem_ids']);
-            $oldByMain = Problem::statusesByRootId($rootIdsMap);
-
-            Problem::whereIn('id', $validated['problem_ids'])->update($update);
-
-            $this->reporterStatusNotifier->notifyRootsAfterStatusChange($oldByMain, $validated['status']);
+        if (! empty($newStatus)) {
+            $this->reporterStatusNotifier->notifyRootsAfterStatusChange($oldByMain, $newStatus);
 
             foreach (array_keys($rootIdsMap) as $rootId) {
                 $rootProblem = Problem::find($rootId);
                 if ($rootProblem) {
-                    $this->reviewHistoryService->logStatusChangeEntry($rootProblem, $user, $validated['status']);
+                    $this->reviewHistoryService->logStatusChangeEntry($rootProblem, $user, $newStatus);
                 }
             }
-        } else {
-            Problem::whereIn('id', $validated['problem_ids'])->update($update);
         }
 
-        if (! empty($validated['institution_id'])) {
-            foreach (Problem::whereIn('id', $validated['problem_ids'])->get() as $p) {
+        if (! empty($newInstitutionId)) {
+            foreach (Problem::query()->whereIn('id', $validated['problem_ids'])->get() as $p) {
                 $this->resolutionTermService->applyRules($p);
             }
-            $this->assignmentNotifier->notifyInstitutionOfAssignment($validated['problem_ids'], $validated['institution_id']);
+            $this->assignmentNotifier->notifyInstitutionOfAssignment($validated['problem_ids'], (int) $newInstitutionId);
         }
 
-        $message = empty($validated['institution_id'])
+        $message = empty($newInstitutionId)
             ? 'Problemos atšauktos nuo įstaigos.'
             : 'Problemos priskirtos įstaigai.';
 

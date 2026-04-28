@@ -16,6 +16,10 @@ class ReporterFileUploadService
 
     private const VIDEO_MIMES = ['video/mp4', 'video/webm', 'video/quicktime'];
 
+    public function __construct(
+        private VideoUploadDurationValidator $videoDurationValidator,
+    ) {}
+
     public function validateAndStore(Problem $problem, array $files, string $channel, bool $appendToExisting = false, bool $photosOnly = false): array
     {
         $files = array_values(array_filter($files, fn ($f) => $f instanceof UploadedFile && $f->isValid()));
@@ -38,13 +42,9 @@ class ReporterFileUploadService
 
         $photoBase = 0;
         $videoBase = 0;
-        $totalKbBase = 0;
-
         if ($appendToExisting) {
             $photoBase = (int) $problem->attachments()->where('kind', 'photo')->count();
             $videoBase = (int) $problem->attachments()->where('kind', 'video')->count();
-            $bytesSum = (int) $problem->attachments()->sum('size_bytes');
-            $totalKbBase = (int) floor($bytesSum / 1024);
         }
 
         $items = [];
@@ -97,39 +97,32 @@ class ReporterFileUploadService
             ]);
         }
 
-        $totalKb = $totalKbBase;
         $created = [];
-        $maxTotalKb = (int) $config['max_total_upload_kb'];
 
         foreach ($items as $item) {
             $file = $item['file'];
             $kind = $item['kind'];
             $mime = $item['mime'];
 
-            $maxKb = $kind === 'photo'
-                ? (int) $config['max_photo_size_kb']
-                : (int) $config['max_video_size_kb'];
-
-            $sizeKb = (int) ceil($file->getSize() / 1024);
-
-            if ($sizeKb > $maxKb) {
-                throw ValidationException::withMessages([
-                    'files' => 'Failas per didelis.',
-                ]);
-            }
-
-            $totalKb += $sizeKb;
-
-            if ($totalKb > $maxTotalKb) {
-                throw ValidationException::withMessages([
-                    'files' => 'Failai kartu per dideli.',
-                ]);
+            if ($kind === 'photo') {
+                $maxPhotoKb = (int) ($config['max_photo_size_kb'] ?? 5120);
+                $sizeKb = (int) ceil($file->getSize() / 1024);
+                if ($sizeKb > $maxPhotoKb) {
+                    throw ValidationException::withMessages([
+                        'files' => 'Failas per didelis.',
+                    ]);
+                }
             }
 
             if (! $this->extensionMatchesKind($file, $kind)) {
                 throw ValidationException::withMessages([
                     'files' => 'Netinkamas failo formatas.',
                 ]);
+            }
+
+            if ($kind === 'video') {
+                $maxVideoSec = (int) ($config['max_video_duration_seconds'] ?? VideoUploadDurationValidator::ABSOLUTE_MAX_SECONDS);
+                $this->videoDurationValidator->assertWithinLimit($file, $maxVideoSec);
             }
 
             $created[] = $this->storeOne($problem, $file, $mime, $kind);

@@ -30,6 +30,7 @@ use Inertia\Inertia;
 
 Route::get('/', [GuestProblemController::class, 'landing'])->name('landing');
 
+Route::get('/taisykles', [\App\Http\Controllers\GuestContentController::class, 'terms'])->name('taisykles');
 Route::get('/faq', [\App\Http\Controllers\GuestContentController::class, 'faq'])->name('faq');
 Route::get('/privacy', [\App\Http\Controllers\GuestContentController::class, 'privacy'])->name('privacy');
 Route::get('/slapukai', [\App\Http\Controllers\GuestContentController::class, 'cookies'])->name('cookies');
@@ -66,6 +67,7 @@ Route::middleware(['auth', 'verified', 'reporter.terms'])->group(function () {
             Route::get('/automation', [AutomationController::class, 'index'])->name('automation.index');
             Route::post('/automation', [AutomationAssignmentRuleController::class, 'store'])->name('automation.store');
             Route::put('/automation/inactive-reporter-setting', [AutomationController::class, 'updateInactiveReporterSetting'])->name('automation.inactiveReporterSetting.update');
+            Route::put('/automation/resolved-problem-privacy-setting', [AutomationController::class, 'updateResolvedProblemPrivacySetting'])->name('automation.resolvedProblemPrivacySetting.update');
             Route::put('/automation/{rule}', [AutomationAssignmentRuleController::class, 'update'])->name('automation.update');
             Route::delete('/automation/{rule}', [AutomationAssignmentRuleController::class, 'destroy'])->name('automation.destroy');
             Route::post('/automation/publish-rules', [AutomationPublishRuleController::class, 'store'])->name('automation.publishRules.store');
@@ -97,7 +99,7 @@ Route::middleware(['auth', 'verified', 'reporter.terms'])->group(function () {
         Route::delete('/problems/{problem}', [ProblemController::class, 'destroy'])->name('problems.destroy');
         Route::patch('/problems/{problem}/status', [ProblemController::class, 'updateStatus'])->name('problems.updateStatus');
         Route::post('/problems/{problem}/review-progress', [ProblemReviewController::class, 'storeReviewProgress'])->name('problems.reviewProgress.store');
-        Route::put('/problems/{problem}/review-progress/{entry}', [ProblemReviewController::class, 'updateReviewProgress'])->name('problems.reviewProgress.update');
+        Route::match(['put', 'post'], '/problems/{problem}/review-progress/{entry}', [ProblemReviewController::class, 'updateReviewProgress'])->name('problems.reviewProgress.update');
         Route::delete('/problems/{problem}/review-progress/attachments/{attachment}', [ProblemReviewController::class, 'destroyReviewAttachment'])->name('problems.reviewProgress.attachments.destroy');
         Route::post('/problems/bulk-update-status', [ProblemController::class, 'bulkUpdateStatus'])->name('problems.bulkUpdateStatus');
         Route::post('/problems/bulk-destroy', [ProblemController::class, 'bulkDestroy'])->name('problems.bulkDestroy');
@@ -141,6 +143,11 @@ Route::middleware(['auth', 'verified', 'reporter.terms'])->group(function () {
             Route::put('/rbac/users/{user}', [RbacUserController::class, 'updateUser']);
             Route::delete('/rbac/users/{user}', [RbacUserController::class, 'deleteUser']);
             Route::post('/rbac/users/{user}/roles', [RbacUserController::class, 'syncUserRoles']);
+            Route::get('/rbac/users-2fa', [RbacUserController::class, 'usersTwoFactor']);
+            Route::post('/rbac/users/{user}/two-factor', [RbacUserController::class, 'updateUserTwoFactor']);
+            Route::post('/rbac/users/{user}/two-factor/reset-confirmation', [RbacUserController::class, 'resetUserTwoFactorConfirmation']);
+            Route::post('/rbac/users/two-factor/disable-all-staff', [RbacUserController::class, 'disableTwoFactorForAllStaff']);
+            Route::post('/rbac/users/two-factor/global', [RbacUserController::class, 'updateTwoFactorGlobal']);
 
             Route::get('/rbac/roles', [RbacRoleController::class, 'roles']);
             Route::post('/rbac/roles', [RbacRoleController::class, 'createRole']);

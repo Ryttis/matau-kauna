@@ -7,6 +7,7 @@ import { adminApi } from '@/constants/api/adminApi'
 import { adminRbacApi } from '@/constants/api/adminRbacApi'
 import { useSuccessModal } from '@/composables/useSuccessModal'
 import UsersTab from '@/Pages/Admin/Tabs/Rbac/UsersTab.vue'
+import TwoFactorTab from '@/Pages/Admin/Tabs/Rbac/TwoFactorTab.vue'
 import RolesTab from '@/Pages/Admin/Tabs/Rbac/RolesTab.vue'
 import PermissionsTab from '@/Pages/Admin/Tabs/Rbac/PermissionsTab.vue'
 import PasswordPolicyTab from '@/Pages/Admin/Tabs/Rbac/PasswordPolicyTab.vue'
@@ -22,6 +23,8 @@ const saving = ref(false)
 const errorMessage = ref('')
 
 const usersPage = ref(null)
+const users2faPage = ref(null)
+const twoFactorGlobalRequired = ref(true)
 const roles = ref([])
 const institutions = ref([])
 const permissions = ref([])
@@ -33,6 +36,12 @@ const clearError = () => {
 const loadUsers = async () => {
     const { data } = await axios.get(adminRbacApi.users)
     usersPage.value = data
+}
+
+const loadUsers2fa = async () => {
+    const { data } = await axios.get(adminRbacApi.users2fa)
+    users2faPage.value = data?.users ?? null
+    twoFactorGlobalRequired.value = !!data?.global_required
 }
 
 const loadRoles = async () => {
@@ -65,6 +74,10 @@ const setTab = async (tab) => {
             await Promise.all([loadUsers(), loadRoles(), loadInstitutions()])
         }
 
+        if (tab === 'two-factor') {
+            await loadUsers2fa()
+        }
+
         if (tab === 'roles') {
             await Promise.all([loadRoles(), loadPermissions()])
         }
@@ -72,7 +85,7 @@ const setTab = async (tab) => {
         if (tab === 'permissions') {
             await loadPermissions()
         }
-    } catch (e) {
+    } catch {
         errorMessage.value = 'Nepavyko užkrauti duomenų.'
     } finally {
         loading.value = false
@@ -86,9 +99,18 @@ onMounted(async () => {
 
 <template>
     <div>
+        <div class="admin-tab-intro">
+            <h2 class="admin-tab-intro__title">Naudotojai</h2>
+            <p class="admin-tab-intro__desc">
+                Tvarkykite paskyras, roles, teises, pakvietimus ir saugumo politikas vienoje administravimo srityje.
+            </p>
+        </div>
         <div class="subtabs">
             <button type="button" class="subtab" :class="{ active: activeSubTab === 'users' }" @click="setTab('users')">
                 Naudotojai
+            </button>
+            <button type="button" class="subtab" :class="{ active: activeSubTab === 'two-factor' }" @click="setTab('two-factor')">
+                2FA
             </button>
             <button type="button" class="subtab" :class="{ active: activeSubTab === 'roles' }" @click="setTab('roles')">
                 Rolės
@@ -122,6 +144,16 @@ onMounted(async () => {
                 :institutions="institutions"
                 @set-saving="saving = $event"
                 @refresh="setTab('users')"
+                @show-success="showWithMessage($event)"
+            />
+
+            <TwoFactorTab
+                v-else-if="activeSubTab === 'two-factor'"
+                :saving="saving"
+                :users-page="users2faPage"
+                :global-required="twoFactorGlobalRequired"
+                @set-saving="saving = $event"
+                @refresh="setTab('two-factor')"
                 @show-success="showWithMessage($event)"
             />
 

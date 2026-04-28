@@ -172,7 +172,12 @@ onMounted(load)
 
 <template>
     <div class="admin-archive">
-        <h2 class="title">Archyvavimas</h2>
+        <div class="admin-tab-intro">
+            <h2 class="admin-tab-intro__title">Archyvavimas</h2>
+            <p class="admin-tab-intro__desc">
+                Nustatykite, po kiek dienų archyvuoti įrašai bus galutinai ištrinti, ir peržiūrėkite archyvuotus duomenis.
+            </p>
+        </div>
 
         <p v-if="errorMessage" class="error">{{ errorMessage }}</p>
 
@@ -182,23 +187,34 @@ onMounted(load)
             @close="showSuccessModal = false; successMessage = ''"
         />
 
-        <div class="settings-block">
-            <h3 class="settings-title">Saugojimo terminas ({{ tabs.find(t => t.key === activeTab)?.label ?? activeTab }})</h3>
-            <div class="settings-row">
-                <label class="field-label">Saugoti dienų</label>
-                <AppInput v-model.number="settingsForm.retention_days" type="number" placeholder="365" class="input-narrow" />
-                <AppButton
-                    text="Išsaugoti"
-                    variant="primary"
-                    as-button
-                    :disabled="savingSettings"
-                    @click="saveSettings"
-                />
+        <div class="settings-card-wrap">
+            <div class="settings-card">
+                <h3 class="settings-card__title">Saugojimo terminas</h3>
+                <p class="settings-card__hint">
+                    Taikoma skyriui {{ tabs.find(t => t.key === activeTab)?.label ?? activeTab }}.
+                </p>
+                <div class="settings-card__row">
+                    <label class="settings-card__label" for="archive-retention-days">Saugoti dienų</label>
+                    <AppInput
+                        id="archive-retention-days"
+                        v-model.number="settingsForm.retention_days"
+                        type="number"
+                        placeholder="365"
+                        class="input-narrow"
+                    />
+                    <AppButton
+                        text="Išsaugoti"
+                        variant="primary"
+                        as-button
+                        :disabled="savingSettings"
+                        @click="saveSettings"
+                    />
+                </div>
+                <label class="settings-card__check">
+                    <AppCheckbox v-model="settingsForm.is_active" />
+                    <span>Taisyklė įjungta</span>
+                </label>
             </div>
-            <label class="checkbox-below">
-                <AppCheckbox v-model="settingsForm.is_active" />
-                <span>Taisyklė įjungta</span>
-            </label>
         </div>
 
         <div v-if="loading" class="loading">Kraunama...</div>
@@ -356,41 +372,62 @@ onMounted(load)
 
 <style scoped>
 .admin-archive {
-    padding: 24px 32px;
-    max-width: 1000px;
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
 }
-.title {
-    font-size: var(--admin-title-size, 16px);
-    font-weight: 700;
-    margin: 0 0 8px 0;
+
+/* Kaip AdminFiles „Failai“ kortelės: apie pusę turinio pločio, ne per visą eilutę */
+.settings-card-wrap {
+    width: 100%;
+    max-width: calc((100% - 20px) / 2);
+    min-width: 0;
+    box-sizing: border-box;
+    margin-bottom: 20px;
 }
-.settings-block {
-    background: #f8f9fb;
+
+@media (max-width: 720px) {
+    .settings-card-wrap {
+        max-width: 100%;
+    }
+}
+
+.settings-card {
+    background: #fff;
     border: 1px solid #e5e7eb;
-    border-radius: 8px;
-    padding: 16px 20px;
-    margin-bottom: 24px;
+    border-radius: 14px;
+    padding: 16px 20px 18px;
+    margin-bottom: 0;
 }
-.settings-title {
-    font-size: var(--admin-font-size, 14px);
-    font-weight: 600;
-    margin: 0 0 12px 0;
-    color: #333;
+.settings-card__title {
+    font-size: 15px;
+    font-weight: 700;
+    line-height: 1.35;
+    margin: 0 0 4px 0;
+    padding: 0;
+    color: #1a1a1a;
 }
-.settings-row {
+.settings-card__hint {
+    font-size: 14px;
+    color: #555;
+    margin: 0 0 14px 0;
+    padding: 0;
+    line-height: 1.35;
+}
+.settings-card__row {
     display: flex;
     align-items: center;
     gap: 12px;
     flex-wrap: wrap;
 }
-.settings-row .field-label {
+.settings-card__label {
     font-size: 14px;
     color: #333;
 }
-.settings-row .input-narrow {
+.settings-card__row .input-narrow {
     width: 100px;
 }
-.checkbox-below {
+.settings-card__check {
     display: flex;
     align-items: center;
     gap: 8px;
@@ -400,15 +437,17 @@ onMounted(load)
     color: #333;
 }
 .section-title {
-    font-size: var(--admin-title-size, 16px);
-    font-weight: 600;
-    margin: 0 0 12px 0;
-    color: #333;
+    font-size: 15px;
+    font-weight: 700;
+    line-height: 1.35;
+    margin: 0 0 10px 0;
+    padding: 0;
+    color: #1a1a1a;
 }
 .tabs {
     display: flex;
     gap: 0;
-    margin-bottom: 20px;
+    margin-bottom: 12px;
     border-bottom: 1px solid #e5e7eb;
 }
 .tab {
@@ -440,7 +479,7 @@ onMounted(load)
 .table th,
 .table td {
     padding: 12px 14px;
-    text-align: center;
+    text-align: left;
     border-bottom: 1px solid #e5e7eb;
     vertical-align: middle;
     box-sizing: border-box;
@@ -470,7 +509,7 @@ onMounted(load)
     display: flex;
     gap: 8px;
     align-items: center;
-    justify-content: center;
+    justify-content: flex-start;
 }
 .table :deep(.app-button) {
     width: 100px !important;

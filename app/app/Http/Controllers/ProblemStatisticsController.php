@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\ProblemStatus;
 use App\Exports\StatisticsReportExport;
 use App\Models\ClassifierValue;
 use App\Models\Institution;
@@ -28,6 +29,7 @@ class ProblemStatisticsController extends Controller
 
         if ($route === 'statistics.resolution-terms') {
             $query = Problem::query()
+                ->notArchived()
                 ->whereNotNull('completion_deadline')
                 ->whereNull('merged_into_problem_id')
                 ->with(['institution:id,name', 'assignedEmployee:id,name,surname,email']);
@@ -35,8 +37,9 @@ class ProblemStatisticsController extends Controller
             $all = $query->orderBy('completion_deadline')->get();
             $today = now()->startOfDay();
             $approachingEnd = $today->copy()->addDays(ProblemDeadlineMonitorService::REMIND_DAYS_BEFORE);
-            $approaching = $all->filter(fn ($problem) => $problem->completion_deadline && $problem->completion_deadline->gte($today) && $problem->completion_deadline->lte($approachingEnd) && $problem->status !== 'isspresta');
-            $overdue = $all->filter(fn ($problem) => $problem->completion_deadline && $problem->completion_deadline->lt($today) && $problem->status !== 'isspresta');
+            $resolved = ProblemStatus::RESOLVED->value;
+            $approaching = $all->filter(fn ($problem) => $problem->completion_deadline && $problem->completion_deadline->gte($today) && $problem->completion_deadline->lte($approachingEnd) && $problem->status !== $resolved);
+            $overdue = $all->filter(fn ($problem) => $problem->completion_deadline && $problem->completion_deadline->lt($today) && $problem->status !== $resolved);
 
             return Inertia::render('Statistics/ResolutionTerms', [
                 'approaching' => $approaching->values()->map(fn ($problem) => [

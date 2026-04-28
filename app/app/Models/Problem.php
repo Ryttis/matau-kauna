@@ -26,6 +26,14 @@ class Problem extends Model
         'updated_at',
     ];
 
+    public const AUTOMATION_RESOLVED_LINE_MAX_LENGTH = 200;
+
+    public const AUTOMATION_RESOLVED_LINE_DESC_APPEND = 160;
+
+    public const AUTOMATION_RESOLVED_SEARCH_PREVIEW = 120;
+
+    private const AUTOMATION_RESOLVED_LINE_MIN_BASE_BEFORE_DESC = 8;
+
     protected $fillable = [
         'internal_number',
         'status',
@@ -95,7 +103,7 @@ class Problem extends Model
         static::updating(function ($problem) {
             if ($problem->isDirty('status')) {
                 $problem->status_updated_at = now();
-                if ($problem->status === 'isspresta') {
+                if ($problem->status === ProblemStatus::RESOLVED->value) {
                     $problem->deadline_status = null;
                 }
             }
@@ -193,6 +201,31 @@ class Problem extends Model
     public function scopeNotArchived($query)
     {
         return $query->where('is_archived', false);
+    }
+
+    public function scopeResolvedPublicRoot(Builder $query): Builder
+    {
+        return $query->notArchived()
+            ->where('status', ProblemStatus::RESOLVED->value)
+            ->where('is_published_publicly', true)
+            ->whereNull('merged_into_problem_id');
+    }
+
+    public function automationResolvedListingLine(int $maxLength = self::AUTOMATION_RESOLVED_LINE_MAX_LENGTH): string
+    {
+        $addr = trim((string) ($this->address ?? ''));
+        $desc = $this->description !== null ? trim((string) $this->description) : '';
+        $num = trim((string) ($this->internal_number ?? ''));
+        $base = $num;
+        if ($addr !== '') {
+            $base = $base !== '' ? $base.' — '.$addr : $addr;
+        }
+        if (mb_strlen($base) < self::AUTOMATION_RESOLVED_LINE_MIN_BASE_BEFORE_DESC && $desc !== '') {
+            $suffix = mb_substr($desc, 0, self::AUTOMATION_RESOLVED_LINE_DESC_APPEND);
+            $base = $base !== '' ? $base.' — '.$suffix : mb_substr($desc, 0, $maxLength);
+        }
+
+        return mb_strlen($base) > $maxLength ? mb_substr($base, 0, $maxLength) : $base;
     }
 
     public function scopeForReporter($query, int $userId)
@@ -293,6 +326,23 @@ class Problem extends Model
             ->all();
 
         return $ids;
+    }
+
+    public function mergeGroupRootId(): int
+    {
+        $current = $this;
+        for ($i = 0; $i < 32; $i++) {
+            if ($current->merged_into_problem_id === null) {
+                return (int) $current->id;
+            }
+            $parent = static::query()->find($current->merged_into_problem_id);
+            if ($parent === null) {
+                return (int) $current->id;
+            }
+            $current = $parent;
+        }
+
+        return (int) $current->id;
     }
 
     public static function expandIdsToMergeGroups(array $ids): array

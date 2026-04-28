@@ -85,7 +85,7 @@ async function fetchData() {
         if (!allowedPeriods.includes(periodFilter.value)) {
             periodFilter.value = defaultPeriod
         }
-    } catch (e) {
+    } catch {
         errorMessage.value = 'Nepavyko užkrauti statistikos.'
     } finally {
         loading.value = false

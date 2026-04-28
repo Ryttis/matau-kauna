@@ -8,7 +8,7 @@ import AppButton from '@/Components/App/AppButton.vue'
 import AppInput from '@/Components/App/AppInput.vue'
 import AppCheckbox from '@/Components/App/AppCheckbox.vue'
 
-const props = defineProps({
+defineProps({
     roles: {
         type: Array,
         default: () => []

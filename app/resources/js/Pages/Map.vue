@@ -3,26 +3,22 @@ import { ref, computed } from 'vue'
 import { Head, router } from '@inertiajs/vue3'
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue'
 import AppButton from '@/Components/App/AppButton.vue'
-import FilterModal from '@/Components/App/Modals/FilterModal.vue'
 import InactiveReasonModal from '@/Components/App/Modals/InactiveReasonModal.vue'
 import StatusChangeModal from '@/Components/App/Modals/StatusChangeModal.vue'
 import KaunasProblemsMap from '@/Components/Map/KaunasProblemsMap.vue'
 import ProblemMapStatusLegend from '@/Components/Map/ProblemMapStatusLegend.vue'
 import MapAddressAutocomplete from '@/Components/Map/MapAddressAutocomplete.vue'
 import { useAuth } from '@/composables/useAuth'
-import { ICON_FILTER } from '@/constants/ui/icons'
 import { PROBLEM_STATUS } from '@/constants/domain/problemStatus'
 import { buildInactiveReviewPostBody } from '@/constants/domain/reviewProgressEntry'
+import '@/Components/Map/map-page.css'
 
 const props = defineProps({
-    categories: Array,
-    statusOptions: Array,
     problems: { type: Array, default: () => [] },
 })
 
 const { canSeeProblemAdminButtons, canSeeInstitutionAdminButtons, isMunicipalityRep } = useAuth()
 
-const showFilterModal = ref(false)
 const selectedProblemFromAddress = ref(null)
 const addressSearchResetToken = ref(0)
 const mapNumberSearchResetToken = ref(0)
@@ -51,40 +47,8 @@ const problemsForMap = computed(() => {
     return props.problems || []
 })
 
-const filters = ref({
-    reportNumber: '',
-    problemType: '',
-    dateFrom: '',
-    dateTo: '',
-    status: '',
-})
-
 function openProblemView(problemId) {
     router.visit(route('problems.show', problemId))
-}
-
-const handleFilterClick = () => {
-    showFilterModal.value = true
-}
-
-const handleFilterApply = (appliedFilters) => {
-    filters.value = { ...appliedFilters }
-    showFilterModal.value = false
-}
-
-const handleFilterClear = () => {
-    filters.value = {
-        reportNumber: '',
-        problemType: '',
-        dateFrom: '',
-        dateTo: '',
-        status: '',
-    }
-    showFilterModal.value = false
-}
-
-const handleFilterClose = () => {
-    showFilterModal.value = false
 }
 
 const showStatusModal = ref(false)
@@ -178,23 +142,20 @@ const handleStatusModalClose = () => {
 
     <AuthenticatedLayout>
         <div class="map-page">
+            <h1 class="map-page-title">Žemėlapis</h1>
+            <p class="map-page-desc">Problemų peržiūra žemėlapyje ir paieška.</p>
             <div class="search-filter-section">
                 <div class="map-page-search-wrap">
                     <MapAddressAutocomplete
                         variant="pill"
                         search-mode="number"
+                        :show-search-icon="true"
                         :reset-token="mapNumberSearchResetToken"
-                        placeholder="Problemos Nr. (žemėlapis)"
+                        placeholder="Problemos Nr."
                         @select="onMapNumberSearchSelect"
                         @clear="onMapNumberSearchClear"
                     />
                 </div>
-                <img
-                    :src="ICON_FILTER"
-                    class="filter-icon"
-                    alt="Filtruoti"
-                    @click="handleFilterClick"
-                />
             </div>
 
             <ProblemMapStatusLegend />
@@ -277,89 +238,6 @@ const handleStatusModalClose = () => {
                 @submit="submitInactiveReason"
             />
 
-            <FilterModal
-                :show="showFilterModal"
-                :filters="filters"
-                :categories="categories || []"
-                :all-status-options="statusOptions || []"
-                @close="handleFilterClose"
-                @apply="handleFilterApply"
-                @clear="handleFilterClear"
-            />
         </div>
     </AuthenticatedLayout>
 </template>
-
-<style scoped>
-.map-page {
-    display: flex;
-    flex-direction: column;
-    min-height: calc(100vh - 120px);
-    gap: 20px;
-}
-
-.search-filter-section {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 12px 16px;
-    align-items: center;
-    justify-content: flex-start;
-    width: 100%;
-}
-
-.map-page-search-wrap {
-    flex: 1 1 240px;
-    max-width: 420px;
-    min-width: 0;
-}
-
-.filter-icon {
-    display: block;
-    flex-shrink: 0;
-    cursor: pointer;
-}
-
-.map-container {
-    width: 100%;
-    height: 420px;
-    min-height: 400px;
-    border-radius: 8px;
-    overflow: hidden;
-    z-index: 0;
-}
-
-.map-container :deep(.kaunas-map-container) {
-    height: 100%;
-    min-height: 400px;
-}
-
-.location-selection {
-    display: flex;
-    flex-direction: column;
-    gap: 16px;
-    align-items: center;
-    max-width: var(--button-width, 290px);
-    width: 100%;
-    margin: 0 auto;
-}
-
-.map-page-address-block {
-    width: 100%;
-    text-align: center;
-    margin-bottom: 4px;
-}
-
-.map-page-location-title {
-    font-size: 18px;
-    font-weight: 500;
-    color: #333;
-    margin: 0 0 14px;
-}
-
-.map-page-address-input-wrap {
-    width: 100%;
-    max-width: 100%;
-    margin: 0 auto;
-}
-
-</style>

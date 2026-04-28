@@ -50,7 +50,7 @@ watch(addressInput, (query) => {
             if (lastSuggestQuery === q) {
                 suggestions.value = list
             }
-        } catch (_) {
+        } catch {
             if (lastSuggestQuery === q) suggestions.value = []
         } finally {
             loadingSuggestions.value = false

@@ -24,12 +24,16 @@ class FileUploadSettings extends Model
             'allow_photo' => true,
             'allow_video' => false,
             'max_photo_size_kb' => 5120,
-            'max_video_size_kb' => 51200,
             'max_photo_files_per_problem' => 5,
             'max_video_files_per_problem' => 1,
-            'max_total_upload_kb' => 51200,
+            'max_video_duration_seconds' => 60,
             'description_max_chars' => 65535,
         ];
+    }
+
+    public static function allowedMaxVideoDurationSeconds(): array
+    {
+        return range(10, 60, 5);
     }
 
     public static function defaultConfig(): array
@@ -56,7 +60,7 @@ class FileUploadSettings extends Model
         $full = self::getFull();
         $key = $channel === self::CHANNEL_MOBILE ? self::CHANNEL_MOBILE : self::CHANNEL_WEB;
 
-        return array_merge(self::defaultChannel(), $full[$key] ?? []);
+        return self::normalizeChannelConfig(array_merge(self::defaultChannel(), $full[$key] ?? []));
     }
 
     public static function set(array $config): void
@@ -69,12 +73,15 @@ class FileUploadSettings extends Model
         return $xUploadChannelHeader === self::CHANNEL_MOBILE ? self::CHANNEL_MOBILE : self::CHANNEL_WEB;
     }
 
-    public static function phpIniLimits(): array
+    private static function normalizeChannelConfig(array $c): array
     {
-        return [
-            'php_upload_max_filesize' => ini_get('upload_max_filesize'),
-            'php_post_max_size' => ini_get('post_max_size'),
-        ];
+        $allowed = self::allowedMaxVideoDurationSeconds();
+        $v = (int) ($c['max_video_duration_seconds'] ?? 60);
+        $c['max_video_duration_seconds'] = in_array($v, $allowed, true) ? $v : 60;
+        $c['max_photo_size_kb'] = max(64, (int) ($c['max_photo_size_kb'] ?? 5120));
+        unset($c['max_video_size_kb'], $c['max_total_upload_kb'], $c['max_files_per_problem']);
+
+        return $c;
     }
 
     private static function mergeDefaults(array $config): array
@@ -85,7 +92,7 @@ class FileUploadSettings extends Model
             if (! isset($config[$ch]) || ! is_array($config[$ch])) {
                 $config[$ch] = $defaults[$ch];
             } else {
-                $config[$ch] = array_merge($defaults[$ch], $config[$ch]);
+                $config[$ch] = self::normalizeChannelConfig(array_merge($defaults[$ch], $config[$ch]));
             }
         }
 
@@ -94,7 +101,7 @@ class FileUploadSettings extends Model
 
     public static function getChannelForClient(string $channel): array
     {
-        $c = self::applyPhpUploadCaps(self::getChannel($channel));
+        $c = self::getChannel($channel);
 
         return array_merge($c, [
             'accept_attr' => self::buildAcceptAttribute($c),
@@ -103,7 +110,7 @@ class FileUploadSettings extends Model
 
     public static function getReporterReportChannelForClient(): array
     {
-        $c = self::applyPhpUploadCaps(self::getChannel(self::CHANNEL_WEB));
+        $c = self::getChannel(self::CHANNEL_WEB);
         $c['allow_video'] = false;
         $c['max_video_files_per_problem'] = 0;
 
@@ -112,41 +119,22 @@ class FileUploadSettings extends Model
         ]);
     }
 
-    private static function iniFilesizeToBytes(string $value): int
+    public static function getReviewProgressChannelForClient(): array
     {
-        $value = trim($value);
-        if ($value === '' || $value === '0') {
-            return PHP_INT_MAX;
-        }
+        $c = self::getChannel(self::CHANNEL_WEB);
+        $c['allow_video'] = false;
+        $c['max_video_files_per_problem'] = 0;
 
-        if (is_numeric($value)) {
-            $n = (int) $value;
-
-            return $n > 0 ? $n : PHP_INT_MAX;
-        }
-
-        $metric = strtoupper(substr($value, -1));
-        $number = (int) $value;
-
-        return match ($metric) {
-            'K' => $number * 1024,
-            'M' => $number * 1048576,
-            'G' => $number * 1073741824,
-            default => $number > 0 ? $number : PHP_INT_MAX,
-        };
+        return array_merge($c, [
+            'accept_attr' => self::buildAcceptAttribute($c),
+        ]);
     }
 
-    private static function applyPhpUploadCaps(array $c): array
+    public static function getChannelForReviewEntry(string $channel): array
     {
-        $uploadBytes = self::iniFilesizeToBytes((string) ini_get('upload_max_filesize'));
-        $postBytes = self::iniFilesizeToBytes((string) ini_get('post_max_size'));
-        $uploadKb = max(1, (int) floor($uploadBytes / 1024));
-        $postKb = max(1, (int) floor($postBytes / 1024));
-        $postBudgetKb = max(1, $postKb - 64);
-
-        $c['max_photo_size_kb'] = min((int) $c['max_photo_size_kb'], $uploadKb);
-        $c['max_video_size_kb'] = min((int) $c['max_video_size_kb'], $uploadKb);
-        $c['max_total_upload_kb'] = min((int) $c['max_total_upload_kb'], $postBudgetKb);
+        $c = self::getChannel($channel);
+        $c['allow_video'] = false;
+        $c['max_video_files_per_problem'] = 0;
 
         return $c;
     }

@@ -11,6 +11,7 @@ import { ref, computed, watch, onMounted } from 'vue'
 import { ROLE_INSTITUTION_ADMIN, ROLE_REPORTER } from '@/constants/domain/roles'
 import { SETTINGS_PAGE_STYLE } from '@/constants/ui/theme'
 import { useAuth } from '@/composables/useAuth'
+import '@/Components/App/settings-profile-page.css'
 
 const {
     user,

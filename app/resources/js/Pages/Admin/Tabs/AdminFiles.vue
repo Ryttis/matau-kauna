@@ -8,17 +8,17 @@ import { adminApi } from '@/constants/api/adminApi'
 
 const CHANNEL = {
     web: 'Naršyklė',
-    mobile: 'Mobili aplikacija',
 }
+
+const VIDEO_DURATION_OPTIONS_SEC = [10, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60]
 
 const defaultChannel = () => ({
     allow_photo: true,
     allow_video: false,
     max_photo_size_kb: 5120,
-    max_video_size_kb: 51200,
     max_photo_files_per_problem: 5,
     max_video_files_per_problem: 1,
-    max_total_upload_kb: 51200,
+    max_video_duration_seconds: 60,
     description_max_chars: 65535,
 })
 
@@ -87,6 +87,7 @@ onMounted(load)
 <template>
     <div class="admin-files">
         <h2 class="title">Failai</h2>
+        <p class="page-desc">Nustatykite, kokius failus pareiškėjas gali įkelti prie problemos naršyklėje.</p>
 
         <p v-if="errorMessage" class="error">{{ errorMessage }}</p>
         <SuccessModal
@@ -117,7 +118,15 @@ onMounted(load)
                             />
                             <span class="toggle-label-wrap">
                                 Vaizdai (MP4, WebM, MOV)
-                                <span class="toggle-hint">1 vaizdo įrašas</span>
+                                <span class="toggle-hint">
+                                    1 vaizdo įrašas,
+                                    {{
+                                        config[ch].max_video_duration_seconds >= 60
+                                            ? 'iki 1 min.'
+                                            : `iki ${config[ch].max_video_duration_seconds} s`
+                                    }}
+                                    trukmės
+                                </span>
                             </span>
                         </label>
                     </div>
@@ -134,14 +143,12 @@ onMounted(load)
                             />
                         </div>
                         <div v-if="config[ch].allow_video" class="field-row">
-                            <span class="field-lbl">Vaizdas, KB</span>
-                            <input
-                                v-model.number="config[ch].max_video_size_kb"
-                                type="number"
-                                min="256"
-                                max="524288"
-                                class="inp"
-                            />
+                            <span class="field-lbl">Maks. vaizdo trukmė</span>
+                            <select v-model.number="config[ch].max_video_duration_seconds" class="inp inp--select">
+                                <option v-for="sec in VIDEO_DURATION_OPTIONS_SEC" :key="sec" :value="sec">
+                                    {{ sec === 60 ? '60 s (1 min.)' : `${sec} s` }}
+                                </option>
+                            </select>
                         </div>
                         <div class="field-row">
                             <span class="field-lbl">Nuotraukų sk.</span>
@@ -150,16 +157,6 @@ onMounted(load)
                                 type="number"
                                 min="0"
                                 max="50"
-                                class="inp"
-                            />
-                        </div>
-                        <div class="field-row">
-                            <span class="field-lbl">Bendra suma, KB</span>
-                            <input
-                                v-model.number="config[ch].max_total_upload_kb"
-                                type="number"
-                                min="256"
-                                max="1048576"
                                 class="inp"
                             />
                         </div>
@@ -181,10 +178,16 @@ onMounted(load)
     box-sizing: border-box;
 }
 
+.admin-files > .page-desc {
+    margin-bottom: 18px;
+}
+
 .title {
-    font-size: 20px;
-    font-weight: 600;
-    margin: 0 0 20px;
+    font-size: 18px;
+    font-weight: 700;
+    line-height: 1.35;
+    margin: 0;
+    padding: 0;
     color: #1a1a1a;
 }
 
@@ -285,6 +288,12 @@ onMounted(load)
     min-width: 0;
 }
 
+.inp--select {
+    width: auto;
+    min-width: 8.5rem;
+    text-align: left;
+}
+
 .inp {
     width: 7rem;
     flex-shrink: 0;
@@ -305,7 +314,7 @@ onMounted(load)
 .actions {
     margin-top: 24px;
     display: flex;
-    justify-content: center;
+    justify-content: flex-start;
     width: 100%;
 }
 </style>

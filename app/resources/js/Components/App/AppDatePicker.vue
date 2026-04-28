@@ -22,6 +22,10 @@ const props = defineProps({
     minDate: {
         type: String,
         default: null
+    },
+    maxDate: {
+        type: String,
+        default: null
     }
 })
 
@@ -83,6 +87,7 @@ const calendarDays = computed(() => {
 const viewMonthLabel = computed(() => `${MONTHS_LT[viewMonth.value]} ${viewYear.value}`)
 
 const minDateObj = computed(() => props.minDate ? parseDate(props.minDate) : null)
+const maxDateObj = computed(() => props.maxDate ? parseDate(props.maxDate) : null)
 
 function isSelected(d) {
     if (!d || !props.modelValue) return false
@@ -92,6 +97,7 @@ function isSelected(d) {
 function isDisabled(d) {
     if (!d) return true
     if (minDateObj.value && d < minDateObj.value) return true
+    if (maxDateObj.value && d > maxDateObj.value) return true
     return false
 }
 

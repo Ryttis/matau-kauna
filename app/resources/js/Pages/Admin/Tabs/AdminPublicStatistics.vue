@@ -15,8 +15,8 @@ const showSuccessModal = ref(false)
 const KPI_OPTIONS = [
     { value: 'received_reports', label: 'Gauti pranešimai' },
     { value: 'avg_resolution_days', label: 'Vidutinis sprendimo laikas' },
-    { value: 'resolved_problems', label: 'Išspręstos problemos (%)' },
-    { value: 'resolved_on_time', label: 'Laiku išspręstos (%)' },
+    { value: 'resolved_problems', label: 'Išspręstos problemos procentais' },
+    { value: 'resolved_on_time', label: 'Laiku išspręstos procentais' },
     { value: 'monthly_reports', label: 'Mėnesiniai pranešimų skaičiai' },
     { value: 'problematic_categories', label: 'Probleminės kategorijos' },
     { value: 'effectively_resolved', label: 'Efektyviausiai sprendžiamos' },
@@ -104,8 +104,12 @@ onMounted(load)
 
 <template>
     <div class="admin-public-statistics">
-        <h2 class="title">Vieša statistika</h2>
-        <p class="intro">Nustatykite, kokius rodiklius ir filtrus mato lankytojai puslapyje <a :href="route('public.statistics')" target="_blank" rel="noopener">Statistika</a>.</p>
+        <div class="admin-tab-intro">
+            <h2 class="admin-tab-intro__title">Vieša statistika</h2>
+            <p class="admin-tab-intro__desc">
+                Nustatykite rodiklius ir laikotarpius, kuriuos lankytojas mato viešame statistikos puslapyje.
+            </p>
+        </div>
 
         <p v-if="errorMessage" class="error">{{ errorMessage }}</p>
         <SuccessModal
@@ -118,8 +122,8 @@ onMounted(load)
 
         <template v-else>
             <div class="settings-block">
-                <h3 class="block-title">Rodikliai (KPI)</h3>
-                <p class="block-hint">Pasirinkite, kuriuos rodiklius rodyti viešame puslapyje.</p>
+                <h3 class="block-title">Rodikliai</h3>
+                <p class="block-hint">Pasirinkite, ką rodyti viešame statistikos puslapyje.</p>
                 <div class="checkbox-list">
                     <label v-for="opt in KPI_OPTIONS" :key="opt.value" class="checkbox-row">
                         <AppCheckbox :model-value="isKpiSelected(opt.value)" @update:model-value="toggleKpi(opt.value)" />
@@ -166,21 +170,9 @@ onMounted(load)
 
 <style scoped>
 .admin-public-statistics {
-    padding: 24px 32px;
-    max-width: 600px;
-}
-.title {
-    font-size: 20px;
-    font-weight: 700;
-    margin: 0 0 8px 0;
-}
-.intro {
-    font-size: 14px;
-    color: #555;
-    margin: 0 0 24px 0;
-}
-.intro a {
-    color: var(--color-primary, #1946A0);
+    width: 100%;
+    max-width: 640px;
+    box-sizing: border-box;
 }
 .error {
     color: #b91c1c;
@@ -196,13 +188,16 @@ onMounted(load)
 }
 .block-title {
     font-size: 15px;
-    font-weight: 600;
+    font-weight: 700;
+    line-height: 1.35;
     margin: 0 0 4px 0;
-    color: #333;
+    padding: 0;
+    color: #1a1a1a;
 }
 .block-hint {
-    font-size: 13px;
-    color: #666;
+    font-size: 14px;
+    color: #555;
+    line-height: 1.35;
     margin: 0 0 12px 0;
 }
 .checkbox-list {
