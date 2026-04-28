@@ -11,6 +11,12 @@ const activeTab = computed(() => ADMIN_RULES_SUB_TABS.find((t) => t.key === acti
 
 <template>
     <div class="admin-rules">
+        <div class="admin-tab-intro">
+            <h2 class="admin-tab-intro__title">Taisyklės ir turinys</h2>
+            <p class="admin-tab-intro__desc">
+                Kurkite ir skelbkite taisykles, DUK bei kitą viešą turinį ir tvarkykite el. pašto šablonus.
+            </p>
+        </div>
         <div class="subtabs">
             <button
                 v-for="tab in ADMIN_RULES_SUB_TABS"
@@ -41,7 +47,7 @@ const activeTab = computed(() => ADMIN_RULES_SUB_TABS.find((t) => t.key === acti
 .subtabs {
     display: flex;
     gap: 0;
-    margin-bottom: 12px;
+    margin-bottom: 8px;
 }
 .subtab {
     padding: 12px 16px;
@@ -63,7 +69,7 @@ const activeTab = computed(() => ADMIN_RULES_SUB_TABS.find((t) => t.key === acti
 .panel {
     background: #ffffff;
     border-radius: 14px;
-    padding: 20px;
+    padding: 16px 20px 20px;
     border: 1px solid #e5e7eb;
 }
 </style>

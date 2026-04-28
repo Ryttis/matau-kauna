@@ -20,12 +20,25 @@ export function getDateRangeForPeriod(period) {
     return { date_from: dateFrom, date_to: dateTo }
 }
 
-export function buildReporterStatisticsParams(period, category) {
-    const { date_from, date_to } = getDateRangeForPeriod(period)
+export function buildReporterStatisticsParams(period, category, explicitDateFrom = '', explicitDateTo = '') {
+    const from = String(explicitDateFrom || '').trim().slice(0, 10)
+    const to = String(explicitDateTo || '').trim().slice(0, 10)
+    let date_from
+    let date_to
+    if (from || to) {
+        date_from = from || undefined
+        date_to = to || undefined
+    } else {
+        const r = getDateRangeForPeriod(period)
+        date_from = r.date_from || undefined
+        date_to = r.date_to || undefined
+    }
+    const dateMode = !!(from || to)
+
     return {
-        period: period === 'all' ? undefined : period,
+        period: dateMode ? undefined : period === 'all' ? undefined : period,
         category: category || undefined,
-        date_from: date_from || undefined,
-        date_to: date_to || undefined,
+        date_from,
+        date_to,
     }
 }

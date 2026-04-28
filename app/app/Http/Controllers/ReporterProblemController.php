@@ -14,6 +14,8 @@ use App\Services\ReporterFileUploadService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -48,7 +50,7 @@ class ReporterProblemController extends Controller
             'date_to' => $request->get('date_to'),
         ];
 
-        $problems = $this->httpSupport->reporterProblemsFlatOrderedForList($user, $filters)
+        $problems = $this->httpSupport->reporterProblemsFlatOrderedForList($user, $filters, true)
             ->map(fn ($problem) => [
                 'id' => $problem->id,
                 'internal_number' => $problem->internal_number,
@@ -188,6 +190,7 @@ class ReporterProblemController extends Controller
         }
 
         $channel = FileUploadSettings::resolveUploadChannel($request->header('X-Upload-Channel'));
+        $normalizedFiles = $this->httpSupport->uploadedFilesForStorage($request);
 
         $uploadConfig = FileUploadSettings::getChannel($channel);
         $maxDesc = (int) $uploadConfig['description_max_chars'];
@@ -219,8 +222,6 @@ class ReporterProblemController extends Controller
                 'address' => 'required|string|max:500',
                 'lat' => 'nullable|numeric',
                 'lng' => 'nullable|numeric',
-                'files' => 'nullable|array',
-                'files.*' => 'file',
             ],
             [
                 'problem_type_id.required' => 'Pasirinkite problemos rūšį.',
@@ -234,12 +235,28 @@ class ReporterProblemController extends Controller
                 'address.max' => 'Adresas per ilgas.',
                 'lat.numeric' => 'Netinkama vieta žemėlapyje.',
                 'lng.numeric' => 'Netinkama vieta žemėlapyje.',
-                'files.array' => 'Netinkami priedai.',
-                'files.*.file' => 'Failas per didelis arba nepriimtas.',
             ]
         );
 
+        Validator::make(
+            ['files' => $normalizedFiles],
+            [
+                'files' => 'nullable|array',
+                'files.*' => 'file',
+            ],
+            [
+                'files.array' => 'Netinkami priedai.',
+                'files.*.file' => 'Failas per didelis arba nepriimtas.',
+                'files.*.uploaded' => 'Nepavyko įkelti failo. Patikrinkite failo dydį ir bandykite dar kartą.',
+            ]
+        )->validate();
+
         $typeValue = ClassifierValue::query()->findOrFail($validated['problem_type_id']);
+        [$lat, $lng] = $this->resolveCoordinates(
+            (string) ($validated['address'] ?? ''),
+            isset($validated['lat']) ? (float) $validated['lat'] : null,
+            isset($validated['lng']) ? (float) $validated['lng'] : null
+        );
 
         $user->update(['reporter_report_terms_accepted_at' => now()]);
         $categoryName = $typeValue->name;
@@ -249,25 +266,70 @@ class ReporterProblemController extends Controller
             'problem_type_id' => $validated['problem_type_id'],
             'problem_nature_id' => $validated['problem_nature_id'] ?? null,
             'address' => $validated['address'],
-            'lat' => $validated['lat'] ?? null,
-            'lng' => $validated['lng'] ?? null,
+            'lat' => $lat,
+            'lng' => $lng,
             'description' => $validated['description'],
             'reported_by_user_id' => $user->id,
         ]);
 
         $problem->refresh();
 
-        $this->reporterFileUploadService->validateAndStore(
+        $createdAttachments = $this->reporterFileUploadService->validateAndStore(
             $problem,
-            $this->httpSupport->normalizedUploadedFiles($request),
+            $normalizedFiles,
             $channel,
             false,
-            true
+            false
         );
 
         $this->autoAssignmentService->applyRules($problem);
         $problem->refresh();
 
-        return response()->json(['ok' => true, 'problem_id' => $problem->id]);
+        return response()->json([
+            'ok' => true,
+            'problem_id' => $problem->id,
+            'attachments' => collect($createdAttachments)
+                ->map(fn ($attachment) => $attachment->toPublicPayload())
+                ->values()
+                ->all(),
+        ]);
+    }
+
+    private function resolveCoordinates(string $address, ?float $lat, ?float $lng): array
+    {
+        if ($lat !== null && $lng !== null) {
+            return [$lat, $lng];
+        }
+
+        $query = trim($address);
+        if ($query === '') {
+            return [$lat, $lng];
+        }
+
+        try {
+            $response = Http::timeout(6)
+                ->withHeaders([
+                    'Accept' => 'application/json',
+                    'Accept-Language' => 'lt',
+                    'User-Agent' => 'MatauKaune/1.0',
+                ])
+                ->get('https://nominatim.openstreetmap.org/search', [
+                    'q' => $query.', Kaunas',
+                    'format' => 'json',
+                    'limit' => 1,
+                ]);
+
+            $rows = $response->json();
+            $first = is_array($rows) ? ($rows[0] ?? null) : null;
+            $resolvedLat = isset($first['lat']) ? (float) $first['lat'] : null;
+            $resolvedLng = isset($first['lon']) ? (float) $first['lon'] : null;
+
+            return [
+                $lat ?? $resolvedLat,
+                $lng ?? $resolvedLng,
+            ];
+        } catch (\Throwable) {
+            return [$lat, $lng];
+        }
     }
 }

@@ -18,7 +18,8 @@ function isCreatedAtInRange(createdAt, dateFrom, dateTo) {
     return true
 }
 
-export function useProblemsMapFilter(problemsSource) {
+export function useProblemsMapFilter(problemsSource, options = {}) {
+    const restrictToCurrentYear = !!options.restrictToCurrentYear
     const searchQuery = ref('')
     const filterState = ref({ ...DEFAULT_FILTER_STATE })
     const selectedIds = ref(new Set())
@@ -62,8 +63,21 @@ export function useProblemsMapFilter(problemsSource) {
         }
         const from = parseDateFilterInput(filterState.value.dateFrom)
         const to = parseDateFilterInput(filterState.value.dateTo)
-        if (from || to) {
-            result = result.filter((problem) => isCreatedAtInRange(problem.created_at, from, to))
+        const currentYear = new Date().getFullYear()
+        const yearStart = new Date(currentYear, 0, 1, 0, 0, 0, 0)
+        const yearEnd = new Date(currentYear, 11, 31, 23, 59, 59, 999)
+        const effectiveFrom = restrictToCurrentYear
+            ? (from && from > yearStart ? from : yearStart)
+            : from
+        const effectiveTo = restrictToCurrentYear
+            ? (to && to < yearEnd ? to : yearEnd)
+            : to
+
+        if (restrictToCurrentYear) {
+            result = result.filter((problem) => isCreatedAtInRange(problem.created_at, yearStart, yearEnd))
+        }
+        if (effectiveFrom || effectiveTo) {
+            result = result.filter((problem) => isCreatedAtInRange(problem.created_at, effectiveFrom, effectiveTo))
         }
         return result
     })

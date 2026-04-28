@@ -1,0 +1,115 @@
+.reporter-dashboard {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    flex: 1;
+    height: 100%;
+    min-height: 500px;
+}
+
+.reporter-dashboard-title {
+    margin: 0 0 8px 0;
+    font-size: 24px;
+    font-weight: 600;
+    color: #333;
+}
+
+.reporter-dashboard-desc {
+    margin: 0 0 16px 0;
+    font-size: 14px;
+    color: #666;
+}
+
+.reporter-dashboard-top {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    flex-shrink: 0;
+    margin-bottom: 12px;
+}
+
+.reporter-dashboard-toolbar {
+    width: 100%;
+    max-width: 400px;
+}
+
+.reporter-dashboard-checkbox-label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 14px;
+    color: #333;
+    cursor: pointer;
+    margin: 0;
+    padding: 4px 0;
+}
+
+.reporter-dashboard-checkbox-label span {
+    user-select: none;
+}
+
+.reporter-dashboard-checkbox {
+    width: 18px;
+    height: 18px;
+    flex-shrink: 0;
+    cursor: pointer;
+}
+
+.reporter-dashboard-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 3fr) minmax(280px, 2fr);
+    gap: 1rem;
+    flex: 1;
+    min-height: 450px;
+    height: 100%;
+}
+
+.reporter-dashboard-map-wrap {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    min-height: 0;
+    background: transparent;
+}
+
+.reporter-dashboard-map-wrap .kaunas-map-container {
+    min-height: 350px;
+    height: 350px;
+}
+
+.reporter-dashboard-map-wrap .leaflet-marker-icon.reporter-dashboard-marker {
+    background: transparent !important;
+    border: none !important;
+}
+
+.reporter-dashboard-list {
+    background: #f6f7f9;
+    padding: 1.25rem 1rem 1.5rem;
+    overflow-y: auto;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.reporter-dashboard-list-title {
+    margin: 0;
+    font-size: 1rem;
+    font-weight: 600;
+    color: #333;
+    flex-shrink: 0;
+}
+
+.reporter-dashboard-actions {
+    flex-shrink: 0;
+    display: flex;
+    justify-content: center;
+    padding-top: 0.25rem;
+    width: 100%;
+}
+
+@media (max-width: 900px) {
+    .reporter-dashboard-layout {
+        grid-template-columns: 1fr;
+    }
+}

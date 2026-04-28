@@ -14,8 +14,7 @@ class SyncUserRolesRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'role_ids' => ['array'],
-            'role_ids.*' => ['uuid', 'exists:user_role,id'],
+            'role_id' => ['required', 'uuid', 'exists:user_role,id'],
         ];
     }
 }

@@ -30,6 +30,8 @@ const props = defineProps({
     allStatusOptions: Array,
     onlyMine: { type: Boolean, default: undefined },
     statusCheckboxOptions: { type: Array, default: null },
+    dateMin: { type: String, default: '' },
+    dateMax: { type: String, default: '' },
 })
 
 const emit = defineEmits(['close', 'apply', 'clear', 'onlyMineChange'])
@@ -171,11 +173,14 @@ const handleClose = () => {
                     <AppDatePicker
                         v-model="localFilters.dateFrom"
                         placeholder="dd/mm/yyyy"
+                        :min-date="props.dateMin || null"
+                        :max-date="props.dateMax || null"
                     />
                     <AppDatePicker
                         v-model="localFilters.dateTo"
                         placeholder="dd/mm/yyyy"
-                        :min-date="localFilters.dateFrom || null"
+                        :min-date="localFilters.dateFrom || props.dateMin || null"
+                        :max-date="props.dateMax || null"
                     />
                 </div>
             </div>

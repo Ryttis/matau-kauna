@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\UserRoleEnum;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
@@ -14,17 +15,22 @@ class UserRole extends Model
 
     protected $fillable = ['role', 'name'];
 
-    public const ROLE_SYSTEM_ADMIN = 'ROLE_SYSTEM_ADMIN';
+    public const ROLE_SYSTEM_ADMIN = UserRoleEnum::SystemAdmin->value;
 
-    public const ROLE_PROBLEM_ADMIN = 'ROLE_PROBLEM_ADMIN';
+    public const ROLE_PROBLEM_ADMIN = UserRoleEnum::ProblemAdmin->value;
 
-    public const ROLE_INSTITUTION_ADMIN = 'ROLE_INSTITUTION_ADMIN';
+    public const ROLE_INSTITUTION_ADMIN = UserRoleEnum::InstitutionAdmin->value;
 
-    public const ROLE_MUNICIPALITY_REP = 'ROLE_MUNICIPALITY_REP';
+    public const ROLE_MUNICIPALITY_REP = UserRoleEnum::MunicipalityRep->value;
 
-    public const ROLE_EMPLOYEE = 'ROLE_EMPLOYEE';
+    public const ROLE_EMPLOYEE = UserRoleEnum::Employee->value;
 
-    public const ROLE_REPORTER = 'ROLE_REPORTER';
+    public const ROLE_REPORTER = UserRoleEnum::Reporter->value;
+
+    public static function staffRoles(): array
+    {
+        return UserRoleEnum::staffValues();
+    }
 
     public function permissions(): BelongsToMany
     {

@@ -4,6 +4,12 @@ import { debounce } from 'lodash-es'
 import { useProblemDisplayRows } from '@/composables/useProblemDisplayRows'
 import { PROBLEM_STATUS, PROBLEM_STATUS_OPTIONS } from '@/constants/domain/problemStatus'
 import { buildInactiveReviewPostBody } from '@/constants/domain/reviewProgressEntry'
+import {
+    allProblemsFlatFromList,
+    buildDashboardListRouterParams,
+    computeProblemsListAfterPropsChange,
+    removeDashboardPageFromUrl,
+} from '@/utils/dashboardProblemListHelpers'
 
 export function useDashboardProblemList(props) {
     const search = ref(props.filters?.search || '')
@@ -34,17 +40,6 @@ export function useDashboardProblemList(props) {
 
     const { displayRows } = useProblemDisplayRows(problemsList)
 
-    function allProblemsFlatFromList(list) {
-        const out = []
-        for (const main of list) {
-            out.push(main)
-            for (const mergedProblem of main.merged_problems || main.mergedProblems || []) {
-                out.push(mergedProblem)
-            }
-        }
-        return out
-    }
-
     const statusByProblemId = computed(() => {
         const map = new Map()
         for (const p of allProblemsFlatFromList(problemsList.value)) {
@@ -74,34 +69,24 @@ export function useDashboardProblemList(props) {
         }))
     })
 
-    const removePageFromUrl = () => {
-        const url = new URL(window.location.href)
-        if (url.searchParams.has('page')) {
-            url.searchParams.delete('page')
-            window.history.replaceState({}, '', url.toString())
-        }
-    }
-
     const loadProblems = (resetPage = true) => {
-        const params = {
-            search: search.value || null,
-            status: statusFilter.value || null,
-            category: categoryFilter.value || null,
-            report_number: reportNumberFilter.value || null,
-            date_from: dateFromFilter.value || null,
-            date_to: dateToFilter.value || null,
+        const params = buildDashboardListRouterParams({
+            search: search.value,
+            status: statusFilter.value,
+            category: categoryFilter.value,
+            report_number: reportNumberFilter.value,
+            date_from: dateFromFilter.value,
+            date_to: dateToFilter.value,
             sort_by: sortBy.value,
             sort_direction: sortDirection.value,
-        }
-        if (resetPage) {
-            params.page = 1
-        }
+            page: resetPage ? 1 : undefined,
+        })
         router.get(route('dashboard'), params, {
-            preserveState: !resetPage,
-            preserveScroll: !resetPage,
+            preserveState: true,
+            preserveScroll: true,
             replace: resetPage,
             onFinish: () => {
-                removePageFromUrl()
+                removeDashboardPageFromUrl()
             },
         })
     }
@@ -110,17 +95,17 @@ export function useDashboardProblemList(props) {
         if (!props.problems?.next_page_url) return
         const url = new URL(props.problems.next_page_url, window.location.origin)
         const page = url.searchParams.get('page')
-        router.get(route('dashboard'), {
-            page,
-            search: search.value || null,
-            status: statusFilter.value || null,
-            category: categoryFilter.value || null,
-            report_number: reportNumberFilter.value || null,
-            date_from: dateFromFilter.value || null,
-            date_to: dateToFilter.value || null,
+        router.get(route('dashboard'), buildDashboardListRouterParams({
+            search: search.value,
+            status: statusFilter.value,
+            category: categoryFilter.value,
+            report_number: reportNumberFilter.value,
+            date_from: dateFromFilter.value,
+            date_to: dateToFilter.value,
             sort_by: sortBy.value,
             sort_direction: sortDirection.value,
-        }, {
+            page,
+        }), {
             preserveState: true,
             preserveScroll: true,
             only: ['problems', 'flash'],
@@ -141,38 +126,14 @@ export function useDashboardProblemList(props) {
     }
 
     watch(() => props.problems, (newProblems, oldProblems) => {
-        if (!newProblems) {
-            problemsList.value = []
-            return
-        }
-        const rows = Array.isArray(newProblems)
-            ? newProblems
-            : Array.isArray(newProblems.data)
-                ? newProblems.data
-                : []
-        if (rows.length === 0) {
-            problemsList.value = []
-            return
-        }
-        const isPaginator = !Array.isArray(newProblems) && newProblems.data
-        const currentPage = isPaginator ? (newProblems.current_page || 1) : 1
-        const oldPage = oldProblems && !Array.isArray(oldProblems) && oldProblems.current_page
-            ? oldProblems.current_page
-            : 1
-        if (!isPaginator || !oldProblems || currentPage === 1) {
-            problemsList.value = rows.slice(0, 6)
-        } else if (currentPage > oldPage) {
-            const newItems = rows.slice(0, 6)
-            const existingIds = new Set(problemsList.value.map((p) => p.id))
-            const uniqueNewItems = newItems.filter((item) => !existingIds.has(item.id))
-            problemsList.value = [...problemsList.value, ...uniqueNewItems]
-        } else if (currentPage < oldPage) {
-            problemsList.value = rows.slice(0, 6)
-        }
+        problemsList.value = computeProblemsListAfterPropsChange(
+            newProblems,
+            oldProblems,
+            problemsList.value,
+        )
     }, { immediate: true, deep: true })
 
     const handleSearch = debounce(() => {
-        problemsList.value = []
         loadProblems(true)
     }, 300)
 
@@ -476,12 +437,13 @@ export function useDashboardProblemList(props) {
     }
 
     onMounted(() => {
-        removePageFromUrl()
+        removeDashboardPageFromUrl()
         document.addEventListener('click', handleClickOutside)
     })
 
     onUnmounted(() => {
         document.removeEventListener('click', handleClickOutside)
+        handleSearch.cancel()
     })
 
     return {

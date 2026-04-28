@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Auth\MustVerifyEmail as MustVerifyEmailTrait;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
@@ -24,6 +25,8 @@ class User extends Authenticatable implements MustVerifyEmail
         'password',
         'viisp_local_password_set_at',
         'two_factor_enabled',
+        'two_factor_secret',
+        'two_factor_confirmed_at',
         'email_notifications_enabled',
         'email_updates_institution_admin',
         'institution_id',
@@ -40,6 +43,7 @@ class User extends Authenticatable implements MustVerifyEmail
     protected $hidden = [
         'password',
         'remember_token',
+        'two_factor_secret',
     ];
 
     protected function casts(): array
@@ -52,6 +56,8 @@ class User extends Authenticatable implements MustVerifyEmail
             'password' => 'hashed',
             'viisp_local_password_set_at' => 'datetime',
             'two_factor_enabled' => 'boolean',
+            'two_factor_secret' => 'encrypted',
+            'two_factor_confirmed_at' => 'datetime',
             'email_notifications_enabled' => 'boolean',
             'email_updates_institution_admin' => 'boolean',
             'archived_at' => 'datetime',
@@ -189,7 +195,7 @@ class User extends Authenticatable implements MustVerifyEmail
 
     public function canManageTeams(): bool
     {
-        return $this->canManageInvitations();
+        return $this->hasPermission('teams.manage');
     }
 
     public function canAssignInstitutionProblems(): bool
@@ -245,5 +251,14 @@ class User extends Authenticatable implements MustVerifyEmail
         }
 
         return $this->viisp_local_password_set_at !== null;
+    }
+
+    public static function queryAssignableInstitutionEmployeeUsers(int $institutionId, ?string $exceptEmail = null): Builder
+    {
+        return self::query()
+            ->notArchived()
+            ->where('institution_id', $institutionId)
+            ->whereHas('roles', fn ($q) => $q->where('role', UserRole::ROLE_EMPLOYEE))
+            ->when($exceptEmail, fn ($q) => $q->where('email', '!=', $exceptEmail));
     }
 }

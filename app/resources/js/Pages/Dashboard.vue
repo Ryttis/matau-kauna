@@ -6,16 +6,17 @@ import KaunasProblemsMap from '@/Components/Map/KaunasProblemsMap.vue'
 import ProblemMapStatusLegend from '@/Components/Map/ProblemMapStatusLegend.vue'
 import ProblemsMapList from '@/Components/Map/ProblemsMapList.vue'
 import DashboardInternalView from '@/Components/Dashboard/DashboardInternalView.vue'
+import SearchFilterBar from '@/Components/App/SearchFilterBar.vue'
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue'
 import { onMounted } from 'vue'
 import { Head, usePage } from '@inertiajs/vue3'
 import { useSuccessModal } from '@/composables/useSuccessModal'
 import { useDashboardReporter } from '@/composables/useDashboardReporter'
-import { ICON_FILTER, ICON_SEARCH } from '@/constants/ui/icons'
 import {
     REPORTER_MAP_FILTER_STATUS_OPTIONS,
     REPORTER_MAP_LEGEND_STATUS_ORDER,
 } from '@/constants/domain/problemStatus'
+import '@/Components/Dashboard/dashboard-page.css'
 
 const page = usePage()
 
@@ -62,7 +63,6 @@ const {
     reporterHandleFilterApply,
     reporterHandleFilterClear,
     reporterOpenProblemView,
-    reporterSelectedProblemId,
     reporterHandleStebeti,
     reporterToggleWatchFromList,
     isReporterProblemWatched,
@@ -76,6 +76,10 @@ const {
     reporterToggleOnlyMineFromFilter,
     reporterProblems,
 } = useDashboardReporter(props)
+
+const currentYear = new Date().getFullYear()
+const reporterDateMin = `${currentYear}-01-01`
+const reporterDateMax = `${currentYear}-12-31`
 </script>
 
 <template>
@@ -88,36 +92,15 @@ const {
             @close="closeSuccessModal"
         />
         <div v-if="reporterView" class="reporter-dashboard">
+            <h1 class="reporter-dashboard-title">Žemėlapis</h1>
+            <p class="reporter-dashboard-desc">Mano ir viešai skelbiamos problemos žemėlapyje</p>
             <div class="reporter-dashboard-top">
                 <div class="reporter-dashboard-toolbar">
-                    <div class="reporter-dashboard-search-wrap">
-                        <img :src="ICON_SEARCH" class="reporter-dashboard-search-icon" alt="" aria-hidden="true" />
-                        <input
-                            v-model="reporterSearchQuery"
-                            type="search"
-                            class="reporter-dashboard-search"
-                            placeholder="Ieškoti"
-                            autocomplete="off"
-                            enterkeyhint="search"
-                        />
-                        <button
-                            v-show="(reporterSearchQuery || '').trim().length > 0"
-                            type="button"
-                            class="reporter-dashboard-search-clear"
-                            aria-label="Išvalyti paiešką"
-                            @click="reporterSearchQuery = ''"
-                        >
-                            ×
-                        </button>
-                    </div>
-                    <button
-                        type="button"
-                        class="reporter-dashboard-filter-btn"
-                        aria-label="Filtruoti"
-                        @click="reporterOpenFilterModal"
-                    >
-                        <img :src="ICON_FILTER" class="reporter-dashboard-filter-icon" alt="" />
-                    </button>
+                    <SearchFilterBar
+                        v-model="reporterSearchQuery"
+                        placeholder="Ieškoti"
+                        @filter-click="reporterOpenFilterModal"
+                    />
                 </div>
                 <label class="reporter-dashboard-checkbox-label">
                     <input
@@ -173,6 +156,8 @@ const {
                 :categories="reporterCategoryOptions"
                 :status-checkbox-options="REPORTER_MAP_FILTER_STATUS_OPTIONS"
                 :only-mine="showOnlyMyReports"
+                :date-min="reporterDateMin"
+                :date-max="reporterDateMax"
                 @close="reporterShowFilterModal = false"
                 @apply="reporterHandleFilterApply"
                 @clear="reporterHandleFilterClear"
@@ -191,198 +176,3 @@ const {
         />
     </AuthenticatedLayout>
 </template>
-
-<style scoped>
-.reporter-dashboard {
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-    min-height: 0;
-    flex: 1;
-    height: 100%;
-    min-height: 500px;
-}
-
-.reporter-dashboard-top {
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-    flex-shrink: 0;
-}
-
-.reporter-dashboard-toolbar {
-    display: flex;
-    align-items: center;
-    gap: 16px;
-}
-
-.reporter-dashboard-search-wrap {
-    position: relative;
-    flex: 1;
-    min-width: 0;
-    max-width: 400px;
-    display: flex;
-    align-items: center;
-}
-
-.reporter-dashboard-search-icon {
-    position: absolute;
-    left: 14px;
-    width: 20px;
-    height: 20px;
-    pointer-events: none;
-    object-fit: contain;
-}
-
-.reporter-dashboard-search {
-    width: 100%;
-    height: 40px;
-    border: none;
-    border-radius: 15px;
-    background: #f6f7f9;
-    color: #333;
-    padding: 0 36px 0 44px;
-    font-size: 14px;
-    box-sizing: border-box;
-}
-
-.reporter-dashboard-search::-webkit-search-cancel-button {
-    display: none;
-}
-
-.reporter-dashboard-search-clear {
-    position: absolute;
-    right: 8px;
-    top: 50%;
-    transform: translateY(-50%);
-    width: 28px;
-    height: 28px;
-    padding: 0;
-    border: none;
-    border-radius: 50%;
-    background: transparent;
-    color: #666;
-    font-size: 22px;
-    line-height: 1;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.reporter-dashboard-search-clear:hover {
-    background: rgba(0, 0, 0, 0.06);
-    color: #333;
-}
-
-.reporter-dashboard-search::placeholder {
-    color: #999;
-}
-
-.reporter-dashboard-filter-btn {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 40px;
-    height: 40px;
-    padding: 0;
-    border: none;
-    border-radius: 15px;
-    background: transparent;
-    cursor: pointer;
-}
-
-.reporter-dashboard-filter-btn:hover {
-    background: #f0f0f0;
-}
-
-.reporter-dashboard-filter-icon {
-    width: 24px;
-    height: 24px;
-}
-
-.reporter-dashboard-checkbox-label {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    font-size: 14px;
-    color: #333;
-    cursor: pointer;
-    margin: 0;
-    padding: 4px 0;
-}
-
-.reporter-dashboard-checkbox-label span {
-    user-select: none;
-}
-
-.reporter-dashboard-checkbox {
-    width: 18px;
-    height: 18px;
-    flex-shrink: 0;
-    cursor: pointer;
-}
-
-.reporter-dashboard-layout {
-    display: grid;
-    grid-template-columns: minmax(0, 3fr) minmax(280px, 2fr);
-    gap: 1rem;
-    flex: 1;
-    min-height: 450px;
-    height: 100%;
-}
-
-.reporter-dashboard-map-wrap {
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-    min-height: 0;
-    background: #fafafa;
-}
-
-.reporter-dashboard-map-wrap :deep(.kaunas-map-container) {
-    min-height: 350px;
-    height: 350px;
-}
-
-.reporter-dashboard-map-wrap :deep(.leaflet-marker-icon.reporter-dashboard-marker) {
-    background: transparent !important;
-    border: none !important;
-}
-
-.reporter-dashboard-list {
-    background: #f6f7f9;
-    padding: 1.25rem 1rem 1.5rem;
-    overflow-y: auto;
-    min-height: 0;
-    display: flex;
-    flex-direction: column;
-    gap: 0.75rem;
-}
-
-.reporter-dashboard-list-title {
-    margin: 0;
-    font-size: 1rem;
-    font-weight: 600;
-    color: #333;
-    flex-shrink: 0;
-}
-
-.reporter-dashboard-actions {
-    flex-shrink: 0;
-    display: flex;
-    justify-content: center;
-    padding-top: 0.25rem;
-    width: 100%;
-}
-
-@media (max-width: 900px) {
-    .reporter-dashboard-layout {
-        grid-template-columns: 1fr;
-    }
-
-    .reporter-dashboard-search-wrap {
-        max-width: none;
-    }
-}
-</style>

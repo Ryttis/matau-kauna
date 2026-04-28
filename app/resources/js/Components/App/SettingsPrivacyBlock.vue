@@ -1,4 +1,5 @@
 <script setup>
+import { Link } from '@inertiajs/vue3'
 import AppSwitch from '@/Components/App/AppSwitch.vue'
 import AppButton from '@/Components/App/AppButton.vue'
 import { computed } from 'vue'
@@ -77,7 +78,7 @@ function onSecondSwitchChange(v) {
                     />
                 </div>
             </div>
-            <span class="privacy-text">Privatumo taisyklės</span>
+            <Link :href="route('privacy')" class="privacy-text-link">Privatumo taisyklės</Link>
             <AppButton
                 text="Šalinti paskyrą"
                 variant="link"
@@ -114,7 +115,7 @@ function onSecondSwitchChange(v) {
                     />
                 </div>
             </div>
-            <span class="privacy-text">Privatumo taisyklės</span>
+            <Link :href="route('privacy')" class="privacy-text-link">Privatumo taisyklės</Link>
             <AppButton
                 text="Šalinti paskyrą"
                 variant="link"
@@ -142,7 +143,7 @@ function onSecondSwitchChange(v) {
                     />
                 </div>
             </div>
-            <span class="privacy-text">Privatumo taisyklės</span>
+            <Link :href="route('privacy')" class="privacy-text-link">Privatumo taisyklės</Link>
             <AppButton
                 text="Šalinti paskyrą"
                 variant="link"
@@ -161,7 +162,14 @@ function onSecondSwitchChange(v) {
     gap: 12px;
     margin-bottom: 24px;
     width: 100%;
+    max-width: min(640px, 50%);
     box-sizing: border-box;
+}
+
+@media (max-width: 768px) {
+    .privacy-block {
+        max-width: 100%;
+    }
 }
 
 .privacy-block > * {
@@ -171,18 +179,41 @@ function onSecondSwitchChange(v) {
     box-sizing: border-box;
 }
 
+.privacy-text-link {
+    display: block;
+    width: 100%;
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--color-text);
+    line-height: 32px;
+    text-decoration: none;
+    box-sizing: border-box;
+}
+
+.privacy-text-link:hover,
+.privacy-text-link:focus-visible {
+    color: var(--color-text);
+    text-decoration: none;
+    opacity: 0.85;
+}
+
+.privacy-block .privacy-row {
+    min-height: 32px;
+}
+
 .privacy-row.privacy-row-switch {
     display: grid;
     grid-template-columns: minmax(0, 1fr) auto;
     align-items: center;
     gap: 12px;
     width: 100%;
+    min-width: 0;
     min-height: 32px;
     box-sizing: border-box;
 }
 
 .privacy-row--reporter.privacy-row-switch {
-    align-items: flex-start;
+    align-items: start;
     gap: 16px;
 }
 
@@ -191,10 +222,10 @@ function onSecondSwitchChange(v) {
 }
 
 .privacy-label {
+    min-width: 0;
     font-size: 18px;
     font-weight: 600;
     color: var(--color-text);
-    min-width: 0;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -212,13 +243,6 @@ function onSecondSwitchChange(v) {
     align-items: center;
     justify-content: flex-end;
     justify-self: end;
-}
-
-.privacy-text {
-    font-size: 18px;
-    font-weight: 600;
-    color: var(--color-text);
-    line-height: 32px;
 }
 
 .privacy-link {

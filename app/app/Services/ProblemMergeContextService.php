@@ -23,12 +23,13 @@ class ProblemMergeContextService
             $mergedSiblings = Problem::query()
                 ->where('merged_into_problem_id', $problem->merged_into_problem_id)
                 ->where('id', '!=', $problem->id)
+                ->notArchived()
                 ->get(['id', 'internal_number'])
                 ->map(fn ($p) => ['id' => $p->id, 'internal_number' => $p->internal_number])
                 ->values()
                 ->all();
         } else {
-            $mergedChildren = $problem->mergedProblems()->get(['id', 'internal_number'])
+            $mergedChildren = $problem->mergedProblems()->notArchived()->get(['id', 'internal_number'])
                 ->map(fn ($p) => ['id' => $p->id, 'internal_number' => $p->internal_number])
                 ->values()
                 ->all();

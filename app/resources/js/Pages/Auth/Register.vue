@@ -4,7 +4,7 @@ import AppButton from '@/Components/App/AppButton.vue';
 import GuestHeader from '@/Components/Landing/GuestHeader.vue';
 import LandingFooter from '@/Components/Landing/LandingFooter.vue';
 import { Head, useForm } from '@inertiajs/vue3';
-import { computed, ref } from 'vue';
+import { computed } from 'vue';
 
 const form = useForm({
     name: '',

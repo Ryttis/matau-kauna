@@ -98,7 +98,7 @@ const goViisp = () => {
                             :loading="form.processing"
                         />
                         <Link
-                            v-if="canResetPassword"
+                            v-if="canResetPassword && activeRole === 'darbuotojas'"
                             :href="route('password.request')"
                             class="login-form-forgot"
                         >

@@ -15,6 +15,7 @@ class DatabaseSeeder extends Seeder
             ClassifierSeeder::class,
             InstitutionSeeder::class,
             ProblemSeeder::class,
+            ReporterStatisticsDemoSeeder::class,
         ]);
     }
 }

@@ -4,9 +4,10 @@ import ConfirmModal from '@/Components/App/ConfirmModal.vue'
 import InactiveReasonModal from '@/Components/App/Modals/InactiveReasonModal.vue'
 import StatusChangeModal from '@/Components/App/Modals/StatusChangeModal.vue'
 import FilterModal from '@/Components/App/Modals/FilterModal.vue'
+import SearchFilterBar from '@/Components/App/SearchFilterBar.vue'
 import ProblemsTable from '@/Components/Problems/ProblemsTable.vue'
 import { PROBLEM_STATUS_LABELS } from '@/constants/domain/problemStatus'
-import { ICON_FILTER, ICON_CIRCLE_ARROW_RIGHT } from '@/constants/ui/icons'
+import { ICON_CIRCLE_ARROW_RIGHT } from '@/constants/ui/icons'
 import { useAuth } from '@/composables/useAuth'
 import { useDashboardProblemList } from '@/composables/useDashboardProblemList'
 
@@ -84,22 +85,18 @@ const {
 
 <template>
     <div class="dashboard-internal">
+    <h1 class="dashboard-title">Sąrašas</h1>
+    <p class="dashboard-desc">
+        <template v-if="isEmployee">Jums priskirtų ir per komandą paskirstytų problemų peržiūra, filtravimas ir valdymas.</template>
+        <template v-else>Visų problemų peržiūra, filtravimas ir valdymas.</template>
+    </p>
     <div class="search-wrp">
-        <input
+        <SearchFilterBar
             v-model="search"
-            type="text"
-            class="search-input"
             placeholder="Ieškoti"
             @input="handleSearch"
+            @filter-click="showFilterModal = true"
         />
-        <button
-            type="button"
-            class="filter-btn"
-            aria-label="Filtruoti"
-            @click="showFilterModal = true"
-        >
-            <img :src="ICON_FILTER" class="filter-btn-icon" alt="" />
-        </button>
     </div>
 
     <ProblemsTable
@@ -296,54 +293,23 @@ const {
     box-sizing: border-box;
 }
 
+.dashboard-title {
+    margin: 0 0 8px 0;
+    font-size: 24px;
+    font-weight: 600;
+    color: #333;
+}
+
+.dashboard-desc {
+    margin: 0 0 16px 0;
+    font-size: 14px;
+    color: #666;
+}
+
 .search-wrp {
-    display: flex;
-    flex-wrap: nowrap;
-    gap: 10px;
-    align-items: center;
     width: 100%;
     max-width: 100%;
     min-width: 0;
-}
-
-.search-input {
-    flex: 1;
-    min-width: 0;
-    width: auto;
-    max-width: 100%;
-    height: 44px;
-    border: none;
-    border-radius: 15px;
-    background-color: #f6f7f9;
-    color: #333;
-    padding: 0 16px;
-    font-size: 16px;
-}
-
-.filter-btn {
-    flex-shrink: 0;
-    width: 44px;
-    height: 44px;
-    border: none;
-    border-radius: 15px;
-    background: #eef0f4;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    padding: 0;
-    box-sizing: border-box;
-}
-
-.filter-btn:hover {
-    background: #e2e5eb;
-}
-
-.filter-btn-icon {
-    width: 22px;
-    height: 22px;
-    display: block;
-    object-fit: contain;
 }
 
 .table-footer-wrp {
@@ -485,26 +451,10 @@ const {
 }
 
 @media (min-width: 768px) {
-    .search-wrp {
-        flex-wrap: wrap;
-        gap: 24px;
-    }
-
-    .search-input {
-        flex: 0 1 340px;
-        max-width: 340px;
-    }
+    .search-wrp { max-width: 400px; }
 }
 
 @media (max-width: 767px) {
-    .search-wrp {
-        gap: 10px;
-    }
-
-    .search-input {
-        width: 100%;
-    }
-
     .list-navigation {
         grid-template-columns: 1fr;
         margin: 24px 0;

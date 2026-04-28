@@ -19,10 +19,10 @@ class ViispRegistrationRequest extends FormRequest
             if (! is_string($phone) || $phone === '') {
                 return;
             }
-            if (! self::isValidLithuanianPhone($phone)) {
+            if (! self::isValidLithuanianPhone($phone) && ! self::isValidInternationalPhoneDigits($phone)) {
                 $v->errors()->add(
                     'phone',
-                    'Įveskite lietuvišką telefono numerį (pvz. 067670895, +370 676 70895 arba 8 676 70895).'
+                    'Įveskite teisingą numerį: pasirinkite šalį ir užpildykite lauką, arba palikite telefoną tuščią.'
                 );
             }
         });
@@ -53,6 +53,41 @@ class ViispRegistrationRequest extends FormRequest
         }
 
         return (bool) preg_match('/^6\d{7}$/', $d);
+    }
+
+    private static function isValidInternationalPhoneDigits(string $value): bool
+    {
+        $d = preg_replace('/\D/', '', $value);
+        if ($d === '') {
+            return false;
+        }
+
+        $rules = [
+            ['dial' => '353', 'min' => 7, 'max' => 9],
+            ['dial' => '372', 'min' => 7, 'max' => 8],
+            ['dial' => '371', 'min' => 8, 'max' => 8],
+            ['dial' => '370', 'min' => 8, 'max' => 8],
+            ['dial' => '49', 'min' => 10, 'max' => 11],
+            ['dial' => '48', 'min' => 9, 'max' => 9],
+            ['dial' => '44', 'min' => 10, 'max' => 10],
+            ['dial' => '34', 'min' => 9, 'max' => 9],
+            ['dial' => '33', 'min' => 9, 'max' => 9],
+            ['dial' => '31', 'min' => 9, 'max' => 9],
+        ];
+
+        usort($rules, static fn (array $a, array $b): int => strlen($b['dial']) <=> strlen($a['dial']));
+
+        foreach ($rules as $row) {
+            $prefix = $row['dial'];
+            if (! str_starts_with($d, $prefix)) {
+                continue;
+            }
+            $nationalLen = strlen($d) - strlen($prefix);
+
+            return $nationalLen >= $row['min'] && $nationalLen <= $row['max'];
+        }
+
+        return false;
     }
 
     public function rules(): array

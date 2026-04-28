@@ -1,0 +1,44 @@
+.admin-tab-intro {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin: 0 0 12px 0;
+}
+
+.admin-tab-intro__title {
+    font-size: 18px;
+    font-weight: 700;
+    margin: 0;
+    padding: 0;
+    color: #1a1a1a;
+    line-height: 1.35;
+}
+
+.admin-tab .header-row .title {
+    font-size: 18px;
+    font-weight: 700;
+    line-height: 1.35;
+    margin: 0;
+    padding: 0;
+    color: #1a1a1a;
+}
+
+.admin-tab-intro__desc {
+    font-size: 14px;
+    font-weight: 400;
+    margin: 0;
+    padding: 0;
+    color: #555;
+    line-height: 1.35;
+    max-width: 52rem;
+}
+
+.page-desc {
+    font-size: 14px;
+    font-weight: 400;
+    margin: 6px 0 12px 0;
+    padding: 0;
+    color: #555;
+    line-height: 1.35;
+    max-width: 52rem;
+}

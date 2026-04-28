@@ -21,6 +21,7 @@ function formatTermDate(isoDate) {
     const d = new Date(`${isoDate}T12:00:00`)
     return Number.isNaN(d.getTime()) ? isoDate : d.toLocaleDateString('lt-LT')
 }
+
 </script>
 
 <template>
@@ -40,22 +41,18 @@ function formatTermDate(isoDate) {
                         <thead>
                             <tr>
                                 <th>Nr.</th>
-                                <th>Aprašymas</th>
                                 <th>Būsena</th>
                                 <th>Terminas</th>
                                 <th>Įstaiga</th>
-                                <th>Priskirtas</th>
                                 <th></th>
                             </tr>
                         </thead>
                         <tbody>
                             <tr v-for="p in overdue" :key="p.id">
                                 <td>{{ p.internal_number }}</td>
-                                <td>{{ p.description_preview }}</td>
                                 <td>{{ statusLabel(p.status) }}</td>
                                 <td>{{ formatTermDate(p.completion_deadline) }}</td>
                                 <td>{{ p.institution_name || '-' }}</td>
-                                <td>{{ p.assigned_to || '-' }}</td>
                                 <td>
                                     <button type="button" class="link-btn" @click="goToProblem(p.id)">Atidaryti</button>
                                 </td>
@@ -73,22 +70,18 @@ function formatTermDate(isoDate) {
                         <thead>
                             <tr>
                                 <th>Nr.</th>
-                                <th>Aprašymas</th>
                                 <th>Būsena</th>
                                 <th>Terminas</th>
                                 <th>Įstaiga</th>
-                                <th>Priskirtas</th>
                                 <th></th>
                             </tr>
                         </thead>
                         <tbody>
                             <tr v-for="p in approaching" :key="p.id">
                                 <td>{{ p.internal_number }}</td>
-                                <td>{{ p.description_preview }}</td>
                                 <td>{{ statusLabel(p.status) }}</td>
                                 <td>{{ formatTermDate(p.completion_deadline) }}</td>
                                 <td>{{ p.institution_name || '-' }}</td>
-                                <td>{{ p.assigned_to || '-' }}</td>
                                 <td>
                                     <button type="button" class="link-btn" @click="goToProblem(p.id)">Atidaryti</button>
                                 </td>
@@ -104,13 +97,13 @@ function formatTermDate(isoDate) {
 
 <style scoped>
 .resolution-terms-page {
-    padding: 24px 32px;
-    max-width: 1100px;
+    padding: 0;
+    max-width: 100%;
 }
 
 .page-title {
-    font-size: 22px;
-    font-weight: 700;
+    font-size: 24px;
+    font-weight: 600;
     margin: 0 0 8px 0;
 }
 
@@ -168,7 +161,7 @@ function formatTermDate(isoDate) {
     border: none;
     color: var(--color-primary, #1946A0);
     cursor: pointer;
-    text-decoration: underline;
+    text-decoration: none;
     font-size: 14px;
     padding: 0;
 }

@@ -21,3 +21,7 @@ Schedule::command('reporters:inactive-deletion')
     ->dailyAt('00:00')
     ->timezone('Europe/Vilnius')
     ->withoutOverlapping();
+Schedule::command('problems:hide-resolved-privacy')
+    ->dailyAt('00:05')
+    ->timezone('Europe/Vilnius')
+    ->withoutOverlapping();
