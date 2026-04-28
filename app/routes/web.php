@@ -85,6 +85,8 @@ Route::middleware(['auth', 'verified', 'reporter.terms'])->group(function () {
         Route::get('/problems/{problem}/assign-institution', [ProblemInstitutionAssignmentController::class, 'assignInstitution'])->name('problems.assignInstitution');
         Route::post('/problems/{problem}/assign-institution', [ProblemInstitutionAssignmentController::class, 'storeAssignInstitution'])->name('problems.assignInstitution.store');
         Route::post('/problems/{problem}/send-assign-email', [ProblemInstitutionAssignmentController::class, 'sendAssignInstitutionEmail'])->name('problems.assignInstitution.sendEmail');
+        Route::post('/problems/{problem}/send-gis', [ProblemInstitutionAssignmentController::class, 'sendToGis'])->name('problems.assignInstitution.sendGis');
+        Route::post('/problems/{problem}/pull-gis', [ProblemInstitutionAssignmentController::class, 'pullFromGis'])->name('problems.assignInstitution.pullGis');
         Route::patch('/problems/{problem}/return', [ProblemInstitutionAssignmentController::class, 'returnToAdmin'])->name('problems.return');
         Route::post('/problems/{problem}/reassign-institution', [ProblemInstitutionAssignmentController::class, 'reassignInstitution'])->name('problems.reassignInstitution');
         Route::get('/problems/{problem}/merge', [ProblemMergeController::class, 'merge'])->name('problems.merge');

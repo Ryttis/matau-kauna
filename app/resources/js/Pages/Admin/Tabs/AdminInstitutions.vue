@@ -11,6 +11,23 @@ import ModalFooterActions from '@/Components/App/ModalFooterActions.vue'
 import { adminApi } from '@/constants/api/adminApi'
 import { INSTITUTION_TYPES } from '@/constants/domain/institutionTypes'
 
+function emptyGisForm() {
+    return {
+        enabled: false,
+        generate_token_url: '',
+        technical_username: '',
+        technical_password: '',
+        has_technical_password: false,
+        client_type: 'referer',
+        token_expiration_minutes: 60,
+        feature_server_url: '',
+        attachment_url: '',
+        wkid: 3346,
+        has_active_token: false,
+        active_token_expires_at: null,
+    }
+}
+
 function emptyInstitutionForm() {
     return {
         name: '',
@@ -21,10 +38,48 @@ function emptyInstitutionForm() {
         contact_address: '',
         integration_email: '',
         integration_dvs: '',
-        integration_gis: '',
         is_active: true,
         is_email_only: false,
+        gis: emptyGisForm(),
     }
+}
+
+function gisFromPayload(source) {
+    const base = emptyGisForm()
+    if (!source) return base
+    return {
+        ...base,
+        enabled: Boolean(source.enabled),
+        generate_token_url: source.generate_token_url ?? '',
+        technical_username: source.technical_username ?? '',
+        technical_password: '',
+        has_technical_password: Boolean(source.has_technical_password),
+        client_type: source.client_type || 'referer',
+        token_expiration_minutes: source.token_expiration_minutes ?? 60,
+        feature_server_url: source.feature_server_url ?? '',
+        attachment_url: source.attachment_url ?? '',
+        wkid: source.wkid ?? 3346,
+        has_active_token: Boolean(source.has_active_token),
+        active_token_expires_at: source.active_token_expires_at ?? null,
+    }
+}
+
+function gisSubmitPayload(gis) {
+    const payload = {
+        enabled: Boolean(gis?.enabled),
+        generate_token_url: gis?.generate_token_url || null,
+        technical_username: gis?.technical_username || null,
+        client_type: gis?.client_type || null,
+        token_expiration_minutes: gis?.token_expiration_minutes ? Number(gis.token_expiration_minutes) : null,
+        feature_server_url: gis?.feature_server_url || null,
+        attachment_url: gis?.attachment_url || null,
+        wkid: gis?.wkid ? Number(gis.wkid) : 3346,
+    }
+    const password = (gis?.technical_password ?? '').trim()
+    if (password !== '') {
+        payload.technical_password = password
+    }
+    return payload
 }
 
 const loading = ref(false)
@@ -66,9 +121,9 @@ const openEdit = (inst) => {
         contact_address: inst.contact_address ?? '',
         integration_email: inst.contact_email ?? inst.integration_email ?? '',
         integration_dvs: inst.integration_dvs ?? '',
-        integration_gis: inst.integration_gis ?? '',
         is_active: inst.is_active ?? true,
         is_email_only: inst.is_email_only ?? false,
+        gis: gisFromPayload(inst.gis),
     }
     isEditOpen.value = true
 }
@@ -102,10 +157,12 @@ const createInstitution = async () => {
     errorMessage.value = ''
     saving.value = true
     try {
+        const { gis, ...rest } = createForm.value
         await axios.post(adminApi.institutions, {
-            ...createForm.value,
+            ...rest,
             integration_email: createForm.value.contact_email || null,
             is_email_only: createForm.value.is_email_only ?? false,
+            gis: gisSubmitPayload(gis),
         })
         isCreateOpen.value = false
         await loadInstitutions()
@@ -130,9 +187,9 @@ const updateInstitution = async () => {
             contact_address: editForm.value.contact_address || null,
             integration_email: editForm.value.contact_email || null,
             integration_dvs: editForm.value.integration_dvs || null,
-            integration_gis: editForm.value.integration_gis || null,
             is_active: editForm.value.is_active,
             is_email_only: editForm.value.is_email_only ?? false,
+            gis: gisSubmitPayload(editForm.value.gis),
         })
         isEditOpen.value = false
         await loadInstitutions()
@@ -238,9 +295,43 @@ onMounted(async () => {
                     <AppInput v-model="createForm.contact_address" placeholder="Adresas" />
                 </div>
                 <div class="field full">
-                    <span class="field-label">Integracijos (DVS / GIS)</span>
+                    <span class="field-label">Integracija (DVS)</span>
                     <AppInput v-model="createForm.integration_dvs" placeholder="DVS" />
-                    <AppInput v-model="createForm.integration_gis" placeholder="GIS" />
+                </div>
+                <div class="field full">
+                    <div class="gis-row">
+                        <span class="field-label">GIS integracija</span>
+                        <label class="gis-toggle">
+                            <input type="checkbox" v-model="createForm.gis.enabled" />
+                            <span>Įjungti</span>
+                        </label>
+                    </div>
+                    <template v-if="createForm.gis.enabled">
+                        <AppInput v-model="createForm.gis.generate_token_url" placeholder="GenerateToken URL" />
+                        <AppInput v-model="createForm.gis.technical_username" placeholder="Techninis vartotojas" />
+                        <AppInput
+                            v-model="createForm.gis.technical_password"
+                            type="password"
+                            placeholder="Slaptažodis"
+                            autocomplete="new-password"
+                        />
+                        <AppInput v-model="createForm.gis.client_type" placeholder="Kliento tipas (pvz. referer)" />
+                        <AppInput
+                            v-model="createForm.gis.token_expiration_minutes"
+                            type="number"
+                            placeholder="Token galiojimas, min."
+                        />
+                        <AppInput v-model="createForm.gis.feature_server_url" placeholder="FeatureServer URL" />
+                        <AppInput v-model="createForm.gis.attachment_url" placeholder="AttachmentUrl" />
+                        <label class="field">
+                            <span>Koordinačių sistema (WKID)</span>
+                            <select class="input" v-model.number="createForm.gis.wkid">
+                                <option :value="3346">LKS-94 (3346)</option>
+                                <option :value="4326">WGS84 (4326)</option>
+                                <option :value="3857">Web Mercator (3857)</option>
+                            </select>
+                        </label>
+                    </template>
                 </div>
                 <label class="field checkbox full">
                     <input type="checkbox" v-model="createForm.is_active" />
@@ -286,9 +377,46 @@ onMounted(async () => {
                     <AppInput v-model="editForm.contact_address" placeholder="Adresas" />
                 </div>
                 <div class="field full">
-                    <span class="field-label">Integracijos (DVS / GIS)</span>
+                    <span class="field-label">Integracija (DVS)</span>
                     <AppInput v-model="editForm.integration_dvs" placeholder="DVS" />
-                    <AppInput v-model="editForm.integration_gis" placeholder="GIS" />
+                </div>
+                <div class="field full">
+                    <div class="gis-row">
+                        <span class="field-label">GIS integracija</span>
+                        <label class="gis-toggle">
+                            <input type="checkbox" v-model="editForm.gis.enabled" />
+                            <span>Įjungti</span>
+                        </label>
+                    </div>
+                    <template v-if="editForm.gis.enabled">
+                        <AppInput v-model="editForm.gis.generate_token_url" placeholder="GenerateToken URL" />
+                        <AppInput v-model="editForm.gis.technical_username" placeholder="Techninis vartotojas" />
+                        <AppInput
+                            v-model="editForm.gis.technical_password"
+                            type="password"
+                            :placeholder="editForm.gis.has_technical_password ? 'Palikite tuščią, jei nekeičiate' : 'Slaptažodis'"
+                            autocomplete="new-password"
+                        />
+                        <AppInput v-model="editForm.gis.client_type" placeholder="Kliento tipas (pvz. referer)" />
+                        <AppInput
+                            v-model="editForm.gis.token_expiration_minutes"
+                            type="number"
+                            placeholder="Token galiojimas, min."
+                        />
+                        <AppInput v-model="editForm.gis.feature_server_url" placeholder="FeatureServer URL" />
+                        <AppInput v-model="editForm.gis.attachment_url" placeholder="AttachmentUrl" />
+                        <label class="field">
+                            <span>Koordinačių sistema (WKID)</span>
+                            <select class="input" v-model.number="editForm.gis.wkid">
+                                <option :value="3346">LKS-94 (3346)</option>
+                                <option :value="4326">WGS84 (4326)</option>
+                                <option :value="3857">Web Mercator (3857)</option>
+                            </select>
+                        </label>
+                        <p v-if="editForm.gis.has_active_token" class="gis-hint">
+                            Aktyvus tokenas: yra<span v-if="editForm.gis.active_token_expires_at">, galioja iki {{ editForm.gis.active_token_expires_at }}</span>
+                        </p>
+                    </template>
                 </div>
                 <label class="field checkbox full">
                     <input type="checkbox" v-model="editForm.is_active" />
@@ -473,5 +601,27 @@ td {
 .input:focus {
     outline: none;
     border-color: var(--color-primary);
+}
+
+.gis-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 6px;
+}
+
+.gis-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13px;
+    color: var(--color-text);
+}
+
+.gis-hint {
+    margin: 4px 0 0;
+    font-size: 12px;
+    color: var(--color-text-muted);
 }
 </style>

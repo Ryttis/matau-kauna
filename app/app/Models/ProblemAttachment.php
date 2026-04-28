@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class ProblemAttachment extends Model
 {
@@ -18,11 +19,17 @@ class ProblemAttachment extends Model
         'mime_type',
         'size_bytes',
         'kind',
+        'source',
     ];
 
     public function problem(): BelongsTo
     {
         return $this->belongsTo(Problem::class);
+    }
+
+    public function gisTransferAttachments(): HasMany
+    {
+        return $this->hasMany(ProblemGisTransferAttachment::class, 'problem_attachment_id');
     }
 
     public function publicUrl(): string

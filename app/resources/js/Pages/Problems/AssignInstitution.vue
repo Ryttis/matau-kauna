@@ -31,6 +31,14 @@ const props = defineProps({
         type: Array,
         default: () => [],
     },
+    gisAvailable: {
+        type: Boolean,
+        default: false,
+    },
+    gisTransfer: {
+        type: Object,
+        default: null,
+    },
 })
 
 const selectedEmployeeIds = ref([])
@@ -65,6 +73,7 @@ const selectedReassignIds = ref([])
 
 const assignSubmitting = ref(false)
 const emailSubmitting = ref(false)
+const gisSubmitting = ref(false)
 const returnSubmitting = ref(false)
 const reassignSubmitting = ref(false)
 
@@ -196,6 +205,36 @@ const handleSendEmail = () => {
         { email },
         finishVisit(emailSubmitting)
     )
+}
+
+const gisStatusLabel = (status) => {
+    switch (status) {
+    case 'pending':
+        return 'Ruošiama'
+    case 'feature_created':
+        return 'Objektas sukurtas'
+    case 'sent':
+        return 'Išsiųsta'
+    case 'attachment_failed':
+        return 'Priedų klaida'
+    case 'failed':
+        return 'Klaida'
+    default:
+        return status || 'Nėra'
+    }
+}
+
+const handleSendToGis = () => {
+    gisSubmitting.value = true
+    router.post(route('problems.assignInstitution.sendGis', props.problem.id), {}, finishVisit(gisSubmitting))
+}
+
+const gisPullSubmitting = ref(false)
+
+const handlePullFromGis = () => {
+    if (gisPullSubmitting.value) return
+    gisPullSubmitting.value = true
+    router.post(route('problems.assignInstitution.pullGis', props.problem.id), {}, finishVisit(gisPullSubmitting))
 }
 
 const handleReturnToAdmin = () => {
@@ -358,6 +397,51 @@ watch(
                         :loading="assignSubmitting"
                         @click="handleSendAssign"
                     />
+                </div>
+            </div>
+
+            <div class="assign-institution-section">
+                <h2 class="section-title">Perduoti į GIS</h2>
+                <div v-if="gisAvailable" class="gis-transfer-card">
+                    <p class="gis-transfer-text">
+                        GIS būsena:
+                        <strong>{{ gisStatusLabel(gisTransfer?.send_status) }}</strong>
+                    </p>
+                    <p v-if="gisTransfer?.external_object_id" class="gis-transfer-text">
+                        Išorinis objekto ID: {{ gisTransfer.external_object_id }}
+                    </p>
+                    <p v-if="gisTransfer?.external_global_id" class="gis-transfer-text">
+                        GlobalID: {{ gisTransfer.external_global_id }}
+                    </p>
+                    <p v-if="gisTransfer?.last_error" class="gis-transfer-error">
+                        Paskutinė klaida: {{ gisTransfer.last_error }}
+                    </p>
+                    <p
+                        v-if="gisTransfer?.attachment_transfers?.length"
+                        class="gis-transfer-text"
+                    >
+                        Priedų įrašų: {{ gisTransfer.attachment_transfers.length }}
+                    </p>
+                    <div class="btn-row">
+                        <AppButton
+                            :text="gisTransfer?.external_object_id ? 'Siųsti priedus dar kartą' : 'Siųsti į GIS'"
+                            variant="primary"
+                            as-button
+                            :loading="gisSubmitting"
+                            @click="handleSendToGis"
+                        />
+                        <AppButton
+                            v-if="gisTransfer?.external_object_id"
+                            text="Patikrinti GIS statusą"
+                            variant="secondary"
+                            as-button
+                            :loading="gisPullSubmitting"
+                            @click="handlePullFromGis"
+                        />
+                    </div>
+                </div>
+                <div v-else class="assign-empty-state assign-empty-state--left">
+                    <span class="assign-empty-text">Šiai įstaigai GIS siuntimas dar nesukonfigūruotas.</span>
                 </div>
             </div>
 
@@ -622,9 +706,39 @@ watch(
     text-align: center;
 }
 
+.assign-empty-state--left {
+    justify-content: flex-start;
+    text-align: left;
+    padding: 0;
+}
+
 .assign-empty-text {
     font-size: 16px;
     color: #666;
+}
+
+.gis-transfer-card {
+    width: 100%;
+    max-width: 720px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 18px 20px;
+    border-radius: 12px;
+    border: 1px solid var(--color-border, #e5e5e5);
+    background: color-mix(in srgb, var(--color-primary, #1946A0) 5%, white);
+    box-sizing: border-box;
+}
+
+.gis-transfer-text,
+.gis-transfer-error {
+    margin: 0;
+    font-size: 15px;
+    line-height: 1.4;
+}
+
+.gis-transfer-error {
+    color: #b42318;
 }
 
 .field-fixed-width {

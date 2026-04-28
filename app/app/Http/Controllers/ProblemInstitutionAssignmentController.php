@@ -8,6 +8,8 @@ use App\Models\Institution;
 use App\Models\InstitutionTeam;
 use App\Models\Problem;
 use App\Models\User;
+use App\Models\UserRole;
+use App\Services\ArcGisProblemTransferService;
 use App\Services\ProblemAssignmentNotifier;
 use App\Services\ProblemScopeService;
 use App\Services\TransactionalMail;
@@ -22,6 +24,7 @@ class ProblemInstitutionAssignmentController extends Controller
     public function __construct(
         private ProblemScopeService $scopeService,
         private ProblemAssignmentNotifier $assignmentNotifier,
+        private ArcGisProblemTransferService $arcGisProblemTransferService,
     ) {}
 
     public function assignInstitution(Problem $problem): Response|RedirectResponse
@@ -89,11 +92,18 @@ class ProblemInstitutionAssignmentController extends Controller
         }
         $institutions = $institutionsQuery->get(['id', 'name'])->map(fn ($i) => ['id' => $i->id, 'name' => $i->name]);
 
+        $problem->loadMissing([
+            'institution.gisConfig',
+            'gisTransfer.attachmentTransfers.attachment',
+        ]);
+
         return Inertia::render('Problems/AssignInstitution', [
             'problem' => $problem,
             'employees' => $employees,
             'teams' => $teams,
             'institutions' => $institutions,
+            'gisAvailable' => (bool) $problem->institution?->gisConfig?->enabled,
+            'gisTransfer' => $problem->gisTransfer?->loadMissing('attachmentTransfers.attachment'),
         ]);
     }
 
@@ -211,6 +221,72 @@ class ProblemInstitutionAssignmentController extends Controller
         );
 
         return redirect()->back()->with('success', 'Informacija išsiųsta el. paštu.');
+    }
+
+    public function sendToGis(Request $request, Problem $problem): RedirectResponse
+    {
+        $user = $request->user();
+        if (! $user->isInstitutionAdminOrSystemAdmin()) {
+            abort(403);
+        }
+        $this->scopeService->authorizeProblemAccess($user, $problem);
+
+        if ($problem->status === ProblemStatus::RESOLVED->value) {
+            return redirect()->back()->with('error', 'Išspręstos problemos perduoti negalima.');
+        }
+
+        try {
+            $result = $this->arcGisProblemTransferService->transferProblem($problem);
+        } catch (\Throwable $e) {
+            return redirect()->back()->with('error', $e->getMessage());
+        }
+
+        $message = $result['attachments_failed'] > 0
+            ? 'Problema perduota į GIS, bet dalies priedų išsiųsti nepavyko.'
+            : 'Problema sėkmingai perduota į GIS.';
+
+        return redirect()->back()->with('success', $message);
+    }
+
+    public function pullFromGis(Request $request, Problem $problem): RedirectResponse
+    {
+        $user = $request->user();
+        if (! $user->isInstitutionAdminOrSystemAdmin()) {
+            abort(403);
+        }
+        $this->scopeService->authorizeProblemAccess($user, $problem);
+
+        $problem->loadMissing('gisTransfer');
+        if (! $problem->gisTransfer || ! filled($problem->gisTransfer->external_object_id)) {
+            return redirect()->back()->with('error', 'Problema dar nebuvo perduota į GIS.');
+        }
+
+        try {
+            $result = $this->arcGisProblemTransferService->syncFromGis($problem->gisTransfer);
+        } catch (\Throwable $e) {
+            return redirect()->back()->with('error', $e->getMessage());
+        }
+
+        $parts = [];
+
+        if ($result['status_changed']) {
+            $newLabel = ProblemStatus::tryFrom((string) $result['new_status'])?->label() ?? (string) $result['new_status'];
+            $parts[] = 'būsena pakeista į „'.$newLabel.'"';
+        }
+
+        if ($result['deadline_changed']) {
+            $parts[] = 'atnaujintas atlikimo terminas';
+        }
+
+        if (($result['attachments_downloaded'] ?? 0) > 0) {
+            $parts[] = 'atsisiųsta priedų: '.$result['attachments_downloaded'];
+        }
+
+        $message = $parts === []
+            ? 'GIS pusėje pakeitimų nerasta.'
+            : 'Atnaujinta iš GIS: '.implode(', ', $parts).'.';
+
+        return redirect()->back()->with('success', $message);
     }
 
     public function returnToAdmin(Request $request, Problem $problem): RedirectResponse

@@ -4,6 +4,7 @@ import SettingsSection from '@/Components/App/SettingsSection.vue'
 import SettingsPrivacyBlock from '@/Components/App/SettingsPrivacyBlock.vue'
 import AppInput from '@/Components/App/AppInput.vue'
 import AppButton from '@/Components/App/AppButton.vue'
+import AppSwitch from '@/Components/App/AppSwitch.vue'
 import DeleteAccountModal from '@/Components/App/DeleteAccountModal.vue'
 import { Head, router, useForm } from '@inertiajs/vue3'
 import { ref, computed, watch, onMounted } from 'vue'
@@ -25,9 +26,31 @@ const isReporterOnly = computed(
     () => hasAssignedRole(ROLE_REPORTER) && !permissions.value.includes('issues.view')
 )
 
+const props = defineProps({
+    institution: {
+        type: Object,
+        default: null,
+    },
+    institutionGis: {
+        type: Object,
+        default: () => ({}),
+    },
+})
+
 const institutionForm = useForm({
     name: '',
     code: '',
+    gis: {
+        enabled: false,
+        generate_token_url: '',
+        technical_username: '',
+        technical_password: '',
+        client_type: 'referer',
+        token_expiration_minutes: 60,
+        feature_server_url: '',
+        attachment_url: '',
+        wkid: 3346,
+    },
 })
 
 const showDeleteModal = ref(false)
@@ -43,8 +66,17 @@ const sections = ref({ institution: true })
 function initFromUser() {
     const u = user.value
     if (!u) return
-    institutionForm.name = u.institution?.name ?? ''
-    institutionForm.code = u.institution?.code ?? ''
+    institutionForm.name = props.institution?.name ?? u.institution?.name ?? ''
+    institutionForm.code = props.institution?.code ?? u.institution?.code ?? ''
+    institutionForm.gis.enabled = !!props.institutionGis?.enabled
+    institutionForm.gis.generate_token_url = props.institutionGis?.generate_token_url ?? ''
+    institutionForm.gis.technical_username = props.institutionGis?.technical_username ?? ''
+    institutionForm.gis.technical_password = ''
+    institutionForm.gis.client_type = props.institutionGis?.client_type ?? 'referer'
+    institutionForm.gis.token_expiration_minutes = props.institutionGis?.token_expiration_minutes ?? 60
+    institutionForm.gis.feature_server_url = props.institutionGis?.feature_server_url ?? ''
+    institutionForm.gis.attachment_url = props.institutionGis?.attachment_url ?? ''
+    institutionForm.gis.wkid = props.institutionGis?.wkid ?? 3346
     twoFactorEnabled.value = !!u.two_factor_enabled
     emailUpdatesInstitutionAdmin.value = !!u.email_updates_institution_admin
     emailNotificationsEnabled.value = !!u.email_notifications_enabled
@@ -52,7 +84,7 @@ function initFromUser() {
     reporterEmailWatchedProblems.value = u.reporter_email_watched_problems !== false
 }
 
-watch(user, initFromUser, { immediate: true })
+watch([user, () => props.institutionGis, () => props.institution], initFromUser, { immediate: true })
 onMounted(initFromUser)
 
 const toggleSection = (section) => {
@@ -127,7 +159,89 @@ const saveReporterEmailWatched = (value) => {
                 >
                     <form @submit.prevent="updateInstitution" class="form-grid">
                         <AppInput v-model="institutionForm.name" placeholder="Pavadinimas" :showIcon="true" />
+                        <p v-if="institutionForm.errors.name" class="form-error">{{ institutionForm.errors.name }}</p>
                         <AppInput v-model="institutionForm.code" placeholder="Kodas" :showIcon="true" />
+                        <p v-if="institutionForm.errors.code" class="form-error">{{ institutionForm.errors.code }}</p>
+                        <div class="gis-toggle-row">
+                            <span class="gis-toggle-label">Enable GIS send</span>
+                            <AppSwitch v-model="institutionForm.gis.enabled" />
+                        </div>
+                        <p v-if="institutionForm.errors['gis.enabled']" class="form-error">{{ institutionForm.errors['gis.enabled'] }}</p>
+
+                        <div v-if="institutionForm.gis.enabled" class="gis-fields">
+                            <AppInput
+                                v-model="institutionForm.gis.generate_token_url"
+                                label="GenerateTokenUrl"
+                                placeholder="https://digital.kaunas.lt/portal/sharing/rest/generateToken"
+                            />
+                            <p v-if="institutionForm.errors['gis.generate_token_url']" class="form-error">{{ institutionForm.errors['gis.generate_token_url'] }}</p>
+
+                            <AppInput
+                                v-model="institutionForm.gis.technical_username"
+                                label="Techninio vartotojo vardas"
+                                placeholder="Techninis vartotojas"
+                            />
+                            <p v-if="institutionForm.errors['gis.technical_username']" class="form-error">{{ institutionForm.errors['gis.technical_username'] }}</p>
+
+                            <AppInput
+                                v-model="institutionForm.gis.technical_password"
+                                type="password"
+                                label="Slaptažodis"
+                                :placeholder="props.institutionGis?.has_technical_password ? 'Palikite tuščią, jei nekeičiate' : 'Slaptažodis'"
+                                autocomplete="new-password"
+                            />
+                            <p v-if="institutionForm.errors['gis.technical_password']" class="form-error">{{ institutionForm.errors['gis.technical_password'] }}</p>
+
+                            <AppInput
+                                v-model="institutionForm.gis.client_type"
+                                label="Kliento tipas"
+                                placeholder="referer"
+                            />
+                            <p v-if="institutionForm.errors['gis.client_type']" class="form-error">{{ institutionForm.errors['gis.client_type'] }}</p>
+
+                            <AppInput
+                                v-model="institutionForm.gis.token_expiration_minutes"
+                                type="number"
+                                label="Token galiojimas (min.)"
+                                placeholder="60"
+                            />
+                            <p v-if="institutionForm.errors['gis.token_expiration_minutes']" class="form-error">{{ institutionForm.errors['gis.token_expiration_minutes'] }}</p>
+
+                            <AppInput
+                                v-model="institutionForm.gis.feature_server_url"
+                                label="FeatureServer Url"
+                                placeholder="https://.../FeatureServer/0"
+                            />
+                            <p v-if="institutionForm.errors['gis.feature_server_url']" class="form-error">{{ institutionForm.errors['gis.feature_server_url'] }}</p>
+
+                            <AppInput
+                                v-model="institutionForm.gis.attachment_url"
+                                label="AttachmentUrl"
+                                placeholder="https://.../FeatureServer/0"
+                            />
+                            <p v-if="institutionForm.errors['gis.attachment_url']" class="form-error">{{ institutionForm.errors['gis.attachment_url'] }}</p>
+
+                            <label class="gis-select-row">
+                                <span>Koordinačių sistema (WKID)</span>
+                                <select class="gis-select" v-model.number="institutionForm.gis.wkid">
+                                    <option :value="3346">LKS-94 (3346)</option>
+                                    <option :value="4326">WGS84 (4326)</option>
+                                    <option :value="3857">Web Mercator (3857)</option>
+                                </select>
+                            </label>
+                            <p v-if="institutionForm.errors['gis.wkid']" class="form-error">{{ institutionForm.errors['gis.wkid'] }}</p>
+
+                            <p v-if="institutionForm.errors.gis" class="form-error">{{ institutionForm.errors.gis }}</p>
+                            <div class="gis-status-card">
+                                <p class="gis-status-text">
+                                    Aktyvus tokenas:
+                                    {{ props.institutionGis?.has_active_token ? 'yra' : 'nėra' }}
+                                </p>
+                                <p v-if="props.institutionGis?.active_token_expires_at" class="gis-status-text">
+                                    Galioja iki: {{ props.institutionGis.active_token_expires_at }}
+                                </p>
+                            </div>
+                        </div>
                         <AppButton
                             text="Saugoti"
                             variant="primary"
@@ -207,6 +321,58 @@ const saveReporterEmailWatched = (value) => {
     max-width: var(--settings-inner-max);
     box-sizing: border-box;
     align-items: flex-start;
+}
+
+.gis-toggle-row {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 8px 0;
+}
+
+.gis-toggle-label {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--color-text);
+}
+
+.gis-fields {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.gis-status-card {
+    width: 100%;
+    padding: 14px 16px;
+    border-radius: 12px;
+    background: color-mix(in srgb, var(--color-primary, #1946A0) 6%, white);
+    border: 1px solid color-mix(in srgb, var(--color-primary, #1946A0) 16%, white);
+    box-sizing: border-box;
+}
+
+.gis-status-text {
+    margin: 0;
+    font-size: 14px;
+    color: var(--color-text);
+}
+
+.gis-select-row {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    font-size: 14px;
+}
+
+.gis-select {
+    padding: 8px 10px;
+    border: 1px solid var(--color-border);
+    border-radius: 8px;
+    font-size: 14px;
+    background: var(--color-white);
 }
 
 .settings-page .form-grid :deep(.app-input-group) {

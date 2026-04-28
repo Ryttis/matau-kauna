@@ -6,6 +6,7 @@ use App\Models\EmailNotificationTemplate;
 use Illuminate\Auth\Notifications\ResetPassword;
 use Illuminate\Auth\Notifications\VerifyEmail;
 use Illuminate\Notifications\Messages\MailMessage;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Facades\Vite;
 use Illuminate\Support\ServiceProvider;
@@ -23,8 +24,20 @@ class AppServiceProvider extends ServiceProvider
             URL::forceScheme('https');
         }
 
+        $this->guardDestructiveDatabaseCommands();
         $this->registerVerifyEmailFromTemplate();
         $this->registerPasswordResetFromTemplate();
+    }
+
+    private function guardDestructiveDatabaseCommands(): void
+    {
+        if ($this->app->runningUnitTests()) {
+            return;
+        }
+
+        $allowDestructive = filter_var(env('DB_ALLOW_DESTRUCTIVE', false), FILTER_VALIDATE_BOOLEAN);
+
+        DB::prohibitDestructiveCommands(! $allowDestructive);
     }
 
     private function registerVerifyEmailFromTemplate(): void

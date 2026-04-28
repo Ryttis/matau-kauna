@@ -61,6 +61,7 @@ class RolesSeeder extends Seeder
             'statistics.view',
             'admin.access',
             'archive.manage',
+            'invitations.manage',
         ])->mapWithKeys(function ($permission) {
             return [
                 $permission => UserRolePermission::updateOrCreate(
@@ -86,6 +87,7 @@ class RolesSeeder extends Seeder
             $permissions['statistics.view']->id,
             $permissions['admin.access']->id,
             $permissions['archive.manage']->id,
+            $permissions['invitations.manage']->id,
         ]);
 
         $roleProblemAdmin->permissions()->sync([
@@ -104,6 +106,7 @@ class RolesSeeder extends Seeder
             $permissions['issues.assign']->id,
             $permissions['issues.export']->id,
             $permissions['statistics.view']->id,
+            $permissions['invitations.manage']->id,
         ]);
 
         $roleMunicipalityRep->permissions()->sync([
@@ -124,9 +127,13 @@ class RolesSeeder extends Seeder
 
         $roleReporter->permissions()->sync([]);
 
-        $adminUser = User::find(1);
+        $firstSeededEmail = UsersSeeder::USERS[0]['email'] ?? null;
+        $adminUser = $firstSeededEmail
+            ? User::where('email', $firstSeededEmail)->first()
+            : User::orderBy('id')->first();
+
         if ($adminUser) {
-            $adminUser->roles()->sync([$roleSystemAdmin->id]);
+            $adminUser->roles()->syncWithoutDetaching([$roleSystemAdmin->id]);
         }
     }
 }

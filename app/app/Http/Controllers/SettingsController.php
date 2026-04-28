@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\UpdateInstitutionSettingsRequest;
 use App\Models\Employee;
 use App\Models\Institution;
 use App\Models\PasswordPolicy;
@@ -125,23 +126,28 @@ class SettingsController extends Controller
         return back()->with('success', 'Darbuotojas pridėtas.');
     }
 
-    public function updateInstitution(Request $request): RedirectResponse
+    public function updateInstitution(UpdateInstitutionSettingsRequest $request): RedirectResponse
     {
-        $validated = $request->validate([
-            'name' => ['required', 'string', 'max:255'],
-            'code' => ['nullable', 'string', 'max:255'],
-        ]);
+        $validated = $request->validated();
+        $institutionPayload = [
+            'name' => $validated['name'],
+            'code' => $validated['code'] ?? null,
+        ];
 
         $user = Auth::user();
         if (! ($user instanceof User)) {
             abort(403);
         }
         if ($user->institution) {
-            $user->institution->update($validated);
+            $institution = $user->institution;
+            $institution->update($institutionPayload);
         } else {
-            $institution = Institution::create($validated);
+            $institution = Institution::create($institutionPayload);
             $user->update(['institution_id' => $institution->id]);
+            $user->setRelation('institution', $institution);
         }
+
+        $this->settingsService->updateInstitutionGisConfig($user, $validated['gis'] ?? []);
 
         return back()->with('success', 'Įstaigos duomenys atnaujinti.');
     }
