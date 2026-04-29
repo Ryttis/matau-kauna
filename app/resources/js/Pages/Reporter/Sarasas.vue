@@ -42,7 +42,12 @@ const applyFilters = (params = {}) => {
         category: (params.problemType ?? categoryFilter.value) || undefined,
         date_from: (params.dateFrom ?? dateFromFilter.value) || undefined,
         date_to: (params.dateTo ?? dateToFilter.value) || undefined,
-    }, { preserveState: false })
+    }, {
+        preserveState: true,
+        preserveScroll: true,
+        replace: true,
+        only: ['problems', 'filters'],
+    })
 }
 
 const debouncedSearch = debounce(() => applyFilters(), 300)
@@ -75,8 +80,32 @@ function handleFilterClear() {
     categoryFilter.value = ''
     dateFromFilter.value = ''
     dateToFilter.value = ''
-    router.get(route('reporter.sarasas'), { search: searchQuery.value || undefined }, { preserveState: false })
+    router.get(route('reporter.sarasas'), { search: searchQuery.value || undefined }, {
+        preserveState: true,
+        preserveScroll: true,
+        replace: true,
+        only: ['problems', 'filters'],
+    })
 }
+
+const filtersActive = computed(() => {
+    if ((searchQuery.value || '').trim() !== '') {
+        return true
+    }
+    if ((reportNumberFilter.value || '').trim() !== '') {
+        return true
+    }
+    if ((categoryFilter.value || '').trim() !== '') {
+        return true
+    }
+    if ((dateFromFilter.value || '').trim() !== '') {
+        return true
+    }
+    if ((dateToFilter.value || '').trim() !== '') {
+        return true
+    }
+    return false
+})
 
 const flatProblems = computed(() => props.problems || [])
 const displayRows = computed(() => buildReporterProblemDisplayRows(flatProblems.value))
@@ -158,6 +187,7 @@ function sarasasRowClass(row) {
                 <SearchFilterBar
                     v-model="searchQuery"
                     placeholder="Ieškoti"
+                    :filters-active="filtersActive"
                     @input="debouncedSearch"
                     @filter-click="openFilterModal"
                 />

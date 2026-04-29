@@ -218,11 +218,11 @@ class Problem extends Model
         $num = trim((string) ($this->internal_number ?? ''));
         $base = $num;
         if ($addr !== '') {
-            $base = $base !== '' ? $base.' — '.$addr : $addr;
+            $base = $base !== '' ? $base.' - '.$addr : $addr;
         }
         if (mb_strlen($base) < self::AUTOMATION_RESOLVED_LINE_MIN_BASE_BEFORE_DESC && $desc !== '') {
             $suffix = mb_substr($desc, 0, self::AUTOMATION_RESOLVED_LINE_DESC_APPEND);
-            $base = $base !== '' ? $base.' — '.$suffix : mb_substr($desc, 0, $maxLength);
+            $base = $base !== '' ? $base.' - '.$suffix : mb_substr($desc, 0, $maxLength);
         }
 
         return mb_strlen($base) > $maxLength ? mb_substr($base, 0, $maxLength) : $base;

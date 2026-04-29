@@ -75,6 +75,7 @@ const {
     reporterToggleOnlyMine,
     reporterToggleOnlyMineFromFilter,
     reporterProblems,
+    reporterHasActiveFilters,
 } = useDashboardReporter(props)
 
 const currentYear = new Date().getFullYear()
@@ -99,6 +100,7 @@ const reporterDateMax = `${currentYear}-12-31`
                     <SearchFilterBar
                         v-model="reporterSearchQuery"
                         placeholder="Ieškoti"
+                        :filters-active="reporterHasActiveFilters"
                         @filter-click="reporterOpenFilterModal"
                     />
                 </div>

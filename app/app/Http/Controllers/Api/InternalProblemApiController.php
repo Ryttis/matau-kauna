@@ -16,6 +16,7 @@ use App\Services\ProblemDashboardQueryService;
 use App\Services\ProblemHttpSupport;
 use App\Services\ProblemInstitutionAssignmentPickerService;
 use App\Services\ProblemResolutionTermService;
+use App\Services\ProblemReviewHistoryService;
 use App\Services\ProblemScopeService;
 use App\Services\ReporterFileUploadService;
 use Illuminate\Http\JsonResponse;
@@ -32,6 +33,7 @@ class InternalProblemApiController extends Controller
         private ProblemHttpSupport $problemHttpSupport,
         private ReporterFileUploadService $reporterFileUploadService,
         private ProblemInstitutionAssignmentPickerService $institutionAssignmentPickerService,
+        private ProblemReviewHistoryService $reviewHistoryService,
     ) {}
 
     public function institutionsForAssign(Request $request): JsonResponse
@@ -576,7 +578,7 @@ class InternalProblemApiController extends Controller
         if (! $user) {
             abort(403);
         }
-        if ($user->canReassignInstitutions()) {
+        if ($user->canReassignInstitutions() && $user->institution_id === null) {
             abort(403);
         }
         if ($this->scopeService->isInstitutionScoped($user) && $user->institution_id !== null) {
@@ -591,6 +593,13 @@ class InternalProblemApiController extends Controller
         } else {
             abort(403);
         }
+
+        $problem->refresh();
+        $this->reviewHistoryService->storeAutomatedInternalNote(
+            $problem,
+            $user,
+            ProblemReviewHistoryService::INTERNAL_NOTE_RETURNED_TO_ADMIN,
+        );
 
         $problem->update([
             'institution_id' => null,

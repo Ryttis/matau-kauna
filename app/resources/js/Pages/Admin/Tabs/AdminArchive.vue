@@ -1,11 +1,11 @@
 <script setup>
-import { computed, onMounted, ref, watch } from 'vue'
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import axios from 'axios'
-import AppButton from '@/Components/App/AppButton.vue'
 import AppInput from '@/Components/App/AppInput.vue'
-import AppCheckbox from '@/Components/App/AppCheckbox.vue'
+import AppSwitch from '@/Components/App/AppSwitch.vue'
 import SuccessModal from '@/Components/App/SuccessModal.vue'
 import ConfirmModal from '@/Components/App/ConfirmModal.vue'
+import { debounce } from 'lodash-es'
 import { adminApi } from '@/constants/api/adminApi'
 
 const loading = ref(true)
@@ -36,6 +36,7 @@ const settingsForm = ref({
     is_active: true,
 })
 const savingSettings = ref(false)
+const isSyncingSettingsFromServer = ref(false)
 
 const activeTab = ref('users')
 
@@ -57,10 +58,14 @@ const emptyTabMessage = computed(() => EMPTY_MESSAGES[activeTab.value] ?? '')
 function syncSettingsFormFromRule() {
     const entityType = TAB_ENTITY_MAP[activeTab.value]
     const r = retentionRules.value[entityType]
+    isSyncingSettingsFromServer.value = true
     settingsForm.value = {
         retention_days: r?.delete_after_days ?? '',
         is_active: r?.is_active ?? true,
     }
+    nextTick(() => {
+        isSyncingSettingsFromServer.value = false
+    })
 }
 
 const load = async () => {
@@ -87,6 +92,7 @@ const load = async () => {
 }
 
 const saveSettings = async () => {
+    if (savingSettings.value) return
     savingSettings.value = true
     errorMessage.value = ''
     successMessage.value = ''
@@ -111,6 +117,37 @@ const saveSettings = async () => {
 const formatDate = (str) => {
     if (!str) return '-'
     return new Date(str).toLocaleDateString('lt-LT')
+}
+
+function currentRuleForActiveTab() {
+    const entityType = TAB_ENTITY_MAP[activeTab.value]
+    return retentionRules.value?.[entityType] ?? null
+}
+
+function hasPendingSettingsChanges() {
+    const currentRule = currentRuleForActiveTab()
+    const currentDays = currentRule?.delete_after_days ?? null
+    const currentActive = currentRule?.is_active ?? true
+    const formDays = settingsForm.value.retention_days === '' ? null : Number(settingsForm.value.retention_days)
+    return formDays !== currentDays || settingsForm.value.is_active !== currentActive
+}
+
+const debouncedSaveSettings = debounce(() => {
+    if (isSyncingSettingsFromServer.value || !settingsForm.value.is_active) {
+        return
+    }
+    if (!hasPendingSettingsChanges()) {
+        return
+    }
+    void saveSettings()
+}, 450)
+
+function handleRuleToggle(nextValue) {
+    settingsForm.value.is_active = nextValue
+    debouncedSaveSettings.cancel()
+    if (!isSyncingSettingsFromServer.value && hasPendingSettingsChanges()) {
+        void saveSettings()
+    }
 }
 
 const restoring = ref(null)
@@ -167,6 +204,19 @@ async function destroyUser() {
 }
 
 watch(activeTab, syncSettingsFormFromRule)
+watch(
+    () => settingsForm.value.retention_days,
+    () => {
+        if (isSyncingSettingsFromServer.value || !settingsForm.value.is_active) {
+            return
+        }
+        debouncedSaveSettings()
+    },
+)
+
+onBeforeUnmount(() => {
+    debouncedSaveSettings.cancel()
+})
 onMounted(load)
 </script>
 
@@ -202,18 +252,15 @@ onMounted(load)
                         placeholder="365"
                         class="input-narrow"
                     />
-                    <AppButton
-                        text="Išsaugoti"
-                        variant="primary"
-                        as-button
+                </div>
+                <div class="settings-card__switch-row">
+                    <span class="settings-card__switch-label">Taisyklė įjungta</span>
+                    <AppSwitch
+                        :model-value="settingsForm.is_active"
                         :disabled="savingSettings"
-                        @click="saveSettings"
+                        @update:model-value="handleRuleToggle"
                     />
                 </div>
-                <label class="settings-card__check">
-                    <AppCheckbox v-model="settingsForm.is_active" />
-                    <span>Taisyklė įjungta</span>
-                </label>
             </div>
         </div>
 
@@ -393,10 +440,10 @@ onMounted(load)
 }
 
 .settings-card {
-    background: #fff;
-    border: 1px solid #e5e7eb;
-    border-radius: 14px;
-    padding: 16px 20px 18px;
+    background: transparent;
+    border: 0;
+    border-radius: 0;
+    padding: 0;
     margin-bottom: 0;
 }
 .settings-card__title {
@@ -427,12 +474,13 @@ onMounted(load)
 .settings-card__row .input-narrow {
     width: 100px;
 }
-.settings-card__check {
-    display: flex;
+.settings-card__switch-row {
+    display: inline-flex;
     align-items: center;
-    gap: 8px;
+    gap: 10px;
     margin-top: 12px;
-    cursor: pointer;
+}
+.settings-card__switch-label {
     font-size: 14px;
     color: #333;
 }

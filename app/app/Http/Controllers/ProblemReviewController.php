@@ -192,7 +192,7 @@ class ProblemReviewController extends Controller
             if ($byEntry->count() === 1) {
                 $attachmentModel = $byEntry->first();
             } elseif ($byEntry->count() > 1) {
-                abort(422, 'Šiam įrašui keletas priedų — nurodykite priedo id (attachments[].id), ne įrašo id.');
+                abort(422, 'Šiam įrašui keletas priedų - nurodykite priedo id (attachments[].id), ne įrašo id.');
             } else {
                 abort(404, 'Priedas nerastas (neteisingas id: dažnai painiojama su nagrinėjimo įrašo id).');
             }

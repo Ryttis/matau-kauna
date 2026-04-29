@@ -37,7 +37,7 @@ paths:
               $ref: '#/components/schemas/ApiLoginRequest'
       responses:
         '200':
-          description: OK — arba `token` (be 2FA), arba `login_token` (2FA, tada antras žingsnis)
+          description: OK
           content:
             application/json:
               schema:
@@ -50,7 +50,7 @@ paths:
   /api/two-factor/challenge:
     post:
       tags: [Auth]
-      summary: "[PUBLIC] 2FA po sėkmingo /api/login (login_token + 6 skaitmenų kodas)"
+      summary: "[PUBLIC] 2FA challenge"
       requestBody:
         required: true
         content:
@@ -876,7 +876,7 @@ paths:
     post:
       tags: [Internal]
       summary: "[AUTH] Update problem (classification fields and optional attachments)"
-      description: Priedams rekomenduojama multipart/form-data; alternatyva — JSON su files base64.
+      description: Priedams rekomenduojama multipart/form-data; alternatyva - JSON su files base64.
       security:
         - bearerAuth: []
       parameters:
@@ -1277,7 +1277,7 @@ paths:
           $ref: '#/components/responses/ValidationError'
     post:
       tags: [Internal]
-      summary: "[AUTH] Update (multipart + failai — naudokite šitą, ne PUT)"
+      summary: "[AUTH] Update (multipart + failai - naudokite šitą, ne PUT)"
       security:
         - bearerAuth: []
       parameters:
@@ -2071,7 +2071,7 @@ components:
           type: string
         needs_setup:
           type: boolean
-          description: "Jei true — dar reikia patvirtinti programėlėje (TOTP)."
+          description: "Jei true - dar reikia patvirtinti programėlėje (TOTP)."
         secret:
           type: string
           description: TOTP secret (tik įjungus pirmą kartą arba re-setup).

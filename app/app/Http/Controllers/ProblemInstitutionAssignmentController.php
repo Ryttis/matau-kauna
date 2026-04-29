@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Enums\ProblemStatus;
 use App\Models\Employee;
+use App\Models\Institution;
 use App\Models\InstitutionTeam;
 use App\Models\Problem;
 use App\Models\User;
@@ -11,6 +12,7 @@ use App\Models\UserRole;
 use App\Services\ArcGisProblemTransferService;
 use App\Services\ProblemAssignmentNotifier;
 use App\Services\ProblemInstitutionAssignmentPickerService;
+use App\Services\ProblemReviewHistoryService;
 use App\Services\ProblemScopeService;
 use App\Services\TransactionalMail;
 use Illuminate\Http\RedirectResponse;
@@ -26,6 +28,7 @@ class ProblemInstitutionAssignmentController extends Controller
         private ProblemAssignmentNotifier $assignmentNotifier,
         private ProblemInstitutionAssignmentPickerService $assignmentPickerService,
         private ArcGisProblemTransferService $arcGisProblemTransferService,
+        private ProblemReviewHistoryService $reviewHistoryService,
     ) {}
 
     public function assignInstitution(Problem $problem): Response|RedirectResponse
@@ -291,7 +294,7 @@ class ProblemInstitutionAssignmentController extends Controller
         if (! $user) {
             abort(403);
         }
-        if ($user->canReassignInstitutions()) {
+        if ($user->canReassignInstitutions() && $user->institution_id === null) {
             abort(403);
         }
         if ($this->scopeService->isInstitutionScoped($user) && $user->institution_id !== null) {
@@ -306,6 +309,13 @@ class ProblemInstitutionAssignmentController extends Controller
         } else {
             abort(403);
         }
+
+        $problem->refresh();
+        $this->reviewHistoryService->storeAutomatedInternalNote(
+            $problem,
+            $user,
+            ProblemReviewHistoryService::INTERNAL_NOTE_RETURNED_TO_ADMIN,
+        );
 
         $problem->update([
             'institution_id' => null,

@@ -67,7 +67,7 @@ const resetTwoFactorConfirmation = async (user) => {
 
 const statusLabel = (u) => {
     if (!u.is_staff) {
-        return { text: '—', class: 'pill-off' }
+        return { text: '-', class: 'pill-off' }
     }
     if (!u.two_factor_enabled) {
         return { text: 'Išjungta', class: 'pill-off' }
@@ -136,7 +136,7 @@ const toggleGlobalRequired = async (checked) => {
                     <tr v-for="u in usersPage.data" :key="u.id">
                         <td>{{ u.name }}</td>
                         <td>{{ u.email }}</td>
-                        <td>{{ roleNames(u) || '—' }}</td>
+                        <td>{{ roleNames(u) || '-' }}</td>
                         <td>
                             <span
                                 v-for="st in [statusLabel(u)]"

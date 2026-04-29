@@ -3,17 +3,13 @@ import { ref } from 'vue'
 import { Head } from '@inertiajs/vue3'
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue'
 import AppSelect from '@/Components/App/AppSelect.vue'
-import SuccessModal from '@/Components/App/SuccessModal.vue'
 import AutomationAssignmentSection from '@/Components/Automation/AutomationAssignmentSection.vue'
 import AutomationPublishSection from '@/Components/Automation/AutomationPublishSection.vue'
 import AutomationResolutionTermsSection from '@/Components/Automation/AutomationResolutionTermsSection.vue'
 import AutomationInactiveReporterSection from '@/Components/Automation/AutomationInactiveReporterSection.vue'
 import AutomationResolvedProblemPrivacySection from '@/Components/Automation/AutomationResolvedProblemPrivacySection.vue'
-import { useSuccessModal } from '@/composables/useSuccessModal'
 import { AUTOMATION_SECTIONS } from '@/constants/domain/automation'
 import '@/Components/Automation/automation-shared.css'
-
-const { showSuccessModal, successMessage, closeSuccessModal } = useSuccessModal()
 
 defineProps({
     rules: Array,
@@ -35,11 +31,6 @@ const activeSection = ref('assignment')
 <template>
     <Head title="Automatizacija" />
     <AuthenticatedLayout>
-        <SuccessModal
-            :show="showSuccessModal"
-            :message="successMessage"
-            @close="closeSuccessModal"
-        />
         <div class="automation-page">
             <h1 id="automation-page-title" class="automation-title">Automatizacija</h1>
             <p class="automation-desc">Automatizavimo taisyklių valdymas problemų skyrimui, viešinimui ir terminams.</p>

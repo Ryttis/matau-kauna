@@ -188,6 +188,29 @@ export function useDashboardReporter(props) {
         reporterSelectedIds.value = new Set()
     }
 
+    const reporterHasActiveFilters = computed(() => {
+        if ((reporterSearchQuery.value || '').trim() !== '') {
+            return true
+        }
+        const f = reporterFilterState.value
+        if ((f.reportNumber || '').trim() !== '') {
+            return true
+        }
+        if ((f.statuses || []).length > 0) {
+            return true
+        }
+        if (f.problemType && f.problemType !== 'all') {
+            return true
+        }
+        if ((f.dateFrom || '').trim() !== '') {
+            return true
+        }
+        if ((f.dateTo || '').trim() !== '') {
+            return true
+        }
+        return false
+    })
+
     return {
         reporterSearchQuery,
         reporterFilterState,
@@ -215,5 +238,6 @@ export function useDashboardReporter(props) {
         reporterToggleOnlyMine,
         reporterToggleOnlyMineFromFilter,
         reporterProblems,
+        reporterHasActiveFilters,
     }
 }

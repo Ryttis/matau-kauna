@@ -138,7 +138,7 @@ function doDelete() {
                         <td>
                             <button type="button" class="automation-link" @click="openEdit(r)">Redaguoti</button>
                             <span class="automation-sep">|</span>
-                            <button type="button" class="automation-link" @click="confirmDelete(r)">Trinti</button>
+                            <button type="button" class="automation-link automation-link--danger" @click="confirmDelete(r)">Trinti</button>
                         </td>
                     </tr>
                 </tbody>

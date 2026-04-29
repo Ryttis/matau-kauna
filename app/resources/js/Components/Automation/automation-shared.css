@@ -117,6 +117,15 @@
     text-decoration: none;
 }
 
+.automation-link--danger {
+    color: var(--color-danger, #b42318);
+}
+
+.automation-link--danger:hover {
+    color: #8a1a12;
+    text-decoration: none;
+}
+
 .automation-sep {
     margin: 0 6px;
     color: var(--color-text-muted, #999);

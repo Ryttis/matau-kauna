@@ -175,7 +175,7 @@ watch(
                         <td>
                             <button type="button" class="automation-link" @click="openTermRuleEdit(r)">Redaguoti</button>
                             <span class="automation-sep">|</span>
-                            <button type="button" class="automation-link" @click="confirmTermRuleDelete(r)">Trinti</button>
+                            <button type="button" class="automation-link automation-link--danger" @click="confirmTermRuleDelete(r)">Trinti</button>
                         </td>
                     </tr>
                 </tbody>

@@ -6,6 +6,7 @@ const props = defineProps({
     modelValue: { type: String, default: '' },
     placeholder: { type: String, default: 'Ieškoti' },
     filterAriaLabel: { type: String, default: 'Filtruoti' },
+    filtersActive: { type: Boolean, default: false },
 })
 
 const emit = defineEmits(['update:modelValue', 'input', 'filter-click'])
@@ -51,10 +52,17 @@ function openFilter() {
         <button
             type="button"
             class="search-filter-bar__filter-btn"
-            :aria-label="filterAriaLabel"
+            :aria-label="filtersActive ? `${filterAriaLabel} (yra aktyvių filtrų)` : filterAriaLabel"
             @click="openFilter"
         >
-            <img :src="ICON_FILTER" class="search-filter-bar__filter-icon" alt="" />
+            <span class="search-filter-bar__filter-icon-wrap">
+                <img :src="ICON_FILTER" class="search-filter-bar__filter-icon" alt="" />
+                <span
+                    v-if="filtersActive"
+                    class="search-filter-bar__filter-badge"
+                    aria-hidden="true"
+                />
+            </span>
         </button>
     </div>
 </template>
@@ -143,6 +151,25 @@ function openFilter() {
 
 .search-filter-bar__filter-btn:hover {
     background: #f0f0f0;
+}
+
+.search-filter-bar__filter-icon-wrap {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.search-filter-bar__filter-badge {
+    position: absolute;
+    top: -2px;
+    right: -2px;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #e11d48;
+    box-shadow: 0 0 0 2px #fff;
+    pointer-events: none;
 }
 
 .search-filter-bar__filter-icon {

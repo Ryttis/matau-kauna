@@ -133,7 +133,7 @@ function doPublishDelete() {
                         <td>
                             <button type="button" class="automation-link" @click="openPublishEdit(r)">Redaguoti</button>
                             <span class="automation-sep">|</span>
-                            <button type="button" class="automation-link" @click="confirmPublishDelete(r)">Trinti</button>
+                            <button type="button" class="automation-link automation-link--danger" @click="confirmPublishDelete(r)">Trinti</button>
                         </td>
                     </tr>
                 </tbody>
