@@ -80,6 +80,7 @@ const {
     handleBulkPublishToggle,
     handleSelectAll,
     handleSelectItem,
+    hasActiveListFilters,
 } = useDashboardProblemList(props)
 </script>
 
@@ -94,6 +95,7 @@ const {
         <SearchFilterBar
             v-model="search"
             placeholder="Ieškoti"
+            :filters-active="hasActiveListFilters"
             @input="handleSearch"
             @filter-click="showFilterModal = true"
         />

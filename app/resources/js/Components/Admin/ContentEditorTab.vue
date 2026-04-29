@@ -35,7 +35,7 @@ const isTerms = () => props.type === 'terms'
 
 const editorModalTitle = computed(() => {
     if (!editingId.value) {
-        return `Nauja versija — ${props.label}`
+        return `Nauja versija - ${props.label}`
     }
     const v = versions.value.find((x) => x.id === editingId.value)
     return v ? `Redaguoti versiją ${v.version}` : 'Redaguoti versiją'

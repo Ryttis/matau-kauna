@@ -1,11 +1,12 @@
 <script setup>
-import { ref, watch } from 'vue'
+import { nextTick, onBeforeUnmount, ref, watch } from 'vue'
 import axios from 'axios'
 import AppButton from '@/Components/App/AppButton.vue'
-import AppCheckbox from '@/Components/App/AppCheckbox.vue'
+import AppSwitch from '@/Components/App/AppSwitch.vue'
 import AppDatePicker from '@/Components/App/AppDatePicker.vue'
 import AppInput from '@/Components/App/AppInput.vue'
 import SuccessModal from '@/Components/App/SuccessModal.vue'
+import { debounce } from 'lodash-es'
 import { adminApi } from '@/constants/api/adminApi'
 
 const EVENT_TYPE_LABELS = {
@@ -42,6 +43,7 @@ const settings = ref({
 })
 const settingsForm = ref({ ...settings.value })
 const savingSettings = ref(false)
+const syncingSettings = ref(false)
 const exporting = ref(false)
 
 async function loadSettings() {
@@ -52,7 +54,11 @@ async function loadSettings() {
             retention_days: res.retention_days ?? 365,
             retention_is_active: res.retention_is_active ?? true,
         }
+        syncingSettings.value = true
         settingsForm.value = { ...settings.value }
+        nextTick(() => {
+            syncingSettings.value = false
+        })
     } catch {}
 }
 
@@ -81,6 +87,7 @@ async function load() {
 }
 
 async function saveSettings() {
+    if (savingSettings.value) return
     savingSettings.value = true
     errorMessage.value = ''
     successMessage.value = ''
@@ -88,7 +95,7 @@ async function saveSettings() {
         await axios.put(adminApi.auditSettings, {
             enabled: settingsForm.value.enabled,
             retention_days: settingsForm.value.retention_days ? Number(settingsForm.value.retention_days) : null,
-            retention_is_active: settingsForm.value.retention_is_active,
+            retention_is_active: settingsForm.value.enabled,
         })
         await loadSettings()
         successMessage.value = 'Nustatymai išsaugoti.'
@@ -119,9 +126,47 @@ function eventTypeLabel(type) {
     return EVENT_TYPE_LABELS[type] ?? type ?? '-'
 }
 
+function hasPendingSettingsChanges() {
+    const currentDays = settings.value.retention_days ?? null
+    const formDays = settingsForm.value.retention_days === '' ? null : Number(settingsForm.value.retention_days)
+    return formDays !== currentDays || settingsForm.value.enabled !== settings.value.enabled
+}
+
+const debouncedSaveSettings = debounce(() => {
+    if (syncingSettings.value || !settingsForm.value.enabled) {
+        return
+    }
+    if (!hasPendingSettingsChanges()) {
+        return
+    }
+    void saveSettings()
+}, 450)
+
+function handleEnabledToggle(nextValue) {
+    settingsForm.value.enabled = nextValue
+    debouncedSaveSettings.cancel()
+    if (!syncingSettings.value && hasPendingSettingsChanges()) {
+        void saveSettings()
+    }
+}
+
 watch([() => filters.value.date_from, () => filters.value.date_to, () => filters.value.event_type, () => filters.value.result, () => filters.value.search], () => {
     currentPage.value = 1
     load()
+})
+
+watch(
+    () => settingsForm.value.retention_days,
+    () => {
+        if (syncingSettings.value || !settingsForm.value.enabled) {
+            return
+        }
+        debouncedSaveSettings()
+    },
+)
+
+onBeforeUnmount(() => {
+    debouncedSaveSettings.cancel()
 })
 
 load()
@@ -140,21 +185,20 @@ loadSettings()
         <div class="settings-block">
             <h3 class="block-title">Nustatymai</h3>
             <div class="settings-form">
-                <label class="setting-row">
-                    <AppCheckbox v-model="settingsForm.enabled" />
+                <div class="setting-row setting-row--switch">
                     <span>Žurnalavimas įjungtas</span>
-                </label>
+                    <AppSwitch
+                        :model-value="settingsForm.enabled"
+                        :disabled="savingSettings"
+                        @update:model-value="handleEnabledToggle"
+                    />
+                </div>
                 <label class="setting-row setting-row--with-input">
                     <span class="label">Saugojimo laikotarpis (dienos)</span>
                     <span class="setting-input-wrap">
                         <AppInput v-model.number="settingsForm.retention_days" type="number" min="1" max="3650" class="input-narrow" />
                     </span>
                 </label>
-                <label class="setting-row">
-                    <AppCheckbox v-model="settingsForm.retention_is_active" />
-                    <span>Taikyti saugojimo laikotarpį (seni įrašai trynami)</span>
-                </label>
-                <AppButton text="Išsaugoti nustatymus" variant="primary" as-button :disabled="savingSettings" @click="saveSettings" />
             </div>
         </div>
 
@@ -272,6 +316,11 @@ loadSettings()
     gap: 20px;
     cursor: pointer;
     font-size: 14px;
+}
+.setting-row--switch {
+    display: inline-flex;
+    gap: 10px;
+    cursor: default;
 }
 .setting-row .label {
     min-width: 220px;

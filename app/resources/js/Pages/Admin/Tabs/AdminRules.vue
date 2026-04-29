@@ -67,9 +67,9 @@ const activeTab = computed(() => ADMIN_RULES_SUB_TABS.find((t) => t.key === acti
     border-bottom-color: var(--color-primary, #1946A0);
 }
 .panel {
-    background: #ffffff;
-    border-radius: 14px;
-    padding: 16px 20px 20px;
-    border: 1px solid #e5e7eb;
+    background: transparent;
+    border-radius: 0;
+    padding: 0;
+    border: 0;
 }
 </style>

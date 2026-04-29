@@ -10,6 +10,8 @@ use App\Models\User;
 
 class ProblemReviewHistoryService
 {
+    public const INTERNAL_NOTE_RETURNED_TO_ADMIN = 'Problema grąžinta problemų administratoriui - įstaigos priskyrimas nuimtas.';
+
     public function __construct(
         private ProblemScopeService $scopeService,
         private ProblemReporterStatusNotifier $reporterStatusNotifier
@@ -93,6 +95,23 @@ class ProblemReviewHistoryService
         }
 
         return $entry;
+    }
+
+    public function storeAutomatedInternalNote(Problem $problem, User $user, string $comment): ProblemReviewHistory
+    {
+        $this->scopeService->authorizeProblemAccess($user, $problem);
+
+        $problem->refresh();
+
+        return ProblemReviewHistory::create([
+            'problem_id' => $problem->id,
+            'user_id' => $user->id,
+            'status' => (string) $problem->status,
+            'status_changed' => false,
+            'responsible' => $this->responsibleLabel($user),
+            'comment' => $this->normalizeComment($comment),
+            'visibility' => ProblemReviewCommentVisibility::Internal->value,
+        ]);
     }
 
     public function updateEntry(

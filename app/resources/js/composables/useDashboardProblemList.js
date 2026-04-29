@@ -69,6 +69,25 @@ export function useDashboardProblemList(props) {
         }))
     })
 
+    const hasActiveListFilters = computed(() => {
+        if ((search.value || '').trim() !== '') {
+            return true
+        }
+        if ((reportNumberFilter.value || '').trim() !== '') {
+            return true
+        }
+        if ((categoryFilter.value || '').trim() !== '') {
+            return true
+        }
+        if ((dateFromFilter.value || '').trim() !== '') {
+            return true
+        }
+        if ((dateToFilter.value || '').trim() !== '') {
+            return true
+        }
+        return false
+    })
+
     const loadProblems = (resetPage = true) => {
         const params = buildDashboardListRouterParams({
             search: search.value,
@@ -497,5 +516,6 @@ export function useDashboardProblemList(props) {
         handleBulkPublishToggle,
         handleSelectAll,
         handleSelectItem,
+        hasActiveListFilters,
     }
 }

@@ -4,6 +4,7 @@ import axios from 'axios'
 import { useAuth } from '@/composables/useAuth'
 import { useSuccessModal } from '@/composables/useSuccessModal'
 import { settingsApi } from '@/constants/api/settingsApi'
+import { gisSendStatusLabel } from '@/constants/domain/gisTransfer'
 
 export function useAssignInstitutionPage(props) {
     const { canSeeInstitutionAdminButtons } = useAuth()
@@ -19,7 +20,6 @@ export function useAssignInstitutionPage(props) {
             : '',
     )
     const emailForInfo = ref('')
-    const returnComment = ref('')
 
     const employeeEmailOptions = computed(() =>
         (props.employees ?? []).map((emp) => ({
@@ -42,6 +42,8 @@ export function useAssignInstitutionPage(props) {
 
     const assignSubmitting = ref(false)
     const emailSubmitting = ref(false)
+    const gisSubmitting = ref(false)
+    const gisPullSubmitting = ref(false)
     const returnSubmitting = ref(false)
     const reassignSubmitting = ref(false)
 
@@ -197,6 +199,19 @@ export function useAssignInstitutionPage(props) {
         }, finishVisit(reassignSubmitting))
     }
 
+    const handleSendToGis = () => {
+        gisSubmitting.value = true
+        router.post(route('problems.assignInstitution.sendGis', props.problem.id), {}, finishVisit(gisSubmitting))
+    }
+
+    const handlePullFromGis = () => {
+        if (gisPullSubmitting.value) {
+            return
+        }
+        gisPullSubmitting.value = true
+        router.post(route('problems.assignInstitution.pullGis', props.problem.id), {}, finishVisit(gisPullSubmitting))
+    }
+
     watch(
         () => props.problem,
         (newProblem) => {
@@ -225,14 +240,18 @@ export function useAssignInstitutionPage(props) {
         selectedTeamIds,
         deadline,
         emailForInfo,
-        returnComment,
         employeeEmailOptions,
         canSendInfoEmail,
         selectedReassignIds,
         assignSubmitting,
         emailSubmitting,
+        gisSubmitting,
+        gisPullSubmitting,
         returnSubmitting,
         reassignSubmitting,
+        gisStatusLabel: gisSendStatusLabel,
+        handleSendToGis,
+        handlePullFromGis,
         teamsList,
         membersModalOpen,
         membersModalTeam,

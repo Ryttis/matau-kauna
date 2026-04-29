@@ -1,193 +1,129 @@
 <script setup>
-import { ref, computed, watch } from 'vue'
-import { router, Link } from '@inertiajs/vue3'
-import AppButton from '@/Components/App/AppButton.vue'
+import { Link } from '@inertiajs/vue3'
 import AppInput from '@/Components/App/AppInput.vue'
-import AppCheckbox from '@/Components/App/AppCheckbox.vue'
-import { formatHideAtAfterDays, formatLtDateTimeFromBackend } from '@/composables/useAutomationLtDateTime'
-import { INACTIVITY_DAYS_FALLBACK } from '@/constants/domain/automation'
+import AppSwitch from '@/Components/App/AppSwitch.vue'
+import { useAutomationResolvedProblemPrivacy } from '@/composables/useAutomationResolvedProblemPrivacy'
 
 const props = defineProps({
     resolvedProblemPrivacySetting: Object,
     resolvedPublicProblemsList: Array,
 })
 
-const submitting = ref(false)
-
-const form = ref({
-    days_after_resolution: props.resolvedProblemPrivacySetting?.days_default ?? INACTIVITY_DAYS_FALLBACK,
-    is_active: false,
-})
-
-const minDays = computed(() => props.resolvedProblemPrivacySetting?.days_min ?? 30)
-const maxDays = computed(() => props.resolvedProblemPrivacySetting?.days_max ?? 3650)
-
-const canSave = computed(() => {
-    const f = form.value
-    const minD = minDays.value
-    const maxD = maxDays.value
-    return f.days_after_resolution != null && f.days_after_resolution >= minD && f.days_after_resolution <= maxD
-})
-
-const daysRangeHint = computed(() => {
-    const minD = minDays.value
-    const maxD = maxDays.value
-    return `Leistina reikšmė: nuo ${minD} iki ${maxD} dienų.`
-})
-
-const daysInvalidHint = computed(() => {
-    if (canSave.value) {
-        return null
-    }
-    const raw = form.value.days_after_resolution
-    const minD = minDays.value
-    const maxD = maxDays.value
-    if (raw === null || raw === '' || Number.isNaN(Number(raw))) {
-        return 'Įveskite terminą dienomis.'
-    }
-    const n = Number(raw)
-    if (n < minD) {
-        return `Per mažas terminas. Minimali reikšmė: ${minD} dienų.`
-    }
-    if (n > maxD) {
-        return `Per didelis terminas. Maksimali reikšmė: ${maxD} dienų.`
-    }
-    return null
-})
-
-const search = ref('')
-
-const filteredRows = computed(() => {
-    let rows = props.resolvedPublicProblemsList || []
-    const q = search.value.trim().toLowerCase()
-    if (!q) return rows
-    return rows.filter((row) => {
-        const num = String(row.internal_number || '').toLowerCase()
-        const addr = String(row.address || '').toLowerCase()
-        const desc = String(row.description_preview || '').toLowerCase()
-        const line = String(row.problem_line || '').toLowerCase()
-        return num.includes(q) || addr.includes(q) || desc.includes(q) || line.includes(q)
-    })
-})
-
-const tableRows = computed(() => {
-    const days = form.value.days_after_resolution
-    return filteredRows.value.map((row) => ({
-        ...row,
-        problemLabel: row.problem_line || String(row.internal_number || ''),
-        resolvedLabel: formatLtDateTimeFromBackend(row.resolved_at),
-        hideAtLabel: formatHideAtAfterDays(row.resolved_at, days),
-    }))
-})
-
-const tableScrollable = computed(() => (filteredRows.value?.length || 0) > 5)
-
-function syncFormFromProps() {
-    const s = props.resolvedProblemPrivacySetting
-    if (!s) return
-    form.value = {
-        days_after_resolution: s.days_after_resolution ?? s.days_default ?? INACTIVITY_DAYS_FALLBACK,
-        is_active: s.is_active ?? false,
-    }
-}
-
-function submitForm() {
-    if (submitting.value) {
-        return
-    }
-    submitting.value = true
-    router.put(route('automation.resolvedProblemPrivacySetting.update'), {
-        days_after_resolution: form.value.days_after_resolution,
-        is_active: form.value.is_active,
-    }, {
-        preserveScroll: true,
-        onFinish: () => { submitting.value = false },
-    })
-}
-
-watch(() => props.resolvedProblemPrivacySetting, syncFormFromProps, { immediate: true })
+const {
+    form,
+    isSaving,
+    problemSearchQuery,
+    minimumDayCount,
+    maximumDayCount,
+    dayCountRangeHint,
+    dayCountValidationMessage,
+    filteredPublicProblems,
+    tableDisplayRows,
+    shouldScrollTableBody,
+    publicResolvedProblems,
+    handleAutomaticHidingToggle,
+    copy,
+} = useAutomationResolvedProblemPrivacy(props)
 </script>
 
 <template>
     <div class="automation-resolved-privacy">
-        <h2 class="automation-subtitle">Išspręstų problemų paslėpimas</h2>
-        <p class="automation-desc">
-            Po nustatyto dienų skaičiaus nuo išsprendimo automatiškai nuimamas viešas skelbimas — problema neberodoma viešame žemėlapyje ir viešoje statistikoje.
+        <h2 class="automation-subtitle">
+            {{ copy.sectionTitle }}
+        </h2>
+        <p class="automation-desc automation-resolved-lead">
+            {{ copy.leadParagraph }}
         </p>
+        <div class="automation-resolved-switch-line">
+            <span class="automation-resolved-switch-label">{{ copy.switchLabel }}</span>
+            <AppSwitch
+                :model-value="form.is_active"
+                :disabled="isSaving"
+                @update:model-value="handleAutomaticHidingToggle"
+            />
+        </div>
         <div class="automation-inactive-settings">
             <AppInput
                 v-model.number="form.days_after_resolution"
                 type="number"
-                label="Terminas nuo išsprendimo (dienomis)"
-                :min="minDays"
-                :max="maxDays"
+                :label="copy.daysFieldLabel"
+                :min="minimumDayCount"
+                :max="maximumDayCount"
             />
-            <p class="automation-form-hint">{{ daysRangeHint }}</p>
-            <p v-if="daysInvalidHint" class="automation-form-error">
-                {{ daysInvalidHint }}
+            <p class="automation-form-hint">{{ dayCountRangeHint }}</p>
+            <p v-if="dayCountValidationMessage" class="automation-form-error">
+                {{ dayCountValidationMessage }}
             </p>
-            <label class="automation-form-checkbox automation-form-checkbox--align-start">
-                <span class="automation-checkbox-control">
-                    <AppCheckbox v-model="form.is_active" />
-                </span>
-                <span class="automation-checkbox-label">Aktyvuoti automatinį paslėpimą</span>
-            </label>
-            <AppButton
-                text="Išsaugoti nustatymus"
-                variant="primary"
-                as-button
-                :disabled="!canSave || submitting"
-                :loading="submitting"
-                @click="submitForm"
-            />
         </div>
-        <div v-if="resolvedPublicProblemsList?.length" class="automation-inactive-table-block">
+        <div v-if="publicResolvedProblems?.length" class="automation-inactive-table-block">
             <AppInput
-                v-model="search"
+                v-model="problemSearchQuery"
                 type="search"
-                label="Ieškoti problemos"
-                placeholder="Numeris, adresas ar aprašymas"
+                :label="copy.searchLabel"
+                :placeholder="copy.searchPlaceholder"
                 class="automation-inactive-search"
             />
             <div
                 class="automation-table-wrap automation-resolved-table-wrap"
-                :class="{ 'automation-inactive-table-scroll': tableScrollable }"
+                :class="{ 'automation-inactive-table-scroll': shouldScrollTableBody }"
             >
                 <table class="automation-table">
                     <thead>
                         <tr>
-                            <th class="automation-col-problem">Problema</th>
-                            <th>Išspręsta data</th>
-                            <th>Paslėpimo data</th>
+                            <th class="automation-col-problem">{{ copy.tableColumnProblem }}</th>
+                            <th>{{ copy.tableColumnResolvedAt }}</th>
+                            <th>{{ copy.tableColumnHideAt }}</th>
                             <th class="automation-col-action" />
                         </tr>
                     </thead>
                     <tbody>
-                        <tr v-for="row in tableRows" :key="row.id">
+                        <tr v-for="displayRow in tableDisplayRows" :key="displayRow.id">
                             <td
                                 class="automation-col-problem"
-                                :title="row.problemLabel"
+                                :title="displayRow.problemLabel"
                             >
-                                {{ row.problemLabel }}
+                                {{ displayRow.problemLabel }}
                             </td>
-                            <td>{{ row.resolvedLabel }}</td>
-                            <td>{{ row.hideAtLabel }}</td>
+                            <td>{{ displayRow.resolvedLabel }}</td>
+                            <td>{{ displayRow.hideAtLabel }}</td>
                             <td class="automation-col-action">
                                 <Link
-                                    :href="route('problems.show', row.id)"
+                                    :href="route('problems.show', displayRow.id)"
                                     class="automation-resolved-view-link"
                                 >
-                                    Peržiūrėti
+                                    {{ copy.viewProblem }}
                                 </Link>
                             </td>
                         </tr>
                     </tbody>
                 </table>
             </div>
-            <p v-if="filteredRows.length === 0" class="automation-empty automation-inactive-no-match">
-                Pagal paiešką nieko nerasta.
+            <p v-if="filteredPublicProblems.length === 0" class="automation-empty automation-inactive-no-match">
+                {{ copy.noSearchMatches }}
             </p>
         </div>
-        <p v-else class="automation-empty">Nėra viešai rodomų išspręstų problemų.</p>
+        <p v-else class="automation-empty">
+            {{ copy.noPublicResolvedProblems }}
+        </p>
     </div>
 </template>
+
+<style scoped>
+.automation-resolved-lead {
+    margin-bottom: 16px;
+}
+
+.automation-resolved-switch-line {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px 14px;
+    margin-bottom: 24px;
+}
+
+.automation-resolved-switch-label {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--color-text, #333);
+}
+</style>
