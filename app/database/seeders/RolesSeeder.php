@@ -2,9 +2,9 @@
 
 namespace Database\Seeders;
 
-use App\Models\UserRolePermission;
 use App\Models\User;
 use App\Models\UserRole;
+use App\Models\UserRolePermission;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
 
@@ -62,6 +62,7 @@ class RolesSeeder extends Seeder
             'admin.access',
             'archive.manage',
             'invitations.manage',
+            'teams.manage',
         ])->mapWithKeys(function ($permission) {
             return [
                 $permission => UserRolePermission::updateOrCreate(
@@ -88,6 +89,7 @@ class RolesSeeder extends Seeder
             $permissions['admin.access']->id,
             $permissions['archive.manage']->id,
             $permissions['invitations.manage']->id,
+            $permissions['teams.manage']->id,
         ]);
 
         $roleProblemAdmin->permissions()->sync([
@@ -107,6 +109,7 @@ class RolesSeeder extends Seeder
             $permissions['issues.export']->id,
             $permissions['statistics.view']->id,
             $permissions['invitations.manage']->id,
+            $permissions['teams.manage']->id,
         ]);
 
         $roleMunicipalityRep->permissions()->sync([
