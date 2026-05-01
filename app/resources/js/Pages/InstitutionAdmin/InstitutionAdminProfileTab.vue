@@ -205,7 +205,7 @@ async function submitAdmin() {
         </div>
 
         <template v-if="profileSaveMode === 'settings'">
-            <form class="form-grid" @submit.prevent="submitSettings">
+            <form class="form-grid form-grid--institution-profile-settings" @submit.prevent="submitSettings">
                 <AppInput v-model="settingsForm.name" label="Pavadinimas" placeholder="Pavadinimas" />
                 <p v-if="settingsForm.errors.name" class="form-error">{{ settingsForm.errors.name }}</p>
                 <AppButton text="Saugoti" variant="primary" as-button type="submit" :disabled="settingsForm.processing" />
@@ -274,8 +274,27 @@ async function submitAdmin() {
     display: flex;
     flex-direction: column;
     gap: 12px;
-    max-width: 520px;
+    width: 100%;
+    max-width: min(100%, 42rem);
+    align-items: stretch;
+    box-sizing: border-box;
 }
+
+.form-grid :deep(.app-input-group),
+.form-grid :deep(.app-input-wrapper-edit),
+.form-grid :deep(.app-input-edit) {
+    width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+}
+
+.form-grid.form-grid--institution-profile-settings {
+    width: 100%;
+    max-width: calc(100% / 3);
+    align-self: flex-start;
+    box-sizing: border-box;
+}
+
 .form-error {
     color: #b91c1c;
     font-size: 13px;

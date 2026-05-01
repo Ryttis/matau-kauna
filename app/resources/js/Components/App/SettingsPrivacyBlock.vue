@@ -98,7 +98,7 @@ function onSecondSwitchChange(v) {
                 </div>
             </div>
             <div class="privacy-row privacy-row-switch privacy-row--reporter">
-                <span class="privacy-label privacy-label--wrap">Informuoti el. paštu apie mano problemas</span>
+                <span class="privacy-label">Informuoti el. paštu apie mano problemas</span>
                 <div class="privacy-row-right">
                     <AppSwitch
                         :modelValue="reporterEmailOwnProblems"
@@ -107,7 +107,7 @@ function onSecondSwitchChange(v) {
                 </div>
             </div>
             <div class="privacy-row privacy-row-switch privacy-row--reporter">
-                <span class="privacy-label privacy-label--wrap">Informuoti el. paštu apie mano stebimas problemas</span>
+                <span class="privacy-label">Informuoti el. paštu apie mano stebimas problemas</span>
                 <div class="privacy-row-right">
                     <AppSwitch
                         :modelValue="reporterEmailWatchedProblems"
@@ -162,14 +162,8 @@ function onSecondSwitchChange(v) {
     gap: 12px;
     margin-bottom: 24px;
     width: 100%;
-    max-width: min(640px, 50%);
+    max-width: 100%;
     box-sizing: border-box;
-}
-
-@media (max-width: 768px) {
-    .privacy-block {
-        max-width: 100%;
-    }
 }
 
 .privacy-block > * {
@@ -204,8 +198,8 @@ function onSecondSwitchChange(v) {
 .privacy-row.privacy-row-switch {
     display: grid;
     grid-template-columns: minmax(0, 1fr) auto;
-    align-items: center;
-    gap: 12px;
+    align-items: flex-start;
+    gap: 12px 20px;
     width: 100%;
     min-width: 0;
     min-height: 32px;
@@ -213,12 +207,7 @@ function onSecondSwitchChange(v) {
 }
 
 .privacy-row--reporter.privacy-row-switch {
-    align-items: start;
-    gap: 16px;
-}
-
-.privacy-row--reporter .privacy-row-right {
-    padding-top: 2px;
+    gap: 16px 20px;
 }
 
 .privacy-label {
@@ -226,16 +215,11 @@ function onSecondSwitchChange(v) {
     font-size: 18px;
     font-weight: 600;
     color: var(--color-text);
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
-
-.privacy-label--wrap {
     white-space: normal;
     overflow: visible;
-    text-overflow: clip;
     line-height: 1.35;
+    word-break: break-word;
+    hyphens: auto;
 }
 
 .privacy-row-right {
@@ -243,6 +227,8 @@ function onSecondSwitchChange(v) {
     align-items: center;
     justify-content: flex-end;
     justify-self: end;
+    flex-shrink: 0;
+    padding-top: 2px;
 }
 
 .privacy-link {

@@ -105,6 +105,8 @@ class SettingsController extends Controller
 
         if ($user->viisp_personal_code_hash !== null) {
             unset($validated['name'], $validated['surname']);
+        } else {
+            $validated['surname'] = null;
         }
 
         $user->update($validated);
