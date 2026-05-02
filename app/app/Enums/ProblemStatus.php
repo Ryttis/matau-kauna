@@ -85,6 +85,7 @@ enum ProblemStatus: string
     public static function reporterDashboardMapStatusValues(): array
     {
         return [
+            self::UNREGISTERED->value,
             self::NEW->value,
             self::IN_REVIEW->value,
             self::RESOLVED->value,

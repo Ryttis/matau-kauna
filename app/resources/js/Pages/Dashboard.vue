@@ -106,7 +106,7 @@ const reporterDateMax = `${currentYear}-12-31`
                 </div>
                 <label class="reporter-dashboard-checkbox-label">
                     <input
-                        v-model="showOnlyMyReports"
+                        :checked="showOnlyMyReports"
                         type="checkbox"
                         class="reporter-dashboard-checkbox"
                         @change="reporterToggleOnlyMine"
@@ -125,20 +125,25 @@ const reporterDateMax = `${currentYear}-12-31`
                 </div>
                 <aside class="reporter-dashboard-list">
                     <h3 class="reporter-dashboard-list-title">Sąrašas</h3>
-                    <ProblemsMapList
-                        :display-rows="reporterDisplayRows"
-                        :all-count="reporterProblems.length"
-                        :selected-ids="reporterSelectedIds"
-                        actions-header="Veiksmai"
-                        view-button-variant="internal"
-                        enable-watch
-                        :is-watched="isReporterProblemWatched"
-                        :watch-loading-root-id="reporterWatchLoadingRootId"
-                        @select="reporterToggle"
-                        @select-group="reporterToggleGroup"
-                        @open="reporterOpenProblemView"
-                        @toggle-watch="reporterToggleWatchFromList"
-                    />
+                    <div
+                        class="reporter-dashboard-list-body"
+                        :class="{ 'reporter-dashboard-list-body--scroll': reporterDisplayRows.length > 5 }"
+                    >
+                        <ProblemsMapList
+                            :display-rows="reporterDisplayRows"
+                            :all-count="reporterProblems.length"
+                            :selected-ids="reporterSelectedIds"
+                            actions-header="Veiksmai"
+                            view-button-variant="internal"
+                            enable-watch
+                            :is-watched="isReporterProblemWatched"
+                            :watch-loading-root-id="reporterWatchLoadingRootId"
+                            @select="reporterToggle"
+                            @select-group="reporterToggleGroup"
+                            @open="reporterOpenProblemView"
+                            @toggle-watch="reporterToggleWatchFromList"
+                        />
+                    </div>
                     <div class="reporter-dashboard-actions">
                         <AppButton
                             :text="reporterSelectedIsWatched ? 'Nebestebėti' : 'Stebėti eigą'"
