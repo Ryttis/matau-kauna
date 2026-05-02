@@ -12,15 +12,10 @@ export function attachmentsToUploadBaseline(attachments = []) {
 }
 
 export function fileUploadPickerLabel(uploadRules) {
-    const allowPhoto = uploadRules.allow_photo
-    const allowVideo = uploadRules.allow_video
-    if (allowPhoto && allowVideo) {
-        return 'Pridėkite nuotrauką arba vaizdo įrašą'
+    if (!uploadRules?.allow_photo && !uploadRules?.allow_video) {
+        return ''
     }
-    if (allowVideo) {
-        return 'Pridėkite vaizdo įrašą'
-    }
-    return 'Pridėkite nuotrauką'
+    return 'Pridėkite failą'
 }
 
 export function formatDetailedFileUploadHint(uploadRules) {

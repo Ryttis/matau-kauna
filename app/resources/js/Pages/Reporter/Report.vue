@@ -1,4 +1,5 @@
 <script setup>
+import { ref, watch } from 'vue'
 import { Head } from '@inertiajs/vue3'
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue'
 import AppSelect from '@/Components/App/AppSelect.vue'
@@ -7,6 +8,7 @@ import ReporterWizardModal from '@/Components/Reporter/ReporterWizardModal.vue'
 import ReporterLocationMap from '@/Components/Reporter/ReporterLocationMap.vue'
 import ReporterReviewModal from '@/Components/Reporter/ReporterReviewModal.vue'
 import ReporterCancelConfirmModal from '@/Components/Reporter/ReporterCancelConfirmModal.vue'
+import AttachmentMediaLightbox from '@/Components/Problems/AttachmentMediaLightbox.vue'
 import { defaultFileUploadSettings } from '@/composables/useFileUploadQueue'
 import { useReporterReportPage } from '@/composables/useReporterReportPage'
 import '@/Components/Reporter/reporter-report-page.css'
@@ -78,6 +80,31 @@ const {
     handleConfirmCancel,
     openCancelModal,
 } = useReporterReportPage(props)
+
+const reporterFilePreviewLightbox = ref(null)
+
+function openReporterFilePreview(item) {
+    if (!item?.previewUrl || item.kind === 'other') return
+    reporterFilePreviewLightbox.value = {
+        kind: item.kind === 'photo' ? 'photo' : 'video',
+        url: item.previewUrl,
+    }
+}
+
+function closeReporterFilePreview() {
+    reporterFilePreviewLightbox.value = null
+}
+
+function removeReporterFile(idx) {
+    closeReporterFilePreview()
+    removeFile(idx)
+}
+
+watch(step, (s) => {
+    if (s !== 1) {
+        closeReporterFilePreview()
+    }
+})
 </script>
 
 <template>
@@ -211,24 +238,54 @@ const {
                             <div v-if="selectedFiles.length" class="reporter-report-photos-grid">
                                 <div
                                     v-for="(item, idx) in filePreviews"
-                                    :key="idx + item.file.name"
+                                    :key="item.key"
                                     class="reporter-report-photo-item"
                                 >
-                                    <div v-if="item.isPhoto && item.previewUrl" class="reporter-report-photo-preview">
-                                        <img :src="item.previewUrl" :alt="item.file.name" class="reporter-report-photo-img" />
+                                    <div v-if="item.previewUrl" class="reporter-report-photo-preview">
+                                        <div
+                                            class="reporter-report-thumb-hit"
+                                            role="button"
+                                            tabindex="0"
+                                            :aria-label="`Peržiūrėti ${item.file.name}`"
+                                            @click="openReporterFilePreview(item)"
+                                            @keydown.enter.prevent="openReporterFilePreview(item)"
+                                            @keydown.space.prevent="openReporterFilePreview(item)"
+                                        >
+                                            <img
+                                                v-if="item.kind === 'photo'"
+                                                :src="item.previewUrl"
+                                                :alt="item.file.name"
+                                                class="reporter-report-photo-img"
+                                            />
+                                            <video
+                                                v-else
+                                                class="reporter-report-video-thumb"
+                                                muted
+                                                playsinline
+                                                preload="metadata"
+                                                :src="item.previewUrl"
+                                            />
+                                        </div>
                                         <button
                                             type="button"
                                             class="reporter-report-photo-remove"
                                             :aria-label="`Pašalinti ${item.file.name}`"
-                                            @click.stop="removeFile(idx)"
+                                            @click.stop="removeReporterFile(idx)"
                                         >
                                             ×
                                         </button>
                                     </div>
-                                    <div v-else class="reporter-report-file-item">
-                                        <span class="reporter-report-file-name">{{ item.file.name }}</span>
-                                        <button type="button" class="reporter-report-file-remove" @click.stop="removeFile(idx)">
-                                            Šalinti
+                                    <div v-else class="reporter-report-photo-preview reporter-report-photo-preview--fallback">
+                                        <span class="reporter-report-fallback-name" :title="item.file.name">{{
+                                            item.file.name
+                                        }}</span>
+                                        <button
+                                            type="button"
+                                            class="reporter-report-photo-remove"
+                                            :aria-label="`Pašalinti ${item.file.name}`"
+                                            @click.stop="removeReporterFile(idx)"
+                                        >
+                                            ×
                                         </button>
                                     </div>
                                 </div>
@@ -277,5 +334,11 @@ const {
                 </div>
             </div>
         </div>
+
+        <AttachmentMediaLightbox
+            :attachment="reporterFilePreviewLightbox"
+            :z-index="5600"
+            @close="closeReporterFilePreview"
+        />
     </AuthenticatedLayout>
 </template>
