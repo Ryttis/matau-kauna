@@ -56,6 +56,11 @@ defineProps({
     background: var(--lp-bg);
 }
 
+.landing :deep(img) {
+    -webkit-user-select: none;
+    user-select: none;
+}
+
 .landing :deep(.landing-container) {
     max-width: 1200px;
     margin: 0 auto;
