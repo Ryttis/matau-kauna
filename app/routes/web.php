@@ -13,6 +13,7 @@ use App\Http\Controllers\AutomationPublishRuleController;
 use App\Http\Controllers\AutomationResolutionTermRuleController;
 use App\Http\Controllers\GuestProblemController;
 use App\Http\Controllers\InstitutionAdminController;
+use App\Http\Controllers\InstitutionAdminUserController;
 use App\Http\Controllers\ProblemAdminAssignController;
 use App\Http\Controllers\ProblemAttachmentController;
 use App\Http\Controllers\ProblemController;
@@ -130,6 +131,8 @@ Route::middleware(['auth', 'verified', 'reporter.terms'])->group(function () {
     Route::delete('/settings', [SettingsController::class, 'destroy'])->name('settings.destroy');
 
     Route::get('/institution-admin', [InstitutionAdminController::class, 'index'])->name('institution-admin');
+    Route::get('/institution-admin/invitations', [InstitutionAdminController::class, 'invitations'])->name('institution-admin.invitations');
+    Route::put('/institution-admin/users/{user}', [InstitutionAdminUserController::class, 'update'])->name('institution-admin.users.update');
 
     Route::post('/invitations', [AdminInvitationController::class, 'store']);
 

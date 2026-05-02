@@ -19,7 +19,20 @@
     box-sizing: border-box;
 }
 
-.form-grid {
+.settings-page-column {
+    width: 50%;
+    max-width: 50%;
+    box-sizing: border-box;
+}
+
+@media (max-width: 768px) {
+    .settings-page-column {
+        width: 100%;
+        max-width: 100%;
+    }
+}
+
+.settings-page .form-grid {
     display: flex;
     flex-direction: column;
     gap: 12px;

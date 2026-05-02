@@ -58,38 +58,36 @@ export function useReporterReportPage(props) {
         formatDetailedFileUploadHint(uploadRules.value, { includeExistingInTotal: false }),
     )
 
-    const attachButtonText = computed(() => {
-        const u = uploadRules.value
-        if (u.allow_photo && !u.allow_video) {
-            return 'Prisegti nuotrauką'
-        }
-        return 'Prisegti failą'
-    })
+    const attachButtonText = computed(() => fileUploadPickerLabel(uploadRules.value) || 'Pridėkite failą')
 
     const previewUrls = ref(new Map())
 
     const filePreviews = computed(() => {
-        const currentUrls = new Set()
+        const currentKeys = new Set()
         const result = selectedFiles.value.map((file, idx) => {
             const isPhoto = file.type?.startsWith('image/')
+            const isVideo = file.type?.startsWith('video/')
+            const key = `${idx}-${file.name}-${file.size}`
             let previewUrl = null
+            let kind = 'other'
             if (isPhoto) {
-                const key = `${idx}-${file.name}-${file.size}`
+                kind = 'photo'
+            } else if (isVideo) {
+                kind = 'video'
+            }
+
+            if (isPhoto || isVideo) {
                 if (!previewUrls.value.has(key)) {
                     previewUrls.value.set(key, URL.createObjectURL(file))
                 }
                 previewUrl = previewUrls.value.get(key)
-                currentUrls.add(key)
+                currentKeys.add(key)
             }
-            return {
-                file,
-                previewUrl,
-                isPhoto,
-                key: isPhoto ? `${idx}-${file.name}-${file.size}` : null,
-            }
+
+            return { file, previewUrl, kind, key }
         })
         previewUrls.value.forEach((url, key) => {
-            if (!currentUrls.has(key)) {
+            if (!currentKeys.has(key)) {
                 URL.revokeObjectURL(url)
                 previewUrls.value.delete(key)
             }

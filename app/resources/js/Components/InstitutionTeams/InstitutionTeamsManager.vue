@@ -168,9 +168,8 @@ const canRender = computed(() => {
     <div class="admin-tab institution-teams-manager" v-if="canRender">
         <SuccessModal :show="showSuccessModal" :message="successMessage" @close="closeSuccessModal" />
 
-        <div class="header-row">
+        <div class="teams-heading">
             <h3 class="title">Komandos (grupės)</h3>
-            <AppButton text="+ Kurti" variant="primary" as-button class="btn-header" @click="openCreate" />
         </div>
         <p class="page-desc">Kurkite komandas ir priskirkite įstaigos darbuotojus problemoms spręsti grupėmis.</p>
 
@@ -190,34 +189,49 @@ const canRender = computed(() => {
 
         <div v-if="loading" class="loading">Kraunama...</div>
 
-        <table v-else-if="teams.length" class="table">
-            <thead>
-                <tr>
-                    <th>Komanda</th>
-                    <th>Nariai</th>
-                    <th>Veiksmai</th>
-                </tr>
-            </thead>
-            <tbody>
-                <tr v-for="t in teams" :key="t.id">
-                    <td>{{ t.name }}</td>
-                    <td>
-                        {{ (t.employees ?? []).length }}
-                    </td>
-                    <td class="actions">
-                        <span class="actions-row">
-                            <button type="button" class="link-btn" @click="openMembersModal(t)">Nariai</button>
-                            <span class="actions-separator" aria-hidden="true">|</span>
-                            <button type="button" class="link-btn link-btn--danger" @click="openDelete(t)">
-                                Trinti
-                            </button>
-                        </span>
-                    </td>
-                </tr>
-            </tbody>
-        </table>
+        <template v-else>
+            <div class="header-row">
+                <h4 class="subsection-title">Įstaigos komandos</h4>
+                <div class="header-actions">
+                    <AppButton
+                        text="+ Kurti"
+                        variant="secondary"
+                        as-button
+                        class="btn-header"
+                        @click="openCreate"
+                    />
+                </div>
+            </div>
 
-        <p v-else class="empty">Nėra komandų. Sukurkite pirmąją.</p>
+            <table v-if="teams.length" class="table">
+                <thead>
+                    <tr>
+                        <th>Komanda</th>
+                        <th>Nariai</th>
+                        <th>Veiksmai</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr v-for="t in teams" :key="t.id">
+                        <td>{{ t.name }}</td>
+                        <td>
+                            {{ (t.employees ?? []).length }}
+                        </td>
+                        <td class="actions">
+                            <span class="actions-row">
+                                <button type="button" class="link-btn" @click="openMembersModal(t)">Nariai</button>
+                                <span class="actions-separator" aria-hidden="true">|</span>
+                                <button type="button" class="link-btn link-btn--danger" @click="openDelete(t)">
+                                    Trinti
+                                </button>
+                            </span>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <p v-else class="empty">Nėra komandų. Sukurkite pirmąją.</p>
+        </template>
 
         <BaseModal :open="isCreateOpen" title="Kurti komandą" max-width="640px" @close="isCreateOpen = false">
             <div class="form-grid">
@@ -262,11 +276,7 @@ const canRender = computed(() => {
     max-width: 100%;
 }
 
-.header-row {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 12px;
+.teams-heading {
     margin-bottom: 0;
 }
 
@@ -278,8 +288,11 @@ const canRender = computed(() => {
     line-height: 1.35;
 }
 
-.btn-header {
-    flex-shrink: 0;
+.subsection-title {
+    font-size: 16px;
+    font-weight: 700;
+    margin: 0;
+    color: #1a1a1a;
 }
 
 .error {

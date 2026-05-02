@@ -1,6 +1,7 @@
 import { ref, computed } from 'vue'
 import { parseDateFilterInput } from '@/utils/parseDateFilterInput'
 import { foldLithuanianForSearch } from '@/utils/foldLithuanianForSearch'
+import { PROBLEM_STATUS } from '@/constants/domain/problemStatus'
 
 const DEFAULT_FILTER_STATE = {
     reportNumber: '',
@@ -20,6 +21,7 @@ function isCreatedAtInRange(createdAt, dateFrom, dateTo) {
 
 export function useProblemsMapFilter(problemsSource, options = {}) {
     const restrictToCurrentYear = !!options.restrictToCurrentYear
+    const reporterOnlyMine = options.reporterOnlyMine
     const searchQuery = ref('')
     const filterState = ref({ ...DEFAULT_FILTER_STATE })
     const selectedIds = ref(new Set())
@@ -56,7 +58,19 @@ export function useProblemsMapFilter(problemsSource, options = {}) {
             })
         }
         if ((filterState.value.statuses || []).length > 0) {
-            result = result.filter((problem) => filterState.value.statuses.includes(problem.status))
+            const selected = filterState.value.statuses
+            result = result.filter((problem) => {
+                const s = problem.status
+                if (selected.includes(s)) return true
+                if (
+                    reporterOnlyMine?.value &&
+                    selected.includes(PROBLEM_STATUS.NEW) &&
+                    s === PROBLEM_STATUS.UNREGISTERED
+                ) {
+                    return true
+                }
+                return false
+            })
         }
         if (filterState.value.problemType && filterState.value.problemType !== 'all') {
             result = result.filter((problem) => problem.category === filterState.value.problemType)
@@ -79,6 +93,15 @@ export function useProblemsMapFilter(problemsSource, options = {}) {
         if (effectiveFrom || effectiveTo) {
             result = result.filter((problem) => isCreatedAtInRange(problem.created_at, effectiveFrom, effectiveTo))
         }
+
+        if (reporterOnlyMine?.value) {
+            result = result.map((problem) =>
+                problem.status === PROBLEM_STATUS.UNREGISTERED
+                    ? { ...problem, status: PROBLEM_STATUS.NEW }
+                    : problem,
+            )
+        }
+
         return result
     })
 

@@ -42,7 +42,10 @@ export function useDashboardReporter(props) {
         toggle: reporterToggle,
         applyFilters: reporterApplyFilters,
         clearFilters: reporterClearFilters,
-    } = useProblemsMapFilter(reporterProblems, { restrictToCurrentYear: true })
+    } = useProblemsMapFilter(reporterProblems, {
+        restrictToCurrentYear: true,
+        reporterOnlyMine: showOnlyMyReports,
+    })
 
     const reporterDisplayRows = computed(() => buildReporterProblemDisplayRows(reporterFilteredProblems.value))
 
@@ -179,13 +182,28 @@ export function useDashboardReporter(props) {
         return watchRootId(p) === reporterWatchLoadingRootId.value
     })
 
-    function reporterToggleOnlyMine() {
+    function syncReporterOnlyMineToServer() {
+        const params = {}
+        if (showOnlyMyReports.value) {
+            params.only_mine = 1
+        }
+        router.get(route('dashboard'), params, {
+            preserveState: true,
+            preserveScroll: true,
+            replace: true,
+        })
+    }
+
+    function reporterToggleOnlyMine(event) {
+        showOnlyMyReports.value = !!event?.target?.checked
         reporterSelectedIds.value = new Set()
+        syncReporterOnlyMineToServer()
     }
 
     function reporterToggleOnlyMineFromFilter(onlyMine) {
         showOnlyMyReports.value = !!onlyMine
         reporterSelectedIds.value = new Set()
+        syncReporterOnlyMineToServer()
     }
 
     const reporterHasActiveFilters = computed(() => {

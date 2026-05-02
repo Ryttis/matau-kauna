@@ -36,7 +36,6 @@ function isRoleDisplayName(value) {
 
 const profileForm = useForm({
     name: '',
-    surname: '',
     email: '',
 })
 
@@ -51,8 +50,9 @@ const sections = ref({ profile: true, password: true })
 function initProfileForm() {
     const u = user.value
     if (!u) return
-    profileForm.name = isRoleDisplayName(u.name) ? '' : (u.name || '')
-    profileForm.surname = isRoleDisplayName(u.surname) ? '' : (u.surname || '')
+    const namePart = isRoleDisplayName(u.name) ? '' : (u.name || '').trim()
+    const surnamePart = isRoleDisplayName(u.surname) ? '' : (u.surname || '').trim()
+    profileForm.name = [namePart, surnamePart].filter(Boolean).join(' ').trim()
     profileForm.email = u.email || ''
 }
 
@@ -63,7 +63,12 @@ const toggleSection = (key) => {
 }
 
 const updateProfile = () => {
-    profileForm.patch(route('settings.profile'), { preserveScroll: true })
+    profileForm
+        .transform((data) => ({
+            name: (data.name || '').trim(),
+            email: (data.email || '').trim(),
+        }))
+        .patch(route('settings.profile'), { preserveScroll: true })
 }
 
 const passwordManagerUsername = computed(() => user.value?.email ?? '')
@@ -86,7 +91,7 @@ const updatePassword = () => {
         />
         <div class="settings-container settings-page" :style="SETTINGS_PAGE_STYLE">
             <div class="settings-content">
-                <div class="settings-inner">
+                <div class="settings-inner settings-page-column">
                     <SettingsSection
                         title="Profilio duomenys"
                         :open="sections.profile"
@@ -95,16 +100,9 @@ const updatePassword = () => {
                         <form @submit.prevent="updateProfile" class="form-grid">
                             <AppInput
                                 v-model="profileForm.name"
-                                placeholder="Vardas"
+                                placeholder="Vardas ir pavardė"
                                 :show-icon="true"
-                                autocomplete="given-name"
-                                :readonly="isViispUser"
-                            />
-                            <AppInput
-                                v-model="profileForm.surname"
-                                placeholder="Pavardė"
-                                :show-icon="true"
-                                autocomplete="family-name"
+                                autocomplete="name"
                                 :readonly="isViispUser"
                             />
                             <div v-if="isViispUser" class="form-hint">
@@ -185,3 +183,4 @@ const updatePassword = () => {
         </div>
     </AuthenticatedLayout>
 </template>
+

@@ -15,6 +15,7 @@ import { useFileUploadQueue, defaultFileUploadSettings } from '@/composables/use
 import { firstInertiaErrorForPrefix, humanizeTechnicalUploadError } from '@/utils/laravelApiErrors'
 import {
     attachmentsToUploadBaseline,
+    fileUploadPickerLabel,
     formatDetailedFileUploadHint,
 } from '@/utils/fileUploadClient'
 
@@ -233,11 +234,7 @@ const uploadHintText = computed(() =>
     }),
 )
 
-const attachFileLabel = computed(() =>
-    uploadRules.value.allow_photo && !uploadRules.value.allow_video
-        ? 'Prisegti nuotrauką'
-        : 'Prisegti failą',
-)
+const attachFileLabel = computed(() => fileUploadPickerLabel(uploadRules.value) || 'Pridėkite failą')
 
 const filesErrorText = computed(() => firstInertiaErrorForPrefix(form.errors, 'files'))
 const sanitizedFilesErrorText = computed(() => humanizeTechnicalUploadError(filesErrorText.value))

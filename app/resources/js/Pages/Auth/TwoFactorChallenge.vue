@@ -138,19 +138,36 @@ const submit = () => {
 .twofa-actions {
     margin: 0 40px;
 }
-.twofa-actions :deep(.app-button) {
-    width: 100%;
-    height: 48px;
-    min-height: 48px;
-    margin-bottom: 12px;
-}
+.twofa-actions :deep(.app-button),
 .twofa-cancel {
     width: 100%;
     height: 48px;
+    min-height: 48px;
+    box-sizing: border-box;
+}
+
+.twofa-actions :deep(.app-button) {
+    margin-bottom: 12px;
+}
+
+.twofa-cancel {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0;
+    padding: 10px 16px;
     border: 1px solid #ccc;
-    border-radius: 8px;
+    border-radius: var(--button-border-radius, 15px);
     background: #fff;
+    color: #333;
     cursor: pointer;
-    font-family: inherit;
+    font-family: var(--font-family-base, 'Open Sans', sans-serif);
+    font-size: var(--button-font-size, 16px);
+    font-weight: var(--button-font-weight, 400);
+    line-height: 150%;
+    letter-spacing: -0.011em;
+    text-decoration: none;
+    -webkit-appearance: none;
+    appearance: none;
 }
 </style>

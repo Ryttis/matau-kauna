@@ -21,7 +21,11 @@ class ProblemDashboardQueryService
         return [
             'reporterView' => true,
             'onlyMine' => $onlyMine,
-            'problems' => $this->mapService->getPublicProblemsForMap(null, $user, true),
+            'problems' => $this->mapService->getPublicProblemsForMap(
+                $onlyMine ? $user->id : null,
+                $user,
+                false,
+            ),
         ];
     }
 
