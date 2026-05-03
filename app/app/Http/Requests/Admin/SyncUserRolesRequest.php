@@ -14,11 +14,48 @@ class SyncUserRolesRequest extends FormRequest
         return true;
     }
 
+    protected function prepareForValidation(): void
+    {
+        if (! $this->has('role_ids') && $this->filled('role_id')) {
+            $this->merge([
+                'role_ids' => [$this->input('role_id')],
+            ]);
+        }
+
+        $ids = $this->input('role_ids');
+        if (is_string($ids)) {
+            $decoded = json_decode($ids, true);
+            if (is_array($decoded)) {
+                $this->merge(['role_ids' => $decoded]);
+            }
+        }
+    }
+
     public function rules(): array
     {
         return [
             'role_ids' => ['required', 'array', 'min:1'],
-            'role_ids.*' => ['required', 'uuid', 'exists:user_role,id'],
+            'role_ids.*' => ['uuid', 'distinct', 'exists:user_role,id'],
+        ];
+    }
+
+    public function attributes(): array
+    {
+        return [
+            'role_ids' => 'rolės',
+            'role_ids.*' => 'rolė',
+        ];
+    }
+
+    public function messages(): array
+    {
+        return [
+            'role_ids.required' => 'Pasirinkite bent vieną rolę.',
+            'role_ids.array' => 'Rolės turi būti pateiktos teisingai.',
+            'role_ids.min' => 'Pasirinkite bent vieną rolę.',
+            'role_ids.*.uuid' => 'Netinkama rolės reikšmė.',
+            'role_ids.*.exists' => 'Viena iš pasirinktų rolių neegzistuoja.',
+            'role_ids.*.distinct' => 'Tą pačią rolę galima pasirinkti tik vieną kartą.',
         ];
     }
 

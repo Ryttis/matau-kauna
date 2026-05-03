@@ -204,18 +204,30 @@ const deleteUser = async () => {
 const saveUserRoles = async () => {
     if (!selectedUser.value) return
 
+    const ids = selectedRoleIds.value.filter((id) => id != null && String(id).trim() !== '')
+    if (ids.length === 0) {
+        assignRolesError.value = 'Pasirinkite bent vieną rolę.'
+        return
+    }
+
     assignRolesError.value = ''
 
     emit('set-saving', true)
     try {
         await axios.post(adminRbacApi.userRoles(selectedUser.value.id), {
-            role_ids: selectedRoleIds.value
+            role_ids: ids,
         })
         isAssignRolesOpen.value = false
         emit('show-success', 'Naudotojo rolės atnaujintos.')
         emit('refresh')
     } catch (e) {
-        assignRolesError.value = e.response?.data?.message ?? 'Nepavyko išsaugoti rolių.'
+        const errors = e.response?.data?.errors
+        if (errors && typeof errors === 'object') {
+            const flat = Object.values(errors).flat().filter(Boolean)
+            assignRolesError.value = flat[0] ?? e.response?.data?.message ?? 'Nepavyko išsaugoti rolių.'
+        } else {
+            assignRolesError.value = e.response?.data?.message ?? 'Nepavyko išsaugoti rolių.'
+        }
     } finally {
         emit('set-saving', false)
     }
@@ -413,7 +425,13 @@ const saveUserRoles = async () => {
 
             <template #footer>
                 <AppButton text="Atšaukti" variant="secondary" as-button @click="isAssignRolesOpen = false" />
-                <AppButton text="Išsaugoti" variant="primary" as-button :disabled="saving" @click="saveUserRoles" />
+                <AppButton
+                    text="Išsaugoti"
+                    variant="primary"
+                    as-button
+                    :disabled="saving || selectedRoleIds.length === 0"
+                    @click="saveUserRoles"
+                />
             </template>
         </BaseModal>
 
