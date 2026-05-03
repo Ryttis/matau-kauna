@@ -138,6 +138,29 @@ export function useProblemsMapFilter(problemsSource, options = {}) {
         filterState.value = { ...DEFAULT_FILTER_STATE }
     }
 
+    const hasActiveFilters = computed(() => {
+        if ((searchQuery.value || '').trim() !== '') {
+            return true
+        }
+        const f = filterState.value
+        if ((f.reportNumber || '').trim() !== '') {
+            return true
+        }
+        if ((f.statuses || []).length > 0) {
+            return true
+        }
+        if (f.problemType && f.problemType !== 'all') {
+            return true
+        }
+        if ((f.dateFrom || '').trim() !== '') {
+            return true
+        }
+        if ((f.dateTo || '').trim() !== '') {
+            return true
+        }
+        return false
+    })
+
     return {
         searchQuery,
         filterState,
@@ -149,5 +172,6 @@ export function useProblemsMapFilter(problemsSource, options = {}) {
         toggleGroup,
         applyFilters,
         clearFilters,
+        hasActiveFilters,
     }
 }

@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Auth;
 use App\Http\Controllers\Controller;
 use App\Models\LoginLog;
 use App\Models\User;
+use App\Services\ActiveRoleService;
 use App\Services\AuditLogService;
 use App\Services\TwoFactorService;
 use Illuminate\Http\RedirectResponse;
@@ -18,6 +19,7 @@ class TwoFactorChallengeController extends Controller
     public function __construct(
         private TwoFactorService $twoFactorService,
         private AuditLogService $auditLogService,
+        private ActiveRoleService $activeRoleService,
     ) {}
 
     public function create(Request $request): Response|RedirectResponse
@@ -76,9 +78,9 @@ class TwoFactorChallengeController extends Controller
             'user_agent' => $request->userAgent(),
         ]);
         $this->auditLogService->logLogin($user, $request);
-        $role = $user->roles()->first();
-        if ($role) {
-            $request->session()->put('active_role_id', $role->id);
+        $personalRoleId = $this->activeRoleService->personalDefaultRoleIdForUser($user);
+        if ($personalRoleId !== null) {
+            $request->session()->put('active_role_id', $personalRoleId);
         }
 
         return redirect()->intended(route('dashboard', absolute: false));

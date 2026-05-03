@@ -4,9 +4,10 @@ import {
     REPORTER_STATS_PERIOD_OPTIONS,
     getDateRangeForPeriod,
     buildReporterStatisticsParams,
+    findPresetMatchingDateRange,
 } from '@/constants/domain/reporterStatistics'
 
-export { REPORTER_STATS_PERIOD_OPTIONS, getDateRangeForPeriod, buildReporterStatisticsParams }
+export { REPORTER_STATS_PERIOD_OPTIONS, getDateRangeForPeriod, buildReporterStatisticsParams, findPresetMatchingDateRange }
 
 export function useReporterStatisticsFilters(getFilters) {
     const periodFilter = ref('all')
@@ -48,16 +49,28 @@ export function useReporterStatisticsFilters(getFilters) {
             syncingFromProps.value = true
             const serverFrom = filters.date_from ? String(filters.date_from).slice(0, 10) : ''
             const serverTo = filters.date_to ? String(filters.date_to).slice(0, 10) : ''
-            const hasServerDates = !!(serverFrom || serverTo)
-            if (hasServerDates) {
-                periodFilter.value = 'all'
-                dateFromFilter.value = serverFrom
-                dateToFilter.value = serverTo
+            const serverPeriodRaw = filters.period != null && filters.period !== '' ? String(filters.period) : 'all'
+
+            dateFromFilter.value = serverFrom
+            dateToFilter.value = serverTo
+
+            if (serverFrom || serverTo) {
+                const byDates = findPresetMatchingDateRange(serverFrom, serverTo)
+                if (['6', '12', 'year'].includes(serverPeriodRaw) && byDates === serverPeriodRaw) {
+                    periodFilter.value = serverPeriodRaw
+                } else if (['6', '12', 'year'].includes(serverPeriodRaw) && byDates) {
+                    periodFilter.value = byDates
+                } else if (byDates) {
+                    periodFilter.value = byDates
+                } else {
+                    periodFilter.value = 'custom'
+                }
             } else {
-                periodFilter.value = filters.period ?? 'all'
-                dateFromFilter.value = ''
-                dateToFilter.value = ''
+                periodFilter.value = ['6', '12', 'year', 'custom'].includes(serverPeriodRaw)
+                    ? serverPeriodRaw
+                    : 'all'
             }
+
             categoryFilter.value = filters.category ?? ''
             nextTick(() => {
                 syncingFromProps.value = false
@@ -66,10 +79,12 @@ export function useReporterStatisticsFilters(getFilters) {
         { immediate: true, deep: true }
     )
 
-    watch(periodFilter, () => {
+    watch(periodFilter, (newVal) => {
         if (syncingFromProps.value) return
-        dateFromFilter.value = ''
-        dateToFilter.value = ''
+        if (newVal !== 'custom') {
+            dateFromFilter.value = ''
+            dateToFilter.value = ''
+        }
         scheduleApply()
     })
 
@@ -80,17 +95,26 @@ export function useReporterStatisticsFilters(getFilters) {
 
     watch([dateFromFilter, dateToFilter], () => {
         if (syncingFromProps.value) return
-        const hasDates = !!(dateFromFilter.value || dateToFilter.value)
-        if (hasDates && periodFilter.value !== 'all') {
-            syncingFromProps.value = true
-            periodFilter.value = 'all'
-            nextTick(() => {
-                syncingFromProps.value = false
-                scheduleApply()
-            })
+        const from = dateFromFilter.value
+        const to = dateToFilter.value
+        if (!from && !to) {
+            if (periodFilter.value === 'custom') {
+                syncingFromProps.value = true
+                periodFilter.value = 'all'
+                nextTick(() => {
+                    syncingFromProps.value = false
+                })
+            }
+            scheduleApply()
             return
         }
-        scheduleApply()
+        const matching = findPresetMatchingDateRange(from, to)
+        syncingFromProps.value = true
+        periodFilter.value = matching || 'custom'
+        nextTick(() => {
+            syncingFromProps.value = false
+            scheduleApply()
+        })
     })
 
     return {

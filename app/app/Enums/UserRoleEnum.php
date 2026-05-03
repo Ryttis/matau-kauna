@@ -29,4 +29,15 @@ enum UserRoleEnum: string
             self::staff(),
         );
     }
+
+    public static function staffPersonalDefaultOrder(): array
+    {
+        return [
+            self::Employee,
+            self::MunicipalityRep,
+            self::InstitutionAdmin,
+            self::ProblemAdmin,
+            self::SystemAdmin,
+        ];
+    }
 }

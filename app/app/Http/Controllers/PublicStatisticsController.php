@@ -17,8 +17,25 @@ class PublicStatisticsController extends Controller
     public function data(Request $request): JsonResponse
     {
         $config = PublicStatisticsConfig::get();
-        $period = $request->input('period', $config['default_period'] ?? 'year');
+        $allowedPeriods = $config['period_options'] ?? ['year', 'all'];
+        $defaultPeriod = $config['default_period'] ?? 'year';
+        if (! in_array($defaultPeriod, $allowedPeriods, true)) {
+            $defaultPeriod = $allowedPeriods[0] ?? 'year';
+        }
+
+        $rawPeriod = $request->query('period');
+        if ($rawPeriod === null || $rawPeriod === '') {
+            $period = $defaultPeriod;
+        } else {
+            $period = in_array((string) $rawPeriod, $allowedPeriods, true)
+                ? (string) $rawPeriod
+                : $defaultPeriod;
+        }
+
         $category = $request->input('category', 'all');
+        if (! ($config['show_category_filter'] ?? true)) {
+            $category = 'all';
+        }
 
         $query = $this->statisticsService->buildPublicProblemQuery($period, $category);
         $analytics = $this->statisticsService->getAnalytics($query);

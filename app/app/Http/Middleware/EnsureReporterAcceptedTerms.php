@@ -17,7 +17,7 @@ class EnsureReporterAcceptedTerms
             return $next($request);
         }
 
-        if (! $user->hasRole(UserRole::ROLE_REPORTER)) {
+        if (! $user->hasAssignedRole(UserRole::ROLE_REPORTER)) {
             return $next($request);
         }
 

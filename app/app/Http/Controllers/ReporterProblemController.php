@@ -31,7 +31,7 @@ class ReporterProblemController extends Controller
     private function isReporterOnly(?User $user): bool
     {
         return $user
-            && $user->hasRole(UserRole::ROLE_REPORTER)
+            && $user->hasAssignedRole(UserRole::ROLE_REPORTER)
             && ! $user->hasPermission('issues.view');
     }
 
@@ -185,7 +185,7 @@ class ReporterProblemController extends Controller
     {
         $user = $request->user();
 
-        if (! $user?->hasRole(UserRole::ROLE_REPORTER)) {
+        if (! $user?->hasAssignedRole(UserRole::ROLE_REPORTER)) {
             return response()->json(['message' => 'Nėra leidimo.'], 403);
         }
 

@@ -185,7 +185,7 @@ class ViispApiController extends Controller
             ['name' => 'Pareiškėjas']
         );
 
-        if (! $user->hasRole(UserRole::ROLE_REPORTER)) {
+        if (! $user->hasAssignedRole(UserRole::ROLE_REPORTER)) {
             $user->roles()->syncWithoutDetaching([$reporterRole->id]);
         }
 

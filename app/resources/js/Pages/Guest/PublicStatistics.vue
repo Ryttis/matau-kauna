@@ -1,5 +1,5 @@
 <script setup>
-import { computed, onMounted, ref, watch } from 'vue'
+import { computed, nextTick, onMounted, ref, watch } from 'vue'
 import axios from 'axios'
 import { Head } from '@inertiajs/vue3'
 import GuestHeader from '@/Components/Landing/GuestHeader.vue'
@@ -21,8 +21,10 @@ const categories = ref([])
 const loading = ref(true)
 const errorMessage = ref('')
 
-const periodFilter = ref('year')
+const periodFilter = ref(null)
 const categoryFilter = ref('all')
+const syncingPeriodFromServer = ref(false)
+let isFirstPublicStatsFetch = true
 
 const periodOptions = computed(() => {
     const opts = config.value?.period_options ?? ['year', 'all']
@@ -73,7 +75,9 @@ async function fetchData() {
     errorMessage.value = ''
     try {
         const params = new URLSearchParams()
-        if (periodFilter.value && periodFilter.value !== 'all') params.set('period', periodFilter.value)
+        if (!isFirstPublicStatsFetch && periodFilter.value != null) {
+            params.set('period', periodFilter.value)
+        }
         if (categoryFilter.value && categoryFilter.value !== 'all') params.set('category', categoryFilter.value)
         const url = route('public.statistics.data') + (params.toString() ? '?' + params.toString() : '')
         const { data: res } = await axios.get(url)
@@ -82,9 +86,16 @@ async function fetchData() {
         categories.value = res.categories ?? []
         const defaultPeriod = res.config?.default_period ?? 'year'
         const allowedPeriods = res.config?.period_options ?? ['year', 'all']
-        if (!allowedPeriods.includes(periodFilter.value)) {
-            periodFilter.value = defaultPeriod
+
+        syncingPeriodFromServer.value = true
+        if (isFirstPublicStatsFetch) {
+            periodFilter.value = allowedPeriods.includes(defaultPeriod) ? defaultPeriod : (allowedPeriods[0] ?? 'year')
+            isFirstPublicStatsFetch = false
+        } else if (!allowedPeriods.includes(periodFilter.value)) {
+            periodFilter.value = allowedPeriods.includes(defaultPeriod) ? defaultPeriod : (allowedPeriods[0] ?? 'year')
         }
+        await nextTick()
+        syncingPeriodFromServer.value = false
     } catch {
         errorMessage.value = 'Nepavyko užkrauti statistikos.'
     } finally {
@@ -98,7 +109,10 @@ function barHeight(value) {
 }
 
 onMounted(fetchData)
-watch([periodFilter, categoryFilter], fetchData)
+watch([periodFilter, categoryFilter], () => {
+    if (syncingPeriodFromServer.value) return
+    fetchData()
+})
 </script>
 
 <template>
@@ -109,6 +123,7 @@ watch([periodFilter, categoryFilter], fetchData)
             <div class="public-statistics-inner">
                 <div class="filters-section">
                     <PublicFilterSelect
+                        v-if="periodFilter != null"
                         v-model="periodFilter"
                         :options="periodOptions"
                     />

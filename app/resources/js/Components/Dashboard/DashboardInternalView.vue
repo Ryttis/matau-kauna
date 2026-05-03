@@ -200,7 +200,7 @@ const {
                 @click="openStatusModal()"
             />
             <AppButton
-                text="Stebėti"
+                text="Nagrinėti"
                 variant="secondary"
                 as-button
                 class="list-nav-btn"
@@ -218,7 +218,7 @@ const {
                 @click="openStatusModal()"
             />
             <AppButton
-                text="Stebėti"
+                text="Nagrinėti"
                 variant="secondary"
                 as-button
                 class="list-nav-btn"
@@ -229,7 +229,7 @@ const {
 
         <template v-else>
             <AppButton
-                text="Stebėti"
+                text="Nagrinėti"
                 as-button
                 class="list-nav-btn"
                 :disabled="!selectedProblemIdForReview"

@@ -13,6 +13,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Password;
+use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -112,6 +113,36 @@ class SettingsController extends Controller
         $user->update($validated);
 
         return back()->with('success', 'Profilis atnaujintas.');
+    }
+
+    public function updateActiveRole(Request $request): RedirectResponse
+    {
+        $user = Auth::user();
+        if (! ($user instanceof User)) {
+            abort(403);
+        }
+
+        $validated = $request->validate([
+            'role_id' => ['required', 'uuid', 'exists:user_role,id'],
+        ]);
+
+        $assignedIds = $user->roles()->pluck('id')->map(fn ($id) => (string) $id);
+
+        if ($assignedIds->count() < 2) {
+            throw ValidationException::withMessages([
+                'role_id' => ['Rolės keitimas galimas tik turint kelias roles.'],
+            ]);
+        }
+
+        if (! $assignedIds->contains($validated['role_id'])) {
+            throw ValidationException::withMessages([
+                'role_id' => ['Rolė nepriskirta šiam naudotojui.'],
+            ]);
+        }
+
+        $request->session()->put('active_role_id', $validated['role_id']);
+
+        return back();
     }
 
     public function storeEmployee(Request $request): RedirectResponse
