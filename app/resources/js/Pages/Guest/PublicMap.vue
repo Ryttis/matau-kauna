@@ -4,12 +4,12 @@ import { Head, router } from '@inertiajs/vue3'
 import GuestHeader from '@/Components/Landing/GuestHeader.vue'
 import LandingFooter from '@/Components/Landing/LandingFooter.vue'
 import FilterModal from '@/Components/App/Modals/FilterModal.vue'
+import SearchFilterBar from '@/Components/App/SearchFilterBar.vue'
 import KaunasProblemsMap from '@/Components/Map/KaunasProblemsMap.vue'
 import ProblemMapStatusLegend from '@/Components/Map/ProblemMapStatusLegend.vue'
 import ProblemsMapList from '@/Components/Map/ProblemsMapList.vue'
 import { useProblemsMapFilter } from '@/composables/useProblemsMapFilter'
 import { useProblemDisplayRows } from '@/composables/useProblemDisplayRows'
-import { ICON_FILTER, ICON_SEARCH } from '@/constants/ui/icons'
 import { PUBLIC_MAP_LEGEND_STATUS_ORDER } from '@/constants/domain/problemStatus'
 
 const props = defineProps({
@@ -29,6 +29,7 @@ const {
     toggleGroup,
     applyFilters,
     clearFilters,
+    hasActiveFilters,
 } = useProblemsMapFilter(allProblems)
 
 const groupedForList = computed(() => {
@@ -76,9 +77,9 @@ function openProblemView(problemId) {
     router.visit(route('reports.show', problemId))
 }
 
-function clearPublicMapSearch() {
-    searchQuery.value = ''
-}
+const currentYear = new Date().getFullYear()
+const publicMapDateMin = '2000-01-01'
+const publicMapDateMax = `${currentYear + 1}-12-31`
 </script>
 
 <template>
@@ -87,39 +88,14 @@ function clearPublicMapSearch() {
         <GuestHeader active-link="reports" />
         <div class="public-map-toolbar">
             <div class="public-map-toolbar-inner">
-                <div class="public-map-search-wrap">
-                    <img
-                        :src="ICON_SEARCH"
-                        class="public-map-search-icon"
-                        alt=""
-                        aria-hidden="true"
-                    />
-                    <input
+                <div class="public-map-toolbar-bar">
+                    <SearchFilterBar
                         v-model="searchQuery"
-                        type="search"
-                        class="public-map-search"
                         placeholder="Ieškoti"
-                        autocomplete="off"
-                        enterkeyhint="search"
+                        :filters-active="hasActiveFilters"
+                        @filter-click="openFilterModal"
                     />
-                    <button
-                        v-show="(searchQuery || '').trim().length > 0"
-                        type="button"
-                        class="public-map-search-clear"
-                        aria-label="Išvalyti paiešką"
-                        @click="clearPublicMapSearch"
-                    >
-                        ×
-                    </button>
                 </div>
-                <button
-                    type="button"
-                    class="public-map-filter-btn"
-                    aria-label="Filtruoti"
-                    @click="openFilterModal"
-                >
-                    <img :src="ICON_FILTER" class="public-map-filter-icon" alt="" />
-                </button>
             </div>
         </div>
         <div class="public-map-layout">
@@ -150,6 +126,8 @@ function clearPublicMapSearch() {
             variant="publicMap"
             :filters="filterState"
             :categories="categoryOptions"
+            :date-min="publicMapDateMin"
+            :date-max="publicMapDateMax"
             @close="showFilterModal = false"
             @apply="handleFilterApply"
             @clear="handleFilterClear"
@@ -185,93 +163,12 @@ function clearPublicMapSearch() {
     box-sizing: border-box;
     display: flex;
     align-items: center;
-    gap: 16px;
 }
 
-.public-map-search-wrap {
-    position: relative;
-    flex: 1;
-    min-width: 0;
-    max-width: 400px;
-    display: flex;
-    align-items: center;
-}
-
-.public-map-search-icon {
-    position: absolute;
-    left: 14px;
-    width: 20px;
-    height: 20px;
-    pointer-events: none;
-    object-fit: contain;
-    opacity: 0.55;
-}
-
-.public-map-search {
+.public-map-toolbar-bar {
     width: 100%;
-    height: 40px;
-    border: none;
-    border-radius: 20px;
-    background: #f6f7f9;
-    color: #333;
-    padding: 0 36px 0 42px;
-    font-size: 14px;
-    box-sizing: border-box;
-}
-
-.public-map-search::-webkit-search-cancel-button {
-    display: none;
-}
-
-.public-map-search-clear {
-    position: absolute;
-    right: 8px;
-    top: 50%;
-    transform: translateY(-50%);
-    width: 28px;
-    height: 28px;
-    padding: 0;
-    border: none;
-    border-radius: 50%;
-    background: transparent;
-    color: #666;
-    font-size: 22px;
-    line-height: 1;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.public-map-search-clear:hover {
-    background: rgba(0, 0, 0, 0.06);
-    color: #333;
-}
-
-.public-map-search::placeholder {
-    color: #999;
-}
-
-.public-map-filter-btn {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 40px;
-    height: 40px;
-    padding: 0;
-    border: none;
-    border-radius: 50%;
-    background: transparent;
-    cursor: pointer;
-}
-
-.public-map-filter-btn:hover {
-    background: #f0f0f0;
-}
-
-.public-map-filter-icon {
-    width: 24px;
-    height: 24px;
+    max-width: 400px;
+    min-width: 0;
 }
 
 .public-map-layout {
@@ -331,10 +228,6 @@ function clearPublicMapSearch() {
     .public-map-toolbar-inner {
         padding-left: max(1rem, env(safe-area-inset-left));
         padding-right: max(1rem, env(safe-area-inset-right));
-    }
-
-    .public-map-search-wrap {
-        max-width: none;
     }
 
     .public-map-layout {

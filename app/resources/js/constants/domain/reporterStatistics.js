@@ -1,9 +1,25 @@
 export const REPORTER_STATS_PERIOD_OPTIONS = [
     { value: 'all', label: 'Laikotarpis: Visi' },
+    { value: 'custom', label: 'Laikotarpis: Pagal datas' },
     { value: '6', label: 'Laikotarpis: Paskutiniai 6 mėn.' },
     { value: '12', label: 'Laikotarpis: Paskutiniai 12 mėn.' },
     { value: 'year', label: 'Laikotarpis: Šie metai' },
 ]
+
+export function findPresetMatchingDateRange(dateFrom, dateTo) {
+    const from = String(dateFrom || '').trim().slice(0, 10)
+    const to = String(dateTo || '').trim().slice(0, 10)
+    if (!from || !to) {
+        return null
+    }
+    for (const p of ['6', '12', 'year']) {
+        const r = getDateRangeForPeriod(p)
+        if (r.date_from === from && r.date_to === to) {
+            return p
+        }
+    }
+    return null
+}
 
 export function getDateRangeForPeriod(period) {
     if (!period || period === 'all') return { date_from: null, date_to: null }
@@ -25,20 +41,36 @@ export function buildReporterStatisticsParams(period, category, explicitDateFrom
     const to = String(explicitDateTo || '').trim().slice(0, 10)
     let date_from
     let date_to
-    if (from || to) {
+
+    if (period === 'all') {
         date_from = from || undefined
         date_to = to || undefined
+    } else if (period === 'custom') {
+        date_from = from || undefined
+        date_to = to || undefined
+    } else if (['6', '12', 'year'].includes(period)) {
+        if (from || to) {
+            date_from = from || undefined
+            date_to = to || undefined
+        } else {
+            const r = getDateRangeForPeriod(period)
+            date_from = r.date_from || undefined
+            date_to = r.date_to || undefined
+        }
     } else {
         const r = getDateRangeForPeriod(period)
-        date_from = r.date_from || undefined
-        date_to = r.date_to || undefined
+        date_from = (from || r.date_from) || undefined
+        date_to = (to || r.date_to) || undefined
     }
-    const dateMode = !!(from || to)
 
-    return {
-        period: dateMode ? undefined : period === 'all' ? undefined : period,
+    const params = {
         category: category || undefined,
         date_from,
         date_to,
     }
+    if (period && period !== 'all') {
+        params.period = period
+    }
+
+    return params
 }
