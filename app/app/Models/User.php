@@ -16,6 +16,10 @@ class User extends Authenticatable implements MustVerifyEmail
 {
     use HasApiTokens, HasFactory, MustVerifyEmailTrait, Notifiable;
 
+    private ?string $activeRoleKeyBound = null;
+
+    private ?array $activePermissionsBound = null;
+
     protected $fillable = [
         'name',
         'surname',
@@ -124,13 +128,32 @@ class User extends Authenticatable implements MustVerifyEmail
         );
     }
 
+    public function bindActiveRoleContext(?string $activeRoleKey, array $permissions): void
+    {
+        $this->activeRoleKeyBound = $activeRoleKey;
+        $this->activePermissionsBound = $permissions;
+    }
+
+    public function hasAssignedRole(string $role): bool
+    {
+        return $this->roles()->where('role', $role)->exists();
+    }
+
     public function hasRole(string $role): bool
     {
+        if ($this->activeRoleKeyBound !== null) {
+            return $this->activeRoleKeyBound === $role;
+        }
+
         return $this->roles()->where('role', $role)->exists();
     }
 
     public function permissions(): array
     {
+        if ($this->activePermissionsBound !== null) {
+            return $this->activePermissionsBound;
+        }
+
         $permissions = [];
 
         $roles = $this->roles()->with('permissions')->get();
@@ -169,13 +192,11 @@ class User extends Authenticatable implements MustVerifyEmail
 
     public function hasAnyRole(array $roles): bool
     {
-        foreach ($roles as $role) {
-            if ($this->hasRole($role)) {
-                return true;
-            }
+        if ($this->activeRoleKeyBound !== null) {
+            return in_array($this->activeRoleKeyBound, $roles, true);
         }
 
-        return false;
+        return $this->roles()->whereIn('role', $roles)->exists();
     }
 
     public function canAccessAdmin(): bool
@@ -240,7 +261,7 @@ class User extends Authenticatable implements MustVerifyEmail
 
     public function isReporterOnly(): bool
     {
-        return $this->hasRole(UserRole::ROLE_REPORTER)
+        return $this->hasAssignedRole(UserRole::ROLE_REPORTER)
             && ! $this->hasPermission('issues.view');
     }
 

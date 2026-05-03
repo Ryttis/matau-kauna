@@ -6,7 +6,7 @@ import { adminRbacApi } from '@/constants/api/adminRbacApi'
 import { invitationsApi } from '@/constants/api/invitationsApi'
 import ConfirmModal from '@/Components/App/ConfirmModal.vue'
 import AppButton from '@/Components/App/AppButton.vue'
-import { ROLE_INSTITUTION_ADMIN, ROLE_EMPLOYEE } from '@/constants/domain/roles'
+import { ROLE_INSTITUTION_ADMIN, ROLE_EMPLOYEE, ROLE_REPORTER } from '@/constants/domain/roles'
 
 const props = defineProps({
     usersPage: Object,
@@ -33,7 +33,7 @@ const editForm = ref({ id: null, name: '', email: '', password: '', institution_
 const deleteTarget = ref({ id: null, name: '', email: '' })
 
 const selectedUser = ref(null)
-const selectedRoleId = ref('')
+const selectedRoleIds = ref([])
 
 const openCreate = () => {
     createForm.value = { name: '', email: '', password: '', password_confirmation: '', institution_id: '', role_id: '' }
@@ -54,7 +54,14 @@ const openDelete = (u) => {
 
 const openAssignRoles = (u) => {
     selectedUser.value = u
-    selectedRoleId.value = (u.roles ?? [])[0]?.id ?? ''
+    let ids = (u.roles ?? []).map((r) => r.id)
+    const rows = (u.roles ?? []).filter(Boolean)
+    const hasReporter = rows.some((row) => row.role === ROLE_REPORTER)
+    const hasStaff = rows.some((row) => row.role !== ROLE_REPORTER)
+    if (hasReporter && hasStaff) {
+        ids = rows.filter((row) => row.role === ROLE_REPORTER).map((row) => row.id)
+    }
+    selectedRoleIds.value = ids
     assignRolesError.value = ''
     isAssignRolesOpen.value = true
 }
@@ -74,6 +81,37 @@ const selectedInviteInstitution = computed(() =>
 const isInviteInstitutionEmailOnly = computed(() => !!selectedInviteInstitution.value?.is_email_only)
 
 const assignableRoles = computed(() => props.roles ?? [])
+
+const findAssignableRole = (roleId) =>
+    assignableRoles.value.find((x) => String(x.id) === String(roleId))
+
+const isAssignRoleDisabled = (r) => {
+    const selected = selectedRoleIds.value
+    const hasReporter = selected.some((id) => findAssignableRole(id)?.role === ROLE_REPORTER)
+    const hasNonReporter = selected.some((id) => findAssignableRole(id)?.role !== ROLE_REPORTER)
+    if (hasReporter) {
+        return r.role !== ROLE_REPORTER
+    }
+    if (hasNonReporter) {
+        return r.role === ROLE_REPORTER
+    }
+    return false
+}
+
+const onToggleAssignRole = (r, checked) => {
+    if (r.role === ROLE_REPORTER && checked) {
+        selectedRoleIds.value = [r.id]
+        return
+    }
+    if (!checked) {
+        selectedRoleIds.value = selectedRoleIds.value.filter((id) => String(id) !== String(r.id))
+        return
+    }
+    selectedRoleIds.value = [
+        ...selectedRoleIds.value.filter((id) => findAssignableRole(id)?.role !== ROLE_REPORTER),
+        r.id,
+    ]
+}
 
 const openInvite = () => {
     inviteForm.value = { email: '', institution_id: '', role_id: '' }
@@ -171,7 +209,7 @@ const saveUserRoles = async () => {
     emit('set-saving', true)
     try {
         await axios.post(adminRbacApi.userRoles(selectedUser.value.id), {
-            role_id: selectedRoleId.value || null
+            role_ids: selectedRoleIds.value
         })
         isAssignRolesOpen.value = false
         emit('show-success', 'Naudotojo rolės atnaujintos.')
@@ -355,12 +393,17 @@ const saveUserRoles = async () => {
             </div>
 
             <div class="checklist">
-                <label v-for="r in assignableRoles" :key="r.id" class="check">
+                <label
+                    v-for="r in assignableRoles"
+                    :key="r.id"
+                    class="check"
+                    :class="{ 'check--disabled': isAssignRoleDisabled(r) }"
+                >
                     <input
-                        type="radio"
-                        name="assign-role"
-                        :value="r.id"
-                        v-model="selectedRoleId"
+                        type="checkbox"
+                        :checked="selectedRoleIds.some((id) => String(id) === String(r.id))"
+                        :disabled="isAssignRoleDisabled(r)"
+                        @change="onToggleAssignRole(r, $event.target.checked)"
                     />
                     <span>
                         {{ r.name }} ({{ r.role }})

@@ -15,7 +15,7 @@ class TwoFactorService
 
     public function isStaffUser(User $user): bool
     {
-        return $user->hasAnyRole(UserRoleEnum::staffValues());
+        return $user->roles()->whereIn('role', UserRoleEnum::staffValues())->exists();
     }
 
     public function requiresChallenge(User $user): bool

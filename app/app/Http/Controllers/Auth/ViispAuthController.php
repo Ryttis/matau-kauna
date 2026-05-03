@@ -9,6 +9,7 @@ use App\Models\ContentVersion;
 use App\Models\LoginLog;
 use App\Models\User;
 use App\Models\UserRole;
+use App\Services\ActiveRoleService;
 use App\Services\AuditLogService;
 use Illuminate\Http\Client\Response as HttpClientResponse;
 use Illuminate\Http\RedirectResponse;
@@ -28,7 +29,8 @@ class ViispAuthController extends Controller
     private const REGISTRATION_TERMS_SESSION_KEY = 'viisp_registration_terms_accepted';
 
     public function __construct(
-        private AuditLogService $auditLogService
+        private AuditLogService $auditLogService,
+        private ActiveRoleService $activeRoleService,
     ) {}
 
     public function redirectToViisp(Request $request): RedirectResponse
@@ -268,9 +270,9 @@ class ViispAuthController extends Controller
         ]);
         $this->auditLogService->logLogin($user, $request);
 
-        $role = $user->roles()->first();
-        if ($role) {
-            $request->session()->put('active_role_id', $role->id);
+        $personalRoleId = $this->activeRoleService->personalDefaultRoleIdForUser($user);
+        if ($personalRoleId !== null) {
+            $request->session()->put('active_role_id', $personalRoleId);
         }
 
         return redirect()->intended(route('dashboard', absolute: false));
@@ -460,7 +462,7 @@ class ViispAuthController extends Controller
             ['name' => 'Pareiškėjas']
         );
 
-        if (! $user->hasRole(UserRole::ROLE_REPORTER)) {
+        if (! $user->hasAssignedRole(UserRole::ROLE_REPORTER)) {
             $user->roles()->syncWithoutDetaching([$reporterRole->id]);
         }
 

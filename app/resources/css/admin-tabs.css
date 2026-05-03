@@ -157,6 +157,15 @@
     font-size: var(--admin-font-size, 14px);
 }
 
+.admin-tab .check.check--disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+}
+
+.admin-tab .check.check--disabled span {
+    cursor: not-allowed;
+}
+
 .admin-tab .error {
     background: #fff0f0;
     border: 1px solid #ffd2d2;
@@ -287,4 +296,13 @@
     gap: var(--admin-spacing, 12px);
     align-items: center;
     font-size: var(--admin-font-size, 14px);
+}
+
+.modal-body .check.check--disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+}
+
+.modal-body .check.check--disabled span {
+    cursor: not-allowed;
 }

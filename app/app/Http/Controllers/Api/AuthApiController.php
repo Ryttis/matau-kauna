@@ -50,10 +50,10 @@ class AuthApiController extends Controller
             ]);
         }
 
-        $hasStaffRole = collect(UserRoleEnum::staffValues())->contains(fn (string $role) => $user->hasRole($role));
+        $hasStaffRole = collect(UserRoleEnum::staffValues())->contains(fn (string $role) => $user->hasAssignedRole($role));
 
         $invalidReporter = $validated['login_type'] === 'pareiskejas'
-            && (! $user->hasRole(UserRoleEnum::Reporter->value) || $hasStaffRole);
+            && (! $user->hasAssignedRole(UserRoleEnum::Reporter->value) || $hasStaffRole);
         $invalidStaff = $validated['login_type'] !== 'pareiskejas' && ! $hasStaffRole;
         if ($invalidReporter || $invalidStaff) {
             throw ValidationException::withMessages([

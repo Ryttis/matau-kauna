@@ -119,6 +119,7 @@ Route::middleware(['auth', 'verified', 'reporter.terms'])->group(function () {
     Route::get('/settings/change-password', [SettingsController::class, 'changePassword'])->name('settings.change-password');
     Route::put('/settings/password', [SettingsController::class, 'updatePassword'])->name('settings.password');
     Route::patch('/settings/profile', [SettingsController::class, 'updateProfile'])->name('settings.profile');
+    Route::patch('/settings/active-role', [SettingsController::class, 'updateActiveRole'])->name('settings.active-role');
     Route::post('/settings/employees', [SettingsController::class, 'storeEmployee'])->name('settings.employees');
     Route::get('/settings/teams', [SettingsTeamController::class, 'listTeams'])->name('settings.teams.list');
     Route::post('/settings/teams', [SettingsTeamController::class, 'storeTeam'])->name('settings.teams');

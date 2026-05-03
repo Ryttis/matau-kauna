@@ -48,7 +48,7 @@ Route::middleware(['auth:sanctum', 'verified', 'reporter.terms'])->group(functio
     Route::get('/reporter/problems/{problem}', [ReporterProblemApiController::class, 'show']);
 });
 
-Route::middleware(['auth:sanctum', 'verified'])->prefix('internal')->group(function () {
+Route::middleware(['auth:sanctum', 'verified', \App\Http\Middleware\ApplyActiveRoleContext::class])->prefix('internal')->group(function () {
     Route::middleware('admin')->prefix('two-factor')->group(function () {
         Route::get('/users', [InternalTwoFactorApiController::class, 'index']);
         Route::post('/users/{user}', [InternalTwoFactorApiController::class, 'updateUser']);

@@ -182,7 +182,7 @@ class ReporterProblemApiController extends Controller
     private function authenticatedReporterOrAbort(Request $request): User
     {
         $user = $request->user();
-        if (! $user instanceof User || ! $user->hasRole(UserRole::ROLE_REPORTER)) {
+        if (! $user instanceof User || ! $user->hasAssignedRole(UserRole::ROLE_REPORTER)) {
             abort(403, 'Prieinama tik pareiškėjams.');
         }
 

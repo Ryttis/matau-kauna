@@ -2,6 +2,8 @@
 
 namespace App\Http\Middleware;
 
+use App\Models\User;
+use App\Services\ActiveRoleService;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
 
@@ -17,35 +19,18 @@ class HandleInertiaRequests extends Middleware
     public function share(Request $request): array
     {
         $user = $request->user();
-        $activeRoleId = $request->session()->get('active_role_id');
-        $roles = $user ? $user->roles()->get()->map(fn ($r) => ['id' => $r->id, 'role' => $r->role, 'name' => $r->name])->toArray() : [];
-        $permissions = [];
-        $activeRole = null;
-
-        if ($user && $activeRoleId) {
-            $permissions = $user->permissionsForRole($activeRoleId);
-            $activeRole = collect($roles)->firstWhere('id', $activeRoleId);
-        }
-
-        if ($user && ! $activeRoleId) {
-            $permissions = $user->permissions();
-            if (count($roles) === 1) {
-                $activeRole = $roles[0];
-                $request->session()->put('active_role_id', $roles[0]['id']);
-            }
-        }
-
-        $isSystemAdmin = in_array('admin.access', $permissions, true);
+        $model = $user instanceof User ? $user : null;
+        $authContext = app(ActiveRoleService::class)->resolveAndBind($request, $model);
 
         return [
             ...parent::share($request),
             'auth' => [
                 'user' => $user,
-                'roles' => $roles,
-                'permissions' => $permissions,
-                'activeRoleId' => $activeRoleId,
-                'activeRole' => $activeRole,
-                'isSystemAdmin' => $isSystemAdmin,
+                'roles' => $authContext['roles'],
+                'permissions' => $authContext['permissions'],
+                'activeRoleId' => $authContext['activeRoleId'],
+                'activeRole' => $authContext['activeRole'],
+                'isSystemAdmin' => $authContext['isSystemAdmin'],
             ],
 
             'flash' => [

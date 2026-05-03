@@ -52,7 +52,7 @@ class ReporterTermsController extends Controller
 
     private function ensureReporter($user): ?RedirectResponse
     {
-        if (! $user->hasRole(UserRole::ROLE_REPORTER)) {
+        if (! $user->hasAssignedRole(UserRole::ROLE_REPORTER)) {
             return redirect()->route('dashboard');
         }
 
