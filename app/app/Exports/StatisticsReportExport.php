@@ -11,7 +11,8 @@ class StatisticsReportExport implements FromArray, WithColumnWidths
         protected array $analytics,
         protected string $period,
         protected ?string $institution,
-        protected ?string $category
+        protected ?string $category,
+        protected ?string $institutionAssignmentLabel = null,
     ) {}
 
     public function array(): array
@@ -23,15 +24,16 @@ class StatisticsReportExport implements FromArray, WithColumnWidths
             ['Statistikos ataskaita'],
             ['Laikotarpis:', $periodLabel],
             ['Įstaiga:', $this->institution === 'all' || ! $this->institution ? 'Visos' : $this->institution],
+            ['Įstaigos priskyrimas:', $this->institutionAssignmentLabel ?? 'Visi'],
             ['Kategorija:', $this->category === 'all' || ! $this->category ? 'Visos' : $this->category],
             [],
             ['Rodiklis', 'Reikšmė'],
-            ['Aktyvūs naudotojai (periodas)', ($a['activeUsers']['current'] ?? 0).' / '.($a['activeUsers']['total'] ?? 0)],
+            ['Unikalūs pranešėjai', ($a['activeUsers']['current'] ?? 0).' / '.($a['activeUsers']['total'] ?? 0)],
             ['Gauti pranešimai', $a['receivedReports'] ?? 0],
-            ['Vidutinis sprendimo laikas (d.)', $a['averageResolutionTime'] ?? 0],
-            ['Išspręstos problemos (%)', $a['resolvedProblems'] ?? 0],
-            ['Laiku išspręstos (%)', $a['resolvedOnTime'] ?? 0],
-            ['Pagerėjimas (%)', $a['improvement'] ?? 0],
+            ['Vidutinis sprendimo laikas', ($a['averageResolutionTime'] ?? 0).' d.'],
+            ['Išspręstos problemos', ($a['resolvedProblems'] ?? 0).'%'],
+            ['Laiku išspręstos', ($a['resolvedOnTime'] ?? 0).'%'],
+            ['Pagerėjimas', (($a['improvement'] ?? 0) >= 0 ? '+' : '').($a['improvement'] ?? 0).'%'],
         ];
 
         $rows[] = [];
