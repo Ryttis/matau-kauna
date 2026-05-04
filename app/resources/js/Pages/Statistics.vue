@@ -12,7 +12,15 @@ import '@/Components/Statistics/statistics-page.css'
 const props = defineProps({
     categories: { type: Array, default: () => [] },
     institutions: { type: Array, default: () => [] },
-    filters: { type: Object, default: () => ({ period: 'all', institution: 'all', category: 'all' }) },
+    filters: {
+        type: Object,
+        default: () => ({
+            period: 'all',
+            institution: 'all',
+            category: 'all',
+            institution_assignment: 'all',
+        }),
+    },
     activeUsers: { type: Object, default: () => ({ current: 0, total: 0 }) },
     receivedReports: { type: Number, default: 0 },
     averageResolutionTime: { type: Number, default: 0 },
@@ -24,45 +32,74 @@ const props = defineProps({
     effectivelyResolved: { type: Array, default: () => [] },
     employeeActivity: { type: Array, default: () => [] },
     institutionResults: { type: Array, default: () => [] },
+    statisticsFilterLocks: {
+        type: Object,
+        default: () => ({ institution: false }),
+    },
 })
 
 const periodFilter = ref(props.filters.period || 'all')
 const institutionFilter = ref(props.filters.institution ?? 'all')
+const institutionAssignmentFilter = ref(props.filters.institution_assignment ?? 'all')
 const categoryFilter = ref(props.filters.category ?? 'all')
 
 const periodOptions = computed(() => [
-    { value: 'all', label: 'Laikotarpis: Visas laikotarpis' },
-    { value: 'week', label: 'Laikotarpis: Paskutinė savaitė' },
-    { value: 'month', label: 'Laikotarpis: Paskutinis mėnuo' },
-    { value: 'quarter', label: 'Laikotarpis: Paskutinis ketvirtis' },
-    { value: 'year', label: 'Laikotarpis: Paskutiniai metai' },
+    { value: 'all', label: 'Visas laikotarpis' },
+    { value: 'week', label: 'Paskutinė savaitė' },
+    { value: 'month', label: 'Paskutinis mėnuo' },
+    { value: 'quarter', label: 'Paskutinis ketvirtis' },
+    { value: 'year', label: 'Paskutiniai metai' },
 ])
 
 const institutionOptions = computed(() => {
-    const options = [{ value: 'all', label: 'Įstaigos: Visos' }]
+    const options = [{ value: 'all', label: 'Visos' }]
     ;(props.institutions || []).forEach(inst => {
-        options.push({ value: String(inst.id), label: `Įstaigos: ${inst.name}` })
+        options.push({ value: String(inst.id), label: inst.name })
     })
     return options
 })
 
 const categoryOptions = computed(() => {
-    const options = [{ value: 'all', label: 'Kategorija: Visos' }]
+    const options = [{ value: 'all', label: 'Visos' }]
     ;(props.categories || []).forEach(cat => {
-        options.push({ value: cat, label: `Kategorija: ${cat}` })
+        options.push({ value: cat, label: cat })
     })
     return options
 })
+
+const institutionAssignmentOptions = computed(() => [
+    { value: 'all', label: 'Visos problemos' },
+    { value: 'assigned', label: 'Tik su įstaiga' },
+    { value: 'unassigned', label: 'Be įstaigos' },
+])
 
 const chartMax = computed(() => {
     const vals = (props.monthlyReports || []).map(r => r.value)
     return Math.max(1, ...vals)
 })
 
+function normStatFilter(v) {
+    if (v === null || v === undefined || v === '' || v === 'all') return 'all'
+    return String(v)
+}
+
+watch(
+    () => props.filters,
+    (f) => {
+        if (!f) return
+        periodFilter.value = f.period ?? 'all'
+        institutionFilter.value = f.institution ?? 'all'
+        institutionAssignmentFilter.value = f.institution_assignment ?? 'all'
+        categoryFilter.value = f.category ?? 'all'
+    },
+    { deep: true },
+)
+
 const applyFilters = () => {
     router.get(route('statistics'), {
         period: periodFilter.value === 'all' ? null : periodFilter.value,
         institution: institutionFilter.value === 'all' ? null : institutionFilter.value,
+        institution_assignment: institutionAssignmentFilter.value === 'all' ? null : institutionAssignmentFilter.value,
         category: categoryFilter.value === 'all' ? null : categoryFilter.value,
     }, {
         preserveState: true,
@@ -70,7 +107,15 @@ const applyFilters = () => {
     })
 }
 
-watch([periodFilter, institutionFilter, categoryFilter], () => {
+watch([periodFilter, institutionFilter, institutionAssignmentFilter, categoryFilter], () => {
+    if (
+        normStatFilter(periodFilter.value) === normStatFilter(props.filters?.period) &&
+        normStatFilter(institutionFilter.value) === normStatFilter(props.filters?.institution) &&
+        normStatFilter(institutionAssignmentFilter.value) === normStatFilter(props.filters?.institution_assignment) &&
+        normStatFilter(categoryFilter.value) === normStatFilter(props.filters?.category)
+    ) {
+        return
+    }
     applyFilters()
 })
 
@@ -78,6 +123,9 @@ const exportQueryParams = computed(() => {
     const p = new URLSearchParams()
     if (periodFilter.value && periodFilter.value !== 'all') p.set('period', periodFilter.value)
     if (institutionFilter.value && institutionFilter.value !== 'all') p.set('institution', institutionFilter.value)
+    if (institutionAssignmentFilter.value && institutionAssignmentFilter.value !== 'all') {
+        p.set('institution_assignment', institutionAssignmentFilter.value)
+    }
     if (categoryFilter.value && categoryFilter.value !== 'all') p.set('category', categoryFilter.value)
     return p.toString()
 })
@@ -107,6 +155,7 @@ const downloadReport = () => {
             <div class="filters-section">
                 <AppSelect
                     v-model="periodFilter"
+                    label="Laikotarpis"
                     variant="white"
                 >
                     <option v-for="option in periodOptions" :key="option.value" :value="option.value">
@@ -116,7 +165,9 @@ const downloadReport = () => {
 
                 <AppSelect
                     v-model="institutionFilter"
+                    label="Įstaiga"
                     variant="white"
+                    :disabled="!!props.statisticsFilterLocks?.institution"
                 >
                     <option v-for="option in institutionOptions" :key="option.value" :value="option.value">
                         {{ option.label }}
@@ -124,7 +175,22 @@ const downloadReport = () => {
                 </AppSelect>
 
                 <AppSelect
+                    v-model="institutionAssignmentFilter"
+                    label="Įstaigos priskyrimas"
+                    variant="white"
+                >
+                    <option
+                        v-for="option in institutionAssignmentOptions"
+                        :key="option.value"
+                        :value="option.value"
+                    >
+                        {{ option.label }}
+                    </option>
+                </AppSelect>
+
+                <AppSelect
                     v-model="categoryFilter"
+                    label="Kategorija"
                     variant="white"
                 >
                     <option v-for="option in categoryOptions" :key="option.value" :value="option.value">
@@ -136,7 +202,7 @@ const downloadReport = () => {
             <div class="kpi-chart-row">
                 <div class="kpi-grid">
                     <div class="kpi-card">
-                        <h3 class="kpi-title">Aktyvūs naudotojai</h3>
+                        <h3 class="kpi-title">Unikalūs pranešėjai</h3>
                         <p class="kpi-value">{{ props.activeUsers.current }}/{{ props.activeUsers.total }}</p>
                         <div class="kpi-mini-chart">
                             <svg width="100" height="20" viewBox="0 0 100 20">

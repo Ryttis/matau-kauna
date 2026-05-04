@@ -17,7 +17,7 @@ class ProblemScopeService
             return;
         }
 
-        if ($this->isInstitutionScoped($user)) {
+        if ($user->hasRole(UserRole::ROLE_INSTITUTION_ADMIN)) {
             if ($user->institution_id === null) {
                 $query->whereRaw('1 = 0');
             } else {
@@ -27,17 +27,17 @@ class ProblemScopeService
             return;
         }
 
-        if (! $this->isEmployeeScoped($user)) {
+        if ($this->restrictsToOwnAssignmentsOnly($user)) {
+            $employeeId = $this->employeeIdForUser($user);
+
+            if (! $employeeId) {
+                abort(403);
+            }
+
+            $query->whereVisibleToEmployee($employeeId);
+
             return;
         }
-
-        $employeeId = $this->employeeIdForUser($user);
-
-        if (! $employeeId) {
-            abort(403);
-        }
-
-        $query->whereVisibleToEmployee($employeeId);
     }
 
     public function ensureScopeMatchesCount(Builder $query, int $expectedCount): void
@@ -55,20 +55,20 @@ class ProblemScopeService
             return;
         }
 
-        if ($this->isInstitutionScoped($user)) {
+        if ($user->hasRole(UserRole::ROLE_INSTITUTION_ADMIN)) {
             $this->authorizeInstitutionProblemAccess($user, $problem);
 
             return;
         }
 
-        if (! $this->isEmployeeScoped($user)) {
+        if ($this->restrictsToOwnAssignmentsOnly($user)) {
+            $employeeId = $this->employeeIdForUser($user);
+
+            if (! $this->employeeHasAccessToAssignment($employeeId, $problem)) {
+                abort(403);
+            }
+
             return;
-        }
-
-        $employeeId = $this->employeeIdForUser($user);
-
-        if (! $this->employeeHasAccessToAssignment($employeeId, $problem)) {
-            abort(403);
         }
     }
 
@@ -154,6 +154,22 @@ class ProblemScopeService
     public function isEmployeeScoped(?User $user): bool
     {
         return $user && $user->hasRole(UserRole::ROLE_EMPLOYEE);
+    }
+
+    public function restrictsToOwnAssignmentsOnly(?User $user): bool
+    {
+        if (! $user) {
+            return false;
+        }
+        if ($user->hasRole(UserRole::ROLE_SYSTEM_ADMIN)) {
+            return false;
+        }
+        if ($user->hasRole(UserRole::ROLE_INSTITUTION_ADMIN)) {
+            return false;
+        }
+
+        return $user->hasRole(UserRole::ROLE_EMPLOYEE)
+            || $user->hasRole(UserRole::ROLE_PROBLEM_ADMIN);
     }
 
     public function employeeIdForUser(?User $user): ?int

@@ -2,9 +2,11 @@
 
 namespace App\Services;
 
+use App\Models\Employee;
 use App\Models\Institution;
 use App\Models\Problem;
 use App\Models\User;
+use App\Models\UserRole;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
@@ -13,6 +15,21 @@ class StatisticsService
 {
     public function institutionsForUser(?User $user): Collection
     {
+        if ($user && app(ProblemScopeService::class)->restrictsToOwnAssignmentsOnly($user)) {
+            $institutionId = $user->institution_id;
+            if ($institutionId === null) {
+                $eid = app(ProblemScopeService::class)->employeeIdForUser($user);
+                if ($eid !== null) {
+                    $institutionId = Employee::query()->whereKey($eid)->value('institution_id');
+                }
+            }
+            if ($institutionId === null) {
+                return collect();
+            }
+
+            return Institution::query()->notArchived()->where('id', $institutionId)->orderBy('name')->get(['id', 'name']);
+        }
+
         $query = Institution::query()->notArchived()->orderBy('name');
 
         if ($user && $this->isInstitutionScoped($user)) {
@@ -37,7 +54,7 @@ class StatisticsService
         return $query;
     }
 
-    public function buildProblemQuery(?User $user, ?string $period, $institutionId, ?string $categoryName): Builder
+    public function buildProblemQuery(?User $user, ?string $period, $institutionId, ?string $categoryName, ?string $institutionAssignment = 'all'): Builder
     {
         $query = Problem::query()
             ->notArchived()
@@ -48,6 +65,12 @@ class StatisticsService
 
         if ($institutionId && $institutionId !== 'all') {
             $query->where('problems.institution_id', (int) $institutionId);
+        }
+
+        if ($institutionAssignment === 'assigned') {
+            $query->whereNotNull('problems.institution_id');
+        } elseif ($institutionAssignment === 'unassigned') {
+            $query->whereNull('problems.institution_id');
         }
 
         if ($categoryName && $categoryName !== 'all') {
@@ -129,12 +152,17 @@ class StatisticsService
         if (! $user) {
             return;
         }
-        if ($this->isInstitutionScoped($user)) {
+        if ($user->hasRole(UserRole::ROLE_INSTITUTION_ADMIN)) {
+            if ($user->institution_id === null) {
+                $query->whereRaw('1 = 0');
+
+                return;
+            }
             $query->where('problems.institution_id', $user->institution_id);
 
             return;
         }
-        if ($this->isEmployeeScoped($user)) {
+        if (app(ProblemScopeService::class)->restrictsToOwnAssignmentsOnly($user)) {
             $employeeId = $this->employeeIdForUser($user);
             if ($employeeId) {
                 $query->whereVisibleToEmployee($employeeId);
@@ -147,14 +175,9 @@ class StatisticsService
     private function isInstitutionScoped(?User $user): bool
     {
         return $user && (
-            $user->hasRole(\App\Models\UserRole::ROLE_INSTITUTION_ADMIN)
-            || $user->hasRole(\App\Models\UserRole::ROLE_EMPLOYEE)
+            $user->hasRole(UserRole::ROLE_INSTITUTION_ADMIN)
+            || $user->hasRole(UserRole::ROLE_EMPLOYEE)
         );
-    }
-
-    private function isEmployeeScoped(?User $user): bool
-    {
-        return $user && $user->hasRole(\App\Models\UserRole::ROLE_EMPLOYEE);
     }
 
     private function employeeIdForUser(?User $user): ?int
