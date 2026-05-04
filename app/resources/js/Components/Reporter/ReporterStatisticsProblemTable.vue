@@ -73,7 +73,8 @@ function formatDate(isoDateString) {
 
 .reporter-statistics-table {
     width: 100%;
-    min-width: 560px;
+    min-width: 0;
+    table-layout: fixed;
     border-collapse: collapse;
     font-size: 14px;
 }
@@ -102,11 +103,26 @@ function formatDate(isoDateString) {
     border-bottom: none;
 }
 
+.reporter-statistics-table th:nth-child(1),
+.reporter-statistics-table td:nth-child(1) {
+    width: 11%;
+}
+
+.reporter-statistics-table th:nth-child(2),
+.reporter-statistics-table td:nth-child(2) {
+    width: 12%;
+}
+
+.reporter-statistics-table th:nth-child(4),
+.reporter-statistics-table td:nth-child(4) {
+    width: 118px;
+}
+
 .reporter-statistics-cell-title {
-    max-width: 200px;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+    min-width: 0;
+    word-break: break-word;
+    white-space: normal;
+    line-height: 1.4;
 }
 
 .reporter-statistics-view-btn {

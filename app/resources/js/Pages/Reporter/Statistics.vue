@@ -170,17 +170,16 @@ const categoryOptions = computed(() => {
 }
 
 .reporter-statistics-tables-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
+    display: flex;
+    flex-direction: column;
     gap: 24px;
     margin-top: 24px;
-    align-items: start;
+    width: 100%;
 }
 
-@media (max-width: 900px) {
-    .reporter-statistics-tables-grid {
-        grid-template-columns: 1fr;
-    }
+.reporter-statistics-tables-grid > * {
+    width: 100%;
+    min-width: 0;
 }
 
 @media (max-width: 640px) {
