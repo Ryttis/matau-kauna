@@ -12,6 +12,7 @@ defineProps({
         <h3 class="section-title">Darbuotojų aktyvumas</h3>
         <div v-if="employees.length === 0" class="empty-state">
             <p>Nėra duomenų</p>
+            <p class="empty-state-hint">Rodoma tik tada, kai problemai priskirtas darbuotojas, ne tik įstaiga.</p>
         </div>
         <div v-else class="activity-list">
             <div v-for="(employee, idx) in employees" :key="employee.name || idx" class="activity-item">
@@ -42,9 +43,16 @@ defineProps({
 }
 
 .empty-state {
-    padding: 40px;
+    padding: 32px 20px 40px;
     text-align: center;
     color: #999;
+}
+
+.empty-state-hint {
+    margin: 10px 0 0;
+    font-size: 13px;
+    line-height: 1.4;
+    color: #777;
 }
 
 .activity-list {
