@@ -83,6 +83,11 @@ class User extends Authenticatable implements MustVerifyEmail
         return $query->whereNull('archived_at');
     }
 
+    public function routeNotificationForFcm(): ?string
+    {
+        return $this->push_fcm_token;
+    }
+
     public function scopeWantsInstitutionAdminAssignmentEmails($query)
     {
         return $query->where('email_updates_institution_admin', true);

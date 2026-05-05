@@ -35,6 +35,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::delete('/me', [AuthApiController::class, 'deleteAccount']);
     Route::get('/me', [AuthApiController::class, 'me']);
     Route::post('/me/push-device', [AuthApiController::class, 'registerPushDevice']);
+    Route::post('/me/push-test', [AuthApiController::class, 'sendPushTest']);
     Route::patch('/setting/email_notifications', [SettingsApiController::class, 'updateEmailNotifications']);
 
     Route::middleware(['verified', 'reporter.terms'])->group(function () {

@@ -7,6 +7,7 @@ use App\Enums\UserRoleEnum;
 use App\Http\Controllers\Controller;
 use App\Models\LoginLog;
 use App\Models\User;
+use App\Notifications\PushNotification;
 use App\Services\AuditLogService;
 use App\Services\TwoFactorService;
 use Illuminate\Http\JsonResponse;
@@ -374,6 +375,26 @@ class AuthApiController extends Controller
     public function logout(Request $request): JsonResponse
     {
         $request->user()->currentAccessToken()?->delete();
+
+        return response()->json(['ok' => true]);
+    }
+
+    public function sendPushTest(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'title' => ['nullable', 'string', 'max:120'],
+            'body' => ['nullable', 'string', 'max:240'],
+        ]);
+
+        $user = $request->user();
+        if (! $user->push_fcm_token) {
+            abort(422, 'Push įrenginys neregistruotas. Pirma iškvieskite POST /api/me/push-device.');
+        }
+
+        $user->notify(new PushNotification(
+            title: $validated['title'] ?? 'Kauno problemos',
+            body: $validated['body'] ?? 'Tai bandomasis pranešimas.',
+        ));
 
         return response()->json(['ok' => true]);
     }
