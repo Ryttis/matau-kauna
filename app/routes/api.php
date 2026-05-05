@@ -29,9 +29,11 @@ Route::get('/content/{type}', [InfoApiController::class, 'content'])
 Route::get('/problems', [ProblemApiController::class, 'index']);
 Route::get('/problems/{problem}', [ProblemApiController::class, 'show']);
 
-Route::middleware(['auth:sanctum', 'verified', 'reporter.terms'])->group(function () {
+Route::middleware(['auth:sanctum'])->group(function () {
     Route::post('/logout', [AuthApiController::class, 'logout']);
     Route::get('/me', [AuthApiController::class, 'me']);
+
+    Route::middleware(['verified', 'reporter.terms'])->group(function () {
     Route::get('/info/file-upload-settings', [InfoApiController::class, 'fileUploadSettings']);
 
     Route::post('/problems', [ReporterProblemController::class, 'reporterReportStore']);
@@ -46,6 +48,7 @@ Route::middleware(['auth:sanctum', 'verified', 'reporter.terms'])->group(functio
     Route::get('/reporter/statistics', [ReporterProblemApiController::class, 'statistics']);
     Route::get('/reporter/report-meta', [ReporterProblemApiController::class, 'reportMeta']);
     Route::get('/reporter/problems/{problem}', [ReporterProblemApiController::class, 'show']);
+    });
 });
 
 Route::middleware(['auth:sanctum', 'verified', \App\Http\Middleware\ApplyActiveRoleContext::class])->prefix('internal')->group(function () {

@@ -92,6 +92,7 @@ class AuthApiController extends Controller
         return response()->json([
             'token' => $token,
             'token_type' => 'Bearer',
+            'expires_at' => null,
             'user' => [
                 'id' => $user->id,
                 'name' => $user->name,
@@ -156,6 +157,7 @@ class AuthApiController extends Controller
         return response()->json([
             'token' => $token,
             'token_type' => 'Bearer',
+            'expires_at' => null,
             'user' => [
                 'id' => $user->id,
                 'name' => $user->name,
@@ -204,6 +206,7 @@ class AuthApiController extends Controller
         return response()->json([
             'token' => $token,
             'token_type' => 'Bearer',
+            'expires_at' => null,
             'user' => [
                 'id' => $user->id,
                 'name' => $user->name,
@@ -293,6 +296,7 @@ class AuthApiController extends Controller
         return response()->json([
             'token' => $token,
             'token_type' => 'Bearer',
+            'expires_at' => null,
             'user' => [
                 'id' => $user->id,
                 'name' => $user->name,
@@ -310,10 +314,23 @@ class AuthApiController extends Controller
             'name' => $user->name,
             'surname' => $user->surname,
             'email' => $user->email,
+            'phone' => $user->phone,
+            'email_verified' => $user->hasVerifiedEmail(),
             'email_verified_at' => $user->email_verified_at?->toIso8601String(),
+            'two_factor_enabled' => (bool) $user->two_factor_enabled,
+            'two_factor_confirmed_at' => $user->two_factor_confirmed_at?->toIso8601String(),
+            'viisp_linked' => $user->viisp_personal_code_hash !== null,
+            'can_authenticate_with_email_password' => $user->canAuthenticateWithEmailPassword(),
+            'email_notifications_enabled' => (bool) $user->email_notifications_enabled,
+            'email_updates_institution_admin' => (bool) $user->email_updates_institution_admin,
+            'reporter_email_own_problems' => (bool) $user->reporter_email_own_problems,
+            'reporter_email_watched_problems' => (bool) $user->reporter_email_watched_problems,
             'terms_accepted_at' => $user->terms_accepted_at?->toIso8601String(),
             'reporter_report_terms_accepted_at' => $user->reporter_report_terms_accepted_at?->toIso8601String(),
             'reporter_wizard_completed_at' => $user->reporter_wizard_completed_at?->toIso8601String(),
+            'last_login_at' => $user->last_login_at?->toIso8601String(),
+            'archived_at' => $user->archived_at?->toIso8601String(),
+            'institution_id' => $user->institution_id,
             'roles' => $user->roles->pluck('role')->values()->all(),
             'permissions' => $user->permissions(),
         ]);

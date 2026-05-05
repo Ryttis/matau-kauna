@@ -170,6 +170,7 @@ class ViispApiController extends Controller
         return response()->json([
             'token' => $token,
             'token_type' => 'Bearer',
+            'expires_at' => null,
             'user' => [
                 'id' => $user->id,
                 'name' => $user->name,

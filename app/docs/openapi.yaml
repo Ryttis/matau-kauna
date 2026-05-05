@@ -26,6 +26,11 @@ paths:
     post:
       tags: [Auth]
       summary: "[PUBLIC] Login Sanctum token"
+      description: >
+        Returns a Sanctum Bearer token. Mobile apps should store this token securely and
+        send it on every authenticated API request as `Authorization: Bearer {token}`.
+        The token has no fixed expiration (`expires_at: null`) and remains valid until
+        POST `/api/logout` revokes the current token, or until the server returns 401.
       requestBody:
         required: true
         content:
@@ -97,7 +102,7 @@ paths:
                 summary: Complete VIISP mobile registration
                 value:
                   viisp_registration_token: "mxaJrEwTD6ww8n01bq1bqtwJQslYbP0CYV3AJRyGSD1g9BaFcpamK8m1umhxNfoQ"
-                  email: "andrius.rancevas@example.com"
+                  email: "testas.baranauskas@example.com"
                   phone: "+37060000000"
                   device_name: "mobile-ios"
       responses:
@@ -113,9 +118,21 @@ paths:
   /api/me:
     get:
       tags: [Auth]
-      summary: "[AUTH] Current user roles and permissions"
+      summary: "[AUTH] Current user profile, roles, permissions, and mobile flags"
+      description: >
+        Requires `Authorization: Bearer {token}`. Returns the authenticated user's profile,
+        email verification state, 2FA state, VIISP linkage state, reporter notification
+        preferences, roles, and permissions.
       security:
         - bearerAuth: []
+      parameters:
+        - in: header
+          name: X-Authorization
+          required: true
+          description: Swagger-only auth header. Paste full Bearer token here, e.g. `Bearer 6|abc...`. Mobile/API clients should use the standard `Authorization` header.
+          schema:
+            type: string
+            example: "Bearer 6|qByoRAMucVQd90Q9JTG16xE3KPM3wV2imICs2Fro8907502b"
       responses:
         '200':
           description: OK
@@ -130,6 +147,9 @@ paths:
     post:
       tags: [Auth]
       summary: "[AUTH] Logout revokes current token"
+      description: >
+        Revokes only the current Bearer token used for this request. After logout, mobile
+        apps must delete the stored token locally and navigate back to guest/login state.
       security:
         - bearerAuth: []
       responses:
@@ -1623,10 +1643,10 @@ components:
           properties:
             name:
               type: string
-              example: ANDRIUS
+              example: TESTULIS
             surname:
               type: string
-              example: RANCEVAS
+              example: DUNDULIS
             email:
               type: string
               example: viisp.6ad61ffa7259cae69ab08f02a03de12d@viisp.local
@@ -1648,7 +1668,11 @@ components:
 
     AuthTokenResponse:
       type: object
-      required: [token, token_type, user]
+      required: [token, token_type, expires_at, user]
+      description: >
+        Store `token` securely on mobile and send it on authenticated endpoints as
+        `Authorization: Bearer {token}`. `expires_at: null` means the token is valid until
+        revoked by POST /api/logout or rejected by the server with 401.
       properties:
         token:
           type: string
@@ -1656,6 +1680,11 @@ components:
         token_type:
           type: string
           example: Bearer
+        expires_at:
+          type: string
+          format: date-time
+          nullable: true
+          example: null
         user:
           $ref: '#/components/schemas/UserSummary'
 
@@ -1704,21 +1733,75 @@ components:
 
     MeResponse:
       type: object
+      required:
+        - id
+        - name
+        - email
+        - email_verified
+        - two_factor_enabled
+        - viisp_linked
+        - can_authenticate_with_email_password
+        - email_notifications_enabled
+        - email_updates_institution_admin
+        - reporter_email_own_problems
+        - reporter_email_watched_problems
+        - roles
+        - permissions
       properties:
         id:
           type: integer
+          example: 12
         name:
           type: string
+          example: TESTULIS
         surname:
           type: string
           nullable: true
+          example: DUNDULIS
         email:
           type: string
           format: email
+          example: testas.baranauskas@example.com
+        phone:
+          type: string
+          nullable: true
+          example: "+37060000000"
+        email_verified:
+          type: boolean
+          description: True when email_verified_at is not null.
+          example: false
         email_verified_at:
           type: string
           format: date-time
           nullable: true
+        two_factor_enabled:
+          type: boolean
+          description: Whether 2FA is enabled for this user.
+          example: false
+        two_factor_confirmed_at:
+          type: string
+          format: date-time
+          nullable: true
+        viisp_linked:
+          type: boolean
+          description: True when the user has viisp_personal_code_hash set. The hash itself is not exposed.
+          example: true
+        can_authenticate_with_email_password:
+          type: boolean
+          description: False for VIISP-only users until they set a local password.
+          example: false
+        email_notifications_enabled:
+          type: boolean
+          example: true
+        email_updates_institution_admin:
+          type: boolean
+          example: true
+        reporter_email_own_problems:
+          type: boolean
+          example: true
+        reporter_email_watched_problems:
+          type: boolean
+          example: true
         terms_accepted_at:
           type: string
           format: date-time
@@ -1731,14 +1814,27 @@ components:
           type: string
           format: date-time
           nullable: true
+        last_login_at:
+          type: string
+          format: date-time
+          nullable: true
+        archived_at:
+          type: string
+          format: date-time
+          nullable: true
+        institution_id:
+          type: integer
+          nullable: true
         roles:
           type: array
           items:
             type: string
+          example: [reporter]
         permissions:
           type: array
           items:
             type: string
+          example: []
 
     ReporterProblemCreateRequestBase:
       type: object
