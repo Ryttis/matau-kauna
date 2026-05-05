@@ -35,7 +35,7 @@ class ReporterProblemApiController extends Controller
             'date_to' => $request->query('date_to'),
         ];
 
-        $problems = $this->problemHttpSupport->reporterProblemsFlatOrderedForList($reporter, $filters)
+        $problems = $this->problemHttpSupport->reporterProblemsFlatOrderedForList($reporter, $filters, includeAllStatuses: true)
             ->map(fn ($problem) => [
                 'id' => $problem->id,
                 'internal_number' => $problem->internal_number,

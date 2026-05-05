@@ -683,8 +683,12 @@ paths:
   /api/reporter/problems:
     get:
       tags: [Reporter]
-      summary: "[AUTH] Reporter own problems list"
-      description: "This endpoint is the Reporter page 'Sąrašas' in the web app."
+      summary: "[AUTH] Reporter own problems list (all statuses)"
+      description: >
+        Returns ALL problems reported by the authenticated reporter — every status,
+        including archived/merged children — matching the Reporter page 'Sąrašas' in
+        the web app. Optional query parameters narrow the result by free text, report
+        number, category, and date range.
       security:
         - bearerAuth: []
       parameters:
