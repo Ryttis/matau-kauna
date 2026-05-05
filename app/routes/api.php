@@ -37,6 +37,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::post('/me/push-device', [AuthApiController::class, 'registerPushDevice']);
     Route::post('/me/push-test', [AuthApiController::class, 'sendPushTest']);
     Route::patch('/setting/email_notifications', [SettingsApiController::class, 'updateEmailNotifications']);
+    Route::put('/settings/password', [SettingsApiController::class, 'updatePassword']);
 
     Route::middleware(['verified', 'reporter.terms'])->group(function () {
         Route::get('/info/file-upload-settings', [InfoApiController::class, 'fileUploadSettings']);

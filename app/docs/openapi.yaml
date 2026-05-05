@@ -280,6 +280,82 @@ paths:
               schema:
                 $ref: '#/components/schemas/MessageOnlyError'
 
+  /api/settings/password:
+    put:
+      tags: [Settings]
+      summary: "[AUTH] Update or set local password"
+      description: >
+        Updates the authenticated user's password. For VIISP-only users that have not
+        yet set a local password (`viisp_local_password_set_at` is null), `current_password`
+        is omitted — this is the "create local password" flow. For everyone else
+        `current_password` is required.
+
+        Validation follows the active `PasswordPolicy` and rejects passwords containing
+        the user's name, surname, or email.
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: header
+          name: X-Authorization
+          required: true
+          description: Swagger-only auth header. Paste full Bearer token here.
+          schema:
+            type: string
+            example: "Bearer 6|qByoRAMucVQd90Q9JTG16xE3KPM3wV2imICs2Fro8907502b"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [password, password_confirmation]
+              properties:
+                current_password:
+                  type: string
+                  description: Required for users with an existing local password. Omit for VIISP first-time password creation.
+                  example: "OldPass!23"
+                password:
+                  type: string
+                  description: New password. Must satisfy the active password policy.
+                  example: "NewStrong!23"
+                password_confirmation:
+                  type: string
+                  description: Must equal `password`.
+                  example: "NewStrong!23"
+            examples:
+              regular_change:
+                summary: Standard password change
+                value:
+                  current_password: "OldPass!23"
+                  password: "NewStrong!23"
+                  password_confirmation: "NewStrong!23"
+              viisp_first_password:
+                summary: VIISP user creating a local password for the first time
+                value:
+                  password: "NewStrong!23"
+                  password_confirmation: "NewStrong!23"
+      responses:
+        '200':
+          description: Password saved
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: "Slaptažodis pakeistas."
+                  viisp_local_password_set:
+                    type: boolean
+                    example: false
+        '401':
+          description: Unauthorized
+        '422':
+          $ref: '#/components/responses/ValidationError'
+
   /api/setting/email_notifications:
     patch:
       tags: [Settings]
