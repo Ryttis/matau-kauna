@@ -143,6 +143,36 @@ paths:
                 $ref: '#/components/schemas/MeResponse'
         '401':
           description: Unauthorized
+    delete:
+      tags: [Auth]
+      summary: "[AUTH] Delete (archive) current user account"
+      description: >
+        Archives the authenticated user's account by setting `archived_at` and revokes
+        all Sanctum tokens. After this call the mobile app must clear the stored token
+        and return to the guest/login state.
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: header
+          name: X-Authorization
+          required: true
+          description: Swagger-only auth header. Paste full Bearer token here, e.g. `Bearer 6|abc...`. Mobile/API clients should use the standard `Authorization` header.
+          schema:
+            type: string
+            example: "Bearer 6|qByoRAMucVQd90Q9JTG16xE3KPM3wV2imICs2Fro8907502b"
+      responses:
+        '200':
+          description: Account archived
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok:
+                    type: boolean
+                    example: true
+        '401':
+          description: Unauthorized
 
   /api/me/push-device:
     post:

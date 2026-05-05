@@ -32,6 +32,7 @@ Route::get('/problems/{problem}', [ProblemApiController::class, 'show']);
 
 Route::middleware(['auth:sanctum'])->group(function () {
     Route::post('/logout', [AuthApiController::class, 'logout']);
+    Route::delete('/me', [AuthApiController::class, 'deleteAccount']);
     Route::get('/me', [AuthApiController::class, 'me']);
     Route::post('/me/push-device', [AuthApiController::class, 'registerPushDevice']);
     Route::patch('/setting/email_notifications', [SettingsApiController::class, 'updateEmailNotifications']);

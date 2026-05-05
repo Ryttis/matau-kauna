@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Enums\AuditLogResult;
 use App\Enums\UserRoleEnum;
 use App\Http\Controllers\Controller;
 use App\Models\LoginLog;
@@ -375,5 +376,21 @@ class AuthApiController extends Controller
         $request->user()->currentAccessToken()?->delete();
 
         return response()->json(['ok' => true]);
+    }
+
+    public function deleteAccount(Request $request): JsonResponse
+    {
+        $user = $request->user();
+
+        try {
+            $user->tokens()->delete();
+            $user->update(['archived_at' => now()]);
+            $this->auditLogService->logUserAction($user, 'auth.account.delete', 'User', $user->id, AuditLogResult::Success);
+
+            return response()->json(['ok' => true]);
+        } catch (\Throwable $e) {
+            $this->auditLogService->logUserAction($user, 'auth.account.delete', 'User', $user->id, AuditLogResult::Error, $e->getMessage());
+            throw $e;
+        }
     }
 }
