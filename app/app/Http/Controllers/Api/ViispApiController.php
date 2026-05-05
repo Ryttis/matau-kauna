@@ -6,7 +6,6 @@ use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Models\UserRole;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
@@ -18,14 +17,19 @@ class ViispApiController extends Controller
 
     private const EXCHANGE_CACHE_PREFIX = 'viisp_mobile_exchange:';
 
+    public const REGISTRATION_CACHE_PREFIX = 'viisp_mobile_registration:';
+
     private const STATE_TTL_SECONDS = 600;
 
     private const EXCHANGE_TTL_SECONDS = 600;
+
+    public const REGISTRATION_TTL_SECONDS = 600;
 
     public function init(Request $request): JsonResponse
     {
         $validated = $request->validate([
             'redirect_uri' => ['required', 'string', 'max:2048'],
+            'device_name' => ['nullable', 'string', 'max:255'],
         ]);
 
         $secret = $this->viispExchangeSecret();
@@ -36,7 +40,10 @@ class ViispApiController extends Controller
         $state = Str::random(48);
         Cache::put(
             self::STATE_CACHE_PREFIX.$state,
-            ['redirect_uri' => $validated['redirect_uri']],
+            [
+                'redirect_uri' => $validated['redirect_uri'],
+                'device_name' => $validated['device_name'] ?? 'mobile',
+            ],
             now()->addSeconds(self::STATE_TTL_SECONDS)
         );
 
@@ -65,20 +72,23 @@ class ViispApiController extends Controller
         ]);
     }
 
-    public function callback(Request $request): RedirectResponse
+    public function callback(Request $request): JsonResponse
     {
         $state = (string) $request->query('state', '');
         $token = (string) $request->query('token', '');
 
         $stateData = Cache::pull(self::STATE_CACHE_PREFIX.$state);
         if (! is_array($stateData) || ! is_string($stateData['redirect_uri'] ?? null) || $token === '') {
-            return redirect()->away($this->fallbackRedirectWithError('invalid_state'));
+            return $this->callbackError('invalid_state', 'Invalid or expired VIISP state.', 422);
         }
 
         $redirectUri = $stateData['redirect_uri'];
+        $deviceName = is_string($stateData['device_name'] ?? null) && $stateData['device_name'] !== ''
+            ? $stateData['device_name']
+            : 'mobile';
         $secret = $this->viispExchangeSecret();
         if ($secret === null) {
-            return redirect()->away($this->appendQuery($redirectUri, ['error' => 'viisp_unavailable']));
+            return $this->callbackError('viisp_unavailable', 'VIISP is temporarily unavailable.', 503, $redirectUri);
         }
 
         $gatewayUrl = config('services.viisp.gateway_url');
@@ -88,7 +98,7 @@ class ViispApiController extends Controller
 
         $identity = $response->json('identity');
         if (! $response->successful() || ! is_array($identity) || ! is_string($identity['hashedCode'] ?? null) || $identity['hashedCode'] === '') {
-            return redirect()->away($this->appendQuery($redirectUri, ['error' => 'identity_exchange_failed']));
+            return $this->callbackError('identity_exchange_failed', 'Unable to exchange VIISP identity.', 502, $redirectUri);
         }
 
         $email = $this->resolveEmail($identity);
@@ -98,24 +108,43 @@ class ViispApiController extends Controller
             $byEmail = User::query()->where('email', $email)->first();
             if ($byEmail) {
                 if ($byEmail->viisp_personal_code_hash !== null && $byEmail->viisp_personal_code_hash !== $identity['hashedCode']) {
-                    return redirect()->away($this->appendQuery($redirectUri, ['error' => 'email_linked_other_account']));
+                    return $this->callbackError('email_linked_other_account', 'Email is linked to another account.', 409, $redirectUri);
                 }
                 $user = $this->linkViispToExistingUser($byEmail, $identity, $email);
             } else {
-                return redirect()->away($this->appendQuery($redirectUri, ['error' => 'registration_required']));
+                $registrationPayload = $this->registrationPayload($identity, $email, $deviceName);
+                if ($registrationPayload === null) {
+                    return $this->callbackError('identity_incomplete', 'VIISP identity is missing required profile fields.', 422, $redirectUri);
+                }
+
+                $registrationToken = Str::random(64);
+                Cache::put(
+                    self::REGISTRATION_CACHE_PREFIX.hash('sha256', $registrationToken),
+                    $registrationPayload,
+                    now()->addSeconds(self::REGISTRATION_TTL_SECONDS)
+                );
+
+                return response()->json([
+                    'registration_required' => true,
+                    'next_step' => 'complete_registration',
+                    'registration_token' => $registrationToken,
+                    'token_type' => 'VIISPRegistration',
+                    'expires_in' => self::REGISTRATION_TTL_SECONDS,
+                    'registration_endpoint' => url('/api/register'),
+                    'required_fields' => ['viisp_registration_token', 'email'],
+                    'user' => [
+                        'name' => $registrationPayload['name'],
+                        'surname' => $registrationPayload['surname'],
+                        'email' => $registrationPayload['email'],
+                        'phone' => $registrationPayload['phone'],
+                    ],
+                ]);
             }
         } else {
             $user = $this->syncViispProfile($user, $identity, $email);
         }
 
-        $code = Str::random(64);
-        Cache::put(
-            self::EXCHANGE_CACHE_PREFIX.$code,
-            ['user_id' => $user->id],
-            now()->addSeconds(self::EXCHANGE_TTL_SECONDS)
-        );
-
-        return redirect()->away($this->appendQuery($redirectUri, ['code' => $code]));
+        return $this->authTokenResponse($user, $deviceName);
     }
 
     public function exchange(Request $request): JsonResponse
@@ -156,9 +185,19 @@ class ViispApiController extends Controller
         return is_string($s) && $s !== '' ? $s : null;
     }
 
-    private function fallbackRedirectWithError(string $error): string
+    private function callbackError(string $error, string $message, int $status, ?string $redirectUri = null): JsonResponse
     {
-        return $this->appendQuery(url('/login'), ['error' => $error]);
+        $payload = [
+            'message' => $message,
+            'error' => $error,
+        ];
+
+        if (is_string($redirectUri) && $redirectUri !== '') {
+            $payload['redirect_uri'] = $redirectUri;
+            $payload['redirect_url'] = $this->appendQuery($redirectUri, ['error' => $error]);
+        }
+
+        return response()->json($payload, $status);
     }
 
     private function appendQuery(string $url, array $params): string
@@ -195,6 +234,45 @@ class ViispApiController extends Controller
         }
 
         return $user->fresh();
+    }
+
+    private function registrationPayload(array $identity, string $email, string $deviceName): ?array
+    {
+        $hashedCode = is_string($identity['hashedCode'] ?? null) ? $identity['hashedCode'] : '';
+        $firstName = is_string($identity['firstName'] ?? null) ? trim($identity['firstName']) : '';
+        $lastName = is_string($identity['lastName'] ?? null) ? trim($identity['lastName']) : '';
+
+        if ($hashedCode === '' || $firstName === '' || $lastName === '') {
+            return null;
+        }
+
+        $phone = is_string($identity['phoneNumber'] ?? null) && $identity['phoneNumber'] !== ''
+            ? $identity['phoneNumber']
+            : null;
+
+        return [
+            'hashedCode' => $hashedCode,
+            'name' => $firstName,
+            'surname' => $lastName,
+            'email' => $email,
+            'phone' => $phone,
+            'device_name' => $deviceName,
+        ];
+    }
+
+    private function authTokenResponse(User $user, string $deviceName): JsonResponse
+    {
+        $token = $user->createToken($deviceName)->plainTextToken;
+
+        return response()->json([
+            'token' => $token,
+            'token_type' => 'Bearer',
+            'user' => [
+                'id' => $user->id,
+                'name' => $user->name,
+                'email' => $user->email,
+            ],
+        ]);
     }
 
     private function syncViispProfile(User $user, array $identity, string $email): User

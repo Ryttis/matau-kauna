@@ -71,6 +71,11 @@ paths:
     post:
       tags: [Auth]
       summary: "[PUBLIC] Reporter registration returns token"
+      description: >
+        Supports two flows:
+        1) normal email/password reporter registration;
+        2) mobile VIISP registration completion after `/api/viisp/callback` returns `registration_required: true`.
+        For VIISP, `name`, `surname`, and `viisp_personal_code_hash` come from the short-lived registration token, so the mobile app sends only `viisp_registration_token`, a real `email`, and optional `phone` / `device_name`.
       requestBody:
         required: true
         content:
@@ -78,14 +83,23 @@ paths:
             schema:
               $ref: '#/components/schemas/ApiRegisterRequest'
             examples:
-              pavyzdys:
-                summary: Sample request
+              normal_registration:
+                summary: Email/password registration
                 value:
                   name: "Testas"
+                  surname: "Pavyzdys"
                   email: "testas.reporter@example.com"
+                  phone: "+37060000000"
                   password: "Aa!23456"
                   password_confirmation: "Aa!23456"
-                  device_name: "api-client"
+                  device_name: "mobile-ios"
+              viisp_mobile_registration:
+                summary: Complete VIISP mobile registration
+                value:
+                  viisp_registration_token: "mxaJrEwTD6ww8n01bq1bqtwJQslYbP0CYV3AJRyGSD1g9BaFcpamK8m1umhxNfoQ"
+                  email: "andrius.rancevas@example.com"
+                  phone: "+37060000000"
+                  device_name: "mobile-ios"
       responses:
         '201':
           description: Created
@@ -162,6 +176,10 @@ paths:
     get:
       tags: [VIISP]
       summary: "[PUBLIC] VIISP callback endpoint for mobile flow"
+      description: >
+        Called after VIISP authentication. Existing VIISP users receive a Sanctum Bearer token immediately.
+        New VIISP identities receive a short-lived `registration_token`; send it to POST `/api/register`
+        with a real email address to finish mobile registration.
       parameters:
         - in: query
           name: state
@@ -174,8 +192,28 @@ paths:
           schema:
             type: string
       responses:
-        '302':
-          description: Redirect back to mobile redirect_uri with code or error
+        '200':
+          description: Existing user token or new-user VIISP registration token
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - $ref: '#/components/schemas/AuthTokenResponse'
+                  - $ref: '#/components/schemas/ViispRegistrationRequiredResponse'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+        '502':
+          description: VIISP identity exchange failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageOnlyError'
+        '503':
+          description: VIISP unavailable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageOnlyError'
 
   /api/viisp/exchange:
     post:
@@ -1472,14 +1510,29 @@ components:
           example: api-client
 
     ApiRegisterRequest:
+      oneOf:
+        - $ref: '#/components/schemas/ApiPasswordRegisterRequest'
+        - $ref: '#/components/schemas/ApiViispRegisterRequest'
+
+    ApiPasswordRegisterRequest:
       type: object
       required: [name, email, password, password_confirmation]
       properties:
         name:
           type: string
+          description: Required for normal email/password registration.
+        surname:
+          type: string
+          nullable: true
+          description: Optional. Stored in users.surname.
         email:
           type: string
           format: email
+        phone:
+          type: string
+          nullable: true
+          maxLength: 32
+          example: "+37060000000"
         password:
           type: string
           format: password
@@ -1488,7 +1541,31 @@ components:
           format: password
         device_name:
           type: string
-          example: api-client
+          nullable: true
+          example: mobile-ios
+
+    ApiViispRegisterRequest:
+      type: object
+      required: [viisp_registration_token, email]
+      properties:
+        viisp_registration_token:
+          type: string
+          minLength: 64
+          maxLength: 64
+          description: Short-lived token returned from GET /api/viisp/callback when registration_required is true.
+        email:
+          type: string
+          format: email
+          description: Required real email for the new account. Do not send the generated @viisp.local placeholder.
+        phone:
+          type: string
+          nullable: true
+          maxLength: 32
+          example: "+37060000000"
+        device_name:
+          type: string
+          nullable: true
+          example: mobile-ios
 
     ViispInitRequest:
       type: object
@@ -1497,6 +1574,11 @@ components:
         redirect_uri:
           type: string
           description: Mobile deep link, e.g. kaunoproblemos://auth/viisp
+        device_name:
+          type: string
+          nullable: true
+          description: Sanctum token name to use if VIISP callback logs in an existing user.
+          example: mobile-ios
 
     ViispInitResponse:
       type: object
@@ -1506,6 +1588,51 @@ components:
           type: string
         redirect_url:
           type: string
+
+    ViispRegistrationRequiredResponse:
+      type: object
+      required: [registration_required, next_step, registration_token, token_type, expires_in, registration_endpoint, required_fields, user]
+      properties:
+        registration_required:
+          type: boolean
+          example: true
+        next_step:
+          type: string
+          example: complete_registration
+        registration_token:
+          type: string
+          description: Send this to POST /api/register as viisp_registration_token.
+          example: mxaJrEwTD6ww8n01bq1bqtwJQslYbP0CYV3AJRyGSD1g9BaFcpamK8m1umhxNfoQ
+        token_type:
+          type: string
+          example: VIISPRegistration
+        expires_in:
+          type: integer
+          example: 600
+        registration_endpoint:
+          type: string
+          example: http://localhost:85/api/register
+        required_fields:
+          type: array
+          items:
+            type: string
+          example: [viisp_registration_token, email]
+        user:
+          type: object
+          required: [name, surname, email]
+          properties:
+            name:
+              type: string
+              example: ANDRIUS
+            surname:
+              type: string
+              example: RANCEVAS
+            email:
+              type: string
+              example: viisp.6ad61ffa7259cae69ab08f02a03de12d@viisp.local
+            phone:
+              type: string
+              nullable: true
 
     ViispExchangeRequest:
       type: object

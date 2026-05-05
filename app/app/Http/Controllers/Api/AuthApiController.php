@@ -166,9 +166,15 @@ class AuthApiController extends Controller
 
     public function register(Request $request): JsonResponse
     {
+        if ($request->filled('viisp_registration_token')) {
+            return $this->registerViisp($request);
+        }
+
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
+            'surname' => ['nullable', 'string', 'max:255'],
             'email' => ['required', 'string', 'email', 'max:255', 'unique:users,email'],
+            'phone' => ['nullable', 'string', 'max:32', 'regex:/^[0-9+\s\-]+$/'],
             'password' => [
                 'required',
                 'confirmed',
@@ -179,7 +185,9 @@ class AuthApiController extends Controller
 
         $user = User::query()->create([
             'name' => $validated['name'],
+            'surname' => $validated['surname'] ?? null,
             'email' => $validated['email'],
+            'phone' => $validated['phone'] ?? null,
             'password' => $validated['password'],
         ]);
 
@@ -202,6 +210,95 @@ class AuthApiController extends Controller
                 'email' => $user->email,
             ],
         ], 201);
+    }
+
+    private function registerViisp(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'viisp_registration_token' => ['required', 'string'],
+            'email' => ['nullable', 'string', 'email', 'max:255'],
+            'phone' => ['nullable', 'string', 'max:32', 'regex:/^[0-9+\s\-]+$/'],
+            'device_name' => ['nullable', 'string', 'max:255'],
+        ]);
+
+        $cacheKey = ViispApiController::REGISTRATION_CACHE_PREFIX.hash('sha256', $validated['viisp_registration_token']);
+        $payload = Cache::get($cacheKey);
+        if (! is_array($payload) || ! is_string($payload['hashedCode'] ?? null) || $payload['hashedCode'] === '') {
+            throw ValidationException::withMessages([
+                'viisp_registration_token' => ['Invalid or expired VIISP registration token.'],
+            ]);
+        }
+
+        $existingUser = User::query()
+            ->where('viisp_personal_code_hash', $payload['hashedCode'])
+            ->first();
+        $deviceName = $validated['device_name'] ?? ($payload['device_name'] ?? 'mobile');
+        $deviceName = is_string($deviceName) && $deviceName !== '' ? $deviceName : 'mobile';
+
+        if ($existingUser) {
+            Cache::forget($cacheKey);
+
+            return $this->authTokenResponse($existingUser, $deviceName);
+        }
+
+        $email = $validated['email'] ?? ($payload['email'] ?? '');
+        $email = is_string($email) ? trim($email) : '';
+        if ($email === '' || ! filter_var($email, FILTER_VALIDATE_EMAIL) || str_ends_with($email, '@viisp.local')) {
+            throw ValidationException::withMessages([
+                'email' => ['A valid email address is required.'],
+            ]);
+        }
+        if (User::query()->where('email', $email)->exists()) {
+            throw ValidationException::withMessages([
+                'email' => ['This email is already registered.'],
+            ]);
+        }
+
+        $firstName = is_string($payload['name'] ?? null) ? trim($payload['name']) : '';
+        $lastName = is_string($payload['surname'] ?? null) ? trim($payload['surname']) : '';
+        if ($firstName === '' || $lastName === '') {
+            throw ValidationException::withMessages([
+                'viisp_registration_token' => ['VIISP identity is missing required profile fields.'],
+            ]);
+        }
+
+        $phone = $validated['phone'] ?? ($payload['phone'] ?? null);
+        $phone = is_string($phone) && $phone !== '' ? $phone : null;
+
+        $user = User::query()->create([
+            'name' => $firstName,
+            'surname' => $lastName,
+            'email' => $email,
+            'phone' => $phone,
+            'password' => Hash::make(Str::random(64)),
+            'viisp_personal_code_hash' => $payload['hashedCode'],
+            'terms_accepted_at' => now(),
+        ]);
+
+        $reporterRole = \App\Models\UserRole::firstOrCreate(
+            ['role' => UserRoleEnum::Reporter->value],
+            ['name' => 'PareiÅ¡kÄ—jas']
+        );
+        $user->roles()->sync([$reporterRole->id]);
+        $user->sendEmailVerificationNotification();
+        Cache::forget($cacheKey);
+
+        return $this->authTokenResponse($user->fresh(), $deviceName, 201);
+    }
+
+    private function authTokenResponse(User $user, string $deviceName, int $status = 200): JsonResponse
+    {
+        $token = $user->createToken($deviceName)->plainTextToken;
+
+        return response()->json([
+            'token' => $token,
+            'token_type' => 'Bearer',
+            'user' => [
+                'id' => $user->id,
+                'name' => $user->name,
+                'email' => $user->email,
+            ],
+        ], $status);
     }
 
     public function me(Request $request): JsonResponse
