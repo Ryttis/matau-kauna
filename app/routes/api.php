@@ -6,6 +6,7 @@ use App\Http\Controllers\Api\InternalProblemApiController;
 use App\Http\Controllers\Api\InternalTwoFactorApiController;
 use App\Http\Controllers\Api\ProblemApiController;
 use App\Http\Controllers\Api\ReporterProblemApiController;
+use App\Http\Controllers\Api\SettingsApiController;
 use App\Http\Controllers\Api\ViispApiController;
 use App\Http\Controllers\ProblemAttachmentController;
 use App\Http\Controllers\ProblemReviewController;
@@ -33,6 +34,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::post('/logout', [AuthApiController::class, 'logout']);
     Route::get('/me', [AuthApiController::class, 'me']);
     Route::post('/me/push-device', [AuthApiController::class, 'registerPushDevice']);
+    Route::patch('/setting/email_notifications', [SettingsApiController::class, 'updateEmailNotifications']);
 
     Route::middleware(['verified', 'reporter.terms'])->group(function () {
         Route::get('/info/file-upload-settings', [InfoApiController::class, 'fileUploadSettings']);
