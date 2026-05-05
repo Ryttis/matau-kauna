@@ -325,6 +325,11 @@ class AuthApiController extends Controller
             'email_updates_institution_admin' => (bool) $user->email_updates_institution_admin,
             'reporter_email_own_problems' => (bool) $user->reporter_email_own_problems,
             'reporter_email_watched_problems' => (bool) $user->reporter_email_watched_problems,
+            'push_notifications_registered' => $user->push_fcm_token !== null,
+            'push_device_id' => $user->push_device_id,
+            'push_platform' => $user->push_platform,
+            'push_app_version' => $user->push_app_version,
+            'push_registered_at' => $user->push_registered_at?->toIso8601String(),
             'terms_accepted_at' => $user->terms_accepted_at?->toIso8601String(),
             'reporter_report_terms_accepted_at' => $user->reporter_report_terms_accepted_at?->toIso8601String(),
             'reporter_wizard_completed_at' => $user->reporter_wizard_completed_at?->toIso8601String(),
@@ -333,6 +338,35 @@ class AuthApiController extends Controller
             'institution_id' => $user->institution_id,
             'roles' => $user->roles->pluck('role')->values()->all(),
             'permissions' => $user->permissions(),
+        ]);
+    }
+
+    public function registerPushDevice(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'device_id' => ['required', 'string', 'max:255'],
+            'fcm_token' => ['required', 'string', 'max:4096'],
+            'platform' => ['nullable', 'string', 'in:ios,android,web'],
+            'app_version' => ['nullable', 'string', 'max:64'],
+        ]);
+
+        $user = $request->user();
+        $user->forceFill([
+            'push_device_id' => $validated['device_id'],
+            'push_fcm_token' => $validated['fcm_token'],
+            'push_platform' => $validated['platform'] ?? null,
+            'push_app_version' => $validated['app_version'] ?? null,
+            'push_registered_at' => now(),
+        ])->save();
+
+        return response()->json([
+            'ok' => true,
+            'device' => [
+                'device_id' => $user->push_device_id,
+                'platform' => $user->push_platform,
+                'app_version' => $user->push_app_version,
+                'registered_at' => $user->push_registered_at?->toIso8601String(),
+            ],
         ]);
     }
 

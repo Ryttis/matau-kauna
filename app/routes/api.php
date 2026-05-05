@@ -32,22 +32,23 @@ Route::get('/problems/{problem}', [ProblemApiController::class, 'show']);
 Route::middleware(['auth:sanctum'])->group(function () {
     Route::post('/logout', [AuthApiController::class, 'logout']);
     Route::get('/me', [AuthApiController::class, 'me']);
+    Route::post('/me/push-device', [AuthApiController::class, 'registerPushDevice']);
 
     Route::middleware(['verified', 'reporter.terms'])->group(function () {
-    Route::get('/info/file-upload-settings', [InfoApiController::class, 'fileUploadSettings']);
+        Route::get('/info/file-upload-settings', [InfoApiController::class, 'fileUploadSettings']);
 
-    Route::post('/problems', [ReporterProblemController::class, 'reporterReportStore']);
-    Route::post('/problems/{problem}/watch', [ProblemWatchController::class, 'toggle']);
-    Route::post('/problems/{problem}/attachments', [ProblemAttachmentController::class, 'storeAttachments']);
-    Route::delete('/problems/{problem}/attachments/{attachment}', [ProblemAttachmentController::class, 'destroyAttachment']);
-    Route::get('/problems/{problem}/review-progress', [ProblemReviewController::class, 'reviewProgress']);
-    Route::post('/reporter/wizard-dismissed', [ReporterProblemController::class, 'reporterWizardDismissed']);
-    Route::post('/reporter/report-terms-accepted', [ReporterProblemController::class, 'reporterTermsAccepted']);
+        Route::post('/problems', [ReporterProblemController::class, 'reporterReportStore']);
+        Route::post('/problems/{problem}/watch', [ProblemWatchController::class, 'toggle']);
+        Route::post('/problems/{problem}/attachments', [ProblemAttachmentController::class, 'storeAttachments']);
+        Route::delete('/problems/{problem}/attachments/{attachment}', [ProblemAttachmentController::class, 'destroyAttachment']);
+        Route::get('/problems/{problem}/review-progress', [ProblemReviewController::class, 'reviewProgress']);
+        Route::post('/reporter/wizard-dismissed', [ReporterProblemController::class, 'reporterWizardDismissed']);
+        Route::post('/reporter/report-terms-accepted', [ReporterProblemController::class, 'reporterTermsAccepted']);
 
-    Route::get('/reporter/problems', [ReporterProblemApiController::class, 'index']);
-    Route::get('/reporter/statistics', [ReporterProblemApiController::class, 'statistics']);
-    Route::get('/reporter/report-meta', [ReporterProblemApiController::class, 'reportMeta']);
-    Route::get('/reporter/problems/{problem}', [ReporterProblemApiController::class, 'show']);
+        Route::get('/reporter/problems', [ReporterProblemApiController::class, 'index']);
+        Route::get('/reporter/statistics', [ReporterProblemApiController::class, 'statistics']);
+        Route::get('/reporter/report-meta', [ReporterProblemApiController::class, 'reportMeta']);
+        Route::get('/reporter/problems/{problem}', [ReporterProblemApiController::class, 'show']);
     });
 });
 
