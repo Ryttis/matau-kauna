@@ -328,6 +328,10 @@
         border-radius: 28px;
         padding: 2rem 1rem 2rem;
         min-height: 0;
+        height: auto;
+        margin-top: 1.5rem;
+        margin-left: 0;
+        margin-right: 0;
     }
 
     .landing-hero-phone {

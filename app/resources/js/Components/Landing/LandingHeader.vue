@@ -134,6 +134,12 @@ const navOpen = ref(false)
     flex-shrink: 0;
 }
 
+@media (max-width: 767px) {
+    .landing-header-blue-fill {
+        height: 0;
+    }
+}
+
 .landing-header-inner {
     margin: 0 auto;
     max-width: 1440px;

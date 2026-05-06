@@ -173,6 +173,42 @@ onUnmounted(() => {
     height: 417px;
 }
 
+.landing-map-container :deep(.leaflet-top) {
+    top: 16px !important;
+}
+
+.landing-map-container :deep(.leaflet-right) {
+    right: 16px !important;
+}
+
+.landing-map-container :deep(.leaflet-control-zoom) {
+    border: none !important;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    border-radius: 8px;
+    overflow: hidden;
+    margin: 0 !important;
+}
+
+.landing-map-container :deep(.leaflet-control-zoom a) {
+    width: 36px !important;
+    height: 36px !important;
+    line-height: 36px !important;
+    font-size: 18px !important;
+    color: #1946a0 !important;
+    background: #fff !important;
+    border: none !important;
+    border-bottom: 1px solid #e0e0e0 !important;
+}
+
+.landing-map-container :deep(.leaflet-control-zoom a:last-child) {
+    border-bottom: none !important;
+}
+
+.landing-map-container :deep(.leaflet-control-zoom a:hover) {
+    background: #f0f4fa !important;
+    color: #1946a0 !important;
+}
+
 .landing-map-container :deep(.leaflet-marker-icon.landing-map-marker) {
     background: transparent !important;
     border: none !important;
