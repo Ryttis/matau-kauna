@@ -36,14 +36,8 @@ import LandingHeroCta from './LandingHeroCta.vue';
 
 @media (min-width: 900px) {
     .landing-hero-top {
-        margin-top: 1.25rem;
+        margin-top: 0;
         padding-bottom: 5rem;
-    }
-}
-
-@media (min-width: 900px) and (max-height: 900px) {
-    .landing-hero-top {
-        margin-top: 1.5rem;
     }
 }
 
@@ -54,20 +48,5 @@ import LandingHeroCta from './LandingHeroCta.vue';
     }
 }
 
-@media (min-width: 900px) and (max-height: 900px) {
-    .landing-hero-inner {
-        transform: scale(0.88);
-        transform-origin: top center;
-        margin-bottom: -84px;
-    }
-}
-
-@media (min-width: 900px) and (max-height: 960px) and (min-height: 901px) {
-    .landing-hero-inner {
-        transform: scale(0.92);
-        transform-origin: top center;
-        margin-bottom: -56px;
-    }
-}
 
 </style>

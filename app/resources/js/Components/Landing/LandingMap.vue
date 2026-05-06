@@ -1,19 +1,6 @@
 <template>
     <section class="landing-map">
         <div ref="mapContainer" class="landing-map-container" />
-        <div class="landing-map-legend">
-            <span
-                v-for="st in PUBLIC_MAP_LEGEND_STATUS_ORDER"
-                :key="st"
-                class="landing-map-legend-item"
-            >
-                <span
-                    class="landing-map-legend-dot"
-                    :style="{ background: MARKER_COLOR_BY_STATUS[st] || '#95a5a6' }"
-                />
-                {{ PROBLEM_STATUS_LABELS[st] }}
-            </span>
-        </div>
     </section>
 </template>
 
@@ -184,6 +171,48 @@ onUnmounted(() => {
 .landing-map-container {
     width: 100%;
     height: 417px;
+}
+
+.landing-map-container :deep(.leaflet-top),
+.landing-map-container :deep(.leaflet-bottom) {
+    z-index: 400 !important;
+}
+
+.landing-map-container :deep(.leaflet-top.leaflet-right) {
+    top: auto !important;
+    bottom: 16px !important;
+}
+
+.landing-map-container :deep(.leaflet-right) {
+    right: 16px !important;
+}
+
+.landing-map-container :deep(.leaflet-control-zoom) {
+    border: none !important;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    border-radius: 8px;
+    overflow: hidden;
+    margin: 0 !important;
+}
+
+.landing-map-container :deep(.leaflet-control-zoom a) {
+    width: 36px !important;
+    height: 36px !important;
+    line-height: 36px !important;
+    font-size: 18px !important;
+    color: #1946a0 !important;
+    background: #fff !important;
+    border: none !important;
+    border-bottom: 1px solid #e0e0e0 !important;
+}
+
+.landing-map-container :deep(.leaflet-control-zoom a:last-child) {
+    border-bottom: none !important;
+}
+
+.landing-map-container :deep(.leaflet-control-zoom a:hover) {
+    background: #f0f4fa !important;
+    color: #1946a0 !important;
 }
 
 .landing-map-container :deep(.leaflet-marker-icon.landing-map-marker) {

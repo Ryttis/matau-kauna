@@ -114,7 +114,6 @@ const navOpen = ref(false)
     right: 0;
     z-index: 1000;
     background: var(--lp-primary, #1946a0);
-    box-shadow: 0 1px 0 rgba(0, 0, 0, 0.18);
 }
 
 .landing-header-fixed-bar--light {
@@ -130,14 +129,14 @@ const navOpen = ref(false)
 
 .landing-header-blue-fill {
     width: 100%;
-    height: 213px;
+    height: 563px;
     background: var(--lp-primary, #1946a0);
     flex-shrink: 0;
 }
 
-@media (max-height: 900px) {
+@media (max-width: 767px) {
     .landing-header-blue-fill {
-        height: 180px;
+        height: 0;
     }
 }
 
@@ -349,11 +348,17 @@ const navOpen = ref(false)
 }
 
 .landing-link--btn {
-    padding: 0.5rem 1.25rem;
-    border-radius: 8px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 6px 16px;
+    border-radius: 10px;
     background: #1946a0;
     color: #fff !important;
     font-weight: 500;
+    line-height: 22px;
+    box-sizing: border-box;
 }
 
 .landing-header-fixed-bar:not(.landing-header-fixed-bar--light) .landing-link--btn {

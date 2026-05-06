@@ -13,9 +13,10 @@
         </div>
         <div class="landing-hero-content">
             <div class="landing-hero-content-top">
-                <h1 class="landing-hero-title">Praneškite apie problemą mieste</h1>
+                <h1 class="landing-hero-title">Pastebėjai problemą mieste?</h1>
+                <p class="landing-hero-subtitle">Pranešk – mes pasirūpinsime likusia dalimi.</p>
                 <p class="landing-hero-desc">
-                    Pastebėjote problemą Kaune? Užregistruokite ją – mes perduosime atsakingoms tarnyboms ir informuosime apie sprendimą.
+                    Duobė kelyje, sugedusi gatvės lempa ar sugadintas suoliukas parke? Vienas pranešimas pasiekia atsakingą tarnybą tiesiogiai – tu gali sekti sprendimo eigą realiuoju laiku.
                 </p>
             </div>
             <div class="landing-hero-content-bottom">
@@ -47,49 +48,25 @@
     min-height: 420px;
     width: 100%;
     max-width: 100%;
-    margin: calc(80px - 293px) auto 0;
+    margin: calc(80px - 643px) auto 0;
     margin-bottom: 0.5rem;
     box-sizing: border-box;
     opacity: 1;
 }
 
-@media (min-width: 1280px) {
-    .landing-hero-block {
-        margin-top: calc(80px - 293px);
-        margin-left: 3.75rem;
-        margin-right: 5rem;
-        width: calc(100% - 3.75rem - 5rem);
-        max-width: calc(100% - 3.75rem - 5rem);
-    }
-}
-
-@media (min-width: 1440px) {
-    .landing-hero-block {
-        margin-left: auto;
-        margin-right: auto;
-        width: 100%;
-        max-width: 1200px;
-    }
-}
-
-@media (min-width: 900px) and (max-height: 900px) {
-    .landing-hero-block {
-        margin-top: calc(80px - 260px);
-    }
-}
 
 @media (min-width: 900px) {
     .landing-hero-block {
-        grid-template-columns: 1.1fr 1fr;
+        grid-template-columns: 1fr 1fr;
         grid-template-rows: 1fr;
         padding: 1.75rem 2.5rem 2rem;
-        width: calc(100% - 3.75rem - 5rem);
-        max-width: calc(100% - 3.75rem - 5rem);
+        width: auto;
+        max-width: none;
         height: 563px;
         min-height: 563px;
-        margin-top: calc(80px - 293px);
-        margin-left: 3.75rem;
-        margin-right: 5rem;
+        margin-top: calc(80px - 643px);
+        margin-left: 60px;
+        margin-right: 60px;
     }
     .landing-hero-phone-wrap { grid-column: 1; grid-row: 1; }
     .landing-hero-content { grid-column: 2; grid-row: 1; }
@@ -158,17 +135,19 @@
     flex-direction: column;
     gap: 0.75rem;
     justify-content: center;
-    align-items: center;
+    align-items: flex-start;
     pointer-events: none;
 }
 
 @media (min-width: 900px) {
     .landing-hero-taglines-wrap {
         position: absolute;
-        left: 50%;
-        top: 65%;
-        transform: translate(-50%, -50%);
+        left: 36%;
+        top: 69.5%;
+        transform: none;
         z-index: 3;
+        align-items: flex-start;
+        gap: 18px;
     }
 }
 
@@ -180,18 +159,19 @@
 }
 
 .landing-hero-tagline {
-    display: inline-block;
-    padding: 1rem 2rem;
-    min-width: 280px;
-    max-width: 320px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 14px 24px;
     min-height: 56px;
-    line-height: 1.3;
+    line-height: 1.5;
     text-align: center;
     font-family: var(--lp-font), 'Open Sans', sans-serif;
-    font-size: 1.125rem;
+    font-size: 18px;
     font-weight: 600;
+    letter-spacing: -0.011em;
     color: #fff;
-    background: rgba(255, 255, 255, 0.18);
+    background: rgba(217, 217, 217, 0.2);
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
     border-radius: 15px;
@@ -202,7 +182,7 @@
 .landing-hero-content-top {
     display: flex;
     flex-direction: column;
-    gap: 0.5rem;
+    gap: 1rem;
 }
 
 .landing-hero-content-bottom {
@@ -221,14 +201,14 @@
         justify-content: space-between;
         gap: 0;
         padding: 0;
-        margin-left: -2rem;
-        margin-right: auto;
+        margin-left: 0;
+        margin-right: 0;
         max-width: 100%;
     }
     .landing-hero-content-top {
         align-items: flex-start;
         flex-shrink: 0;
-        padding: 16px 18px 16px 110px;
+        padding: 16px 18px 16px 120px;
         box-sizing: border-box;
         margin-top: 1rem;
     }
@@ -248,7 +228,7 @@
     letter-spacing: -0.011em;
     color: #fff;
     margin: 0;
-    max-width: 529px;
+    max-width: 452px;
 }
 
 @media (min-width: 900px) {
@@ -256,6 +236,24 @@
         font-size: 48px;
         line-height: 1.31;
         letter-spacing: -0.011em;
+    }
+}
+
+.landing-hero-subtitle {
+    font-family: var(--lp-font), 'Open Sans', sans-serif;
+    font-size: 1rem;
+    font-weight: 700;
+    line-height: 1.5;
+    letter-spacing: -0.011em;
+    color: #fff;
+    margin: 0;
+    max-width: 426px;
+}
+
+@media (min-width: 900px) {
+    .landing-hero-subtitle {
+        font-size: 20px;
+        line-height: 1.5;
     }
 }
 
@@ -274,7 +272,7 @@
     .landing-hero-desc {
         font-size: 18px;
         line-height: 1.5;
-        max-width: 389px;
+        max-width: 416px;
         letter-spacing: -0.011em;
     }
 }
@@ -293,7 +291,7 @@
         width: 237px;
         min-height: 100px;
         margin-left: 0;
-        margin-right: 2rem;
+        margin-right: 100px;
     }
 }
 
@@ -330,6 +328,10 @@
         border-radius: 28px;
         padding: 2rem 1rem 2rem;
         min-height: 0;
+        height: auto;
+        margin-top: 1.5rem;
+        margin-left: 0;
+        margin-right: 0;
     }
 
     .landing-hero-phone {

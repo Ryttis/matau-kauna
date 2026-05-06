@@ -51,8 +51,8 @@ defineProps({
 
 .landing-hero-spacer {
     flex: 0 0 auto;
-    min-height: 10px;
-    height: 10px;
+    min-height: 100px;
+    height: 100px;
     background: var(--lp-bg);
 }
 
@@ -77,13 +77,13 @@ defineProps({
 }
 
 .landing :deep(.landing-container--wide) {
-    max-width: 1400px;
+    max-width: 1440px;
 }
 
 @media (min-width: 768px) {
     .landing :deep(.landing-container--wide) {
-        padding-left: 1rem;
-        padding-right: 1rem;
+        padding-left: 2rem;
+        padding-right: 2rem;
     }
 }
 </style>

@@ -260,11 +260,17 @@ const navOpen = ref(false)
 }
 
 .guest-link--btn {
-    padding: 0.5rem 1.25rem;
-    border-radius: 8px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 6px 16px;
+    border-radius: 10px;
     background: #1946a0;
     color: #fff !important;
     font-weight: 500;
+    line-height: 22px;
+    box-sizing: border-box;
 }
 
 .guest-header-fixed--dark .guest-link--btn {

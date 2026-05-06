@@ -115,12 +115,24 @@ class FileUploadSettings extends Model
 
     public static function getReviewProgressChannelForClient(): array
     {
-        return self::getChannelForClient(self::CHANNEL_WEB);
+        $c = self::forcePhotoOnly(self::getChannel(self::CHANNEL_WEB));
+
+        return array_merge($c, [
+            'accept_attr' => self::buildAcceptAttribute($c),
+        ]);
     }
 
     public static function getChannelForReviewEntry(string $channel): array
     {
-        return self::getChannel($channel);
+        return self::forcePhotoOnly(self::getChannel($channel));
+    }
+
+    private static function forcePhotoOnly(array $c): array
+    {
+        $c['allow_video'] = false;
+        $c['max_video_files_per_problem'] = 0;
+
+        return $c;
     }
 
     private static function buildAcceptAttribute(array $channelConfig): string
