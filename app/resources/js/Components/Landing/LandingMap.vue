@@ -1,19 +1,6 @@
 <template>
     <section class="landing-map">
         <div ref="mapContainer" class="landing-map-container" />
-        <div class="landing-map-legend">
-            <span
-                v-for="st in PUBLIC_MAP_LEGEND_STATUS_ORDER"
-                :key="st"
-                class="landing-map-legend-item"
-            >
-                <span
-                    class="landing-map-legend-dot"
-                    :style="{ background: MARKER_COLOR_BY_STATUS[st] || '#95a5a6' }"
-                />
-                {{ PROBLEM_STATUS_LABELS[st] }}
-            </span>
-        </div>
     </section>
 </template>
 

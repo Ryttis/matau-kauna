@@ -51,7 +51,7 @@ import { ICON_QUESTION } from '@/constants/ui/icons'
     display: flex;
     flex-direction: column;
     align-items: flex-end;
-    gap: 1.5rem;
+    gap: 3rem;
 }
 .landing-footer-nav {
     display: flex;

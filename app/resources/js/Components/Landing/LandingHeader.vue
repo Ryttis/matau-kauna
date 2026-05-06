@@ -129,14 +129,14 @@ const navOpen = ref(false)
 
 .landing-header-blue-fill {
     width: 100%;
-    height: 213px;
+    height: 563px;
     background: var(--lp-primary, #1946a0);
     flex-shrink: 0;
 }
 
 @media (max-height: 900px) {
     .landing-header-blue-fill {
-        height: 180px;
+        height: 480px;
     }
 }
 

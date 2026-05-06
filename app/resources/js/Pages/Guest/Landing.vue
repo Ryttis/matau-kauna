@@ -51,8 +51,8 @@ defineProps({
 
 .landing-hero-spacer {
     flex: 0 0 auto;
-    min-height: 10px;
-    height: 10px;
+    min-height: 100px;
+    height: 100px;
     background: var(--lp-bg);
 }
 

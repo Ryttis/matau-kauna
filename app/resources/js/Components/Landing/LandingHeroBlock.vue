@@ -48,7 +48,7 @@
     min-height: 420px;
     width: 100%;
     max-width: 100%;
-    margin: calc(80px - 293px) auto 0;
+    margin: calc(80px - 643px) auto 0;
     margin-bottom: 0.5rem;
     box-sizing: border-box;
     opacity: 1;
@@ -56,7 +56,7 @@
 
 @media (min-width: 900px) and (max-height: 900px) {
     .landing-hero-block {
-        margin-top: calc(80px - 260px);
+        margin-top: calc(80px - 560px);
     }
 }
 
@@ -69,9 +69,9 @@
         max-width: none;
         height: 563px;
         min-height: 563px;
-        margin-top: calc(80px - 293px);
-        margin-left: 0;
-        margin-right: 0;
+        margin-top: calc(80px - 643px);
+        margin-left: 60px;
+        margin-right: 60px;
     }
     .landing-hero-phone-wrap { grid-column: 1; grid-row: 1; }
     .landing-hero-content { grid-column: 2; grid-row: 1; }
@@ -147,7 +147,7 @@
 @media (min-width: 900px) {
     .landing-hero-taglines-wrap {
         position: absolute;
-        left: 30.5%;
+        left: 36%;
         top: 69.5%;
         transform: none;
         z-index: 3;

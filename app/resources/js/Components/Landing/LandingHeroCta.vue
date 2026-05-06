@@ -25,8 +25,8 @@ import { Link } from '@inertiajs/vue3'
 
 @media (min-width: 900px) {
     .landing-hero-cta {
-        margin-left: 0;
-        margin-right: 0;
+        margin-left: 60px;
+        margin-right: 60px;
         width: auto;
         max-width: none;
         padding-left: 4.5rem;
