@@ -17,9 +17,8 @@ class UpdatePublicStatisticsConfigRequest extends FormRequest
             'config' => ['required', 'array'],
             'config.kpis' => ['array'],
             'config.kpis.*' => ['string', 'in:received_reports,avg_resolution_days,resolved_problems,resolved_on_time,monthly_reports,problematic_categories,effectively_resolved'],
-            'config.default_period' => ['string', 'in:week,month,quarter,year,all'],
-            'config.period_options' => ['array'],
-            'config.period_options.*' => ['string', 'in:week,month,quarter,year,all'],
+            'config.date_from' => ['nullable', 'date_format:Y-m-d'],
+            'config.date_to' => ['nullable', 'date_format:Y-m-d', 'after_or_equal:config.date_from'],
             'config.show_category_filter' => ['boolean'],
         ];
     }

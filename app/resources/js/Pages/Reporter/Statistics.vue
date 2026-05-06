@@ -25,9 +25,9 @@ const props = defineProps({
 const { periodFilter, categoryFilter, dateFromFilter, dateToFilter } = useReporterStatisticsFilters(() => props.filters)
 
 const categoryOptions = computed(() => {
-    const options = [{ value: '', label: 'Kategorija: Visos' }]
+    const options = [{ value: '', label: 'Visos' }]
     ;(props.categories || []).forEach((categoryName) => {
-        options.push({ value: categoryName, label: `Kategorija: ${categoryName}` })
+        options.push({ value: categoryName, label: categoryName })
     })
     return options
 })
@@ -47,6 +47,7 @@ const categoryOptions = computed(() => {
                 <div class="reporter-statistics-filters-row">
                     <AppSelect
                         v-model="periodFilter"
+                        label="Laikotarpis"
                         class="reporter-statistics-filter-select"
                         variant="white"
                         :rounded="true"
@@ -57,6 +58,7 @@ const categoryOptions = computed(() => {
                     </AppSelect>
                     <AppSelect
                         v-model="categoryFilter"
+                        label="Kategorija"
                         class="reporter-statistics-filter-select"
                         variant="white"
                         :rounded="true"

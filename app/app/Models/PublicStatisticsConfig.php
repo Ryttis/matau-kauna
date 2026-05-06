@@ -18,8 +18,8 @@ class PublicStatisticsConfig extends Model
     {
         return [
             'kpis' => ['received_reports', 'avg_resolution_days'],
-            'default_period' => 'year',
-            'period_options' => ['month', 'year', 'all'],
+            'date_from' => null,
+            'date_to' => null,
             'show_category_filter' => true,
         ];
     }
