@@ -173,8 +173,14 @@ onUnmounted(() => {
     height: 417px;
 }
 
-.landing-map-container :deep(.leaflet-top) {
-    top: 16px !important;
+.landing-map-container :deep(.leaflet-top),
+.landing-map-container :deep(.leaflet-bottom) {
+    z-index: 400 !important;
+}
+
+.landing-map-container :deep(.leaflet-top.leaflet-right) {
+    top: auto !important;
+    bottom: 16px !important;
 }
 
 .landing-map-container :deep(.leaflet-right) {
