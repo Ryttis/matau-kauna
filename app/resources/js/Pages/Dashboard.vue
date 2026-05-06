@@ -127,15 +127,15 @@ const reporterDateMax = `${currentYear}-12-31`
                     <h3 class="reporter-dashboard-list-title">Sąrašas</h3>
                     <div
                         class="reporter-dashboard-list-body"
-                        :class="{ 'reporter-dashboard-list-body--scroll': reporterDisplayRows.length > 5 }"
+                        :class="{ 'reporter-dashboard-list-body--scroll': reporterDisplayRows.length > 3 }"
                     >
                         <ProblemsMapList
                             :display-rows="reporterDisplayRows"
                             :all-count="reporterProblems.length"
                             :selected-ids="reporterSelectedIds"
-                            actions-header="Veiksmai"
                             view-button-variant="internal"
                             enable-watch
+                            card-layout
                             :is-watched="isReporterProblemWatched"
                             :watch-loading-root-id="reporterWatchLoadingRootId"
                             @select="reporterToggle"

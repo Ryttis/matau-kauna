@@ -1,10 +1,10 @@
 .reporter-dashboard {
     display: flex;
     flex-direction: column;
-    min-height: 0;
-    flex: 1;
-    height: 100%;
     min-height: 500px;
+    height: calc(100vh - var(--app-header-height, 66px) - 48px);
+    max-height: calc(100vh - var(--app-header-height, 66px) - 48px);
+    overflow: hidden;
 }
 
 .reporter-dashboard-title {
@@ -57,11 +57,11 @@
 
 .reporter-dashboard-layout {
     display: grid;
-    grid-template-columns: minmax(0, 3fr) minmax(280px, 2fr);
+    grid-template-columns: minmax(0, 1.9fr) minmax(320px, 1fr);
     gap: 1rem;
+    min-height: 0;
     flex: 1;
-    min-height: 450px;
-    height: 100%;
+    overflow: hidden;
 }
 
 .reporter-dashboard-map-wrap {
@@ -69,12 +69,19 @@
     flex-direction: column;
     gap: 12px;
     min-height: 0;
+    height: 100%;
     background: transparent;
 }
 
+.reporter-dashboard-map-wrap .kaunas-map-wrap {
+    flex: 1;
+    min-height: 0;
+}
+
 .reporter-dashboard-map-wrap .kaunas-map-container {
-    min-height: 350px;
-    height: 350px;
+    min-height: 0;
+    height: 100%;
+    flex: 1;
 }
 
 .reporter-dashboard-map-wrap .leaflet-marker-icon.reporter-dashboard-marker {
@@ -84,22 +91,26 @@
 
 .reporter-dashboard-list {
     background: #f6f7f9;
-    padding: 1.25rem 1rem 1.5rem;
-    overflow: visible;
+    padding: 0.875rem 0.875rem 1rem;
+    overflow: hidden;
     min-height: 0;
+    height: 100%;
     display: flex;
     flex-direction: column;
-    gap: 0.75rem;
+    gap: 0.5rem;
+    border-radius: 10px;
 }
 
 .reporter-dashboard-list-body {
     min-height: 0;
+    flex: 1;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    padding-right: 4px;
 }
 
 .reporter-dashboard-list-body--scroll {
-    max-height: calc(2.75rem + 5 * 4rem);
     overflow-y: auto;
-    -webkit-overflow-scrolling: touch;
 }
 
 .reporter-dashboard-list-title {
@@ -108,18 +119,44 @@
     font-weight: 600;
     color: #333;
     flex-shrink: 0;
+    padding: 0 0.125rem;
 }
 
 .reporter-dashboard-actions {
     flex-shrink: 0;
     display: flex;
     justify-content: center;
-    padding-top: 0.25rem;
+    padding-top: 0.5rem;
     width: 100%;
+    margin-top: auto;
 }
 
 @media (max-width: 900px) {
+    .reporter-dashboard {
+        height: auto;
+        max-height: none;
+        overflow: visible;
+    }
+
     .reporter-dashboard-layout {
         grid-template-columns: 1fr;
+        min-height: 0;
+        flex: 0 0 auto;
+        overflow: visible;
+    }
+
+    .reporter-dashboard-map-wrap .kaunas-map-container {
+        min-height: 380px;
+        height: 380px;
+        flex: 0 0 380px;
+    }
+
+    .reporter-dashboard-list {
+        height: auto;
+    }
+
+    .reporter-dashboard-list-body {
+        flex: 0 0 auto;
+        max-height: 32rem;
     }
 }
