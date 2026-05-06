@@ -82,7 +82,10 @@ const handleChange = (event) => {
 }
 
 .app-checkbox:focus {
-    outline: 2px solid #1946A0;
-    outline-offset: 2px;
+    outline: none;
+}
+
+.app-checkbox:focus-visible {
+    box-shadow: 0 0 0 2px rgba(25, 70, 160, 0.35);
 }
 </style>

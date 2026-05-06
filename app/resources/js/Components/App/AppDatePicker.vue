@@ -43,7 +43,7 @@ const displayValue = computed(() => {
     if (!props.modelValue) return ''
     const d = parseDate(props.modelValue)
     if (!d) return props.modelValue
-    return `${String(d.getDate()).padStart(2, '0')}.${String(d.getMonth() + 1).padStart(2, '0')}.${d.getFullYear()}`
+    return toYmd(d)
 })
 
 function parseDate(str) {

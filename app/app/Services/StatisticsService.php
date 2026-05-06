@@ -39,19 +39,37 @@ class StatisticsService
         return $query->get(['id', 'name']);
     }
 
-    public function buildPublicProblemQuery(?string $period, ?string $categoryName): Builder
+    public function buildPublicProblemQuery(?string $dateFrom, ?string $dateTo, ?string $categoryName): Builder
     {
         $query = Problem::query()
             ->notArchived()
             ->whereNull('merged_into_problem_id')
             ->where('is_published_publicly', true);
 
-        $this->applyPeriodFilter($query, $period);
+        $this->applyDateRangeFilter($query, $dateFrom, $dateTo);
         if ($categoryName && $categoryName !== 'all') {
             $query->whereHas('problemType', fn (Builder $q) => $q->where('name', $categoryName));
         }
 
         return $query;
+    }
+
+    private function applyDateRangeFilter(Builder $query, ?string $dateFrom, ?string $dateTo): void
+    {
+        if ($dateFrom) {
+            try {
+                $query->where('problems.created_at', '>=', Carbon::parse($dateFrom)->startOfDay());
+            } catch (\Throwable) {
+                // ignore invalid input
+            }
+        }
+        if ($dateTo) {
+            try {
+                $query->where('problems.created_at', '<=', Carbon::parse($dateTo)->endOfDay());
+            } catch (\Throwable) {
+                // ignore invalid input
+            }
+        }
     }
 
     public function buildProblemQuery(?User $user, ?string $period, $institutionId, ?string $categoryName, ?string $institutionAssignment = 'all'): Builder
@@ -97,7 +115,7 @@ class StatisticsService
         }
     }
 
-    public function getAnalytics(Builder $baseQuery): array
+    public function getAnalytics(Builder $baseQuery, ?Carbon $monthlyStart = null, ?Carbon $monthlyEnd = null): array
     {
         $problems = (clone $baseQuery)->with(['problemType', 'institution', 'assignedEmployee'])->get();
 
@@ -123,7 +141,7 @@ class StatisticsService
         $totalReportersEver = $totalReportersEver->distinct('reported_by_user_id')->pluck('reported_by_user_id')->count();
         $activeUsers = ['current' => $activeReportersInPeriod, 'total' => max($totalReportersEver, 1)];
 
-        $monthlyReports = $this->monthlyCounts(clone $baseQuery);
+        $monthlyReports = $this->monthlyCounts(clone $baseQuery, $monthlyStart, $monthlyEnd);
         $problematicCategories = $this->problematicCategories(clone $baseQuery);
         $effectivelyResolved = $this->effectivelyResolvedCategories(clone $baseQuery);
         $employeeActivity = $this->employeeActivity(clone $baseQuery);
@@ -199,10 +217,14 @@ class StatisticsService
         return null;
     }
 
-    private function monthlyCounts(Builder $query): array
+    private function monthlyCounts(Builder $query, ?Carbon $start = null, ?Carbon $end = null): array
     {
-        $end = Carbon::now()->endOfMonth();
-        $start = Carbon::now()->subMonths(11)->startOfMonth();
+        $end = ($end ?? Carbon::now())->copy()->endOfMonth();
+        $start = ($start ?? Carbon::now()->subMonths(11))->copy()->startOfMonth();
+        if ($start->gt($end)) {
+            return [];
+        }
+
         $base = (clone $query)->whereBetween('problems.created_at', [$start, $end]);
 
         $rows = $base
@@ -217,13 +239,15 @@ class StatisticsService
         }
 
         $result = [];
-        for ($i = 11; $i >= 0; $i--) {
-            $m = Carbon::now()->subMonths($i);
-            $ym = $m->format('Y-m');
+        $cursor = $start->copy();
+        $maxBuckets = 60;
+        while ($cursor->lte($end) && count($result) < $maxBuckets) {
+            $ym = $cursor->format('Y-m');
             $result[] = [
-                'label' => $m->translatedFormat('Y-m'),
+                'label' => $ym,
                 'value' => $counts[$ym] ?? 0,
             ];
+            $cursor->addMonth();
         }
 
         return $result;

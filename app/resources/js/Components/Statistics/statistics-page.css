@@ -108,6 +108,14 @@
     min-width: 0;
 }
 
+.statistics-page .statistics-page-kpi-grid {
+    margin-bottom: 30px;
+}
+
+.statistics-page .statistics-page-chart-card {
+    margin-bottom: 30px;
+}
+
 .statistics-page .kpi-card {
     background: white;
     padding: 20px;
@@ -226,7 +234,9 @@
     text-align: center;
     line-height: 1.2;
     max-width: 100%;
-    word-break: break-word;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .statistics-page .category-stats-grid {

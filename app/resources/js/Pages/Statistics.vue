@@ -199,113 +199,82 @@ const downloadReport = () => {
                 </AppSelect>
             </div>
 
-            <div class="kpi-chart-row">
-                <div class="kpi-grid">
-                    <div class="kpi-card">
-                        <h3 class="kpi-title">Unikalūs pranešėjai</h3>
-                        <p class="kpi-value">{{ props.activeUsers.current }}/{{ props.activeUsers.total }}</p>
-                        <div class="kpi-mini-chart">
-                            <svg width="100" height="20" viewBox="0 0 100 20">
-                                <polyline points="0,15 20,12 40,10 60,8 80,5 100,3"
-                                    fill="none"
-                                    stroke="currentColor"
-                                    stroke-width="2"/>
-                            </svg>
-                        </div>
-                    </div>
-
-                    <div class="kpi-card">
-                        <h3 class="kpi-title">Gauti pranešimai</h3>
-                        <p class="kpi-value">{{ props.receivedReports.toLocaleString() }}</p>
-                        <div class="kpi-mini-chart">
-                            <svg width="100" height="20" viewBox="0 0 100 20">
-                                <polyline points="0,15 20,12 40,10 60,8 80,5 100,3"
-                                    fill="none"
-                                    stroke="currentColor"
-                                    stroke-width="2"/>
-                            </svg>
-                        </div>
-                    </div>
-
-                    <div class="kpi-card">
-                        <h3 class="kpi-title">Vidutinis sprendimo laikas</h3>
-                        <p class="kpi-value">{{ props.averageResolutionTime || 0 }} d.</p>
-                        <div class="kpi-mini-chart">
-                            <svg width="100" height="20" viewBox="0 0 100 20">
-                                <polyline points="0,15 20,12 40,10 60,8 80,5 100,3"
-                                    fill="none"
-                                    stroke="currentColor"
-                                    stroke-width="2"/>
-                            </svg>
-                        </div>
-                    </div>
-
-                    <div class="kpi-card">
-                        <h3 class="kpi-title">Išspręstos problemos</h3>
-                        <p class="kpi-value">{{ props.resolvedProblems || 0 }}%</p>
-                        <div class="kpi-mini-chart">
-                            <svg width="100" height="20" viewBox="0 0 100 20">
-                                <polyline points="0,15 20,12 40,10 60,8 80,5 100,3"
-                                    fill="none"
-                                    stroke="currentColor"
-                                    stroke-width="2"/>
-                            </svg>
-                        </div>
-                    </div>
-
-                    <div class="kpi-card">
-                        <h3 class="kpi-title">Laiku išspręstos</h3>
-                        <p class="kpi-value">{{ props.resolvedOnTime || 0 }}%</p>
-                        <div class="kpi-mini-chart">
-                            <svg width="100" height="20" viewBox="0 0 100 20">
-                                <polyline points="0,15 20,12 40,10 60,8 80,5 100,3"
-                                    fill="none"
-                                    stroke="currentColor"
-                                    stroke-width="2"/>
-                            </svg>
-                        </div>
-                    </div>
-
-                    <div class="kpi-card">
-                        <h3 class="kpi-title">Pagerėjimas</h3>
-                        <p class="kpi-value">{{ props.improvement >= 0 ? '+' : '' }}{{ props.improvement || 0 }}%</p>
-                        <div class="kpi-mini-chart">
-                            <svg width="100" height="20" viewBox="0 0 100 20">
-                                <polyline points="0,15 20,12 40,10 60,8 80,5 100,3"
-                                    fill="none"
-                                    stroke="currentColor"
-                                    stroke-width="2"/>
-                            </svg>
-                        </div>
+            <div class="kpi-grid statistics-page-kpi-grid">
+                <div class="kpi-card">
+                    <h3 class="kpi-title">Unikalūs pranešėjai</h3>
+                    <p class="kpi-value">{{ props.activeUsers.current }}/{{ props.activeUsers.total }}</p>
+                    <div class="kpi-mini-chart">
+                        <svg width="100" height="20" viewBox="0 0 100 20">
+                            <polyline points="0,15 20,12 40,10 60,8 80,5 100,3"
+                                fill="none"
+                                stroke="currentColor"
+                                stroke-width="2"/>
+                        </svg>
                     </div>
                 </div>
 
-                <div class="chart-card">
-                    <div class="chart-header">
-                        <h3 class="chart-title">Pranešimų skaičius</h3>
-                        <AppSelect
-                            model-value="months"
-                            class="chart-filter"
-                        >
-                            <option value="months">Mėnesiai</option>
-                        </AppSelect>
+                <div class="kpi-card">
+                    <h3 class="kpi-title">Gauti pranešimai</h3>
+                    <p class="kpi-value">{{ props.receivedReports.toLocaleString() }}</p>
+                    <div class="kpi-mini-chart">
+                        <svg width="100" height="20" viewBox="0 0 100 20">
+                            <polyline points="0,15 20,12 40,10 60,8 80,5 100,3"
+                                fill="none"
+                                stroke="currentColor"
+                                stroke-width="2"/>
+                        </svg>
                     </div>
-                    <div class="chart-container">
-                        <div class="bar-chart">
-                            <div class="chart-y-axis">
-                                <span>40</span>
-                                <span>30</span>
-                                <span>20</span>
-                                <span>10</span>
-                                <span>0</span>
-                            </div>
-                            <div class="chart-bars">
-                                <div v-for="(month, i) in (props.monthlyReports || [])" :key="i" class="bar-wrapper">
-                                    <div class="bar" :style="{ height: chartMax ? (month.value / chartMax * 100) + '%' : '0%' }"></div>
-                                    <span class="bar-label">{{ month.label }}</span>
-                                </div>
-                            </div>
-                        </div>
+                </div>
+
+                <div class="kpi-card">
+                    <h3 class="kpi-title">Vidutinis sprendimo laikas</h3>
+                    <p class="kpi-value">{{ props.averageResolutionTime || 0 }} d.</p>
+                    <div class="kpi-mini-chart">
+                        <svg width="100" height="20" viewBox="0 0 100 20">
+                            <polyline points="0,15 20,12 40,10 60,8 80,5 100,3"
+                                fill="none"
+                                stroke="currentColor"
+                                stroke-width="2"/>
+                        </svg>
+                    </div>
+                </div>
+
+                <div class="kpi-card">
+                    <h3 class="kpi-title">Išspręstos problemos</h3>
+                    <p class="kpi-value">{{ props.resolvedProblems || 0 }}%</p>
+                    <div class="kpi-mini-chart">
+                        <svg width="100" height="20" viewBox="0 0 100 20">
+                            <polyline points="0,15 20,12 40,10 60,8 80,5 100,3"
+                                fill="none"
+                                stroke="currentColor"
+                                stroke-width="2"/>
+                        </svg>
+                    </div>
+                </div>
+
+                <div class="kpi-card">
+                    <h3 class="kpi-title">Laiku išspręstos</h3>
+                    <p class="kpi-value">{{ props.resolvedOnTime || 0 }}%</p>
+                    <div class="kpi-mini-chart">
+                        <svg width="100" height="20" viewBox="0 0 100 20">
+                            <polyline points="0,15 20,12 40,10 60,8 80,5 100,3"
+                                fill="none"
+                                stroke="currentColor"
+                                stroke-width="2"/>
+                        </svg>
+                    </div>
+                </div>
+
+                <div class="kpi-card">
+                    <h3 class="kpi-title">Pagerėjimas</h3>
+                    <p class="kpi-value">{{ props.improvement >= 0 ? '+' : '' }}{{ props.improvement || 0 }}%</p>
+                    <div class="kpi-mini-chart">
+                        <svg width="100" height="20" viewBox="0 0 100 20">
+                            <polyline points="0,15 20,12 40,10 60,8 80,5 100,3"
+                                fill="none"
+                                stroke="currentColor"
+                                stroke-width="2"/>
+                        </svg>
                     </div>
                 </div>
             </div>
@@ -319,6 +288,35 @@ const downloadReport = () => {
                     title="Efektyviausiai sprendžiamos problemos"
                     :categories="props.effectivelyResolved"
                 />
+            </div>
+
+            <div class="chart-card statistics-page-chart-card">
+                <div class="chart-header">
+                    <h3 class="chart-title">Pranešimų skaičius</h3>
+                    <AppSelect
+                        model-value="months"
+                        class="chart-filter"
+                    >
+                        <option value="months">Mėnesiai</option>
+                    </AppSelect>
+                </div>
+                <div class="chart-container">
+                    <div class="bar-chart">
+                        <div class="chart-y-axis">
+                            <span>40</span>
+                            <span>30</span>
+                            <span>20</span>
+                            <span>10</span>
+                            <span>0</span>
+                        </div>
+                        <div class="chart-bars">
+                            <div v-for="(month, i) in (props.monthlyReports || [])" :key="i" class="bar-wrapper">
+                                <div class="bar" :style="{ height: chartMax ? (month.value / chartMax * 100) + '%' : '0%' }"></div>
+                                <span class="bar-label">{{ month.label }}</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
 
             <div class="bottom-stats-grid">

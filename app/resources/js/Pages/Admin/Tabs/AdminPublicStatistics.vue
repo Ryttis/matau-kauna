@@ -3,8 +3,34 @@ import { onMounted, ref } from 'vue'
 import axios from 'axios'
 import AppButton from '@/Components/App/AppButton.vue'
 import AppCheckbox from '@/Components/App/AppCheckbox.vue'
+import AppDatePicker from '@/Components/App/AppDatePicker.vue'
+import AppSelect from '@/Components/App/AppSelect.vue'
 import SuccessModal from '@/Components/App/SuccessModal.vue'
 import { adminApi } from '@/constants/api/adminApi'
+
+const PRESET_OPTIONS = [
+    { value: '', label: '-' },
+    { value: 'month', label: 'Mėnuo' },
+    { value: 'quarter', label: '3 mėnesiai' },
+    { value: 'half', label: 'Pusmetis' },
+    { value: 'year', label: 'Metai' },
+]
+
+function todayIso() {
+    return new Date().toISOString().slice(0, 10)
+}
+
+function presetToDates(preset) {
+    const now = new Date()
+    const to = todayIso()
+    const start = new Date(now)
+    if (preset === 'month') start.setMonth(start.getMonth() - 1)
+    else if (preset === 'quarter') start.setMonth(start.getMonth() - 3)
+    else if (preset === 'half') start.setMonth(start.getMonth() - 6)
+    else if (preset === 'year') start.setFullYear(start.getFullYear() - 1)
+    else return { from: '', to: '' }
+    return { from: start.toISOString().slice(0, 10), to }
+}
 
 const loading = ref(true)
 const saving = ref(false)
@@ -22,22 +48,33 @@ const KPI_OPTIONS = [
     { value: 'effectively_resolved', label: 'Efektyviausiai sprendžiamos' },
 ]
 
-const PERIOD_OPTIONS = [
-    { value: 'week', label: 'Savaitė' },
-    { value: 'month', label: 'Mėnuo' },
-    { value: 'quarter', label: 'Ketvirtis' },
-    { value: 'year', label: 'Metai' },
-    { value: 'all', label: 'Visas laikotarpis' },
-]
-
 const config = ref({
     kpis: ['received_reports', 'avg_resolution_days'],
-    default_period: 'year',
-    period_options: ['month', 'year', 'all'],
+    date_from: null,
+    date_to: null,
     show_category_filter: true,
 })
 
 const selectedKpis = ref([])
+const dateFrom = ref('')
+const dateTo = ref('')
+const presetFilter = ref('')
+let applyingPreset = false
+
+function applyPreset(value) {
+    presetFilter.value = value
+    if (!value) return
+    applyingPreset = true
+    const { from, to } = presetToDates(value)
+    dateFrom.value = from
+    dateTo.value = to
+    queueMicrotask(() => { applyingPreset = false })
+}
+
+function onDateChanged() {
+    if (applyingPreset) return
+    if (presetFilter.value) presetFilter.value = ''
+}
 
 function isKpiSelected(value) {
     return selectedKpis.value.includes(value)
@@ -49,18 +86,6 @@ function toggleKpi(value) {
     else selectedKpis.value.splice(i, 1)
 }
 
-const periodOptionsSelected = ref([])
-
-function isPeriodOptionSelected(value) {
-    return periodOptionsSelected.value.includes(value)
-}
-
-function togglePeriodOption(value) {
-    const i = periodOptionsSelected.value.indexOf(value)
-    if (i === -1) periodOptionsSelected.value.push(value)
-    else periodOptionsSelected.value.splice(i, 1)
-}
-
 async function load() {
     loading.value = true
     errorMessage.value = ''
@@ -68,7 +93,8 @@ async function load() {
         const { data } = await axios.get(adminApi.publicStatisticsConfig)
         config.value = { ...config.value, ...data.config }
         selectedKpis.value = [...(data.config.kpis || [])]
-        periodOptionsSelected.value = [...(data.config.period_options || ['year', 'all'])]
+        dateFrom.value = data.config.date_from ?? ''
+        dateTo.value = data.config.date_to ?? ''
     } catch (e) {
         errorMessage.value = e.response?.data?.message ?? 'Nepavyko užkrauti.'
     } finally {
@@ -84,8 +110,8 @@ async function save() {
         await axios.put(adminApi.publicStatisticsConfig, {
             config: {
                 kpis: selectedKpis.value,
-                default_period: config.value.default_period,
-                period_options: periodOptionsSelected.value,
+                date_from: dateFrom.value || null,
+                date_to: dateTo.value || null,
                 show_category_filter: config.value.show_category_filter,
             },
         })
@@ -133,21 +159,34 @@ onMounted(load)
             </div>
 
             <div class="settings-block">
-                <h3 class="block-title">Laikotarpio parinktys</h3>
-                <p class="block-hint">Kuriuos laikotarpių variantus gali rinktis lankytojas.</p>
-                <div class="checkbox-list">
-                    <label v-for="opt in PERIOD_OPTIONS" :key="opt.value" class="checkbox-row">
-                        <AppCheckbox :model-value="isPeriodOptionSelected(opt.value)" @update:model-value="togglePeriodOption(opt.value)" />
-                        <span>{{ opt.label }}</span>
-                    </label>
+                <h3 class="block-title">Laikotarpis</h3>
+                <p class="block-hint">Datų rėžis, kurio statistika bus rodoma viešai. Galite naudoti pagalbinį pasirinkimą arba įvesti datas rankomis. Palikite tuščius laukus, kad būtų rodomi visų laikų duomenys.</p>
+                <div class="preset-row">
+                    <AppSelect
+                        :model-value="presetFilter"
+                        label="Greitas pasirinkimas"
+                        variant="white"
+                        :placeholder="''"
+                        @update:model-value="applyPreset"
+                    >
+                        <option v-for="opt in PRESET_OPTIONS" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
+                    </AppSelect>
                 </div>
-            </div>
-
-            <div class="settings-block">
-                <h3 class="block-title">Numatytasis laikotarpis</h3>
-                <select v-model="config.default_period" class="select">
-                    <option v-for="opt in PERIOD_OPTIONS" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
-                </select>
+                <div class="date-range-row">
+                    <AppDatePicker
+                        :model-value="dateFrom"
+                        label="Data nuo"
+                        placeholder="Pasirinkite datą"
+                        @update:model-value="(v) => { dateFrom = v; onDateChanged() }"
+                    />
+                    <AppDatePicker
+                        :model-value="dateTo"
+                        label="Data iki"
+                        placeholder="Pasirinkite datą"
+                        :min-date="dateFrom || undefined"
+                        @update:model-value="(v) => { dateTo = v; onDateChanged() }"
+                    />
+                </div>
             </div>
 
             <div class="settings-block">
@@ -219,5 +258,25 @@ onMounted(load)
     border: 1px solid #e5e7eb;
     border-radius: 5px;
     min-width: 200px;
+}
+.date-range-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+}
+.date-range-row :deep(.app-date-picker) {
+    margin-bottom: 0;
+}
+.date-range-row > * {
+    flex: 1 1 220px;
+    min-width: 200px;
+    max-width: 280px;
+}
+.preset-row {
+    margin-bottom: 16px;
+    max-width: 280px;
+}
+.preset-row :deep(.app-select-group) {
+    margin-bottom: 0;
 }
 </style>

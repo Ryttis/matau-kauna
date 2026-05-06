@@ -1,9 +1,9 @@
 export const REPORTER_STATS_PERIOD_OPTIONS = [
-    { value: 'all', label: 'Laikotarpis: Visi' },
-    { value: 'custom', label: 'Laikotarpis: Pagal datas' },
-    { value: '6', label: 'Laikotarpis: Paskutiniai 6 mėn.' },
-    { value: '12', label: 'Laikotarpis: Paskutiniai 12 mėn.' },
-    { value: 'year', label: 'Laikotarpis: Šie metai' },
+    { value: 'all', label: 'Visi' },
+    { value: 'custom', label: 'Pagal datas' },
+    { value: '6', label: 'Paskutiniai 6 mėn.' },
+    { value: '12', label: 'Paskutiniai 12 mėn.' },
+    { value: 'year', label: 'Šie metai' },
 ]
 
 export function findPresetMatchingDateRange(dateFrom, dateTo) {

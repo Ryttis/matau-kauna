@@ -96,6 +96,7 @@ const activeComponent = computed(() => {
     max-width: 100%;
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
+    padding: 4px 0;
 }
 
 </style>
