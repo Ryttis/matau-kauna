@@ -36,14 +36,8 @@ import LandingHeroCta from './LandingHeroCta.vue';
 
 @media (min-width: 900px) {
     .landing-hero-top {
-        margin-top: 1.25rem;
+        margin-top: 0;
         padding-bottom: 5rem;
-    }
-}
-
-@media (min-width: 900px) and (max-height: 900px) {
-    .landing-hero-top {
-        margin-top: 1.5rem;
     }
 }
 

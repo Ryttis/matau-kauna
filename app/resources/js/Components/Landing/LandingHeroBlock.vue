@@ -54,11 +54,6 @@
     opacity: 1;
 }
 
-@media (min-width: 900px) and (max-height: 900px) {
-    .landing-hero-block {
-        margin-top: calc(80px - 560px);
-    }
-}
 
 @media (min-width: 900px) {
     .landing-hero-block {
