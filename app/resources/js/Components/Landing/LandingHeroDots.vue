@@ -51,7 +51,7 @@
 
 @media (min-width: 900px) {
     .landing-hero-dot--1 { width: 18px; height: 18px; left: 18%; }
-    .landing-hero-dot--2 { width: 26px; height: 25px; left: 48%; }
+    .landing-hero-dot--2 { width: 26px; height: 25px; left: 55%; }
     .landing-hero-dot--3 { width: 24px; height: 24px; left: -1%; }
     .landing-hero-dot--4 { width: 14px; height: 14px; }
     .landing-hero-dot--5 { width: 10px; height: 10px; left: 87%; }

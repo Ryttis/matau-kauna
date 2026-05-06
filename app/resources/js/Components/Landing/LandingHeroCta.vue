@@ -14,44 +14,23 @@ import { Link } from '@inertiajs/vue3'
 .landing-hero-cta {
     width: 100%;
     max-width: 100%;
-    height: 100px;
     margin: 0 auto;
     margin-top: 2rem;
     padding: 0 1.5rem;
     box-sizing: border-box;
     display: flex;
-    align-items: center;
+    align-items: stretch;
     justify-content: center;
-    background: rgba(25, 70, 160, 0.15);
-    border: 1px solid var(--lp-primary);
-    border-radius: 40px;
 }
 
-@media (min-width: 1280px) {
+@media (min-width: 900px) {
     .landing-hero-cta {
-        margin-left: 3.75rem;
-        margin-right: 5rem;
-        width: calc(100% - 3.75rem - 5rem);
-        max-width: calc(100% - 3.75rem - 5rem);
-    }
-}
-
-@media (min-width: 1440px) {
-    .landing-hero-cta {
-        margin-left: auto;
-        margin-right: auto;
-        margin-top: 0;
-        width: 100%;
-        max-width: 1200px;
-    }
-}
-
-@media (min-width: 900px) and (max-width: 1279px) {
-    .landing-hero-cta {
-        margin-left: 3.75rem;
-        margin-right: 5rem;
-        width: calc(100% - 3.75rem - 5rem);
-        max-width: calc(100% - 3.75rem - 5rem);
+        margin-left: 0;
+        margin-right: 0;
+        width: auto;
+        max-width: none;
+        padding-left: 4.5rem;
+        padding-right: 4.5rem;
     }
 }
 
@@ -63,7 +42,12 @@ import { Link } from '@inertiajs/vue3'
 
 
 .landing-hero-cta__btn {
-    display: inline-block;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    max-width: 850px;
+    min-height: 70px;
     padding: 12px 36px;
     background: var(--lp-hero-accent);
     color: #fff;

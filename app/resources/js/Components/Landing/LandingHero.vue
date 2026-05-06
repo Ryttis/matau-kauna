@@ -57,7 +57,7 @@ import LandingHeroCta from './LandingHeroCta.vue';
 @media (min-width: 900px) and (max-height: 900px) {
     .landing-hero-inner {
         transform: scale(0.88);
-        transform-origin: top center;
+        transform-origin: top left;
         margin-bottom: -84px;
     }
 }
@@ -65,7 +65,7 @@ import LandingHeroCta from './LandingHeroCta.vue';
 @media (min-width: 900px) and (max-height: 960px) and (min-height: 901px) {
     .landing-hero-inner {
         transform: scale(0.92);
-        transform-origin: top center;
+        transform-origin: top left;
         margin-bottom: -56px;
     }
 }

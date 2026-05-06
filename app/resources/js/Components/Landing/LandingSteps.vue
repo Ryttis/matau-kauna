@@ -1,26 +1,30 @@
 <template>
     <section class="landing-section">
         <div class="landing-container">
-            <h2 class="landing-section-title">Pastebėjote problemą Kaune?</h2>
+            <h2 class="landing-section-title">Kaip tai veikia?</h2>
             <p class="landing-section-desc">
-                Užregistruokite ją - mes perduosime atsakingoms tarnyboms ir informuosime apie sprendimą.
+                Keturi paprasti žingsniai – nuo pastebėjimo iki sprendimo.
             </p>
             <div class="landing-steps">
                 <div class="landing-step">
-                    <h3 class="landing-step-title">Kokia problema?</h3>
-                    <p class="landing-step-desc">Pasirinkite problemos kategoriją, kad galėtume ją greičiau perduoti atsakingai įstaigai.</p>
+                    <span class="landing-step-num">1</span>
+                    <h3 class="landing-step-title">Pasirink kategoriją</h3>
+                    <p class="landing-step-desc">Duobė, šviesos, želdynai, šiukšlės, vandentiekis ir dar daugiau – surask tinkamą tipą.</p>
                 </div>
                 <div class="landing-step">
-                    <h3 class="landing-step-title">Kokia situacija?</h3>
-                    <p class="landing-step-desc">Trumpai aprašykite problemą. Jei galite - pridėkite nuotrauką.</p>
+                    <span class="landing-step-num">2</span>
+                    <h3 class="landing-step-title">Aprašyk situaciją</h3>
+                    <p class="landing-step-desc">Keliais žodžiais paaiškink, ką matei. Galima pridėti nuotrauką – tai labai padeda.</p>
                 </div>
                 <div class="landing-step">
-                    <h3 class="landing-step-title">Kur yra problema?</h3>
-                    <p class="landing-step-desc">Pažymėkite problemos vietą - pasirinkite ją žemėlapyje arba įveskite adresą.</p>
+                    <span class="landing-step-num">3</span>
+                    <h3 class="landing-step-title">Pažymėk vietą</h3>
+                    <p class="landing-step-desc">Spustelėk žemėlapyje arba įvesk adresą. Tikslumas pagreitina sprendimą.</p>
                 </div>
                 <div class="landing-step">
-                    <h3 class="landing-step-title">Kokia eiga?</h3>
-                    <p class="landing-step-desc">Apie problemos nagrinėjimą būsite informuojamas.</p>
+                    <span class="landing-step-num">4</span>
+                    <h3 class="landing-step-title">Sek eigą</h3>
+                    <p class="landing-step-desc">Gausite pranešimus, kai problema bus priimta ir išspręsta.</p>
                 </div>
             </div>
         </div>
@@ -29,7 +33,7 @@
 
 <style scoped>
 .landing-section {
-    background: var(--lp-steps-bg);
+    background: #F5F5F5;
     padding: 3rem 0 3rem;
 }
 
@@ -76,19 +80,37 @@
 @media (min-width: 768px) {
     .landing-steps {
         grid-template-columns: repeat(4, 1fr);
-        gap: 24px;
+        gap: 16px;
     }
 }
 
 .landing-step {
-    background: var(--lp-steps-card-bg);
-    border: 1px solid var(--lp-steps-accent);
+    background: #fff;
+    border: none;
     border-radius: 15px;
-    padding: 16px 16px 32px;
+    padding: 28px 20px 28px;
     display: flex;
     flex-direction: column;
-    gap: 24px;
+    align-items: center;
+    text-align: center;
+    gap: 16px;
     box-sizing: border-box;
+}
+
+.landing-step-num {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    background: var(--lp-steps-accent);
+    color: #fff;
+    font-family: var(--lp-font), 'Open Sans', sans-serif;
+    font-size: 18px;
+    font-weight: 700;
+    line-height: 1;
+    flex-shrink: 0;
 }
 
 .landing-step-title {

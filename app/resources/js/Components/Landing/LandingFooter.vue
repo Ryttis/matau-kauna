@@ -2,7 +2,6 @@
     <CookieConsentBanner />
     <footer class="landing-footer">
         <div class="landing-footer-inner">
-            <Link :href="route('landing')" class="landing-footer-logo">Kauno problemos</Link>
             <div class="landing-footer-right">
                 <nav class="landing-footer-nav">
                     <Link :href="route('faq')" class="landing-footer-link">DUK</Link>
@@ -31,10 +30,11 @@ import { ICON_QUESTION } from '@/constants/ui/icons'
     background: #1946A0;
     color: #fff;
     flex-shrink: 0;
-    min-height: 154px;
+    min-height: 200px;
     display: flex;
     align-items: center;
-    padding: 1.5rem 0;
+    padding: 2.5rem 0;
+    margin-top: 2.5rem;
 }
 .landing-footer-inner {
     max-width: 1200px;
@@ -44,20 +44,14 @@ import { ICON_QUESTION } from '@/constants/ui/icons'
     display: flex;
     flex-wrap: wrap;
     align-items: center;
-    justify-content: space-between;
+    justify-content: flex-end;
     gap: 1rem;
-}
-.landing-footer-logo {
-    font-size: 1.25rem;
-    font-weight: 700;
-    color: #fff;
-    text-decoration: none;
 }
 .landing-footer-right {
     display: flex;
     flex-direction: column;
     align-items: flex-end;
-    gap: 0.75rem;
+    gap: 1.5rem;
 }
 .landing-footer-nav {
     display: flex;

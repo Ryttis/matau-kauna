@@ -77,13 +77,13 @@ defineProps({
 }
 
 .landing :deep(.landing-container--wide) {
-    max-width: 1400px;
+    max-width: 1440px;
 }
 
 @media (min-width: 768px) {
     .landing :deep(.landing-container--wide) {
-        padding-left: 1rem;
-        padding-right: 1rem;
+        padding-left: 2rem;
+        padding-right: 2rem;
     }
 }
 </style>
