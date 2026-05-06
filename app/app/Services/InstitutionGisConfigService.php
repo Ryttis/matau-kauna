@@ -25,15 +25,27 @@ class InstitutionGisConfigService
             'feature_server_url' => $config?->feature_server_url ?? '',
             'attachment_url' => $config?->attachment_url ?? '',
             'wkid' => $config?->wkid ?? 3346,
+            'use_field_mapping' => $config?->use_field_mapping ?? false,
+            'field_mapping' => $this->normalizeFieldMapping($config?->field_mapping ?? []),
             'has_active_token' => filled($config?->active_token),
             'active_token_expires_at' => $config?->active_token_expires_at?->toIso8601String(),
         ];
+    }
+
+    public function effectiveFieldMapping(InstitutionGisConfig $config): array
+    {
+        if (! $config->use_field_mapping) {
+            return $this->normalizeFieldMapping([]);
+        }
+
+        return $this->normalizeFieldMapping($config->field_mapping ?? []);
     }
 
     public function updateForInstitution(Institution $institution, array $payload): ?InstitutionGisConfig
     {
         $payload = $payload === [] ? ['enabled' => false] : $payload;
         $enabled = filter_var($payload['enabled'] ?? false, FILTER_VALIDATE_BOOLEAN);
+        $useFieldMapping = filter_var($payload['use_field_mapping'] ?? false, FILTER_VALIDATE_BOOLEAN);
 
         $config = $institution->gisConfig()->first();
 
@@ -64,6 +76,10 @@ class InstitutionGisConfigService
             'wkid',
         ]);
         $fillable['enabled'] = $enabled;
+        $fillable['use_field_mapping'] = $useFieldMapping;
+        $fillable['field_mapping'] = $useFieldMapping
+            ? $this->normalizeFieldMapping($payload['field_mapping'] ?? [])
+            : null;
 
         if (array_key_exists('wkid', $fillable) && ! filled($fillable['wkid'])) {
             $fillable['wkid'] = 3346;
@@ -162,7 +178,7 @@ class InstitutionGisConfigService
 
     private function payloadIsEmpty(array $payload): bool
     {
-        $candidate = Arr::except($payload, ['enabled', 'technical_password']);
+        $candidate = Arr::except($payload, ['enabled', 'technical_password', 'use_field_mapping', 'field_mapping']);
         foreach ($candidate as $value) {
             if (filled($value)) {
                 return false;
@@ -170,6 +186,19 @@ class InstitutionGisConfigService
         }
 
         return trim((string) ($payload['technical_password'] ?? '')) === '';
+    }
+
+    private function normalizeFieldMapping(array $mapping): array
+    {
+        $normalized = [];
+
+        foreach (InstitutionGisConfig::FIELD_MAPPING_SOURCES as $source) {
+            $default = InstitutionGisConfig::DEFAULT_FIELD_MAPPING[$source] ?? '';
+            $value = trim((string) ($mapping[$source] ?? ''));
+            $normalized[$source] = $value !== '' ? $value : $default;
+        }
+
+        return $normalized;
     }
 
     private function deriveRefererOrigin(string $url): string

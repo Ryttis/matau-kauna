@@ -8,6 +8,28 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class InstitutionGisConfig extends Model
 {
+    public const FIELD_MAPPING_SOURCES = [
+        'status',
+        'category',
+        'created_at',
+        'completion_deadline',
+        'address',
+        'reporter',
+        'internal_number',
+        'description',
+    ];
+
+    public const DEFAULT_FIELD_MAPPING = [
+        'status' => 'busena',
+        'category' => 'pranesimo_tipas',
+        'created_at' => 'registravimo_data',
+        'completion_deadline' => 'vykdymo_terminas',
+        'address' => 'adresas',
+        'reporter' => 'pranese',
+        'internal_number' => '',
+        'description' => '',
+    ];
+
     protected $fillable = [
         'institution_id',
         'enabled',
@@ -19,6 +41,8 @@ class InstitutionGisConfig extends Model
         'feature_server_url',
         'attachment_url',
         'wkid',
+        'use_field_mapping',
+        'field_mapping',
         'active_token',
         'active_token_expires_at',
     ];
@@ -37,6 +61,8 @@ class InstitutionGisConfig extends Model
             'active_token_expires_at' => 'datetime',
             'token_expiration_minutes' => 'integer',
             'wkid' => 'integer',
+            'use_field_mapping' => 'boolean',
+            'field_mapping' => 'array',
         ];
     }
 

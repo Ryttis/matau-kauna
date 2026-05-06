@@ -106,6 +106,69 @@ class AdminInstitutionGisTest extends TestCase
         $this->assertSame('original-password', $config->technical_password);
         $this->assertSame(120, $config->token_expiration_minutes);
         $this->assertSame(4326, $config->wkid);
+        $this->assertFalse($config->use_field_mapping);
+        $this->assertNull($config->field_mapping);
+    }
+
+    public function test_admin_edits_institution_with_gis_field_mapping(): void
+    {
+        $admin = $this->createSystemAdmin();
+
+        $institution = Institution::create([
+            'name' => 'Test',
+            'contact_email' => 'test@example.com',
+        ]);
+        InstitutionGisConfig::create([
+            'institution_id' => $institution->id,
+            'enabled' => true,
+            'generate_token_url' => 'https://digital.kaunas.lt/portal/sharing/rest/generateToken',
+            'technical_username' => 'u',
+            'technical_password' => 'original-password',
+            'client_type' => 'referer',
+            'token_expiration_minutes' => 60,
+            'feature_server_url' => 'https://example.test/FeatureServer/0',
+            'attachment_url' => 'https://example.test/FeatureServer/0',
+            'wkid' => 3346,
+        ]);
+
+        $response = $this
+            ->actingAs($admin)
+            ->putJson('/admin/institutions/'.$institution->id, [
+                'name' => 'Test',
+                'contact_email' => 'test@example.com',
+                'is_active' => true,
+                'is_email_only' => false,
+                'gis' => [
+                    'enabled' => true,
+                    'generate_token_url' => 'https://digital.kaunas.lt/portal/sharing/rest/generateToken',
+                    'technical_username' => 'u',
+                    'technical_password' => '',
+                    'client_type' => 'referer',
+                    'token_expiration_minutes' => 60,
+                    'feature_server_url' => 'https://example.test/FeatureServer/0',
+                    'attachment_url' => 'https://example.test/FeatureServer/0',
+                    'wkid' => 3346,
+                    'use_field_mapping' => true,
+                    'field_mapping' => [
+                        'status' => 'gis_status',
+                        'category' => 'gis_type',
+                        'created_at' => 'gis_created',
+                        'completion_deadline' => 'gis_deadline',
+                        'address' => 'gis_address',
+                        'reporter' => 'gis_reporter',
+                        'internal_number' => 'gis_number',
+                        'description' => 'gis_description',
+                    ],
+                ],
+            ]);
+
+        $response->assertSuccessful();
+
+        $config = InstitutionGisConfig::where('institution_id', $institution->id)->firstOrFail();
+        $this->assertTrue($config->use_field_mapping);
+        $this->assertSame('gis_status', $config->field_mapping['status']);
+        $this->assertSame('gis_deadline', $config->field_mapping['completion_deadline']);
+        $this->assertSame('gis_description', $config->field_mapping['description']);
     }
 
     private function createSystemAdmin(): User

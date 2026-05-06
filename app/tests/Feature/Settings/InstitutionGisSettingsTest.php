@@ -191,4 +191,47 @@ class InstitutionGisSettingsTest extends TestCase
 
         $response->assertSessionHasErrors(['gis.wkid']);
     }
+
+    public function test_field_mapping_is_persisted_on_settings_update(): void
+    {
+        $institution = Institution::create([
+            'name' => 'Test Institution',
+        ]);
+        $user = User::factory()->create([
+            'institution_id' => $institution->id,
+        ]);
+
+        $response = $this
+            ->actingAs($user)
+            ->patch(route('settings.institution'), [
+                'name' => 'Updated Institution',
+                'gis' => [
+                    'enabled' => true,
+                    'generate_token_url' => 'https://digital.kaunas.lt/portal/sharing/rest/generateToken',
+                    'technical_username' => 'arcgis-user',
+                    'technical_password' => 'secret-1',
+                    'client_type' => 'referer',
+                    'token_expiration_minutes' => 60,
+                    'feature_server_url' => 'https://example.test/FeatureServer/1',
+                    'attachment_url' => 'https://example.test/FeatureServer/1',
+                    'wkid' => 3346,
+                    'use_field_mapping' => true,
+                    'field_mapping' => [
+                        'status' => 'gis_status',
+                        'category' => 'gis_category',
+                        'created_at' => 'gis_created',
+                        'completion_deadline' => 'gis_deadline',
+                        'address' => 'gis_address',
+                        'reporter' => 'gis_reporter',
+                    ],
+                ],
+            ]);
+
+        $response->assertSessionHasNoErrors()->assertRedirect();
+
+        $config = InstitutionGisConfig::where('institution_id', $institution->id)->firstOrFail();
+        $this->assertTrue($config->use_field_mapping);
+        $this->assertSame('gis_status', $config->field_mapping['status']);
+        $this->assertSame('gis_deadline', $config->field_mapping['completion_deadline']);
+    }
 }

@@ -129,6 +129,9 @@ class ProblemGisPullAttachmentsTest extends TestCase
         $response->assertSessionHasNoErrors()->assertRedirect();
         $this->assertStringContainsString('būsena pakeista', session('success'));
         $this->assertSame('isspresta', $problem->fresh()->status);
+
+        Http::assertSent(fn ($request) => $request->url() === 'https://example.test/FeatureServer/1/query'
+            && $request['outFields'] === 'busena,vykdymo_terminas,pranesimo_tipas,adresas,pranese');
     }
 
     public function test_pull_accepts_arcgis_alias_registruojama_as_nauja(): void
@@ -150,6 +153,51 @@ class ProblemGisPullAttachmentsTest extends TestCase
         $this->actingAs($user)->post(route('problems.assignInstitution.pullGis', $problem));
 
         $this->assertSame('nauja', $problem->fresh()->status);
+    }
+
+    public function test_pull_syncs_status_and_deadline_from_mapped_gis_fields(): void
+    {
+        [$user, $problem, $transfer] = $this->setupTransferReadyForPull();
+        $deadline = now()->addDays(5)->startOfDay();
+
+        InstitutionGisConfig::findOrFail($transfer->institution_gis_config_id)->forceFill([
+            'use_field_mapping' => true,
+            'field_mapping' => [
+                'status' => 'gis_status',
+                'category' => 'gis_type',
+                'created_at' => 'gis_created',
+                'completion_deadline' => 'gis_deadline',
+                'address' => 'gis_address',
+                'reporter' => 'gis_reporter',
+            ],
+        ])->save();
+
+        Http::fake([
+            'https://example.test/FeatureServer/1/query' => Http::response([
+                'features' => [[
+                    'attributes' => [
+                        'gis_status' => 'isspresta',
+                        'gis_deadline' => $deadline->getTimestampMs(),
+                    ],
+                ]],
+            ]),
+            'https://example.test/FeatureServer/1/queryAttachments' => Http::response([
+                'attachmentGroups' => [],
+            ]),
+        ]);
+
+        $response = $this
+            ->actingAs($user)
+            ->post(route('problems.assignInstitution.pullGis', $problem));
+
+        $response->assertSessionHasNoErrors()->assertRedirect();
+
+        $fresh = $problem->fresh();
+        $this->assertSame('isspresta', $fresh->status);
+        $this->assertTrue($deadline->equalTo($fresh->completion_deadline->startOfDay()));
+
+        Http::assertSent(fn ($request) => $request->url() === 'https://example.test/FeatureServer/1/query'
+            && $request['outFields'] === 'gis_status,gis_deadline,gis_type,gis_created,gis_address,gis_reporter');
     }
 
     /**

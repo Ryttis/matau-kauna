@@ -132,8 +132,9 @@ class ArcGisProblemTransferService
         $deadlineChanged = false;
 
         if ($attributes !== []) {
-            $statusChange = $this->applyStatusFromGis($transfer->problem, $attributes);
-            $deadlineChanged = $this->applyDeadlineFromGis($transfer->problem, $attributes);
+            $mapping = $this->gisConfigService->effectiveFieldMapping($config);
+            $statusChange = $this->applyStatusFromGis($transfer->problem, $attributes, $mapping['status']);
+            $deadlineChanged = $this->applyDeadlineFromGis($transfer->problem, $attributes, $mapping['completion_deadline']);
         }
 
         $attachmentResult = $this->pullAttachments($transfer);
@@ -178,6 +179,7 @@ class ArcGisProblemTransferService
             $externalId = isset($item['id']) ? (string) $item['id'] : '';
             if ($externalId === '' || in_array($externalId, $knownExternalIds, true)) {
                 $skipped++;
+
                 continue;
             }
 
@@ -205,7 +207,7 @@ class ArcGisProblemTransferService
             [
                 'f' => 'json',
                 'inSR' => 4326,
-                'adds' => json_encode([$this->buildFeaturePayload($problem)], JSON_UNESCAPED_UNICODE),
+                'adds' => json_encode([$this->buildFeaturePayload($config, $problem)], JSON_UNESCAPED_UNICODE),
             ]
         );
 
@@ -331,7 +333,7 @@ class ArcGisProblemTransferService
                 [
                     'f' => 'json',
                     'objectIds' => $transfer->external_object_id,
-                    'outFields' => 'busena,vykdymo_terminas,pranesimo_tipas,adresas,pranese',
+                    'outFields' => $this->queryOutFields($config),
                     'returnGeometry' => 'false',
                 ]
             );
@@ -351,16 +353,37 @@ class ArcGisProblemTransferService
             : [];
     }
 
+    private function queryOutFields(InstitutionGisConfig $config): string
+    {
+        if (! $config->use_field_mapping) {
+            return 'busena,vykdymo_terminas,pranesimo_tipas,adresas,pranese';
+        }
+
+        $mapping = $this->gisConfigService->effectiveFieldMapping($config);
+        $fields = array_filter([
+            $mapping['status'] ?? null,
+            $mapping['completion_deadline'] ?? null,
+            $mapping['category'] ?? null,
+            $mapping['created_at'] ?? null,
+            $mapping['address'] ?? null,
+            $mapping['reporter'] ?? null,
+            $mapping['internal_number'] ?? null,
+            $mapping['description'] ?? null,
+        ]);
+
+        return implode(',', array_values(array_unique($fields))) ?: '*';
+    }
+
     /**
      * @return array{changed: bool, old: ?string, new: ?string}
      */
-    private function applyStatusFromGis(?Problem $problem, array $attributes): array
+    private function applyStatusFromGis(?Problem $problem, array $attributes, string $statusField): array
     {
         if (! $problem) {
             return ['changed' => false, 'old' => null, 'new' => null];
         }
 
-        $rawStatus = (string) ($attributes['busena'] ?? '');
+        $rawStatus = (string) ($attributes[$statusField] ?? '');
         $newStatus = $this->resolveStatusFromLabel($rawStatus);
         if ($newStatus === null) {
             return ['changed' => false, 'old' => null, 'new' => null];
@@ -391,13 +414,13 @@ class ArcGisProblemTransferService
         return ['changed' => true, 'old' => $oldStatus, 'new' => $newStatus->value];
     }
 
-    private function applyDeadlineFromGis(?Problem $problem, array $attributes): bool
+    private function applyDeadlineFromGis(?Problem $problem, array $attributes, string $deadlineField): bool
     {
-        if (! $problem || ! array_key_exists('vykdymo_terminas', $attributes)) {
+        if (! $problem || ! array_key_exists($deadlineField, $attributes)) {
             return false;
         }
 
-        $value = $attributes['vykdymo_terminas'];
+        $value = $attributes[$deadlineField];
         if ($value === null || $value === '') {
             if ($problem->completion_deadline === null) {
                 return false;
@@ -552,7 +575,7 @@ class ArcGisProblemTransferService
         ]);
     }
 
-    private function buildFeaturePayload(Problem $problem): array
+    private function buildFeaturePayload(InstitutionGisConfig $config, Problem $problem): array
     {
         $reporterName = 'Gyventojas';
         if ($problem->reportedByUser) {
@@ -563,16 +586,27 @@ class ArcGisProblemTransferService
         }
 
         $status = ProblemStatus::tryFrom((string) $problem->status);
+        $values = [
+            'status' => $status?->label() ?? (string) $problem->status,
+            'category' => $problem->category ?? 'Problema',
+            'created_at' => $problem->created_at?->getTimestampMs() ?? now()->getTimestampMs(),
+            'completion_deadline' => $problem->completion_deadline?->startOfDay()->getTimestampMs(),
+            'address' => $problem->address,
+            'reporter' => $reporterName,
+            'internal_number' => $problem->internal_number,
+            'description' => $problem->description,
+        ];
+        $mapping = $this->gisConfigService->effectiveFieldMapping($config);
+        $attributes = [];
+        foreach ($mapping as $source => $fieldName) {
+            if ($fieldName === '') {
+                continue;
+            }
+            $attributes[$fieldName] = $values[$source] ?? null;
+        }
 
         return [
-            'attributes' => [
-                'busena' => $status?->label() ?? (string) $problem->status,
-                'pranesimo_tipas' => $problem->category ?? 'Problema',
-                'registravimo_data' => $problem->created_at?->getTimestampMs() ?? now()->getTimestampMs(),
-                'vykdymo_terminas' => $problem->completion_deadline?->startOfDay()->getTimestampMs(),
-                'adresas' => $problem->address,
-                'pranese' => $reporterName,
-            ],
+            'attributes' => $attributes,
             'geometry' => [
                 'x' => (float) $problem->lng,
                 'y' => (float) $problem->lat,
@@ -603,6 +637,7 @@ class ArcGisProblemTransferService
 
             if (($json['error']['code'] ?? null) === 498 && $attempt === 0) {
                 $token = $this->gisConfigService->getValidToken($config->fresh(), true);
+
                 continue;
             }
 

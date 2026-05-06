@@ -29,6 +29,16 @@ class UpdateInstitutionSettingsRequest extends FormRequest
             'gis.feature_server_url' => [Rule::requiredIf($gisEnabled), 'nullable', 'url', 'max:512'],
             'gis.attachment_url' => [Rule::requiredIf($gisEnabled), 'nullable', 'url', 'max:512'],
             'gis.wkid' => ['nullable', 'integer', 'in:3346,4326,3857'],
+            'gis.use_field_mapping' => ['nullable', 'boolean'],
+            'gis.field_mapping' => ['nullable', 'array'],
+            'gis.field_mapping.status' => ['nullable', 'string', 'max:128'],
+            'gis.field_mapping.category' => ['nullable', 'string', 'max:128'],
+            'gis.field_mapping.created_at' => ['nullable', 'string', 'max:128'],
+            'gis.field_mapping.completion_deadline' => ['nullable', 'string', 'max:128'],
+            'gis.field_mapping.address' => ['nullable', 'string', 'max:128'],
+            'gis.field_mapping.reporter' => ['nullable', 'string', 'max:128'],
+            'gis.field_mapping.internal_number' => ['nullable', 'string', 'max:128'],
+            'gis.field_mapping.description' => ['nullable', 'string', 'max:128'],
         ];
     }
 }

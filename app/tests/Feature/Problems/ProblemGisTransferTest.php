@@ -110,8 +110,89 @@ class ProblemGisTransferTest extends TestCase
         Http::assertSent(fn ($request) => $request->url() === 'https://example.test/FeatureServer/1/applyEdits'
             && $request['token'] === 'cached-token'
             && ! isset($request['useGlobalIds'])
-            && (int) $request['inSR'] === 4326);
+            && (int) $request['inSR'] === 4326
+            && $this->requestAttributeKeys($request) === [
+                'busena',
+                'pranesimo_tipas',
+                'registravimo_data',
+                'vykdymo_terminas',
+                'adresas',
+                'pranese',
+            ]);
         Http::assertNotSent(fn ($request) => $request->url() === 'https://digital.kaunas.lt/portal/sharing/rest/generateToken');
+    }
+
+    public function test_problem_can_be_sent_to_gis_with_custom_field_mapping(): void
+    {
+        $institution = Institution::create([
+            'name' => 'GIS Institution',
+        ]);
+        $user = $this->createSystemAdmin();
+        $problem = Problem::create([
+            'status' => 'nauja',
+            'category' => 'Neveikia Å¡viestuvas',
+            'address' => 'LaisvÄ—s al. 15, Kaunas',
+            'description' => 'Neveikia Å¡viestuvas prie sankryÅ¾os.',
+            'lat' => 54.8985,
+            'lng' => 23.9036,
+            'institution_id' => $institution->id,
+            'reported_by_user_id' => $user->id,
+        ]);
+        InstitutionGisConfig::create([
+            'institution_id' => $institution->id,
+            'enabled' => true,
+            'generate_token_url' => 'https://digital.kaunas.lt/portal/sharing/rest/generateToken',
+            'technical_username' => 'arcgis-user',
+            'technical_password' => 'secret',
+            'client_type' => 'referer',
+            'token_expiration_minutes' => 60,
+            'feature_server_url' => 'https://example.test/FeatureServer/1',
+            'attachment_url' => 'https://example.test/FeatureServer/1',
+            'use_field_mapping' => true,
+            'field_mapping' => [
+                'status' => 'gis_status',
+                'category' => 'gis_type',
+                'created_at' => 'gis_created_at',
+                'completion_deadline' => 'gis_deadline',
+                'address' => 'gis_address',
+                'reporter' => 'gis_reporter',
+                'internal_number' => 'gis_internal_number',
+                'description' => 'gis_description',
+            ],
+            'active_token' => 'cached-token',
+            'active_token_expires_at' => now()->addHour(),
+        ]);
+
+        Http::fake([
+            'https://example.test/FeatureServer/1/applyEdits' => Http::response([
+                'addResults' => [
+                    ['success' => true, 'objectId' => 987],
+                ],
+            ]),
+        ]);
+
+        $response = $this
+            ->actingAs($user)
+            ->post(route('problems.assignInstitution.sendGis', $problem));
+
+        $response
+            ->assertSessionHasNoErrors()
+            ->assertRedirect();
+
+        Http::assertSent(fn ($request) => $request->url() === 'https://example.test/FeatureServer/1/applyEdits'
+            && $request['token'] === 'cached-token'
+            && $this->requestAttributeKeys($request) === [
+                'gis_status',
+                'gis_type',
+                'gis_created_at',
+                'gis_deadline',
+                'gis_address',
+                'gis_reporter',
+                'gis_internal_number',
+                'gis_description',
+            ]
+            && ($this->requestAttributes($request)['gis_internal_number'] ?? null) === $problem->internal_number
+            && ($this->requestAttributes($request)['gis_description'] ?? null) === $problem->description);
     }
 
     public function test_problem_send_refreshes_token_after_arcgis_498_error(): void
@@ -284,5 +365,17 @@ class ProblemGisTransferTest extends TestCase
         }
 
         return $user->fresh();
+    }
+
+    private function requestAttributes($request): array
+    {
+        $adds = json_decode((string) $request['adds'], true);
+
+        return $adds[0]['attributes'] ?? [];
+    }
+
+    private function requestAttributeKeys($request): array
+    {
+        return array_keys($this->requestAttributes($request));
     }
 }

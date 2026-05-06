@@ -11,6 +11,32 @@ import ModalFooterActions from '@/Components/App/ModalFooterActions.vue'
 import { adminApi } from '@/constants/api/adminApi'
 import { INSTITUTION_TYPES } from '@/constants/domain/institutionTypes'
 
+const GIS_FIELD_MAPPING_DEFAULTS = {
+    status: 'busena',
+    category: 'pranesimo_tipas',
+    created_at: 'registravimo_data',
+    completion_deadline: 'vykdymo_terminas',
+    address: 'adresas',
+    reporter: 'pranese',
+    internal_number: '',
+    description: '',
+}
+
+const GIS_FIELD_MAPPING_ROWS = [
+    { key: 'status', label: 'Būsena', placeholder: 'busena' },
+    { key: 'category', label: 'Kategorija / tipas', placeholder: 'pranesimo_tipas' },
+    { key: 'created_at', label: 'Registravimo data', placeholder: 'registravimo_data' },
+    { key: 'completion_deadline', label: 'Vykdymo terminas', placeholder: 'vykdymo_terminas' },
+    { key: 'address', label: 'Adresas', placeholder: 'adresas' },
+    { key: 'reporter', label: 'Pranešėjas', placeholder: 'pranese' },
+    { key: 'internal_number', label: 'Vidinis numeris', placeholder: 'Pvz. vidinis_nr' },
+    { key: 'description', label: 'Aprašymas', placeholder: 'Pvz. aprasymas' },
+]
+
+function defaultFieldMapping() {
+    return { ...GIS_FIELD_MAPPING_DEFAULTS }
+}
+
 function emptyGisForm() {
     return {
         enabled: false,
@@ -23,6 +49,8 @@ function emptyGisForm() {
         feature_server_url: '',
         attachment_url: '',
         wkid: 3346,
+        use_field_mapping: false,
+        field_mapping: defaultFieldMapping(),
         has_active_token: false,
         active_token_expires_at: null,
     }
@@ -59,6 +87,8 @@ function gisFromPayload(source) {
         feature_server_url: source.feature_server_url ?? '',
         attachment_url: source.attachment_url ?? '',
         wkid: source.wkid ?? 3346,
+        use_field_mapping: Boolean(source.use_field_mapping),
+        field_mapping: { ...defaultFieldMapping(), ...(source.field_mapping ?? {}) },
         has_active_token: Boolean(source.has_active_token),
         active_token_expires_at: source.active_token_expires_at ?? null,
     }
@@ -74,6 +104,10 @@ function gisSubmitPayload(gis) {
         feature_server_url: gis?.feature_server_url || null,
         attachment_url: gis?.attachment_url || null,
         wkid: gis?.wkid ? Number(gis.wkid) : 3346,
+        use_field_mapping: Boolean(gis?.use_field_mapping),
+    }
+    if (payload.use_field_mapping) {
+        payload.field_mapping = { ...defaultFieldMapping(), ...(gis?.field_mapping ?? {}) }
     }
     const password = (gis?.technical_password ?? '').trim()
     if (password !== '') {
@@ -332,6 +366,25 @@ onMounted(async () => {
                                 <option :value="3857">Web Mercator (3857)</option>
                             </select>
                         </label>
+                        <label class="field checkbox full gis-mapper-toggle">
+                            <input type="checkbox" v-model="createForm.gis.use_field_mapping" />
+                            <span>Naudoti GIS laukų susiejimą</span>
+                        </label>
+                        <div v-if="createForm.gis.use_field_mapping" class="gis-mapper">
+                            <div
+                                v-for="row in GIS_FIELD_MAPPING_ROWS"
+                                :key="row.key"
+                                class="gis-mapper-row"
+                            >
+                                <label :for="'create-gis-map-' + row.key">{{ row.label }}</label>
+                                <input
+                                    :id="'create-gis-map-' + row.key"
+                                    v-model="createForm.gis.field_mapping[row.key]"
+                                    class="input"
+                                    :placeholder="row.placeholder"
+                                />
+                            </div>
+                        </div>
                     </template>
                 </div>
                 <label class="field checkbox full">
@@ -414,6 +467,25 @@ onMounted(async () => {
                                 <option :value="3857">Web Mercator (3857)</option>
                             </select>
                         </label>
+                        <label class="field checkbox full gis-mapper-toggle">
+                            <input type="checkbox" v-model="editForm.gis.use_field_mapping" />
+                            <span>Naudoti GIS laukų susiejimą</span>
+                        </label>
+                        <div v-if="editForm.gis.use_field_mapping" class="gis-mapper">
+                            <div
+                                v-for="row in GIS_FIELD_MAPPING_ROWS"
+                                :key="row.key"
+                                class="gis-mapper-row"
+                            >
+                                <label :for="'edit-gis-map-' + row.key">{{ row.label }}</label>
+                                <input
+                                    :id="'edit-gis-map-' + row.key"
+                                    v-model="editForm.gis.field_mapping[row.key]"
+                                    class="input"
+                                    :placeholder="row.placeholder"
+                                />
+                            </div>
+                        </div>
                         <p v-if="editForm.gis.has_active_token" class="gis-hint">
                             Aktyvus tokenas: yra<span v-if="editForm.gis.active_token_expires_at">, galioja iki {{ editForm.gis.active_token_expires_at }}</span>
                         </p>
@@ -626,6 +698,33 @@ td {
 .gis-hint {
     margin: 4px 0 0;
     font-size: 12px;
+    color: var(--color-text-muted);
+}
+
+.gis-mapper-toggle {
+    margin-top: 2px;
+}
+
+.gis-mapper {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px 12px;
+    padding: 10px;
+    border: 1px solid var(--color-border-light);
+    border-radius: 8px;
+    background: #f9fafb;
+}
+
+.gis-mapper-row {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    min-width: 0;
+}
+
+.gis-mapper-row label {
+    font-size: 12px;
+    font-weight: 600;
     color: var(--color-text-muted);
 }
 </style>

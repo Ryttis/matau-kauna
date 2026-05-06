@@ -10,6 +10,32 @@ import { adminApi } from '@/constants/api/adminApi'
 import { INSTITUTION_TYPES } from '@/constants/domain/institutionTypes'
 import { useSuccessModal } from '@/composables/useSuccessModal'
 
+const GIS_FIELD_MAPPING_DEFAULTS = {
+    status: 'busena',
+    category: 'pranesimo_tipas',
+    created_at: 'registravimo_data',
+    completion_deadline: 'vykdymo_terminas',
+    address: 'adresas',
+    reporter: 'pranese',
+    internal_number: '',
+    description: '',
+}
+
+const GIS_FIELD_MAPPING_ROWS = [
+    { key: 'status', label: 'Būsena', placeholder: 'busena' },
+    { key: 'category', label: 'Kategorija / tipas', placeholder: 'pranesimo_tipas' },
+    { key: 'created_at', label: 'Registravimo data', placeholder: 'registravimo_data' },
+    { key: 'completion_deadline', label: 'Vykdymo terminas', placeholder: 'vykdymo_terminas' },
+    { key: 'address', label: 'Adresas', placeholder: 'adresas' },
+    { key: 'reporter', label: 'Pranešėjas', placeholder: 'pranese' },
+    { key: 'internal_number', label: 'Vidinis numeris', placeholder: 'Pvz. vidinis_nr' },
+    { key: 'description', label: 'Aprašymas', placeholder: 'Pvz. aprasymas' },
+]
+
+function defaultFieldMapping() {
+    return { ...GIS_FIELD_MAPPING_DEFAULTS }
+}
+
 const props = defineProps({
     profileSaveMode: {
         type: String,
@@ -50,6 +76,8 @@ function gisFromPayload(source) {
         feature_server_url: '',
         attachment_url: '',
         wkid: 3346,
+        use_field_mapping: false,
+        field_mapping: defaultFieldMapping(),
         has_technical_password: false,
         has_active_token: false,
         active_token_expires_at: null,
@@ -67,6 +95,8 @@ function gisFromPayload(source) {
         feature_server_url: source.feature_server_url ?? '',
         attachment_url: source.attachment_url ?? '',
         wkid: source.wkid ?? 3346,
+        use_field_mapping: Boolean(source.use_field_mapping),
+        field_mapping: { ...defaultFieldMapping(), ...(source.field_mapping ?? {}) },
         has_active_token: Boolean(source.has_active_token),
         active_token_expires_at: source.active_token_expires_at ?? null,
     }
@@ -82,6 +112,10 @@ function gisSubmitPayload(gis) {
         feature_server_url: gis?.feature_server_url || null,
         attachment_url: gis?.attachment_url || null,
         wkid: gis?.wkid ? Number(gis.wkid) : 3346,
+        use_field_mapping: Boolean(gis?.use_field_mapping),
+    }
+    if (payload.use_field_mapping) {
+        payload.field_mapping = { ...defaultFieldMapping(), ...(gis?.field_mapping ?? {}) }
     }
     const password = (gis?.technical_password ?? '').trim()
     if (password !== '') {
@@ -261,6 +295,25 @@ async function submitAdmin() {
                             <option :value="3857">Web Mercator (3857)</option>
                         </select>
                     </label>
+                    <label class="checkbox-row gis-mapper-toggle">
+                        <input v-model="adminForm.gis.use_field_mapping" type="checkbox" />
+                        <span>Naudoti GIS laukų susiejimą</span>
+                    </label>
+                    <div v-if="adminForm.gis.use_field_mapping" class="gis-mapper">
+                        <div
+                            v-for="row in GIS_FIELD_MAPPING_ROWS"
+                            :key="row.key"
+                            class="gis-mapper-row"
+                        >
+                            <label :for="'admin-gis-map-' + row.key">{{ row.label }}</label>
+                            <input
+                                :id="'admin-gis-map-' + row.key"
+                                v-model="adminForm.gis.field_mapping[row.key]"
+                                class="gis-select"
+                                :placeholder="row.placeholder"
+                            />
+                        </div>
+                    </div>
                 </div>
 
                 <AppButton text="Saugoti" variant="primary" as-button type="submit" :disabled="adminSaving" />
@@ -364,5 +417,28 @@ async function submitAdmin() {
     gap: 8px;
     font-size: 14px;
     cursor: pointer;
+}
+.gis-mapper-toggle {
+    margin-top: 2px;
+}
+.gis-mapper {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px 12px;
+    padding: 10px;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    background: #f9fafb;
+}
+.gis-mapper-row {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    min-width: 0;
+}
+.gis-mapper-row label {
+    font-size: 12px;
+    font-weight: 600;
+    color: #6b7280;
 }
 </style>
