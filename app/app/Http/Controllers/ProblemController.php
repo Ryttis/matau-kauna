@@ -35,7 +35,8 @@ class ProblemController extends Controller
         if ($user->isReporterOnly()) {
             return Inertia::render('Dashboard', $this->dashboardQuery->reporterDashboardProps(
                 $user,
-                $request->boolean('only_mine')
+                $request->boolean('only_mine'),
+                $request->boolean('only_watched'),
             ));
         }
 

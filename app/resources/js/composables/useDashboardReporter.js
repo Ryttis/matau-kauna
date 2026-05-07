@@ -10,8 +10,12 @@ function watchRootId(problem) {
 
 export function useDashboardReporter(props) {
     const showOnlyMyReports = ref(props.onlyMine ?? false)
+    const showOnlyWatched = ref(props.onlyWatched ?? false)
     watch(() => props.onlyMine, (onlyMine) => {
         showOnlyMyReports.value = !!onlyMine
+    })
+    watch(() => props.onlyWatched, (onlyWatched) => {
+        showOnlyWatched.value = !!onlyWatched
     })
 
     const reporterAllProblems = computed(() => {
@@ -32,6 +36,24 @@ export function useDashboardReporter(props) {
         return all.filter((problem) => !!problem?.reported_by_me)
     })
 
+    const watchOverridesByRoot = ref({})
+    const reporterWatchLoadingRootId = ref(null)
+
+    watch(
+        () => props.problems,
+        () => {
+            watchOverridesByRoot.value = {}
+        },
+    )
+
+    function isReporterProblemWatched(problem) {
+        if (!problem) return false
+        const root = watchRootId(problem)
+        const override = watchOverridesByRoot.value[root]
+        if (override !== undefined) return !!override
+        return !!problem.is_watched
+    }
+
     const {
         searchQuery: reporterSearchQuery,
         filterState: reporterFilterState,
@@ -46,6 +68,8 @@ export function useDashboardReporter(props) {
     } = useProblemsMapFilter(reporterProblems, {
         restrictToCurrentYear: true,
         reporterOnlyMine: showOnlyMyReports,
+        reporterOnlyWatched: showOnlyWatched,
+        isWatched: isReporterProblemWatched,
     })
 
     const reporterDisplayRows = computed(() => buildReporterProblemDisplayRows(reporterFilteredProblems.value))
@@ -92,24 +116,6 @@ export function useDashboardReporter(props) {
         if (!ids.size) return []
         return reporterFilteredProblems.value.filter((p) => ids.has(p.id))
     })
-
-    const watchOverridesByRoot = ref({})
-    const reporterWatchLoadingRootId = ref(null)
-
-    watch(
-        () => props.problems,
-        () => {
-            watchOverridesByRoot.value = {}
-        },
-    )
-
-    function isReporterProblemWatched(problem) {
-        if (!problem) return false
-        const root = watchRootId(problem)
-        const override = watchOverridesByRoot.value[root]
-        if (override !== undefined) return !!override
-        return !!problem.is_watched
-    }
 
     async function applyWatchToggle(problem) {
         if (!problem || reporterWatchLoadingRootId.value != null) return
@@ -183,10 +189,13 @@ export function useDashboardReporter(props) {
         return watchRootId(p) === reporterWatchLoadingRootId.value
     })
 
-    function syncReporterOnlyMineToServer() {
+    function syncReporterFiltersToServer() {
         const params = {}
         if (showOnlyMyReports.value) {
             params.only_mine = 1
+        }
+        if (showOnlyWatched.value) {
+            params.only_watched = 1
         }
         router.get(route('dashboard'), params, {
             preserveState: true,
@@ -198,13 +207,25 @@ export function useDashboardReporter(props) {
     function reporterToggleOnlyMine(event) {
         showOnlyMyReports.value = !!event?.target?.checked
         reporterSelectedIds.value = new Set()
-        syncReporterOnlyMineToServer()
+        syncReporterFiltersToServer()
     }
 
     function reporterToggleOnlyMineFromFilter(onlyMine) {
         showOnlyMyReports.value = !!onlyMine
         reporterSelectedIds.value = new Set()
-        syncReporterOnlyMineToServer()
+        syncReporterFiltersToServer()
+    }
+
+    function reporterToggleOnlyWatched(event) {
+        showOnlyWatched.value = !!event?.target?.checked
+        reporterSelectedIds.value = new Set()
+        syncReporterFiltersToServer()
+    }
+
+    function reporterToggleOnlyWatchedFromFilter(onlyWatched) {
+        showOnlyWatched.value = !!onlyWatched
+        reporterSelectedIds.value = new Set()
+        syncReporterFiltersToServer()
     }
 
     return {
@@ -231,8 +252,11 @@ export function useDashboardReporter(props) {
         reporterWatchBusy,
         reporterStebetiButtonLoading,
         showOnlyMyReports,
+        showOnlyWatched,
         reporterToggleOnlyMine,
         reporterToggleOnlyMineFromFilter,
+        reporterToggleOnlyWatched,
+        reporterToggleOnlyWatchedFromFilter,
         reporterProblems,
         reporterHasActiveFilters,
     }

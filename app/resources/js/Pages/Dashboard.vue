@@ -29,6 +29,10 @@ const props = defineProps({
         type: Boolean,
         default: false,
     },
+    onlyWatched: {
+        type: Boolean,
+        default: false,
+    },
     problems: [Object, Array],
     filters: Object,
     sortBy: String,
@@ -72,8 +76,11 @@ const {
     reporterWatchBusy,
     reporterStebetiButtonLoading,
     showOnlyMyReports,
+    showOnlyWatched,
     reporterToggleOnlyMine,
     reporterToggleOnlyMineFromFilter,
+    reporterToggleOnlyWatched,
+    reporterToggleOnlyWatchedFromFilter,
     reporterProblems,
     reporterHasActiveFilters,
 } = useDashboardReporter(props)
@@ -104,15 +111,26 @@ const reporterDateMax = `${currentYear}-12-31`
                         @filter-click="reporterOpenFilterModal"
                     />
                 </div>
-                <label class="reporter-dashboard-checkbox-label">
-                    <input
-                        :checked="showOnlyMyReports"
-                        type="checkbox"
-                        class="reporter-dashboard-checkbox"
-                        @change="reporterToggleOnlyMine"
-                    />
-                    <span>Rodyti tik mano iškeltas problemas</span>
-                </label>
+                <div class="reporter-dashboard-checkbox-row">
+                    <label class="reporter-dashboard-checkbox-label">
+                        <input
+                            :checked="showOnlyMyReports"
+                            type="checkbox"
+                            class="reporter-dashboard-checkbox"
+                            @change="reporterToggleOnlyMine"
+                        />
+                        <span>Rodyti tik mano iškeltas problemas</span>
+                    </label>
+                    <label class="reporter-dashboard-checkbox-label">
+                        <input
+                            :checked="showOnlyWatched"
+                            type="checkbox"
+                            class="reporter-dashboard-checkbox"
+                            @change="reporterToggleOnlyWatched"
+                        />
+                        <span>Rodyti tik stebimas problemas</span>
+                    </label>
+                </div>
             </div>
             <div class="reporter-dashboard-layout">
                 <div class="reporter-dashboard-map-wrap">
@@ -163,12 +181,14 @@ const reporterDateMax = `${currentYear}-12-31`
                 :categories="reporterCategoryOptions"
                 :status-checkbox-options="REPORTER_MAP_FILTER_STATUS_OPTIONS"
                 :only-mine="showOnlyMyReports"
+                :only-watched="showOnlyWatched"
                 :date-min="reporterDateMin"
                 :date-max="reporterDateMax"
                 @close="reporterShowFilterModal = false"
                 @apply="reporterHandleFilterApply"
                 @clear="reporterHandleFilterClear"
                 @only-mine-change="reporterToggleOnlyMineFromFilter"
+                @only-watched-change="reporterToggleOnlyWatchedFromFilter"
             />
         </div>
 

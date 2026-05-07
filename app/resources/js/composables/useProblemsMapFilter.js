@@ -22,6 +22,9 @@ function isCreatedAtInRange(createdAt, dateFrom, dateTo) {
 export function useProblemsMapFilter(problemsSource, options = {}) {
     const restrictToCurrentYear = !!options.restrictToCurrentYear
     const reporterOnlyMine = options.reporterOnlyMine
+    const reporterOnlyWatched = options.reporterOnlyWatched
+    const isWatchedPredicate = typeof options.isWatched === 'function' ? options.isWatched : null
+    const isReporterMode = reporterOnlyMine !== undefined
     const searchQuery = ref('')
     const filterState = ref({ ...DEFAULT_FILTER_STATE })
     const selectedIds = ref(new Set())
@@ -39,6 +42,15 @@ export function useProblemsMapFilter(problemsSource, options = {}) {
     const filteredProblems = computed(() => {
         const list = Array.isArray(problemsSource.value) ? problemsSource.value : []
         let result = list
+
+        if (isReporterMode) {
+            result = result.map((problem) =>
+                problem?.status === PROBLEM_STATUS.UNREGISTERED
+                    ? { ...problem, status: PROBLEM_STATUS.NEW }
+                    : problem,
+            )
+        }
+
         const reportNum = (filterState.value.reportNumber || '').trim().toLowerCase()
         if (reportNum) {
             result = result.filter((problem) =>
@@ -59,18 +71,7 @@ export function useProblemsMapFilter(problemsSource, options = {}) {
         }
         if ((filterState.value.statuses || []).length > 0) {
             const selected = filterState.value.statuses
-            result = result.filter((problem) => {
-                const s = problem.status
-                if (selected.includes(s)) return true
-                if (
-                    reporterOnlyMine?.value &&
-                    selected.includes(PROBLEM_STATUS.NEW) &&
-                    s === PROBLEM_STATUS.UNREGISTERED
-                ) {
-                    return true
-                }
-                return false
-            })
+            result = result.filter((problem) => selected.includes(problem.status))
         }
         if (filterState.value.problemType && filterState.value.problemType !== 'all') {
             result = result.filter((problem) => problem.category === filterState.value.problemType)
@@ -94,12 +95,11 @@ export function useProblemsMapFilter(problemsSource, options = {}) {
             result = result.filter((problem) => isCreatedAtInRange(problem.created_at, effectiveFrom, effectiveTo))
         }
 
-        if (reporterOnlyMine?.value) {
-            result = result.map((problem) =>
-                problem.status === PROBLEM_STATUS.UNREGISTERED
-                    ? { ...problem, status: PROBLEM_STATUS.NEW }
-                    : problem,
-            )
+        if (reporterOnlyWatched?.value) {
+            result = result.filter((problem) => {
+                if (isWatchedPredicate) return !!isWatchedPredicate(problem)
+                return !!problem?.is_watched
+            })
         }
 
         return result

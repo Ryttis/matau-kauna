@@ -258,9 +258,9 @@ async function removeNature(nature) {
 <template>
     <div class="admin-classifiers">
         <div class="admin-tab-intro">
-            <h2 class="admin-tab-intro__title">Problemos rūšys ir pobūdžiai</h2>
+            <h2 class="admin-tab-intro__title">Kategorijos ir pobūdžiai</h2>
             <p class="admin-tab-intro__desc">
-                Kurkite rūšis ir jų pobūdžius, kurie pasirodo pareiškėjo formoje renkantis problemos tipą.
+                Kurkite kategorijas ir jų pobūdžius, kurie pasirodo pareiškėjo formoje renkantis problemos kategoriją.
             </p>
         </div>
         <p v-if="errorMessage" class="error-msg">{{ errorMessage }}</p>
@@ -276,7 +276,7 @@ async function removeNature(nature) {
             <div class="classifier-block">
                 <div class="toolbar">
                     <AppButton
-                        text="Pridėti problemos rūšį"
+                        text="Pridėti kategoriją"
                         variant="primary"
                         as-button
                         @click="openAddType"
@@ -336,14 +336,14 @@ async function removeNature(nature) {
                             </tr>
                         </tbody>
                     </table>
-                    <p v-if="!types.length" class="empty">Nėra rūšių. Pridėkite pirmąją rūšį.</p>
+                    <p v-if="!types.length" class="empty">Nėra kategorijų. Pridėkite pirmąją kategoriją.</p>
                 </div>
             </div>
         </template>
 
         <BaseModal
             :show="showAddTypeModal"
-            title="Pridėti problemos rūšį"
+            title="Pridėti kategoriją"
             max-width="400px"
             @close="showAddTypeModal = false"
         >
@@ -367,7 +367,7 @@ async function removeNature(nature) {
 
         <BaseModal
             :show="showEditTypeModal"
-            title="Redaguoti rūšį"
+            title="Redaguoti kategoriją"
             max-width="400px"
             @close="showEditTypeModal = false"
         >
@@ -498,12 +498,12 @@ async function removeNature(nature) {
 
         <BaseModal
             :show="showDeleteConfirmModal"
-            title="Pašalinti rūšį?"
+            title="Pašalinti kategoriją?"
             max-width="400px"
             @close="closeDeleteConfirmModal"
         >
             <p v-if="typeToDelete" class="delete-confirm-text">
-                Ar tikrai pašalinti rūšį „{{ typeToDelete.name }}"? Bus pašalinti ir visi jos pobūdžiai.
+                Ar tikrai pašalinti kategoriją „{{ typeToDelete.name }}"? Bus pašalinti ir visi jos pobūdžiai.
             </p>
             <template #footer>
                 <ModalFooterActions

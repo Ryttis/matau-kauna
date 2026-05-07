@@ -58,6 +58,10 @@ const props = defineProps({
         type: String,
         default: undefined,
     },
+    required: {
+        type: Boolean,
+        default: false,
+    },
 })
 
 const emit = defineEmits(['update:modelValue'])
@@ -86,7 +90,9 @@ const wrapperClass = computed(() => {
 
 <template>
     <div class="app-input-group">
-        <label v-if="label" class="app-input-label">{{ label }}</label>
+        <label v-if="label" class="app-input-label">
+            {{ label }}<span v-if="required" class="app-input-required"> *</span>
+        </label>
 
         <div v-if="!asTextarea" :class="wrapperClass">
             <template v-if="variant === 'filter' && showIcon">
@@ -152,6 +158,10 @@ const wrapperClass = computed(() => {
     font-weight: 600;
     color: #333;
     font-family: var(--font-family-base, 'Open Sans', sans-serif);
+}
+
+.app-input-required {
+    color: var(--color-danger, #b42318);
 }
 
 .app-input-wrapper-edit {

@@ -155,8 +155,8 @@ watch(step, (s) => {
                         <div class="reporter-report-field">
                             <AppSelect
                                 v-model="problemTypeId"
-                                label="Problemos rūšis"
-                                placeholder="Pasirinkti rūšį"
+                                label="Problemos kategorija"
+                                placeholder="Pasirinkti kategoriją"
                                 variant="white"
                                 required
                             >

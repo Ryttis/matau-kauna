@@ -2,6 +2,7 @@
 import { computed, ref } from 'vue'
 import { Head, Link, router } from '@inertiajs/vue3'
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue'
+import AppButton from '@/Components/App/AppButton.vue'
 import AppInput from '@/Components/App/AppInput.vue'
 import { ICON_LEFT_ARROW } from '@/constants/ui/icons'
 import ProblemDetailBlocks from '@/Components/Problems/ProblemDetailBlocks.vue'
@@ -241,13 +242,12 @@ async function onAttachInputChange(e) {
                 </div>
 
                 <div class="reporter-problem-actions">
-                    <button
-                        type="button"
-                        class="reporter-problem-stebeti-btn"
+                    <AppButton
+                        text="Pranešimo eiga"
+                        variant="primary"
+                        as-button
                         @click="goToReviewProgress"
-                    >
-                        Stebėti eigą
-                    </button>
+                    />
                 </div>
             </div>
         </div>
@@ -459,28 +459,5 @@ async function onAttachInputChange(e) {
     margin-top: 32px;
     display: flex;
     justify-content: flex-start;
-}
-
-.reporter-problem-stebeti-btn {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 100%;
-    max-width: var(--button-width, 290px);
-    height: var(--button-height, 45px);
-    margin: 0;
-    padding: 9px 96px;
-    font-size: 16px;
-    font-weight: 600;
-    font-family: inherit;
-    color: var(--color-white);
-    background: var(--color-primary);
-    border: none;
-    border-radius: 15px;
-    cursor: pointer;
-}
-
-.reporter-problem-stebeti-btn:hover {
-    background: var(--color-primary-hover);
 }
 </style>

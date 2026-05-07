@@ -7,7 +7,7 @@ import EntityTable from '@/Components/App/Tables/EntityTable.vue'
 import TableViewLink from '@/Components/Reporter/TableViewLink.vue'
 import FilterModal from '@/Components/App/Modals/FilterModal.vue'
 import SearchFilterBar from '@/Components/App/SearchFilterBar.vue'
-import { PROBLEM_STATUS_LABELS } from '@/constants/domain/problemStatus'
+import StatusBadge from '@/Components/Problems/StatusBadge.vue'
 import { buildReporterProblemDisplayRows } from '@/utils/reporterProblemRows'
 
 const props = defineProps({
@@ -126,7 +126,8 @@ const columns = [
         key: 'status',
         label: 'Būsena',
         sortable: false,
-        value: (row) => PROBLEM_STATUS_LABELS[rowProblem(row).status] || rowProblem(row).status,
+        cellComponent: StatusBadge,
+        cellProps: (row) => ({ status: rowProblem(row).status, size: 'small' }),
     },
     {
         key: 'created_at',
@@ -141,16 +142,16 @@ const columns = [
         value: (row) => truncate(rowProblem(row).category, 18),
     },
     {
+        key: 'nature',
+        label: 'Pobūdis',
+        sortable: false,
+        value: (row) => truncate(rowProblem(row).nature, 18),
+    },
+    {
         key: 'address',
         label: 'Adresas',
         sortable: false,
         value: (row) => truncate(rowProblem(row).address, 28),
-    },
-    {
-        key: 'is_published_publicly',
-        label: 'Viešinimas',
-        sortable: false,
-        value: (row) => (rowProblem(row).is_published_publicly ? 'Paskelbta' : 'Nepaskelbta'),
     },
     {
         key: 'view',
