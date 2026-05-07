@@ -1,6 +1,8 @@
 import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue'
 import { usePage } from '@inertiajs/vue3'
 
+const consumedFlashMessages = new Set()
+
 export function useSuccessModal() {
     const page = usePage()
     const showSuccessModal = ref(false)
@@ -20,12 +22,18 @@ export function useSuccessModal() {
         }
         const flash = page.props?.flash
         const flashMessage = flash?.success || flash?.status
-        if (flashMessage && String(flashMessage).trim()) {
-            showSuccessModal.value = true
+        if (!flashMessage || !String(flashMessage).trim()) {
+            return
         }
+        if (consumedFlashMessages.has(flashMessage)) {
+            return
+        }
+        consumedFlashMessages.add(flashMessage)
+        showSuccessModal.value = true
     }
 
     const onInertiaSuccess = () => {
+        consumedFlashMessages.clear()
         nextTick(tryShowFromFlash)
     }
 

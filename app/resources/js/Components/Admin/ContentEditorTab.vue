@@ -440,8 +440,8 @@ function formatDate(s) {
     color: var(--table-header-text);
     background: var(--table-header-bg);
 }
-.badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 12px; }
-.badge-published { background: #d4edda; color: #155724; }
+.badge { display: inline-block; padding: 4px 12px; border-radius: 999px; font-size: 13px; font-weight: 500; }
+.badge-published { background: #e8f5e9; color: #2e7d32; }
 .badge-draft { background: #fff3cd; color: #856404; }
 .btn-link {
     background: none;

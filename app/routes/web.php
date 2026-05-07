@@ -132,8 +132,10 @@ Route::middleware(['auth', 'verified', 'reporter.terms'])->group(function () {
     Route::delete('/settings', [SettingsController::class, 'destroy'])->name('settings.destroy');
 
     Route::get('/institution-admin', [InstitutionAdminController::class, 'index'])->name('institution-admin');
+    Route::patch('/institution-admin/profile', [InstitutionAdminController::class, 'updateProfile'])->name('institution-admin.profile.update');
     Route::get('/institution-admin/invitations', [InstitutionAdminController::class, 'invitations'])->name('institution-admin.invitations');
     Route::put('/institution-admin/users/{user}', [InstitutionAdminUserController::class, 'update'])->name('institution-admin.users.update');
+    Route::post('/institution-admin/users/{user}/two-factor/reset-confirmation', [InstitutionAdminUserController::class, 'resetTwoFactor'])->name('institution-admin.users.two-factor.reset');
 
     Route::post('/invitations', [AdminInvitationController::class, 'store']);
 

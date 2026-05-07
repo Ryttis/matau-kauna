@@ -7,6 +7,7 @@ import SuccessModal from '@/Components/App/SuccessModal.vue'
 import AppButton from '@/Components/App/AppButton.vue'
 import { useSuccessModal } from '@/composables/useSuccessModal'
 import AppInput from '@/Components/App/AppInput.vue'
+import AppSelect from '@/Components/App/AppSelect.vue'
 import ModalFooterActions from '@/Components/App/ModalFooterActions.vue'
 import { adminApi } from '@/constants/api/adminApi'
 import { INSTITUTION_TYPES } from '@/constants/domain/institutionTypes'
@@ -313,25 +314,27 @@ onMounted(async () => {
             @close="isCreateOpen = false"
         >
             <div class="form-grid">
-                <AppInput v-model="createForm.name" label="Pavadinimas *" />
-                <AppInput v-model="createForm.code" label="Kodas" />
-                <label class="field">
-                    <span>Tipas</span>
-                    <select class="input" v-model="createForm.type">
-                        <option v-for="opt in INSTITUTION_TYPES" :key="opt.value" :value="opt.value">
-                            {{ opt.label }}
-                        </option>
-                    </select>
-                </label>
                 <div class="field full">
-                    <span class="field-label">Kontaktiniai duomenys</span>
-                    <AppInput v-model="createForm.contact_phone" placeholder="Tel." />
-                    <AppInput v-model="createForm.contact_email" label="El. paštas *" type="email" />
-                    <AppInput v-model="createForm.contact_address" placeholder="Adresas" />
+                    <AppInput v-model="createForm.name" label="Pavadinimas" required />
+                </div>
+                <AppInput v-model="createForm.code" label="Kodas" />
+                <AppSelect
+                    v-model="createForm.type"
+                    label="Tipas"
+                    variant="white"
+                    :placeholder="''"
+                >
+                    <option v-for="opt in INSTITUTION_TYPES" :key="opt.value" :value="opt.value">
+                        {{ opt.label }}
+                    </option>
+                </AppSelect>
+                <AppInput v-model="createForm.contact_phone" label="Telefonas" />
+                <AppInput v-model="createForm.contact_email" label="El. paštas" type="email" required />
+                <div class="field full">
+                    <AppInput v-model="createForm.contact_address" label="Adresas" />
                 </div>
                 <div class="field full">
-                    <span class="field-label">Integracija (DVS)</span>
-                    <AppInput v-model="createForm.integration_dvs" placeholder="DVS" />
+                    <AppInput v-model="createForm.integration_dvs" label="Integracija (DVS)" />
                 </div>
                 <div class="field full">
                     <div class="gis-row">
@@ -342,30 +345,32 @@ onMounted(async () => {
                         </label>
                     </div>
                     <template v-if="createForm.gis.enabled">
-                        <AppInput v-model="createForm.gis.generate_token_url" placeholder="GenerateToken URL" />
-                        <AppInput v-model="createForm.gis.technical_username" placeholder="Techninis vartotojas" />
+                        <AppInput v-model="createForm.gis.generate_token_url" label="Token generavimo URL" placeholder="https://..." />
+                        <AppInput v-model="createForm.gis.technical_username" label="Techninis vartotojas" />
                         <AppInput
                             v-model="createForm.gis.technical_password"
                             type="password"
-                            placeholder="Slaptažodis"
+                            label="Slaptažodis"
                             autocomplete="new-password"
                         />
-                        <AppInput v-model="createForm.gis.client_type" placeholder="Kliento tipas (pvz. referer)" />
+                        <AppInput v-model="createForm.gis.client_type" label="Kliento tipas" placeholder="pvz. referer" />
                         <AppInput
                             v-model="createForm.gis.token_expiration_minutes"
                             type="number"
-                            placeholder="Token galiojimas, min."
+                            label="Token galiojimas (min.)"
                         />
-                        <AppInput v-model="createForm.gis.feature_server_url" placeholder="FeatureServer URL" />
-                        <AppInput v-model="createForm.gis.attachment_url" placeholder="AttachmentUrl" />
-                        <label class="field">
-                            <span>Koordinačių sistema (WKID)</span>
-                            <select class="input" v-model.number="createForm.gis.wkid">
-                                <option :value="3346">LKS-94 (3346)</option>
-                                <option :value="4326">WGS84 (4326)</option>
-                                <option :value="3857">Web Mercator (3857)</option>
-                            </select>
-                        </label>
+                        <AppInput v-model="createForm.gis.feature_server_url" label="FeatureServer URL" placeholder="https://..." />
+                        <AppInput v-model="createForm.gis.attachment_url" label="Priedų URL" placeholder="https://..." />
+                        <AppSelect
+                            v-model.number="createForm.gis.wkid"
+                            label="Koordinačių sistema (WKID)"
+                            variant="white"
+                            :placeholder="''"
+                        >
+                            <option :value="3346">LKS-94 (3346)</option>
+                            <option :value="4326">WGS84 (4326)</option>
+                            <option :value="3857">Web Mercator (3857)</option>
+                        </AppSelect>
                         <label class="field checkbox full gis-mapper-toggle">
                             <input type="checkbox" v-model="createForm.gis.use_field_mapping" />
                             <span>Naudoti GIS laukų susiejimą</span>
@@ -414,25 +419,27 @@ onMounted(async () => {
             @close="isEditOpen = false"
         >
             <div class="form-grid">
-                <AppInput v-model="editForm.name" label="Pavadinimas *" />
-                <AppInput v-model="editForm.code" label="Kodas" />
-                <label class="field">
-                    <span>Tipas</span>
-                    <select class="input" v-model="editForm.type">
-                        <option v-for="opt in INSTITUTION_TYPES" :key="opt.value" :value="opt.value">
-                            {{ opt.label }}
-                        </option>
-                    </select>
-                </label>
                 <div class="field full">
-                    <span class="field-label">Kontaktiniai duomenys</span>
-                    <AppInput v-model="editForm.contact_phone" placeholder="Tel." />
-                    <AppInput v-model="editForm.contact_email" label="El. paštas *" type="email" />
-                    <AppInput v-model="editForm.contact_address" placeholder="Adresas" />
+                    <AppInput v-model="editForm.name" label="Pavadinimas" required />
+                </div>
+                <AppInput v-model="editForm.code" label="Kodas" />
+                <AppSelect
+                    v-model="editForm.type"
+                    label="Tipas"
+                    variant="white"
+                    :placeholder="''"
+                >
+                    <option v-for="opt in INSTITUTION_TYPES" :key="opt.value" :value="opt.value">
+                        {{ opt.label }}
+                    </option>
+                </AppSelect>
+                <AppInput v-model="editForm.contact_phone" label="Telefonas" />
+                <AppInput v-model="editForm.contact_email" label="El. paštas" type="email" required />
+                <div class="field full">
+                    <AppInput v-model="editForm.contact_address" label="Adresas" />
                 </div>
                 <div class="field full">
-                    <span class="field-label">Integracija (DVS)</span>
-                    <AppInput v-model="editForm.integration_dvs" placeholder="DVS" />
+                    <AppInput v-model="editForm.integration_dvs" label="Integracija (DVS)" />
                 </div>
                 <div class="field full">
                     <div class="gis-row">
@@ -443,30 +450,33 @@ onMounted(async () => {
                         </label>
                     </div>
                     <template v-if="editForm.gis.enabled">
-                        <AppInput v-model="editForm.gis.generate_token_url" placeholder="GenerateToken URL" />
-                        <AppInput v-model="editForm.gis.technical_username" placeholder="Techninis vartotojas" />
+                        <AppInput v-model="editForm.gis.generate_token_url" label="Token generavimo URL" placeholder="https://..." />
+                        <AppInput v-model="editForm.gis.technical_username" label="Techninis vartotojas" />
                         <AppInput
                             v-model="editForm.gis.technical_password"
                             type="password"
-                            :placeholder="editForm.gis.has_technical_password ? 'Palikite tuščią, jei nekeičiate' : 'Slaptažodis'"
+                            label="Slaptažodis"
+                            :placeholder="editForm.gis.has_technical_password ? 'Palikite tuščią, jei nekeičiate' : ''"
                             autocomplete="new-password"
                         />
-                        <AppInput v-model="editForm.gis.client_type" placeholder="Kliento tipas (pvz. referer)" />
+                        <AppInput v-model="editForm.gis.client_type" label="Kliento tipas" placeholder="pvz. referer" />
                         <AppInput
                             v-model="editForm.gis.token_expiration_minutes"
                             type="number"
-                            placeholder="Token galiojimas, min."
+                            label="Token galiojimas (min.)"
                         />
-                        <AppInput v-model="editForm.gis.feature_server_url" placeholder="FeatureServer URL" />
-                        <AppInput v-model="editForm.gis.attachment_url" placeholder="AttachmentUrl" />
-                        <label class="field">
-                            <span>Koordinačių sistema (WKID)</span>
-                            <select class="input" v-model.number="editForm.gis.wkid">
-                                <option :value="3346">LKS-94 (3346)</option>
-                                <option :value="4326">WGS84 (4326)</option>
-                                <option :value="3857">Web Mercator (3857)</option>
-                            </select>
-                        </label>
+                        <AppInput v-model="editForm.gis.feature_server_url" label="FeatureServer URL" placeholder="https://..." />
+                        <AppInput v-model="editForm.gis.attachment_url" label="Priedų URL" placeholder="https://..." />
+                        <AppSelect
+                            v-model.number="editForm.gis.wkid"
+                            label="Koordinačių sistema (WKID)"
+                            variant="white"
+                            :placeholder="''"
+                        >
+                            <option :value="3346">LKS-94 (3346)</option>
+                            <option :value="4326">WGS84 (4326)</option>
+                            <option :value="3857">Web Mercator (3857)</option>
+                        </AppSelect>
                         <label class="field checkbox full gis-mapper-toggle">
                             <input type="checkbox" v-model="editForm.gis.use_field_mapping" />
                             <span>Naudoti GIS laukų susiejimą</span>
@@ -643,6 +653,10 @@ td {
     gap: 12px;
 }
 
+.form-grid :deep(.app-input-edit) {
+    background-color: #fff;
+}
+
 .field {
     display: flex;
     flex-direction: column;
@@ -663,8 +677,10 @@ td {
 
 .field span,
 .field-label {
-    font-size: 13px;
-    font-weight: 500;
+    font-size: 16px;
+    font-weight: 600;
+    color: #333;
+    font-family: var(--font-family-base, 'Open Sans', sans-serif);
 }
 
 .input {

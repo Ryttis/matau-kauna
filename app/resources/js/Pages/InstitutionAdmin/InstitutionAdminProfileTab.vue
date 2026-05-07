@@ -4,6 +4,7 @@ import { router, useForm } from '@inertiajs/vue3'
 import axios from 'axios'
 import AppInput from '@/Components/App/AppInput.vue'
 import AppButton from '@/Components/App/AppButton.vue'
+import AppSelect from '@/Components/App/AppSelect.vue'
 import AppSwitch from '@/Components/App/AppSwitch.vue'
 import SuccessModal from '@/Components/App/SuccessModal.vue'
 import { adminApi } from '@/constants/api/adminApi'
@@ -60,6 +61,11 @@ const { showSuccessModal, successMessage, closeSuccessModal, showWithMessage } =
 
 const settingsForm = useForm({
     name: '',
+    code: '',
+    type: '',
+    contact_phone: '',
+    contact_email: '',
+    contact_address: '',
 })
 
 const adminSaving = ref(false)
@@ -138,7 +144,13 @@ const adminForm = ref({
 })
 
 function syncSettingsForm() {
-    settingsForm.name = props.institutionRecord?.name ?? ''
+    const inst = props.institutionRecord
+    settingsForm.name = inst?.name ?? ''
+    settingsForm.code = inst?.code ?? ''
+    settingsForm.type = inst?.type ?? ''
+    settingsForm.contact_phone = inst?.contact_phone ?? ''
+    settingsForm.contact_email = inst?.contact_email ?? ''
+    settingsForm.contact_address = inst?.contact_address ?? ''
 }
 
 function syncAdminForm() {
@@ -178,14 +190,16 @@ onMounted(() => {
 })
 
 function submitSettings() {
-    const gis = gisSubmitPayload(gisFromPayload(props.institutionGis))
     settingsForm
         .transform((data) => ({
             name: data.name,
-            code: props.institutionRecord?.code ?? null,
-            gis,
+            code: data.code || null,
+            type: data.type || null,
+            contact_phone: data.contact_phone || null,
+            contact_email: data.contact_email || null,
+            contact_address: data.contact_address || null,
         }))
-        .patch(route('settings.institution'), {
+        .patch(route('institution-admin.profile.update'), {
             preserveScroll: true,
             onSuccess: () => showWithMessage('Įstaigos duomenys atnaujinti.'),
         })
@@ -232,31 +246,79 @@ async function submitAdmin() {
             <h3 class="admin-tab-intro__title">Įstaigos profilis</h3>
             <p class="admin-tab-intro__desc">
                 {{ profileSaveMode === 'settings'
-                    ? 'Čia galite keisti tik įstaigos pavadinimą. Kitus įstaigos duomenis tvarko sistemos administratorius.'
+                    ? 'Tvarkykite pagrindinius įstaigos duomenis. GIS integraciją ir kitus papildomus nustatymus tvarko sistemos administratorius.'
                     : 'Tvarkykite įstaigos duomenis ir GIS integraciją.'
                 }}
             </p>
         </div>
 
         <template v-if="profileSaveMode === 'settings'">
-            <form class="form-grid form-grid--institution-profile-settings" @submit.prevent="submitSettings">
-                <AppInput v-model="settingsForm.name" label="Pavadinimas" placeholder="Pavadinimas" />
-                <p v-if="settingsForm.errors.name" class="form-error">{{ settingsForm.errors.name }}</p>
-                <AppButton text="Saugoti" variant="primary" as-button type="submit" :disabled="settingsForm.processing" />
+            <form class="form-grid" @submit.prevent="submitSettings">
+                <div class="field full">
+                    <AppInput v-model="settingsForm.name" label="Pavadinimas" required />
+                    <p v-if="settingsForm.errors.name" class="form-error">{{ settingsForm.errors.name }}</p>
+                </div>
+
+                <div class="field">
+                    <AppInput v-model="settingsForm.code" label="Kodas" />
+                    <p v-if="settingsForm.errors.code" class="form-error">{{ settingsForm.errors.code }}</p>
+                </div>
+
+                <div class="field">
+                    <AppSelect
+                        v-model="settingsForm.type"
+                        label="Tipas"
+                        variant="white"
+                        :placeholder="''"
+                    >
+                        <option v-for="t in INSTITUTION_TYPES" :key="t.value || 'empty'" :value="t.value">{{ t.label }}</option>
+                    </AppSelect>
+                    <p v-if="settingsForm.errors.type" class="form-error">{{ settingsForm.errors.type }}</p>
+                </div>
+
+                <div class="field">
+                    <AppInput v-model="settingsForm.contact_phone" label="Telefonas" />
+                    <p v-if="settingsForm.errors.contact_phone" class="form-error">{{ settingsForm.errors.contact_phone }}</p>
+                </div>
+
+                <div class="field">
+                    <AppInput v-model="settingsForm.contact_email" label="El. paštas" type="email" />
+                    <p v-if="settingsForm.errors.contact_email" class="form-error">{{ settingsForm.errors.contact_email }}</p>
+                </div>
+
+                <div class="field full">
+                    <AppInput v-model="settingsForm.contact_address" label="Adresas" />
+                    <p v-if="settingsForm.errors.contact_address" class="form-error">{{ settingsForm.errors.contact_address }}</p>
+                </div>
+
+                <div class="field full form-actions">
+                    <AppButton
+                        text="Saugoti"
+                        variant="primary"
+                        as-button
+                        :disabled="settingsForm.processing"
+                        :loading="settingsForm.processing"
+                        @click="submitSettings"
+                    />
+                </div>
             </form>
         </template>
 
         <template v-else>
             <p v-if="adminError" class="error-banner">{{ adminError }}</p>
             <form class="form-grid" @submit.prevent="submitAdmin">
-                <AppInput v-model="adminForm.name" label="Pavadinimas *" />
+                <AppInput v-model="adminForm.name" label="Pavadinimas" required />
                 <AppInput v-model="adminForm.code" label="Kodas" />
-                <label class="filter-label">Tipas</label>
-                <select v-model="adminForm.type" class="filter-select-wide">
+                <AppSelect
+                    v-model="adminForm.type"
+                    label="Tipas"
+                    variant="white"
+                    :placeholder="''"
+                >
                     <option v-for="t in INSTITUTION_TYPES" :key="t.value || 'empty'" :value="t.value">{{ t.label }}</option>
-                </select>
+                </AppSelect>
                 <AppInput v-model="adminForm.contact_phone" label="Telefonas" />
-                <AppInput v-model="adminForm.contact_email" label="Kontaktinis el. paštas *" type="email" />
+                <AppInput v-model="adminForm.contact_email" label="Kontaktinis el. paštas" type="email" required />
                 <AppInput v-model="adminForm.contact_address" label="Adresas" />
                 <AppInput v-model="adminForm.integration_dvs" label="Integracija DVS" />
 
@@ -316,7 +378,14 @@ async function submitAdmin() {
                     </div>
                 </div>
 
-                <AppButton text="Saugoti" variant="primary" as-button type="submit" :disabled="adminSaving" />
+                <AppButton
+                    text="Saugoti"
+                    variant="primary"
+                    as-button
+                    :disabled="adminSaving"
+                    :loading="adminSaving"
+                    @click="submitAdmin"
+                />
             </form>
         </template>
     </div>
@@ -324,21 +393,48 @@ async function submitAdmin() {
 
 <style scoped>
 .form-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px 16px;
+    width: 100%;
+    max-width: min(100%, 40rem);
+    align-items: start;
+    box-sizing: border-box;
+}
+
+.form-grid .field {
     display: flex;
     flex-direction: column;
-    gap: 12px;
-    width: 100%;
-    max-width: min(100%, 42rem);
-    align-items: stretch;
-    box-sizing: border-box;
+    gap: 4px;
+    min-width: 0;
+}
+
+.form-grid .field.full {
+    grid-column: 1 / -1;
+}
+
+.form-grid .form-actions {
+    margin-top: 8px;
 }
 
 .form-grid :deep(.app-input-group),
 .form-grid :deep(.app-input-wrapper-edit),
-.form-grid :deep(.app-input-edit) {
+.form-grid :deep(.app-input-edit),
+.form-grid :deep(.app-select-group),
+.form-grid :deep(.app-select-wrapper) {
     width: 100%;
     min-width: 0;
     box-sizing: border-box;
+}
+
+.form-grid :deep(.app-input-edit) {
+    background-color: #fff;
+}
+
+@media (max-width: 640px) {
+    .form-grid {
+        grid-template-columns: 1fr;
+    }
 }
 
 .form-grid.form-grid--institution-profile-settings {

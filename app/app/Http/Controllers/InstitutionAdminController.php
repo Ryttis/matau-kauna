@@ -3,12 +3,14 @@
 namespace App\Http\Controllers;
 
 use App\Http\Controllers\Concerns\ResolvesInstitutionAdminInstitutionId;
+use App\Http\Requests\UpdateInstitutionAdminProfileRequest;
 use App\Models\Institution;
 use App\Models\Invitation;
 use App\Models\User;
 use App\Models\UserRole;
 use App\Services\InstitutionGisConfigService;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Inertia\Inertia;
@@ -60,6 +62,24 @@ class InstitutionAdminController extends Controller
             'institutionUsers' => $institutionUsers,
             'inviteRoles' => $inviteRoles,
         ]);
+    }
+
+    public function updateProfile(UpdateInstitutionAdminProfileRequest $request): RedirectResponse
+    {
+        $user = Auth::user();
+        if (! ($user instanceof User)) {
+            abort(403);
+        }
+        if (! $user->canManageTeams() && ! $user->canManageInvitations()) {
+            abort(403);
+        }
+
+        $institutionId = $this->resolveInstitutionId($request, $user);
+        $institution = Institution::query()->notArchived()->findOrFail($institutionId);
+
+        $institution->update($request->validated());
+
+        return back()->with('success', 'Įstaigos duomenys atnaujinti.');
     }
 
     public function invitations(Request $request): JsonResponse

@@ -48,6 +48,7 @@ const inviteForm = ref({ email: '', role_id: '' })
 const isEditOpen = ref(false)
 const editSaving = ref(false)
 const editError = ref('')
+const resetTwoFactorBusyUserId = ref(null)
 const editForm = ref({
     id: null,
     name: '',
@@ -147,6 +148,25 @@ function closeEdit() {
     isEditOpen.value = false
 }
 
+async function resetTwoFactor(user) {
+    if (!user || resetTwoFactorBusyUserId.value !== null) return
+    if (!window.confirm(`Atkurti 2FA naudotojui „${user.name || user.email}"? Naudotojas turės iš naujo pasidaryti autentifikatorių.`)) {
+        return
+    }
+    resetTwoFactorBusyUserId.value = user.id
+    try {
+        const params = institutionAdminParams()
+        await axios.post(institutionAdminApi.userResetTwoFactor(user.id), {}, { params })
+        showWithMessage('2FA atstatyta. Naudotojas turi nusistatyti autentifikatorių iš naujo.')
+        router.reload({ only: ['institutionUsers'] })
+    } catch (e) {
+        const msg = e.response?.data?.message ?? 'Nepavyko atkurti 2FA.'
+        window.alert(msg)
+    } finally {
+        resetTwoFactorBusyUserId.value = null
+    }
+}
+
 async function saveEdit() {
     editError.value = ''
     const f = editForm.value
@@ -243,6 +263,17 @@ async function saveEdit() {
                                 <button type="button" class="link-btn" @click="openEdit(u)">
                                     Redaguoti
                                 </button>
+                                <template v-if="u.two_factor_enabled">
+                                    <span class="actions-sep">|</span>
+                                    <button
+                                        type="button"
+                                        class="link-btn"
+                                        :disabled="resetTwoFactorBusyUserId === u.id"
+                                        @click="resetTwoFactor(u)"
+                                    >
+                                        {{ resetTwoFactorBusyUserId === u.id ? 'Atkuriama…' : 'Atkurti 2FA' }}
+                                    </button>
+                                </template>
                             </span>
                         </td>
                     </tr>
@@ -381,6 +412,17 @@ async function saveEdit() {
 .two-fa-cell {
     font-weight: 600;
     white-space: nowrap;
+}
+
+.actions-row {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+}
+
+.actions-sep {
+    color: #9ca3af;
 }
 
 .subsection-title {
