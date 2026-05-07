@@ -21,7 +21,7 @@ class ProblemWatchController extends Controller
         }
 
         $user = $request->user();
-        if (! $this->httpSupport->reporterCanToggleWatch($user, $problem)) {
+        if (! $this->httpSupport->userCanToggleWatch($user, $problem)) {
             abort(404);
         }
 

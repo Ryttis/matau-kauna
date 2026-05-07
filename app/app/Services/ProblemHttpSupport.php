@@ -126,6 +126,18 @@ class ProblemHttpSupport
         return $ownsReport || ($main && $main->is_published_publicly);
     }
 
+    public function userCanToggleWatch(User $user, Problem $problem): bool
+    {
+        if ($this->reporterCanToggleWatch($user, $problem)) {
+            return true;
+        }
+        if ($user->hasPermission('issues.view') || $user->canAccessAdmin()) {
+            return true;
+        }
+
+        return false;
+    }
+
     public function problemIsWatchedByUser(User $user, Problem $problem): bool
     {
         $groupIds = $problem->getMergeGroupIds();
