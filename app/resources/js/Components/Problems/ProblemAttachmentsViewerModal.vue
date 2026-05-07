@@ -177,7 +177,12 @@ function confirmDelete() {
         @confirm="confirmDelete"
     />
 
-    <AttachmentMediaLightbox :attachment="preview" @close="closePreview" />
+    <AttachmentMediaLightbox
+        :attachment="preview"
+        :attachments="attachments"
+        @close="closePreview"
+        @change="(a) => preview = a"
+    />
 </template>
 
 <style scoped>

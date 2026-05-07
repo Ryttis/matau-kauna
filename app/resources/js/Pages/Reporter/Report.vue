@@ -1,5 +1,5 @@
 <script setup>
-import { ref, watch } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { Head } from '@inertiajs/vue3'
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue'
 import AppSelect from '@/Components/App/AppSelect.vue'
@@ -82,6 +82,15 @@ const {
 } = useReporterReportPage(props)
 
 const reporterFilePreviewLightbox = ref(null)
+
+const reporterPreviewableAttachments = computed(() =>
+    (filePreviews.value || [])
+        .filter((item) => item?.previewUrl && item.kind !== 'other')
+        .map((item) => ({
+            kind: item.kind === 'photo' ? 'photo' : 'video',
+            url: item.previewUrl,
+        })),
+)
 
 function openReporterFilePreview(item) {
     if (!item?.previewUrl || item.kind === 'other') return
@@ -337,8 +346,10 @@ watch(step, (s) => {
 
         <AttachmentMediaLightbox
             :attachment="reporterFilePreviewLightbox"
+            :attachments="reporterPreviewableAttachments"
             :z-index="5600"
             @close="closeReporterFilePreview"
+            @change="(a) => reporterFilePreviewLightbox = a"
         />
     </AuthenticatedLayout>
 </template>

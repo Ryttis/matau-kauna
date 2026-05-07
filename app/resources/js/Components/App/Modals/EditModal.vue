@@ -650,7 +650,7 @@ const handleSave = async () => {
 
 .edit-save-wrap {
     display: flex;
-    justify-content: center;
+    justify-content: flex-end;
     width: 100%;
 }
 

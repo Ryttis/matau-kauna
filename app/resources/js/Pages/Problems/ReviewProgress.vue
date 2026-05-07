@@ -46,6 +46,7 @@ const {
     cancelDeleteReviewAttachment,
     confirmDeleteReviewAttachment,
     reviewAttachmentForLightbox,
+    reviewAttachmentsForLightbox,
     openAttachmentInLightbox,
     closeAttachmentLightbox,
 } = useReviewProgressPage(props)
@@ -237,8 +238,10 @@ const {
 
         <AttachmentMediaLightbox
             :attachment="reviewAttachmentForLightbox"
+            :attachments="reviewAttachmentsForLightbox"
             :z-index="5600"
             @close="closeAttachmentLightbox"
+            @change="openAttachmentInLightbox"
         />
     </AuthenticatedLayout>
 </template>

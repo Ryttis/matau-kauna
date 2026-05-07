@@ -19,13 +19,13 @@ const backUrl = computed(() => {
 <style scoped>
 .reporter-view-link {
     display: inline-block;
-    padding: 4px 10px;
+    padding: 4px 14px;
     font-size: 12px;
     font-weight: 400;
     color: var(--color-primary, #1946a0);
     text-decoration: none;
     border: 1px solid var(--color-primary, #1946a0);
-    border-radius: 4px;
+    border-radius: 999px;
 }
 
 .reporter-view-link:hover {
