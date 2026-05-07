@@ -1,4 +1,6 @@
 <script setup>
+import { ref } from 'vue'
+import axios from 'axios'
 import { Head, router } from '@inertiajs/vue3'
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue'
 import ConfirmModal from '@/Components/App/ConfirmModal.vue'
@@ -23,6 +25,8 @@ const props = defineProps({
     mergedSiblings: { type: Array, default: () => [] },
     statusOptions: { type: Array, default: () => [] },
     categories: Array,
+    isWatched: { type: Boolean, default: false },
+    canWatch: { type: Boolean, default: false },
     fileUpload: {
         type: Object,
         default: () => ({}),
@@ -64,6 +68,20 @@ const {
     problemIdForMergePage,
     assignmentSummary,
 } = useProblemShowPage(props)
+
+const isProblemWatched = ref(!!props.isWatched)
+const watchToggleBusy = ref(false)
+
+async function toggleProblemWatch() {
+    if (watchToggleBusy.value || !props.canWatch) return
+    watchToggleBusy.value = true
+    try {
+        const { data } = await axios.post(route('problems.watch.toggle', props.problem.id))
+        isProblemWatched.value = !!data.watched
+    } finally {
+        watchToggleBusy.value = false
+    }
+}
 </script>
 
 <template>
@@ -97,6 +115,16 @@ const {
                 >
                     {{ problem.is_published_publicly ? 'Paskelbta viešai' : 'Nepaskelbta viešai' }}
                 </span>
+                <button
+                    v-if="canWatch"
+                    type="button"
+                    class="problem-public-label problem-watch-label"
+                    :class="{ 'problem-public-label--on': isProblemWatched }"
+                    :disabled="watchToggleBusy"
+                    @click="toggleProblemWatch"
+                >
+                    {{ isProblemWatched ? 'Stebima' : 'Stebėti' }}
+                </button>
             </div>
 
             <ProblemMergeLinks

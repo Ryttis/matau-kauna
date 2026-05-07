@@ -264,11 +264,23 @@ const handleDashboardListClick = () => {
 }
 
 .sidebar-title {
-    text-align: center;
+    text-align: left;
     font-weight: bold;
-    padding: 40px 24px;
+    padding: 40px 24px 40px 76px;
     border-bottom: 1px solid var(--color-border);
     box-sizing: border-box;
+}
+
+@media (min-width: 1280px) {
+    .sidebar-title {
+        padding-left: 96px;
+    }
+}
+
+@media (min-width: 1440px) {
+    .sidebar-title {
+        padding-left: 120px;
+    }
 }
 
 .sidebar-title span {
@@ -305,8 +317,10 @@ const handleDashboardListClick = () => {
 
 .nav-link {
     display: flex;
-    gap: 40px;
-    padding: 10px 60px;
+    align-items: center;
+    gap: 16px;
+    min-height: 40px;
+    padding: 8px 16px 8px 50px;
     color: black;
     text-decoration: none;
     border: none;
@@ -361,8 +375,8 @@ const handleDashboardListClick = () => {
 }
 
 .nav-icon {
-    width: 22px;
-    height: 22px;
+    width: 24px;
+    height: 24px;
     display: block;
     object-fit: contain;
     object-position: center;
@@ -370,12 +384,7 @@ const handleDashboardListClick = () => {
 }
 
 .nav-icon--map {
-    transform: scale(0.9);
-    transform-origin: center center;
-}
-
-.nav-icon--symbol {
-    transform: scale(1.12);
+    transform: scale(1.15);
     transform-origin: center center;
 }
 
@@ -406,7 +415,7 @@ const handleDashboardListClick = () => {
 
 .submenu-link {
     display: block;
-    padding: 8px 60px;
+    padding: 8px 16px 8px 90px;
     color: #333;
     text-decoration: none;
     font-size: 16px;
@@ -426,17 +435,17 @@ const handleDashboardListClick = () => {
 
 @media (max-width: 1023px) {
     .sidebar-title {
-        padding: 24px 16px;
+        padding: 24px 16px 24px 16px;
     }
 
     .nav-link {
-        padding: 12px 20px;
+        padding: 12px 20px 12px 50px;
         gap: 16px;
         font-size: 16px;
     }
 
     .submenu-link {
-        padding: 8px 20px;
+        padding: 8px 20px 8px 90px;
         font-size: 15px;
     }
 }
