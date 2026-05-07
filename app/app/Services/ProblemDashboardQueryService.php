@@ -16,11 +16,12 @@ class ProblemDashboardQueryService
         private ProblemMapService $mapService,
     ) {}
 
-    public function reporterDashboardProps(User $user, bool $onlyMine): array
+    public function reporterDashboardProps(User $user, bool $onlyMine, bool $onlyWatched = false): array
     {
         return [
             'reporterView' => true,
             'onlyMine' => $onlyMine,
+            'onlyWatched' => $onlyWatched,
             'problems' => $this->mapService->getPublicProblemsForMap(
                 $onlyMine ? $user->id : null,
                 $user,

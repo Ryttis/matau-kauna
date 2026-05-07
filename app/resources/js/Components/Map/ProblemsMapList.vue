@@ -137,7 +137,7 @@ function onSimpleRowActivate(problem) {
                                 class="problems-map-list__watch-eye"
                                 :class="{ 'problems-map-list__watch-eye--on': rowWatched(row.problem) }"
                                 :disabled="watchBusy(row.problem)"
-                                :data-tooltip="rowWatched(row.problem) ? 'Nebestebėti problemą' : 'Stebėti problemą'"
+                                :data-tooltip="rowWatched(row.problem) ? 'Nebestebėti problemos' : 'Stebėti problemą'"
                                 :aria-label="
                                     row.groupIds?.length > 1
                                         ? 'Stebėti arba nebestebėti visą sujungtą problemų grupę'

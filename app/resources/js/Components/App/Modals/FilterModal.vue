@@ -29,12 +29,13 @@ const props = defineProps({
     categories: Array,
     allStatusOptions: Array,
     onlyMine: { type: Boolean, default: undefined },
+    onlyWatched: { type: Boolean, default: undefined },
     statusCheckboxOptions: { type: Array, default: null },
     dateMin: { type: String, default: '' },
     dateMax: { type: String, default: '' },
 })
 
-const emit = defineEmits(['close', 'apply', 'clear', 'onlyMineChange'])
+const emit = defineEmits(['close', 'apply', 'clear', 'onlyMineChange', 'onlyWatchedChange'])
 
 const isPublicMap = () => props.variant === 'publicMap'
 
@@ -59,11 +60,13 @@ function getInitialFilters() {
 
 const localFilters = ref(getInitialFilters())
 const localOnlyMine = ref(false)
+const localOnlyWatched = ref(false)
 
 watch(() => props.show, (isOpen) => {
     if (isOpen) {
         localFilters.value = getInitialFilters()
         localOnlyMine.value = !!props.onlyMine
+        localOnlyWatched.value = !!props.onlyWatched
     }
 })
 
@@ -71,8 +74,16 @@ watch(() => props.onlyMine, (v) => {
     localOnlyMine.value = !!v
 }, { immediate: true })
 
+watch(() => props.onlyWatched, (v) => {
+    localOnlyWatched.value = !!v
+}, { immediate: true })
+
 function onOnlyMineChange() {
     emit('onlyMineChange', localOnlyMine.value)
+}
+
+function onOnlyWatchedChange() {
+    emit('onlyWatchedChange', localOnlyWatched.value)
 }
 
 function setStatus(value, checked) {
@@ -124,6 +135,10 @@ const handleClose = () => {
             <label v-if="isPublicMap() && props.onlyMine !== undefined" class="filter-only-mine-label">
                 <AppCheckbox v-model="localOnlyMine" @update:model-value="onOnlyMineChange" />
                 <span>Rodyti tik mano iškeltas problemas</span>
+            </label>
+            <label v-if="isPublicMap() && props.onlyWatched !== undefined" class="filter-only-mine-label">
+                <AppCheckbox v-model="localOnlyWatched" @update:model-value="onOnlyWatchedChange" />
+                <span>Rodyti tik stebimas problemas</span>
             </label>
             <div class="filter-section">
                 <AppInput

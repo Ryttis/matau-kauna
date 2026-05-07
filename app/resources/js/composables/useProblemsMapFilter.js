@@ -22,6 +22,8 @@ function isCreatedAtInRange(createdAt, dateFrom, dateTo) {
 export function useProblemsMapFilter(problemsSource, options = {}) {
     const restrictToCurrentYear = !!options.restrictToCurrentYear
     const reporterOnlyMine = options.reporterOnlyMine
+    const reporterOnlyWatched = options.reporterOnlyWatched
+    const isWatchedPredicate = typeof options.isWatched === 'function' ? options.isWatched : null
     const searchQuery = ref('')
     const filterState = ref({ ...DEFAULT_FILTER_STATE })
     const selectedIds = ref(new Set())
@@ -92,6 +94,13 @@ export function useProblemsMapFilter(problemsSource, options = {}) {
         }
         if (effectiveFrom || effectiveTo) {
             result = result.filter((problem) => isCreatedAtInRange(problem.created_at, effectiveFrom, effectiveTo))
+        }
+
+        if (reporterOnlyWatched?.value) {
+            result = result.filter((problem) => {
+                if (isWatchedPredicate) return !!isWatchedPredicate(problem)
+                return !!problem?.is_watched
+            })
         }
 
         if (reporterOnlyMine?.value) {
