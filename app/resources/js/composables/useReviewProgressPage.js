@@ -1,4 +1,4 @@
-import { ref, watch } from 'vue'
+import { computed, ref, watch } from 'vue'
 import axios from 'axios'
 import { router } from '@inertiajs/vue3'
 
@@ -104,6 +104,20 @@ export function useReviewProgressPage(props) {
 
     const reviewAttachmentForLightbox = ref(null)
 
+    const reviewAttachmentsForLightbox = computed(() => {
+        const entries = Array.isArray(props.reviewEntries) ? props.reviewEntries : []
+        const all = []
+        entries.forEach((entry) => {
+            const attachments = Array.isArray(entry?.attachments) ? entry.attachments : []
+            attachments.forEach((attachment) => {
+                if (!attachment) return
+                if (attachment.kind !== 'photo' && attachment.kind !== 'video') return
+                all.push(attachment)
+            })
+        })
+        return all
+    })
+
     function openAttachmentInLightbox(attachment) {
         reviewAttachmentForLightbox.value = attachment
     }
@@ -129,6 +143,7 @@ export function useReviewProgressPage(props) {
         cancelDeleteReviewAttachment,
         confirmDeleteReviewAttachment,
         reviewAttachmentForLightbox,
+        reviewAttachmentsForLightbox,
         openAttachmentInLightbox,
         closeAttachmentLightbox,
     }

@@ -279,7 +279,9 @@ const showTitle = () =>
         <AttachmentMediaLightbox
             v-if="directLightbox"
             :attachment="preview"
+            :attachments="attachments"
             @close="closeLightbox"
+            @change="(a) => preview = a"
         />
     </div>
 </template>

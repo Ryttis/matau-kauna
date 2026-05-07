@@ -415,8 +415,8 @@ function onSimpleRowActivate(problem) {
 .problems-map-list__view-btn {
     flex-shrink: 0;
     align-self: center;
-    padding: 0.4rem 0.85rem;
-    border-radius: 8px;
+    padding: 0.4rem 1rem;
+    border-radius: 999px;
     border: 1px solid #1946a0;
     background: #fff;
     color: #1946a0;
@@ -428,8 +428,8 @@ function onSimpleRowActivate(problem) {
 
 .problems-map-list__view-btn--internal {
     font-size: 12px;
-    padding: 4px 10px;
-    border-radius: 4px;
+    padding: 4px 14px;
+    border-radius: 999px;
     font-weight: 400;
     background: #fff;
     color: var(--color-primary, #1946a0);
