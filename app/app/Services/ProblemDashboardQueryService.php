@@ -25,7 +25,7 @@ class ProblemDashboardQueryService
             'problems' => $this->mapService->getPublicProblemsForMap(
                 $onlyMine ? $user->id : null,
                 $user,
-                false,
+                ! $onlyMine,
             ),
         ];
     }

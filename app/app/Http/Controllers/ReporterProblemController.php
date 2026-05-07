@@ -57,6 +57,7 @@ class ReporterProblemController extends Controller
                 'status' => $problem->status,
                 'created_at' => $problem->created_at?->toIso8601String(),
                 'category' => $problem->category,
+                'nature' => $problem->problemNature?->name,
                 'address' => $problem->address,
                 'description' => $problem->description ?? '',
                 'is_published_publicly' => $problem->is_published_publicly,

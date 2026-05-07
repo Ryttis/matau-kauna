@@ -170,7 +170,7 @@ const handleClose = () => {
             <div class="filter-section">
                 <AppSelect
                     v-model="localFilters.problemType"
-                    label="Problemos tipas"
+                    label="Kategorija"
                     placeholder="Pasirinkti kategoriją"
                     :variant="isPublicMap() ? 'blue' : 'white'"
                     :rounded="true"

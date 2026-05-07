@@ -20,6 +20,19 @@ use Inertia\Response;
 
 class ProblemHttpSupport
 {
+    private const REPORTER_LIST_COLUMNS = [
+        'id',
+        'internal_number',
+        'status',
+        'created_at',
+        'category',
+        'problem_nature_id',
+        'address',
+        'description',
+        'is_published_publicly',
+        'merged_into_problem_id',
+    ];
+
     public function __construct(
         private ProblemScopeService $scopeService,
         private ProblemReviewHistoryService $reviewHistoryService,
@@ -178,32 +191,14 @@ class ProblemHttpSupport
                 ! $includeAllStatuses,
                 fn ($query) => $query->whereIn('status', ProblemStatus::reporterOwnedProblemsQueryStatusValues())
             )
-            ->get([
-                'id',
-                'internal_number',
-                'status',
-                'created_at',
-                'category',
-                'address',
-                'description',
-                'is_published_publicly',
-                'merged_into_problem_id',
-            ]);
+            ->with(['problemNature:id,name'])
+            ->get(self::REPORTER_LIST_COLUMNS);
 
         $rootsOrdered = Problem::query()
             ->whereIn('id', $rootIdArr)
             ->orderByDesc('created_at')
-            ->get([
-                'id',
-                'internal_number',
-                'status',
-                'created_at',
-                'category',
-                'address',
-                'description',
-                'is_published_publicly',
-                'merged_into_problem_id',
-            ]);
+            ->with(['problemNature:id,name'])
+            ->get(self::REPORTER_LIST_COLUMNS);
 
         $ordered = collect();
         foreach ($rootsOrdered as $main) {
