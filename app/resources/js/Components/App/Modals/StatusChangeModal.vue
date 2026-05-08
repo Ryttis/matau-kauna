@@ -127,7 +127,7 @@ const btnMinWidthPx = `${MODAL_BUTTON_MIN_WIDTH}px`
     cursor: pointer;
     font-size: 16px;
     color: var(--color-text, #1E1C1C);
-    transition: border-color 0.2s, background-color 0.2s;
+    transition: border-color 0.2s, background-color 0.2s, color 0.2s;
     user-select: none;
     text-align: center;
     font-family: 'Open Sans', sans-serif;
@@ -140,14 +140,13 @@ const btnMinWidthPx = `${MODAL_BUTTON_MIN_WIDTH}px`
 }
 
 .status-modal-option-btn:hover {
-    border-color: var(--status-border-hover);
     background-color: var(--status-bg-hover);
 }
 
 .status-modal-option-btn.status-modal-option-btn-active {
+    background-color: var(--status-border);
     border-color: var(--status-border-hover);
-    background-color: var(--status-bg-hover);
-    border-width: 3px;
+    color: var(--status-active-text, #1E1C1C);
 }
 
 .status-modal-footer-wrapper {

@@ -15,7 +15,7 @@ class AssignmentRuleRequest extends FormRequest
     {
         return [
             'name' => ['nullable', 'string', 'max:255'],
-            'category' => ['nullable', 'string', 'max:255'],
+            'category' => ['required', 'string', 'max:255'],
             'institution_id' => ['required', 'integer', 'exists:institutions,id'],
             'is_active' => ['boolean'],
         ];

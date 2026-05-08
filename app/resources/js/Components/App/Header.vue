@@ -227,24 +227,26 @@ const showNavToggle = computed(() => isAuthenticated.value && !!appShell?.toggle
     }
 
     .header-icons img {
-        width: 16px;
-        height: 16px;
+        width: 22px;
+        height: 22px;
+        object-fit: contain;
     }
 
     .header-icons .active-img-wrp {
-        width: 24px;
-        height: 24px;
+        width: 28px;
+        height: 28px;
         background-color: var(--color-white, #fff);
         border-radius: 50%;
         padding: 4px;
+        box-sizing: border-box;
         display: flex;
         align-items: center;
         justify-content: center;
     }
 
     .header-icons img.active {
-        width: 16px;
-        height: 16px;
+        width: 18px;
+        height: 18px;
     }
 
     .link-reset {

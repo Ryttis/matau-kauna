@@ -9,6 +9,7 @@ use App\Models\Problem;
 use App\Models\User;
 use App\Models\UserRole;
 use App\Services\ProblemAutoAssignmentService;
+use App\Services\ProblemAutoPublishService;
 use App\Services\ProblemHttpSupport;
 use App\Services\ReporterFileUploadService;
 use Illuminate\Http\JsonResponse;
@@ -25,6 +26,7 @@ class ReporterProblemController extends Controller
     public function __construct(
         private ProblemHttpSupport $httpSupport,
         private ProblemAutoAssignmentService $autoAssignmentService,
+        private ProblemAutoPublishService $autoPublishService,
         private ReporterFileUploadService $reporterFileUploadService,
     ) {}
 
@@ -284,6 +286,7 @@ class ReporterProblemController extends Controller
         );
 
         $this->autoAssignmentService->applyRules($problem);
+        $this->autoPublishService->applyRules($problem);
         $problem->refresh();
 
         return response()->json([

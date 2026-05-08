@@ -134,12 +134,12 @@ const reporterDateMax = `${currentYear}-12-31`
             </div>
             <div class="reporter-dashboard-layout">
                 <div class="reporter-dashboard-map-wrap">
-                    <ProblemMapStatusLegend :status-order="REPORTER_MAP_LEGEND_STATUS_ORDER" />
                     <KaunasProblemsMap
                         :problems="reporterProblemsToShowOnMap"
                         marker-class="reporter-dashboard-marker"
                         @open-problem="reporterOpenProblemView"
                     />
+                    <ProblemMapStatusLegend :status-order="REPORTER_MAP_LEGEND_STATUS_ORDER" />
                 </div>
                 <aside class="reporter-dashboard-list">
                     <h3 class="reporter-dashboard-list-title">Sąrašas</h3>

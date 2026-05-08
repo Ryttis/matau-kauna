@@ -343,6 +343,7 @@ const {
     width: 20px;
     height: 20px;
     flex-shrink: 0;
+    transform: rotate(-90deg);
 }
 
 .list-navigation {

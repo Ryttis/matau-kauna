@@ -130,10 +130,20 @@ const DEFAULT_STATUS_MODAL = {
     bgHover: '#ecf0f1',
 }
 
+const STATUS_ACTIVE_TEXT = {
+    [PROBLEM_STATUS.NEW]: '#1E1C1C',
+    [PROBLEM_STATUS.IN_REVIEW]: '#1E1C1C',
+    [PROBLEM_STATUS.RETURNED_FOR_REVIEW]: '#fff',
+    [PROBLEM_STATUS.RESOLVED]: '#fff',
+    [PROBLEM_STATUS.INACTIVE]: '#fff',
+    [PROBLEM_STATUS.UNREGISTERED]: '#fff',
+}
+
 export function getStatusModalVars(status) {
     return {
         '--status-border': STATUS_MODAL_BORDER[status] ?? DEFAULT_STATUS_MODAL.border,
         '--status-border-hover': STATUS_MODAL_BORDER_HOVER[status] ?? DEFAULT_STATUS_MODAL.borderHover,
         '--status-bg-hover': STATUS_MODAL_BG_HOVER[status] ?? DEFAULT_STATUS_MODAL.bgHover,
+        '--status-active-text': STATUS_ACTIVE_TEXT[status] ?? '#1E1C1C',
     }
 }

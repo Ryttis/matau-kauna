@@ -19,7 +19,24 @@ class AutomationService
 {
     public function getIndexData(): array
     {
-        $rules = ProblemAutoAssignmentRule::query()
+        return [
+            'rules' => $this->getAssignmentRules(),
+            'categories' => ClassifierValue::getActiveTypeNames()->values()->all(),
+            'institutions' => $this->getActiveInstitutions(),
+            'publishRules' => $this->getPublishRules(),
+            'resolutionTermRules' => $this->getResolutionTermRules(),
+            'classifierTypesWithNatures' => $this->getClassifierTypesWithNatures(),
+            'statusOptions' => ProblemStatus::options(),
+            'inactiveReporterSetting' => $this->getInactiveReporterSettingPayload(),
+            'inactiveReportersList' => $this->getInactiveReportersList(),
+            'resolvedProblemPrivacySetting' => $this->getResolvedProblemPrivacySettingPayload(),
+            'resolvedPublicProblemsList' => $this->getResolvedPublicProblemsList(),
+        ];
+    }
+
+    private function getAssignmentRules(): array
+    {
+        return ProblemAutoAssignmentRule::query()
             ->with('institution:id,name')
             ->orderBy('id')
             ->get()
@@ -30,12 +47,23 @@ class AutomationService
                 'institution_id' => $r->institution_id,
                 'institution_name' => $r->institution?->name,
                 'is_active' => $r->is_active,
-            ]);
+            ])
+            ->all();
+    }
 
-        $categories = ClassifierValue::getActiveTypeNames()->values()->all();
-        $institutions = Institution::query()->notArchived()->where('is_active', true)->orderBy('name')->get(['id', 'name']);
+    private function getActiveInstitutions(): array
+    {
+        return Institution::query()
+            ->notArchived()
+            ->where('is_active', true)
+            ->orderBy('name')
+            ->get(['id', 'name'])
+            ->all();
+    }
 
-        $publishRules = ProblemAutoPublishRule::query()
+    private function getPublishRules(): array
+    {
+        return ProblemAutoPublishRule::query()
             ->orderBy('id')
             ->get()
             ->map(fn (ProblemAutoPublishRule $r) => [
@@ -43,9 +71,13 @@ class AutomationService
                 'category' => $r->category,
                 'status' => $r->status,
                 'is_active' => $r->is_active,
-            ]);
+            ])
+            ->all();
+    }
 
-        $resolutionTermRules = ProblemResolutionTermRule::query()
+    private function getResolutionTermRules(): array
+    {
+        return ProblemResolutionTermRule::query()
             ->with(['institution:id,name', 'problemType:id,name', 'problemNature:id,name'])
             ->orderBy('id')
             ->get()
@@ -60,9 +92,13 @@ class AutomationService
                 'problem_nature_id' => $r->problem_nature_id,
                 'problem_nature_name' => $r->problemNature?->name,
                 'is_active' => $r->is_active,
-            ]);
+            ])
+            ->all();
+    }
 
-        $classifierTypesWithNatures = ClassifierValue::notArchived()
+    private function getClassifierTypesWithNatures(): array
+    {
+        return ClassifierValue::notArchived()
             ->whereNull('parent_id')
             ->where('is_active', true)
             ->with(['activeChildren:id,parent_id,name'])
@@ -76,37 +112,34 @@ class AutomationService
             ])
             ->values()
             ->all();
+    }
 
-        $inactiveReporterSetting = InactiveReporterDeletionSetting::firstOrCreateDefault();
-        $resolvedProblemPrivacySetting = ResolvedProblemPrivacySetting::firstOrCreateDefault();
+    private function getInactiveReporterSettingPayload(): array
+    {
+        $setting = InactiveReporterDeletionSetting::firstOrCreateDefault();
 
         return [
-            'rules' => $rules,
-            'categories' => $categories,
-            'institutions' => $institutions,
-            'publishRules' => $publishRules,
-            'resolutionTermRules' => $resolutionTermRules,
-            'classifierTypesWithNatures' => $classifierTypesWithNatures,
-            'statusOptions' => ProblemStatus::options(),
-            'inactiveReporterSetting' => [
-                'id' => $inactiveReporterSetting->id,
-                'inactivity_days' => $inactiveReporterSetting->inactivity_days,
-                'reminder_days' => $inactiveReporterSetting->reminderDays(),
-                'is_active' => $inactiveReporterSetting->is_active,
-                'inactivity_days_min' => InactiveReporterDeletionSetting::INACTIVITY_DAYS_MIN,
-                'inactivity_days_max' => InactiveReporterDeletionSetting::INACTIVITY_DAYS_MAX,
-                'inactivity_days_default' => InactiveReporterDeletionSetting::INACTIVITY_DAYS_DEFAULT,
-            ],
-            'inactiveReportersList' => $this->getInactiveReportersList(),
-            'resolvedProblemPrivacySetting' => [
-                'id' => $resolvedProblemPrivacySetting->id,
-                'days_after_resolution' => $resolvedProblemPrivacySetting->days_after_resolution,
-                'is_active' => $resolvedProblemPrivacySetting->is_active,
-                'days_min' => ResolvedProblemPrivacySetting::DAYS_AFTER_RESOLUTION_MIN,
-                'days_max' => ResolvedProblemPrivacySetting::DAYS_AFTER_RESOLUTION_MAX,
-                'days_default' => ResolvedProblemPrivacySetting::DAYS_AFTER_RESOLUTION_DEFAULT,
-            ],
-            'resolvedPublicProblemsList' => $this->getResolvedPublicProblemsList(),
+            'id' => $setting->id,
+            'inactivity_days' => $setting->inactivity_days,
+            'reminder_days' => $setting->reminderDays(),
+            'is_active' => $setting->is_active,
+            'inactivity_days_min' => InactiveReporterDeletionSetting::INACTIVITY_DAYS_MIN,
+            'inactivity_days_max' => InactiveReporterDeletionSetting::INACTIVITY_DAYS_MAX,
+            'inactivity_days_default' => InactiveReporterDeletionSetting::INACTIVITY_DAYS_DEFAULT,
+        ];
+    }
+
+    private function getResolvedProblemPrivacySettingPayload(): array
+    {
+        $setting = ResolvedProblemPrivacySetting::firstOrCreateDefault();
+
+        return [
+            'id' => $setting->id,
+            'days_after_resolution' => $setting->days_after_resolution,
+            'is_active' => $setting->is_active,
+            'days_min' => ResolvedProblemPrivacySetting::DAYS_AFTER_RESOLUTION_MIN,
+            'days_max' => ResolvedProblemPrivacySetting::DAYS_AFTER_RESOLUTION_MAX,
+            'days_default' => ResolvedProblemPrivacySetting::DAYS_AFTER_RESOLUTION_DEFAULT,
         ];
     }
 

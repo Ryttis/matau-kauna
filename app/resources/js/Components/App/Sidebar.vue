@@ -90,6 +90,22 @@ const handleDashboardListClick = () => {
             <div class="nav-top">
                 <template v-if="isActiveRoleReporter">
                     <Link
+                        href="/dashboard"
+                        class="nav-link"
+                        :class="{ active: page.url === '/dashboard' || page.url.startsWith('/dashboard?') }"
+                    >
+                        <img :src="ICON_MAP" class="nav-icon" alt="" />
+                        <span>Žemėlapis</span>
+                    </Link>
+                    <Link
+                        :href="route('reporter.report')"
+                        class="nav-link"
+                        :class="{ active: isActive('/reporter/report') }"
+                    >
+                        <img :src="ICON_PENCIL" class="nav-icon" alt="" />
+                        <span>Pranešimas</span>
+                    </Link>
+                    <Link
                         :href="route('reporter.sarasas')"
                         class="nav-link"
                         :class="{ active: isActive('/reporter/sarasas') }"
@@ -104,22 +120,6 @@ const handleDashboardListClick = () => {
                     >
                         <img :src="ICON_STATISTICS" class="nav-icon nav-icon--symbol" alt="" />
                         <span>Statistika</span>
-                    </Link>
-                    <Link
-                        href="/dashboard"
-                        class="nav-link"
-                        :class="{ active: page.url === '/dashboard' || page.url.startsWith('/dashboard?') }"
-                    >
-                        <img :src="ICON_MAP" class="nav-icon nav-icon--map" alt="" />
-                        <span>Žemėlapis</span>
-                    </Link>
-                    <Link
-                        :href="route('reporter.report')"
-                        class="nav-link"
-                        :class="{ active: isActive('/reporter/report') }"
-                    >
-                        <img :src="ICON_PENCIL" class="nav-icon" alt="" />
-                        <span>Pranešimas</span>
                     </Link>
                 </template>
 
@@ -139,7 +139,7 @@ const handleDashboardListClick = () => {
                         class="nav-link"
                         :class="{ active: isActive('/map') }"
                     >
-                        <img :src="ICON_MAP" class="nav-icon nav-icon--map" alt="" />
+                        <img :src="ICON_MAP" class="nav-icon" alt="" />
                         <span>Žemėlapis</span>
                     </Link>
 
@@ -375,22 +375,22 @@ const handleDashboardListClick = () => {
 }
 
 .nav-icon {
-    width: 24px;
-    height: 24px;
+    width: 28px;
+    height: 28px;
     display: block;
     object-fit: contain;
     object-position: center;
     flex-shrink: 0;
 }
 
-.nav-icon--map {
-    transform: scale(1.15);
+.nav-icon--symbol {
+    transform: scale(1.25);
     transform-origin: center center;
 }
 
 .nav-link .dropdown-icon {
-    width: 16px;
-    height: 16px;
+    width: 20px;
+    height: 20px;
     display: block;
     flex-shrink: 0;
 }

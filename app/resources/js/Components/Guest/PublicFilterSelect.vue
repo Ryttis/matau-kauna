@@ -94,10 +94,10 @@ function onChange(e) {
 }
 
 .public-filter-select__arrow {
-    width: 14px;
-    height: 14px;
+    width: 20px;
+    height: 20px;
     display: block;
-    opacity: 0.65;
+    opacity: 0.7;
     object-fit: contain;
 }
 </style>

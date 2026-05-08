@@ -168,8 +168,7 @@ class ProblemScopeService
             return false;
         }
 
-        return $user->hasRole(UserRole::ROLE_EMPLOYEE)
-            || $user->hasRole(UserRole::ROLE_PROBLEM_ADMIN);
+        return $user->hasRole(UserRole::ROLE_EMPLOYEE);
     }
 
     public function employeeIdForUser(?User $user): ?int
