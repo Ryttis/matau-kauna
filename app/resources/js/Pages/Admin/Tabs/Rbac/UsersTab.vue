@@ -248,7 +248,7 @@ const saveUserRoles = async () => {
             <thead>
                 <tr>
                     <th>ID</th>
-                    <th>Vardas</th>
+                    <th>Asmuo</th>
                     <th>Paštas</th>
                     <th>Įstaiga</th>
                     <th>Rolės</th>
@@ -259,7 +259,7 @@ const saveUserRoles = async () => {
             <tbody>
                 <tr v-for="u in usersPage.data" :key="u.id">
                     <td>{{ u.id }}</td>
-                    <td>{{ u.name }}</td>
+                    <td>{{ [u.name, u.surname].filter(Boolean).join(' ') || '-' }}</td>
                     <td>{{ u.email }}</td>
                     <td>{{ u.institution?.name ?? '-' }}</td>
                     <td>

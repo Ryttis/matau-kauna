@@ -68,6 +68,9 @@ class GuestProblemController extends Controller
             : $problem->id;
 
         if ($isReporterOnly) {
+            $canWatch = $this->httpSupport->reporterCanToggleWatch($user, $problem);
+            $isWatched = $canWatch && $this->httpSupport->problemIsWatchedByUser($user, $problem);
+
             return Inertia::render('Reporter/ProblemShow', [
                 'problem' => $problemData,
                 'mergeTarget' => $mergeContext['mergeTarget'],
@@ -78,6 +81,8 @@ class GuestProblemController extends Controller
                 'backOnlyMine' => $request->boolean('only_mine'),
                 'fileUpload' => FileUploadSettings::getChannelForClient(FileUploadSettings::CHANNEL_WEB),
                 'canUploadAttachments' => $isReporterOwnProblem,
+                'canWatch' => $canWatch,
+                'isWatched' => $isWatched,
             ]);
         }
 

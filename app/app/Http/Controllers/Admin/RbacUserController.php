@@ -26,7 +26,7 @@ class RbacUserController extends Controller
     {
         return User::query()
             ->notArchived()
-            ->select(['id', 'name', 'email', 'institution_id', 'two_factor_enabled'])
+            ->select(['id', 'name', 'surname', 'email', 'institution_id', 'two_factor_enabled'])
             ->with(['roles:id,role,name', 'institution:id,name'])
             ->orderBy('id', 'desc')
             ->paginate(20);

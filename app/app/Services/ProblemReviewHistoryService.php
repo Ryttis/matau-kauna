@@ -71,8 +71,11 @@ class ProblemReviewHistoryService
         $previousStatus = (string) $problem->status;
         $statusChanged = $previousStatus !== (string) $status;
 
+        $publicReviewEntryWillCoverStatus = $statusChanged
+            && $visibility === ProblemReviewCommentVisibility::Public;
+
         if ($statusChanged) {
-            $this->applyStatusToProblemAndMerged($problem, $user, $status);
+            $this->applyStatusToProblemAndMerged($problem, $user, $status, ! $publicReviewEntryWillCoverStatus);
         }
 
         $commentNormalized = $this->normalizeComment($comment);
@@ -151,12 +154,16 @@ class ProblemReviewHistoryService
             'visibility' => $visibility->value,
         ]);
 
+        $newVisibilityIsPublic = $visibility === ProblemReviewCommentVisibility::Public;
+        $becomingNewlyPublic = $newVisibilityIsPublic
+            && $oldVisibility !== ProblemReviewCommentVisibility::Public->value;
+        $publicReviewEntryWillCoverStatus = $newVisibilityIsPublic && $oldStatus !== $status;
+
         if ($isLatest && $oldStatus !== $status) {
-            $this->applyStatusToProblemAndMerged($problem, $user, $status);
+            $this->applyStatusToProblemAndMerged($problem, $user, $status, ! $publicReviewEntryWillCoverStatus);
         }
 
-        if ($visibility === ProblemReviewCommentVisibility::Public
-            && $oldVisibility !== ProblemReviewCommentVisibility::Public->value) {
+        if ($becomingNewlyPublic) {
             $main = Problem::find($problem->merged_into_problem_id ?? $problem->id);
             if ($main) {
                 $this->reporterStatusNotifier->notifyPublicReviewEntry($main, $entry->fresh());
@@ -164,7 +171,7 @@ class ProblemReviewHistoryService
         }
     }
 
-    private function applyStatusToProblemAndMerged(Problem $problem, User $user, string $status): void
+    private function applyStatusToProblemAndMerged(Problem $problem, User $user, string $status, bool $notifyStatusChange = true): void
     {
         $ids = $problem->getMergeGroupIds();
         $mainId = $problem->merged_into_problem_id ?? $problem->id;
@@ -177,7 +184,7 @@ class ProblemReviewHistoryService
             'status_updated_at' => now(),
         ]);
 
-        if ($oldMainStatus !== null && $oldMainStatus !== $status) {
+        if ($notifyStatusChange && $oldMainStatus !== null && $oldMainStatus !== $status) {
             $main = Problem::find($mainId);
             if ($main) {
                 $this->reporterStatusNotifier->notifyReportersAndWatchersWhenStatusChanges($main, $oldMainStatus, $status);

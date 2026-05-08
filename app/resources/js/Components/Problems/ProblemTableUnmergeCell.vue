@@ -47,10 +47,10 @@ function handleView() {
     font-size: 12px;
     color: var(--color-primary, #1946A0);
     background: #fff;
-    padding: 4px 10px;
+    padding: 4px 14px;
     cursor: pointer;
     border: 1px solid var(--color-primary, #1946A0);
-    border-radius: 4px;
+    border-radius: 999px;
     margin: 0;
 }
 
