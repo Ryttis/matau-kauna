@@ -272,7 +272,7 @@ th {
     letter-spacing: normal;
     color: var(--table-header-text);
     background: var(--table-header-bg);
-    text-align: left;
+    text-align: center;
     padding: 12px 10px;
     border-bottom: 1px solid var(--color-border, #e5e5e5);
     vertical-align: middle;
@@ -304,6 +304,7 @@ td {
     color: var(--table-header-text);
     border-bottom: 1px solid var(--color-border, #e5e5e5);
     vertical-align: middle;
+    text-align: left;
     box-sizing: border-box;
 }
 

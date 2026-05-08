@@ -53,7 +53,7 @@ const {
 </script>
 
 <template>
-    <Head :title="`Nagrinėjimo eiga - ${problem.internal_number}`" />
+    <Head :title="`Pranešimų eiga - ${problem.internal_number}`" />
 
     <AuthenticatedLayout>
         <div class="review-progress-page">
