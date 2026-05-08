@@ -37,14 +37,25 @@ function watchBusy(problem) {
     return props.watchLoadingRootId != null && props.watchLoadingRootId === root
 }
 
+function isOwnProblemRow(row) {
+    const problem = row?.problem
+    if (problem?.reported_by_me) return true
+    if (Array.isArray(row?.groupItems)) {
+        return row.groupItems.some((item) => item?.reported_by_me)
+    }
+    return false
+}
+
 function showWatchButtonForRow(row) {
     if (!props.enableWatch) return false
+    if (isOwnProblemRow(row)) return false
     if (!row.groupIds || row.groupIds.length <= 1) return true
     return !!row.isGroupMain
 }
 
 function showWatchPlaceholderForRow(row) {
     if (!props.enableWatch) return false
+    if (isOwnProblemRow(row)) return false
     return row.groupIds?.length > 1 && !row.isGroupMain
 }
 

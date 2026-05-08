@@ -123,19 +123,11 @@ class ProblemHttpSupport
             ->where('reported_by_user_id', $user->id)
             ->exists();
 
-        return $ownsReport || ($main && $main->is_published_publicly);
-    }
-
-    public function userCanToggleWatch(User $user, Problem $problem): bool
-    {
-        if ($this->reporterCanToggleWatch($user, $problem)) {
-            return true;
-        }
-        if ($user->hasPermission('issues.view') || $user->canAccessAdmin()) {
-            return true;
+        if ($ownsReport) {
+            return false;
         }
 
-        return false;
+        return $main && $main->is_published_publicly;
     }
 
     public function problemIsWatchedByUser(User $user, Problem $problem): bool

@@ -205,16 +205,6 @@ class ProblemController extends Controller
 
         $mergeContext = $this->mergeContextService->forProblem($problem);
 
-        $isWatched = false;
-        $canWatch = false;
-        if ($user) {
-            $watchSupport = app(\App\Services\ProblemHttpSupport::class);
-            $canWatch = $watchSupport->userCanToggleWatch($user, $problem);
-            if ($canWatch) {
-                $isWatched = $watchSupport->problemIsWatchedByUser($user, $problem);
-            }
-        }
-
         return Inertia::render('Problems/Show', [
             'problem' => $problem,
             'mergeTarget' => $mergeContext['mergeTarget'],
@@ -222,8 +212,6 @@ class ProblemController extends Controller
             'mergedSiblings' => $mergeContext['mergedSiblings'],
             'statusOptions' => ProblemStatus::selectableOptions(),
             'categories' => $categories,
-            'isWatched' => $isWatched,
-            'canWatch' => $canWatch,
             'fileUpload' => FileUploadSettings::getChannelForClient(FileUploadSettings::CHANNEL_WEB),
         ]);
     }

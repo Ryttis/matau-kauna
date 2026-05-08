@@ -54,11 +54,14 @@ class ProblemReporterStatusNotifier
             ->unique()
             ->filter();
 
+        $reporterIdSet = $reporterIds->flip()->all();
+
         $watcherIds = ProblemWatch::query()
             ->whereIn('problem_id', $groupIds)
             ->pluck('user_id')
             ->map(fn ($id) => (int) $id)
-            ->unique();
+            ->unique()
+            ->reject(fn ($id) => isset($reporterIdSet[$id]));
 
         $oldLabel = $this->statusLabel($oldStatus);
         $newLabel = $this->statusLabel($newStatus);
@@ -78,8 +81,6 @@ class ProblemReporterStatusNotifier
         $subject = EmailBody::replacePlaceholders($template->subject, $baseReplacements);
         $bodyTemplate = EmailBody::replacePlaceholders($template->body, $baseReplacements);
 
-        $sentTo = [];
-
         foreach ($reporterIds as $userId) {
             $user = User::query()
                 ->notArchived()
@@ -90,15 +91,10 @@ class ProblemReporterStatusNotifier
                 continue;
             }
 
-            $sentTo[$user->id] = true;
             TransactionalMail::send($user->email, $subject, $bodyTemplate, $url, 'Peržiūrėti problemą');
         }
 
         foreach ($watcherIds as $userId) {
-            if (isset($sentTo[$userId])) {
-                continue;
-            }
-
             $user = User::query()
                 ->notArchived()
                 ->whereKey($userId)
@@ -130,11 +126,14 @@ class ProblemReporterStatusNotifier
             ->unique()
             ->filter();
 
+        $reporterIdSet = $reporterIds->flip()->all();
+
         $watcherIds = ProblemWatch::query()
             ->whereIn('problem_id', $groupIds)
             ->pluck('user_id')
             ->map(fn ($id) => (int) $id)
-            ->unique();
+            ->unique()
+            ->reject(fn ($id) => isset($reporterIdSet[$id]));
 
         $commentExcerpt = $entry->comment
             ? Problem::descriptionPreview($entry->comment, 400)
@@ -156,8 +155,6 @@ class ProblemReporterStatusNotifier
         $subject = EmailBody::replacePlaceholders($template->subject, $replacements);
         $body = EmailBody::replacePlaceholders($template->body, $replacements);
 
-        $sentTo = [];
-
         foreach ($reporterIds as $userId) {
             $user = User::query()
                 ->notArchived()
@@ -168,15 +165,10 @@ class ProblemReporterStatusNotifier
                 continue;
             }
 
-            $sentTo[$user->id] = true;
             TransactionalMail::send($user->email, $subject, $body, $url, 'Peržiūrėti problemą');
         }
 
         foreach ($watcherIds as $userId) {
-            if (isset($sentTo[$userId])) {
-                continue;
-            }
-
             $user = User::query()
                 ->notArchived()
                 ->whereKey($userId)

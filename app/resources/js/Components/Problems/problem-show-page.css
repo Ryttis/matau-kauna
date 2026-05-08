@@ -72,21 +72,6 @@
     color: #1b5e20;
 }
 
-.problem-watch-label {
-    cursor: pointer;
-    font-family: inherit;
-    transition: opacity 0.15s ease, background 0.15s ease;
-}
-
-.problem-watch-label:hover:not(:disabled) {
-    opacity: 0.85;
-}
-
-.problem-watch-label:disabled {
-    opacity: 0.5;
-    cursor: wait;
-}
-
 .problem-content {
     display: flex;
     flex-direction: column;

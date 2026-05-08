@@ -1,5 +1,6 @@
 <script setup>
 import { computed, ref } from 'vue'
+import axios from 'axios'
 import { Head, Link, router } from '@inertiajs/vue3'
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue'
 import AppButton from '@/Components/App/AppButton.vue'
@@ -30,7 +31,23 @@ const props = defineProps({
         default: () => ({}),
     },
     canUploadAttachments: { type: Boolean, default: false },
+    canWatch: { type: Boolean, default: false },
+    isWatched: { type: Boolean, default: false },
 })
+
+const isProblemWatched = ref(!!props.isWatched)
+const watchToggleBusy = ref(false)
+
+async function toggleProblemWatch() {
+    if (watchToggleBusy.value || !props.canWatch || !props.problem?.id) return
+    watchToggleBusy.value = true
+    try {
+        const { data } = await axios.post(route('problems.watch.toggle', props.problem.id))
+        isProblemWatched.value = !!data.watched
+    } finally {
+        watchToggleBusy.value = false
+    }
+}
 
 const formattedDate = computed(() => {
     if (!props.problem?.created_at) return ''
@@ -131,6 +148,16 @@ async function onAttachInputChange(e) {
 
                 <div v-if="problem?.status" class="reporter-problem-status-section">
                     <StatusBadge :status="problem.status" />
+                    <button
+                        v-if="canWatch"
+                        type="button"
+                        class="reporter-problem-watch-label"
+                        :class="{ 'reporter-problem-watch-label--on': isProblemWatched }"
+                        :disabled="watchToggleBusy"
+                        @click="toggleProblemWatch"
+                    >
+                        {{ isProblemWatched ? 'Stebima' : 'Stebėti' }}
+                    </button>
                 </div>
 
                 <ProblemMergeLinks
@@ -317,7 +344,45 @@ async function onAttachInputChange(e) {
 }
 
 .reporter-problem-status-section {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 12px;
     margin-bottom: 20px;
+}
+
+.reporter-problem-watch-label {
+    box-sizing: border-box;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: var(--button-height, 45px);
+    padding: 12px 24px;
+    border-radius: 15px;
+    font-size: 16px;
+    font-weight: 600;
+    line-height: 1.25;
+    font-family: var(--font-family-base, 'Open Sans', sans-serif);
+    border: 1px solid #cfd8dc;
+    background: #eceff1;
+    color: #455a64;
+    cursor: pointer;
+    transition: opacity 0.15s ease, background 0.15s ease;
+}
+
+.reporter-problem-watch-label--on {
+    border-color: #81c784;
+    background: #e8f5e9;
+    color: #1b5e20;
+}
+
+.reporter-problem-watch-label:hover:not(:disabled) {
+    opacity: 0.85;
+}
+
+.reporter-problem-watch-label:disabled {
+    opacity: 0.5;
+    cursor: wait;
 }
 
 .reporter-problem-content {
