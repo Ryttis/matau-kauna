@@ -95,6 +95,7 @@
     font-size: var(--table-header-font-size);
     color: var(--table-header-text);
     background: var(--table-header-bg);
+    text-align: center;
 }
 
 .automation-table td {

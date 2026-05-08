@@ -178,7 +178,7 @@ const {
             </div>
 
             <div class="review-progress-section" @click="() => router.visit(route('problems.reviewProgress', problem.id))">
-                <span class="review-progress-text">Nagrinėjimo eiga</span>
+                <span class="review-progress-text">Pranešimų eiga</span>
                 <img :src="ICON_RIGHT_ARROW" alt="Rodyklė" class="review-progress-arrow" />
             </div>
 

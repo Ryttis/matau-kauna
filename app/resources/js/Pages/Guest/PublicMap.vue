@@ -100,23 +100,28 @@ const publicMapDateMax = `${currentYear + 1}-12-31`
         </div>
         <div class="public-map-layout">
             <div class="public-map-wrap">
-                <ProblemMapStatusLegend :status-order="PUBLIC_MAP_LEGEND_STATUS_ORDER" />
                 <KaunasProblemsMap
                     :problems="problemsToShowOnMap"
                     marker-class="public-map-marker"
                     @open-problem="openProblemView"
                 />
+                <ProblemMapStatusLegend :status-order="PUBLIC_MAP_LEGEND_STATUS_ORDER" />
             </div>
             <aside class="public-map-list">
-                <ProblemsMapList
-                    :problems="filteredProblems"
-                    :display-rows="displayRows"
-                    :all-count="allProblems.length"
-                    :selected-ids="selectedIds"
-                    @select="toggle"
-                    @select-group="toggleGroup"
-                    @open="openProblemView"
-                />
+                <h3 class="public-map-list-title">Sąrašas</h3>
+                <div class="public-map-list-body">
+                    <ProblemsMapList
+                        :problems="filteredProblems"
+                        :display-rows="displayRows"
+                        :all-count="allProblems.length"
+                        :selected-ids="selectedIds"
+                        view-button-variant="internal"
+                        card-layout
+                        @select="toggle"
+                        @select-group="toggleGroup"
+                        @open="openProblemView"
+                    />
+                </div>
             </aside>
         </div>
         <LandingFooter />
@@ -203,25 +208,52 @@ const publicMapDateMax = `${currentYear + 1}-12-31`
     min-width: 0;
     width: 100%;
     max-width: 100%;
-    background: #fafafa;
+    height: 100%;
+    background: transparent;
     overflow: hidden;
 }
 
+.public-map-wrap :deep(.kaunas-map-wrap) {
+    flex: 1;
+    min-height: 0;
+}
+
 .public-map-wrap :deep(.kaunas-map-container) {
-    height: clamp(320px, 55vh, 620px);
-    min-height: 320px;
+    flex: 1;
+    min-height: 0;
+    height: 100%;
 }
 
 .public-map-list {
     background: var(--color-bg-subtle, #f6f7f9);
-    padding: 1.25rem 1rem 1.5rem;
-    overflow-y: auto;
-    overflow-x: hidden;
+    padding: 0.875rem 0.875rem 1rem;
+    overflow: hidden;
     min-height: 0;
     min-width: 0;
     width: 100%;
     max-width: 100%;
     box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    border-radius: 10px;
+}
+
+.public-map-list-title {
+    margin: 0;
+    font-size: 1rem;
+    font-weight: 600;
+    color: #333;
+    flex-shrink: 0;
+    padding: 0 0.125rem;
+}
+
+.public-map-list-body {
+    min-height: 0;
+    flex: 1;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    padding-right: 4px;
 }
 
 @media (max-width: 767px) {
@@ -240,6 +272,7 @@ const publicMapDateMax = `${currentYear + 1}-12-31`
     }
 
     .public-map-wrap :deep(.kaunas-map-container) {
+        flex: none;
         height: clamp(300px, 45vh, 420px);
         min-height: 300px;
     }

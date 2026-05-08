@@ -372,10 +372,10 @@ watch(
 }
 
 .searchable-select__chevron-img {
-    width: 14px;
-    height: 14px;
+    width: 20px;
+    height: 20px;
     display: block;
-    opacity: 0.55;
+    opacity: 0.7;
 }
 
 .searchable-select__dropdown {

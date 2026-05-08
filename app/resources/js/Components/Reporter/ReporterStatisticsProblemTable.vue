@@ -80,7 +80,7 @@ function formatDate(isoDateString) {
 }
 
 .reporter-statistics-table th {
-    text-align: left;
+    text-align: center;
     padding: 12px 12px;
     font-weight: var(--table-header-font-weight);
     font-size: var(--table-header-font-size);

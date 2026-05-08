@@ -68,7 +68,7 @@ class ProblemDashboardQueryService
                 }
             })
             ->sorted($sortBy, $sortDirection)
-            ->with('mergedProblems')
+            ->with(['mergedProblems', 'problemNature:id,name'])
             ->paginate($pageSize)
             ->withQueryString();
     }

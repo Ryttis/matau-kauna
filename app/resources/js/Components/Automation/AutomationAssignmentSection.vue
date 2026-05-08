@@ -26,9 +26,7 @@ const defaultInstitutionId = computed(() =>
 )
 
 const categoryOptions = computed(() => {
-    const options = [{ value: '', label: 'Visos kategorijos' }]
-    ;(props.categories || []).filter(Boolean).forEach((c) => options.push({ value: c, label: c }))
-    return options
+    return (props.categories || []).filter(Boolean).map((c) => ({ value: c, label: c }))
 })
 
 function getDefaultForm(rule = null) {
@@ -156,7 +154,7 @@ function doDelete() {
         >
             <div class="automation-form">
                 <AppInput v-model="form.name" label="Pavadinimas (nebūtina)" placeholder="pvz. Duobės" />
-                <AppSelect v-model="form.category" label="Kategorija" :placeholder="''">
+                <AppSelect v-model="form.category" label="Kategorija" placeholder="Pasirinkite kategoriją">
                     <option v-for="opt in categoryOptions" :key="String(opt.value)" :value="opt.value">{{ opt.label }}</option>
                 </AppSelect>
                 <AppSelect v-model="form.institution_id" label="Įstaiga" placeholder="Pasirinkite įstaigą">
@@ -169,7 +167,7 @@ function doDelete() {
             </div>
             <template #footer>
                 <AppButton text="Atšaukti" variant="secondary" as-button :disabled="ruleFormSubmitting" @click="tryCloseAssignmentRuleModal" />
-                <AppButton text="Išsaugoti" variant="primary" as-button :loading="ruleFormSubmitting" @click="submitForm" />
+                <AppButton text="Išsaugoti" variant="primary" as-button :disabled="!form.category || !form.institution_id" :loading="ruleFormSubmitting" @click="submitForm" />
             </template>
         </BaseModal>
 

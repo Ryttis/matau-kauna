@@ -232,48 +232,43 @@
 }
 
 .assign-status-btn-new {
-    border-color: var(--assign-status-new-border, #D4A574);
+    border-color: #D4A574;
 }
 
 .assign-status-btn-new:hover {
-    border-color: var(--assign-status-new-active-border, #C8955F);
-    background-color: var(--assign-status-new-active-bg, #FFF9F5);
+    background-color: #FFF9F5;
 }
 
 .assign-status-btn-new.assign-status-btn-active {
-    border-color: var(--assign-status-new-active-border, #C8955F);
-    background-color: var(--assign-status-new-active-bg, #FFF9F5);
-    border-width: 3px;
+    background-color: #D4A574;
+    border-color: #C8955F;
 }
 
 .assign-status-btn-review {
-    border-color: var(--assign-status-review-border, #E0E0E0);
+    border-color: #F5C842;
 }
 
 .assign-status-btn-review:hover {
-    border-color: var(--assign-status-review-active-border, #BDBDBD);
-    background-color: var(--assign-status-review-active-bg, #F5F5F5);
+    background-color: #FFFBEB;
 }
 
 .assign-status-btn-review.assign-status-btn-active {
-    border-color: var(--assign-status-review-active-border, #BDBDBD);
-    background-color: var(--assign-status-review-active-bg, #F5F5F5);
-    border-width: 3px;
+    background-color: #F5C842;
+    border-color: #E5B832;
 }
 
 .assign-status-btn-returned {
-    border-color: var(--assign-status-returned-border, #9333ea);
+    border-color: #9333ea;
 }
 
 .assign-status-btn-returned:hover {
-    border-color: var(--assign-status-returned-active-border, #7e22ce);
-    background-color: var(--assign-status-returned-active-bg, #faf5ff);
+    background-color: #faf5ff;
 }
 
 .assign-status-btn-returned.assign-status-btn-active {
-    border-color: var(--assign-status-returned-active-border, #7e22ce);
-    background-color: var(--assign-status-returned-active-bg, #faf5ff);
-    border-width: 3px;
+    background-color: #9333ea;
+    border-color: #7e22ce;
+    color: #fff;
 }
 
 .assign-send-btn-wrap {

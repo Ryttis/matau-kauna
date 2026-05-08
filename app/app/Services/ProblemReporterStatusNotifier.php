@@ -12,6 +12,8 @@ use App\Support\EmailBody;
 
 class ProblemReporterStatusNotifier
 {
+    private const CTA_LABEL = 'Peržiūrėti problemą';
+
     public function statusLabel(string $status): string
     {
         $enum = ProblemStatus::tryFrom($status);
@@ -43,69 +45,23 @@ class ProblemReporterStatusNotifier
             return;
         }
 
-        $mainProblem->loadMissing('mergedProblems');
-        $groupIds = $mainProblem->getMergeGroupIds();
-
-        $reporterIds = Problem::query()
-            ->whereIn('id', $groupIds)
-            ->whereNotNull('reported_by_user_id')
-            ->pluck('reported_by_user_id')
-            ->map(fn ($id) => (int) $id)
-            ->unique()
-            ->filter();
-
-        $reporterIdSet = $reporterIds->flip()->all();
-
-        $watcherIds = ProblemWatch::query()
-            ->whereIn('problem_id', $groupIds)
-            ->pluck('user_id')
-            ->map(fn ($id) => (int) $id)
-            ->unique()
-            ->reject(fn ($id) => isset($reporterIdSet[$id]));
-
-        $oldLabel = $this->statusLabel($oldStatus);
-        $newLabel = $this->statusLabel($newStatus);
         $url = route('reports.show', $mainProblem->id);
-        $excerpt = Problem::descriptionPreview($mainProblem->description, 200);
-
-        $baseReplacements = [
+        $replacements = [
             'internal_number' => (string) ($mainProblem->internal_number ?? ''),
-            'description_excerpt' => $excerpt,
+            'description_excerpt' => Problem::descriptionPreview($mainProblem->description, 200),
             'url' => $url,
             'old_status' => $oldStatus,
             'new_status' => $newStatus,
-            'old_status_label' => $oldLabel,
-            'new_status_label' => $newLabel,
+            'old_status_label' => $this->statusLabel($oldStatus),
+            'new_status_label' => $this->statusLabel($newStatus),
         ];
 
-        $subject = EmailBody::replacePlaceholders($template->subject, $baseReplacements);
-        $bodyTemplate = EmailBody::replacePlaceholders($template->body, $baseReplacements);
-
-        foreach ($reporterIds as $userId) {
-            $user = User::query()
-                ->notArchived()
-                ->whereKey($userId)
-                ->first(['id', 'email', 'email_verified_at', 'reporter_email_own_problems']);
-
-            if (! $user || ! $user->hasVerifiedEmail() || $user->reporter_email_own_problems !== true) {
-                continue;
-            }
-
-            TransactionalMail::send($user->email, $subject, $bodyTemplate, $url, 'Peržiūrėti problemą');
-        }
-
-        foreach ($watcherIds as $userId) {
-            $user = User::query()
-                ->notArchived()
-                ->whereKey($userId)
-                ->first(['id', 'email', 'email_verified_at', 'reporter_email_watched_problems']);
-
-            if (! $user || ! $user->hasVerifiedEmail() || $user->reporter_email_watched_problems !== true) {
-                continue;
-            }
-
-            TransactionalMail::send($user->email, $subject, $bodyTemplate, $url, 'Peržiūrėti problemą');
-        }
+        $this->dispatchToReportersAndWatchers(
+            $mainProblem,
+            EmailBody::replacePlaceholders($template->subject, $replacements),
+            EmailBody::replacePlaceholders($template->body, $replacements),
+            $url,
+        );
     }
 
     public function notifyPublicReviewEntry(Problem $mainProblem, ProblemReviewHistory $entry): void
@@ -115,6 +71,29 @@ class ProblemReporterStatusNotifier
             return;
         }
 
+        $url = route('reports.show', $mainProblem->id);
+        $replacements = [
+            'internal_number' => (string) ($mainProblem->internal_number ?? ''),
+            'description_excerpt' => Problem::descriptionPreview($mainProblem->description, 200),
+            'url' => $url,
+            'status_label' => $this->statusLabel($entry->status),
+            'responsible' => (string) ($entry->responsible ?? ''),
+            'comment_excerpt' => $entry->comment
+                ? Problem::descriptionPreview($entry->comment, 400)
+                : '(nėra)',
+            'entry_date' => $entry->created_at?->format('Y-m-d H:i') ?? '',
+        ];
+
+        $this->dispatchToReportersAndWatchers(
+            $mainProblem,
+            EmailBody::replacePlaceholders($template->subject, $replacements),
+            EmailBody::replacePlaceholders($template->body, $replacements),
+            $url,
+        );
+    }
+
+    private function dispatchToReportersAndWatchers(Problem $mainProblem, string $subject, string $body, string $url): void
+    {
         $mainProblem->loadMissing('mergedProblems');
         $groupIds = $mainProblem->getMergeGroupIds();
 
@@ -135,50 +114,23 @@ class ProblemReporterStatusNotifier
             ->unique()
             ->reject(fn ($id) => isset($reporterIdSet[$id]));
 
-        $commentExcerpt = $entry->comment
-            ? Problem::descriptionPreview($entry->comment, 400)
-            : '(nėra)';
+        $this->sendToUsers($reporterIds, 'reporter_email_own_problems', $subject, $body, $url);
+        $this->sendToUsers($watcherIds, 'reporter_email_watched_problems', $subject, $body, $url);
+    }
 
-        $url = route('reports.show', $mainProblem->id);
-        $excerpt = Problem::descriptionPreview($mainProblem->description, 200);
-
-        $replacements = [
-            'internal_number' => (string) ($mainProblem->internal_number ?? ''),
-            'description_excerpt' => $excerpt,
-            'url' => $url,
-            'status_label' => $this->statusLabel($entry->status),
-            'responsible' => (string) ($entry->responsible ?? ''),
-            'comment_excerpt' => $commentExcerpt,
-            'entry_date' => $entry->created_at?->format('Y-m-d H:i') ?? '',
-        ];
-
-        $subject = EmailBody::replacePlaceholders($template->subject, $replacements);
-        $body = EmailBody::replacePlaceholders($template->body, $replacements);
-
-        foreach ($reporterIds as $userId) {
+    private function sendToUsers(iterable $userIds, string $preferenceColumn, string $subject, string $body, string $url): void
+    {
+        foreach ($userIds as $userId) {
             $user = User::query()
                 ->notArchived()
                 ->whereKey($userId)
-                ->first(['id', 'email', 'email_verified_at', 'reporter_email_own_problems']);
+                ->first(['id', 'email', 'email_verified_at', $preferenceColumn]);
 
-            if (! $user || ! $user->hasVerifiedEmail() || $user->reporter_email_own_problems !== true) {
+            if (! $user || ! $user->hasVerifiedEmail() || $user->{$preferenceColumn} !== true) {
                 continue;
             }
 
-            TransactionalMail::send($user->email, $subject, $body, $url, 'Peržiūrėti problemą');
-        }
-
-        foreach ($watcherIds as $userId) {
-            $user = User::query()
-                ->notArchived()
-                ->whereKey($userId)
-                ->first(['id', 'email', 'email_verified_at', 'reporter_email_watched_problems']);
-
-            if (! $user || ! $user->hasVerifiedEmail() || $user->reporter_email_watched_problems !== true) {
-                continue;
-            }
-
-            TransactionalMail::send($user->email, $subject, $body, $url, 'Peržiūrėti problemą');
+            TransactionalMail::send($user->email, $subject, $body, $url, self::CTA_LABEL);
         }
     }
 }

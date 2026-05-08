@@ -150,8 +150,8 @@ const value = computed({
 
 .app-select-arrow {
     display: block;
-    width: 16px;
-    height: 16px;
+    width: 20px;
+    height: 20px;
     filter: brightness(0) invert(1);
     object-fit: contain;
 }

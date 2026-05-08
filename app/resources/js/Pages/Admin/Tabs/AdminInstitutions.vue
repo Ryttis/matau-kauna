@@ -576,6 +576,7 @@ td {
     font-size: var(--table-header-font-size);
     background: var(--table-header-bg);
     color: var(--table-header-text);
+    text-align: center;
 }
 
 .pill {

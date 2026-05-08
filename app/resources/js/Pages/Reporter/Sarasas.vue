@@ -253,6 +253,14 @@ function sarasasRowClass(row) {
     margin-top: 0;
 }
 
+.reporter-sarasas-table-wrap :deep(th) {
+    text-align: center;
+}
+
+.reporter-sarasas-table-wrap :deep(td) {
+    text-align: left;
+}
+
 .reporter-sarasas-empty {
     margin-top: 24px;
     font-size: 14px;

@@ -99,6 +99,14 @@ const columns = computed(() => {
             value: (row) => truncate(getRowData(row).category, 18)
         },
         {
+            key: 'nature',
+            label: 'Pobūdis',
+            sortable: false,
+            headerClass: 'problem-col-nature',
+            class: 'problem-col-nature',
+            value: (row) => truncate(getRowData(row).problem_nature?.name, 18)
+        },
+        {
             key: 'address',
             label: 'Adresas',
             sortable: false,

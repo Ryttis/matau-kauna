@@ -63,10 +63,19 @@ defineProps({
 .guest-content-body {
     line-height: 1.6;
     color: #333;
+    white-space: pre-line;
+}
+
+.guest-content-body :deep(p),
+.guest-content-body :deep(ul),
+.guest-content-body :deep(ol),
+.guest-content-body :deep(h2) {
+    white-space: normal;
 }
 
 .guest-content-body :deep(p) { margin: 0 0 0.75rem 0; }
 .guest-content-body :deep(ul), .guest-content-body :deep(ol) { margin: 0 0 0.75rem 1.25rem; }
+.guest-content-body :deep(li) { margin: 0; }
 .guest-content-body :deep(h2) { font-size: 1.15rem; margin: 1rem 0 0.5rem 0; }
 .guest-content-empty { color: #666; margin: 0; }
 </style>

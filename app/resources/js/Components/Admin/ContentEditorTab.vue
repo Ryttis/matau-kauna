@@ -113,10 +113,38 @@ function insertList() {
     const ta = bodyTextareaRef.value
     if (!ta) return
     const start = ta.selectionStart
+    const end = ta.selectionEnd
     const text = form.value.body
-    const insert = '\n<ul>\n<li></li>\n</ul>\n'
-    form.value.body = text.slice(0, start) + insert + text.slice(start)
-    nextTick(() => ta.focus())
+    const selected = text.slice(start, end)
+    const before = text.slice(0, start)
+    const after = text.slice(end)
+    const lines = selected.split('\n').map(l => l.trim()).filter(Boolean)
+    const items = lines.length ? lines : ['']
+    const insert = '<ul>\n' + items.map(l => `  <li>${l}</li>`).join('\n') + '\n</ul>'
+    form.value.body = before + insert + after
+    nextTick(() => {
+        ta.focus()
+        ta.setSelectionRange(before.length + insert.length, before.length + insert.length)
+    })
+}
+
+function insertParagraph() {
+    const ta = bodyTextareaRef.value
+    if (!ta) return
+    const start = ta.selectionStart
+    const end = ta.selectionEnd
+    const text = form.value.body
+    const selected = text.slice(start, end)
+    const before = text.slice(0, start)
+    const after = text.slice(end)
+    const inner = selected || 'Įrašykite tekstą'
+    const insert = `<p>${inner}</p>`
+    form.value.body = before + insert + after
+    nextTick(() => {
+        ta.focus()
+        const innerStart = before.length + '<p>'.length
+        ta.setSelectionRange(innerStart, innerStart + inner.length)
+    })
 }
 
 function insertLink() {
@@ -358,6 +386,7 @@ function formatDate(s) {
                     <div class="toolbar">
                         <button type="button" class="toolbar-btn" @click="insertTag('<b>', '</b>')">B</button>
                         <button type="button" class="toolbar-btn" @click="insertTag('<i>', '</i>')">I</button>
+                        <button type="button" class="toolbar-btn" @click="insertParagraph()">Pastraipa</button>
                         <button type="button" class="toolbar-btn" @click="insertLink()">Nuoroda</button>
                         <button type="button" class="toolbar-btn" @click="insertList()">Sąrašas</button>
                     </div>
