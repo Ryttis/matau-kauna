@@ -161,6 +161,71 @@ class InternalProblemApiController extends Controller
         ]);
     }
 
+    public function storeAttachments(Request $request, Problem $problem): JsonResponse
+    {
+        $user = $request->user();
+        if (! $user->canEditProblemClassification()) {
+            abort(403);
+        }
+        $this->scopeService->authorizeProblemAccess($user, $problem);
+
+        $normalizedFiles = $this->problemHttpSupport->uploadedFilesForStorage($request);
+
+        Validator::make(
+            ['files' => $normalizedFiles],
+            [
+                'files' => 'required|array|min:1',
+                'files.*' => 'file',
+            ],
+            [
+                'files.required' => 'Pasirinkite failą.',
+                'files.min' => 'Pasirinkite failą.',
+                'files.*.file' => 'Failas per didelis arba nepriimtas.',
+                'files.*.uploaded' => 'Nepavyko įkelti failo. Patikrinkite failo dydį ir bandykite dar kartą.',
+            ]
+        )->validate();
+
+        $channel = FileUploadSettings::resolveUploadChannel($request->header('X-Upload-Channel'));
+
+        $created = $this->reporterFileUploadService->validateAndStore(
+            $problem,
+            $normalizedFiles,
+            $channel,
+            true,
+            false
+        );
+
+        return response()->json([
+            'ok' => true,
+            'attachments' => collect($created)
+                ->map(fn (ProblemAttachment $attachment) => $attachment->toPublicPayload())
+                ->values()
+                ->all(),
+        ]);
+    }
+
+    public function destroyAttachment(Request $request, Problem $problem, ProblemAttachment $attachment): JsonResponse
+    {
+        $user = $request->user();
+        if (! $user->canEditProblemClassification()) {
+            abort(403);
+        }
+        $this->scopeService->authorizeProblemAccess($user, $problem);
+
+        if ((int) $attachment->problem_id !== (int) $problem->id) {
+            abort(404);
+        }
+
+        $absolute = public_path(ltrim($attachment->path, '/'));
+        if ($absolute !== '' && \Illuminate\Support\Facades\File::exists($absolute)) {
+            \Illuminate\Support\Facades\File::delete($absolute);
+        }
+
+        $attachment->delete();
+
+        return response()->json(['ok' => true]);
+    }
+
     public function bulkDestroy(Request $request): JsonResponse
     {
         $user = $request->user();

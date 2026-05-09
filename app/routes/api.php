@@ -53,6 +53,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::get('/reporter/problems', [ReporterProblemApiController::class, 'index']);
         Route::get('/reporter/statistics', [ReporterProblemApiController::class, 'statistics']);
         Route::get('/reporter/report-meta', [ReporterProblemApiController::class, 'reportMeta']);
+        Route::get('/reporter/map', [ReporterProblemApiController::class, 'map']);
         Route::get('/reporter/problems/{problem}', [ReporterProblemApiController::class, 'show']);
     });
 });
@@ -75,6 +76,8 @@ Route::middleware(['auth:sanctum', 'verified', \App\Http\Middleware\ApplyActiveR
 
     Route::match(['put', 'post'], '/problems/{problem}', [InternalProblemApiController::class, 'update']);
     Route::delete('/problems/{problem}', [InternalProblemApiController::class, 'destroy']);
+    Route::post('/problems/{problem}/attachments', [InternalProblemApiController::class, 'storeAttachments']);
+    Route::delete('/problems/{problem}/attachments/{attachment}', [InternalProblemApiController::class, 'destroyAttachment']);
     Route::patch('/problems/{problem}/status', [InternalProblemApiController::class, 'updateStatus']);
     Route::patch('/problems/{problem}/publish', [InternalProblemApiController::class, 'updatePublish']);
     Route::post('/problems/{problem}/merge', [InternalProblemApiController::class, 'merge']);

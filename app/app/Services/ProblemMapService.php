@@ -176,6 +176,10 @@ class ProblemMapService
             if ($currentUser !== null) {
                 $item['reported_by_me'] = (int) ($problem->reported_by_user_id ?? 0) === (int) $currentUser->id
                     || (int) ($problem->mergedInto?->reported_by_user_id ?? 0) === (int) $currentUser->id;
+
+                if ($item['reported_by_me'] && $item['status'] === ProblemStatus::UNREGISTERED->value) {
+                    $item['status'] = ProblemStatus::NEW->value;
+                }
             }
 
             return $item;

@@ -6,13 +6,45 @@ info:
 
 tags:
   - name: Auth
+    description: >
+      [PUBLIC + AUTH] Login, registration, logout, current user profile, push device.
+      Used by login screens (mobile + web), register screen, and any client that needs
+      to identify the authenticated user.
   - name: VIISP
+    description: >
+      [PUBLIC] Lithuanian government VIISP login flow for mobile.
+      Used by the mobile login screen "Prisijungti per el. valdžios vartus".
   - name: Info
+    description: >
+      [PUBLIC] Public guest data — public statistics, public map, public CMS content
+      (FAQ, privacy, cookies, contacts, help). Used by the unauthenticated landing
+      site, the public map page, and public statistics page.
   - name: Settings
+    description: >
+      [AUTH] Authenticated user account settings — password change/setup,
+      email-notification preferences. Used by the Profile/Settings page in mobile and web.
   - name: Problems
+    description: >
+      [PUBLIC] Public single-problem details and public list (no role filter).
+      Used by guest detail/share pages.
   - name: Reporter
+    description: >
+      [AUTH-Reporter] Reporter (Pareiškėjas) flows — submit a problem, view own problems
+      list, statistics, dashboard map (own + public), report details. Used by mobile
+      reporter screens and the corresponding web pages: "Pranešimas", "Sąrašas",
+      "Statistika", "Žemėlapis" inside the reporter dashboard.
   - name: Internal
+    description: >
+      [AUTH-InternalStaff] Internal-staff problem management — list, edit (with
+      attachments), assign to institution, change status, publish, merge/unmerge,
+      review-progress comments. Used by the internal admin pages: "Sąrašas",
+      "Žemėlapis", "Problemos detalė", "Nagrinėjimo eiga", "Priskyrimas".
+      System Admin can manage everything; staff can only edit their own review entries.
   - name: TwoFactor
+    description: >
+      [AUTH-Admin] System-Admin 2FA management — list staff users, toggle per-user
+      2FA, global 2FA requirement, disable for all staff. Used by the admin RBAC
+      "2FA" tab.
 
 servers:
   - url: /
@@ -638,7 +670,12 @@ paths:
   /api/problems/{problem}/attachments:
     post:
       tags: [Reporter]
-      summary: "[AUTH] Upload attachments to existing problem"
+      summary: "[AUTH-Reporter] Upload attachments to own problem"
+      description: >
+        Used by the mobile reporter "Mano problema" detail page when the reporter adds
+        photos/videos to their own already-created problem. The reporter can only upload
+        to a problem they reported. Internal staff have a dedicated endpoint at
+        `POST /api/internal/problems/{problem}/attachments`.
       security:
         - bearerAuth: []
       parameters:
@@ -688,7 +725,12 @@ paths:
   /api/problems/{problem}/attachments/{attachment}:
     delete:
       tags: [Reporter]
-      summary: "[AUTH] Delete problem attachment"
+      summary: "[AUTH-Reporter] Delete attachment from own problem"
+      description: >
+        Used by the mobile reporter "Mano problema" detail page to remove a previously
+        uploaded photo/video. Reporter can only delete attachments on their own
+        problems. Internal staff use
+        `DELETE /api/internal/problems/{problem}/attachments/{attachment}`.
       security:
         - bearerAuth: []
       parameters:
@@ -711,7 +753,11 @@ paths:
   /api/problems/{problem}/review-progress:
     get:
       tags: [Reporter]
-      summary: "[AUTH] Get problem review progress entries"
+      summary: "[AUTH-Reporter] View public review progress entries (read-only)"
+      description: >
+        Used by the mobile/web reporter "Pranešimų eiga" detail page. Returns only the
+        entries that staff marked as Public. Internal users have full CRUD via
+        `/api/internal/problems/{problem}/review-progress`.
       security:
         - bearerAuth: []
       parameters:
@@ -856,6 +902,37 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ReporterProblemsListResponse'
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden not reporter
+
+  /api/reporter/map:
+    get:
+      tags: [Reporter]
+      summary: "[AUTH] Reporter dashboard map (own + public problems)"
+      description: >
+        Returns problems for the authenticated reporter's dashboard map.
+        Default: all publicly published problems (any reporter) + the authenticated
+        reporter's own problems regardless of publish state. With ?only_mine=1 only
+        the authenticated reporter's own problems are returned. The reporter's own
+        problems with status "neuzregistruota" are returned as "nauja" (display-only
+        normalization for the map).
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: only_mine
+          required: false
+          schema:
+            type: boolean
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PublicMapResponse'
         '401':
           description: Unauthorized
         '403':
@@ -1248,6 +1325,87 @@ paths:
         '403':
           description: Forbidden
 
+  /api/internal/problems/{problem}/attachments:
+    post:
+      tags: [Internal]
+      summary: "[AUTH-InternalStaff] Add attachments to a problem"
+      description: >
+        Used by the internal "Problemos detalė" page when staff edits a problem and
+        uploads photos/videos without changing other fields. Requires
+        `canEditProblemClassification` permission. Files go through the same upload
+        validation as the reporter flow. Multipart upload, field name `files[]`.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/problemPath'
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [files]
+              properties:
+                files:
+                  type: array
+                  items:
+                    type: string
+                    format: binary
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok:
+                    type: boolean
+                  attachments:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/AttachmentPublicPayload'
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '422':
+          $ref: '#/components/responses/ValidationError'
+
+  /api/internal/problems/{problem}/attachments/{attachment}:
+    delete:
+      tags: [Internal]
+      summary: "[AUTH-InternalStaff] Delete attachment from problem"
+      description: >
+        Used by the internal "Problemos detalė" page to remove a previously uploaded
+        photo/video. Requires `canEditProblemClassification` permission. Removes the
+        file from disk and the database row.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/problemPath'
+        - in: path
+          name: attachment
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok:
+                    type: boolean
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Attachment not found on this problem
+
   /api/internal/problems/{problem}/status:
     patch:
       tags: [Internal]
@@ -1502,7 +1660,11 @@ paths:
   /api/internal/problems/{problem}/review-progress:
     get:
       tags: [Internal]
-      summary: "[AUTH] Get review progress"
+      summary: "[AUTH-InternalStaff] View full review progress (incl. internal entries)"
+      description: >
+        Used by the internal "Pranešimų eiga" page. Returns ALL entries (both Public and
+        Internal-only). Reporter view at `/api/problems/{problem}/review-progress`
+        returns only Public entries.
       security:
         - bearerAuth: []
       parameters:
@@ -1523,7 +1685,13 @@ paths:
           description: Not found
     post:
       tags: [Internal]
-      summary: "[AUTH] Create review progress entry"
+      summary: "[AUTH-InternalStaff] Add review entry (comment, status, attachments)"
+      description: >
+        Used by the internal "Pranešimų eiga" page when staff posts a new entry.
+        A single entry can include: comment text, a status change for the problem,
+        responsible person, visibility (Public/Internal), and uploaded photos/videos.
+        Multipart upload, field name `files[]`. Any staff with access to the problem
+        can post.
       security:
         - bearerAuth: []
       parameters:
@@ -1564,7 +1732,12 @@ paths:
   /api/internal/problems/{problem}/review-progress/{entry}:
     put:
       tags: [Internal]
-      summary: "[AUTH] Update (tik JSON, be realių failų)"
+      summary: "[AUTH-InternalStaff] Edit a review entry (JSON only, no file upload)"
+      description: >
+        Used by the internal "Pranešimų eiga" page to edit an existing entry. System
+        Admin can edit any entry; regular staff can only edit entries they themselves
+        created. Use this PUT for JSON-only updates without files; for adding new
+        files use the multipart POST below.
       security:
         - bearerAuth: []
       parameters:
@@ -1598,7 +1771,11 @@ paths:
           $ref: '#/components/responses/ValidationError'
     post:
       tags: [Internal]
-      summary: "[AUTH] Update (multipart + failai - naudokite šitą, ne PUT)"
+      summary: "[AUTH-InternalStaff] Edit a review entry (multipart, with new files)"
+      description: >
+        Same as the PUT endpoint above but accepts multipart/form-data so new
+        photos/videos can be appended to the entry. Permissions identical: System Admin
+        can edit any entry, regular staff only their own.
       security:
         - bearerAuth: []
       parameters:
@@ -1637,7 +1814,11 @@ paths:
   /api/internal/problems/{problem}/review-progress/attachments/{attachment}:
     delete:
       tags: [Internal]
-      summary: "[AUTH] Delete review progress attachment"
+      summary: "[AUTH-InternalStaff] Delete a single review-progress file"
+      description: >
+        Used by the internal "Pranešimų eiga" page when staff removes a single
+        photo/video from a review entry. Permissions: System Admin can delete any
+        attachment; regular staff only files on entries they themselves authored.
       security:
         - bearerAuth: []
       parameters:
@@ -1772,6 +1953,22 @@ components:
             $ref: '#/components/schemas/LaravelValidationErrorResponse'
 
   schemas:
+    AttachmentPublicPayload:
+      type: object
+      properties:
+        id:
+          type: integer
+        url:
+          type: string
+          format: uri
+        mime_type:
+          type: string
+        kind:
+          type: string
+          description: "image | video | other"
+        size_bytes:
+          type: integer
+
     ApiLoginRequest:
       type: object
       required: [email, password, login_type]
@@ -2385,6 +2582,9 @@ components:
           format: date-time
         category:
           type: string
+        nature:
+          type: string
+          nullable: true
         address:
           type: string
         description:

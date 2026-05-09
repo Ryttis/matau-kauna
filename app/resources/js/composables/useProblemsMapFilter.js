@@ -1,7 +1,6 @@
 import { ref, computed } from 'vue'
 import { parseDateFilterInput } from '@/utils/parseDateFilterInput'
 import { foldLithuanianForSearch } from '@/utils/foldLithuanianForSearch'
-import { PROBLEM_STATUS } from '@/constants/domain/problemStatus'
 
 const DEFAULT_FILTER_STATE = {
     reportNumber: '',
@@ -24,7 +23,6 @@ export function useProblemsMapFilter(problemsSource, options = {}) {
     const reporterOnlyMine = options.reporterOnlyMine
     const reporterOnlyWatched = options.reporterOnlyWatched
     const isWatchedPredicate = typeof options.isWatched === 'function' ? options.isWatched : null
-    const isReporterMode = reporterOnlyMine !== undefined
     const searchQuery = ref('')
     const filterState = ref({ ...DEFAULT_FILTER_STATE })
     const selectedIds = ref(new Set())
@@ -42,14 +40,6 @@ export function useProblemsMapFilter(problemsSource, options = {}) {
     const filteredProblems = computed(() => {
         const list = Array.isArray(problemsSource.value) ? problemsSource.value : []
         let result = list
-
-        if (isReporterMode) {
-            result = result.map((problem) =>
-                problem?.status === PROBLEM_STATUS.UNREGISTERED
-                    ? { ...problem, status: PROBLEM_STATUS.NEW }
-                    : problem,
-            )
-        }
 
         const reportNum = (filterState.value.reportNumber || '').trim().toLowerCase()
         if (reportNum) {
