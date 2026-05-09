@@ -53,6 +53,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::get('/reporter/problems', [ReporterProblemApiController::class, 'index']);
         Route::get('/reporter/statistics', [ReporterProblemApiController::class, 'statistics']);
         Route::get('/reporter/report-meta', [ReporterProblemApiController::class, 'reportMeta']);
+        Route::get('/reporter/map', [ReporterProblemApiController::class, 'map']);
         Route::get('/reporter/problems/{problem}', [ReporterProblemApiController::class, 'show']);
     });
 });

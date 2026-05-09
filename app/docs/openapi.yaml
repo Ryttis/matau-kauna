@@ -861,6 +861,37 @@ paths:
         '403':
           description: Forbidden not reporter
 
+  /api/reporter/map:
+    get:
+      tags: [Reporter]
+      summary: "[AUTH] Reporter dashboard map (own + public problems)"
+      description: >
+        Returns problems for the authenticated reporter's dashboard map.
+        Default: all publicly published problems (any reporter) + the authenticated
+        reporter's own problems regardless of publish state. With ?only_mine=1 only
+        the authenticated reporter's own problems are returned. The reporter's own
+        problems with status "neuzregistruota" are returned as "nauja" (display-only
+        normalization for the map).
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: only_mine
+          required: false
+          schema:
+            type: boolean
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PublicMapResponse'
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden not reporter
+
   /api/reporter/problems/{problem}:
     get:
       tags: [Reporter]
@@ -2385,6 +2416,9 @@ components:
           format: date-time
         category:
           type: string
+        nature:
+          type: string
+          nullable: true
         address:
           type: string
         description:

@@ -10,6 +10,7 @@ use App\Models\Problem;
 use App\Models\User;
 use App\Models\UserRole;
 use App\Services\ProblemHttpSupport;
+use App\Services\ProblemMapService;
 use App\Services\ProblemMergeContextService;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
@@ -20,7 +21,26 @@ class ReporterProblemApiController extends Controller
     public function __construct(
         private ProblemHttpSupport $problemHttpSupport,
         private ProblemMergeContextService $mergeContextService,
+        private ProblemMapService $mapService,
     ) {}
+
+    public function map(Request $request): JsonResponse
+    {
+        $reporter = $this->authenticatedReporterOrAbort($request);
+        $onlyMine = $request->boolean('only_mine');
+
+        return response()->json([
+            'center' => [
+                'lat' => (float) config('kaunas.map_center.lat'),
+                'lng' => (float) config('kaunas.map_center.lng'),
+            ],
+            'problems' => $this->mapService->getPublicProblemsForMap(
+                $onlyMine ? $reporter->id : null,
+                $reporter,
+                ! $onlyMine,
+            ),
+        ]);
+    }
 
     public function index(Request $request): JsonResponse
     {
@@ -42,6 +62,7 @@ class ReporterProblemApiController extends Controller
                 'status' => $problem->status,
                 'created_at' => $problem->created_at?->toIso8601String(),
                 'category' => $problem->category,
+                'nature' => $problem->problemNature?->name,
                 'address' => $problem->address,
                 'description' => $problem->description ?? '',
                 'is_published_publicly' => $problem->is_published_publicly,
