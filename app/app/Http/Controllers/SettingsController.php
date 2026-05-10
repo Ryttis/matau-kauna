@@ -8,6 +8,7 @@ use App\Models\Institution;
 use App\Models\PasswordPolicy;
 use App\Models\User;
 use App\Services\SettingsService;
+use App\Services\TwoFactorService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -20,7 +21,8 @@ use Inertia\Response;
 class SettingsController extends Controller
 {
     public function __construct(
-        private SettingsService $settingsService
+        private SettingsService $settingsService,
+        private TwoFactorService $twoFactorService,
     ) {}
 
     public function profile(): Response
@@ -208,7 +210,20 @@ class SettingsController extends Controller
             if (! ($user instanceof User)) {
                 abort(403);
             }
-            $user->update($data);
+
+            if (array_key_exists('two_factor_enabled', $data)) {
+                if (! $this->twoFactorService->isStaffUser($user)) {
+                    unset($data['two_factor_enabled']);
+                } elseif ($data['two_factor_enabled'] === true && ! $this->twoFactorService->isGloballyRequired()) {
+                    return back()->withErrors([
+                        'two_factor_enabled' => 'Sistemos administratorius yra išjungęs 2FA visiems vartotojams.',
+                    ]);
+                }
+            }
+
+            if ($data !== []) {
+                $user->update($data);
+            }
         }
 
         return back()->with('success', 'Privatumo nustatymai atnaujinti.');

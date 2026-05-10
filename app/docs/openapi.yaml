@@ -16,12 +16,12 @@ tags:
       Used by the mobile login screen "Prisijungti per el. valdžios vartus".
   - name: Info
     description: >
-      [PUBLIC] Public guest data — public statistics, public map, public CMS content
+      [PUBLIC] Public guest data - public statistics, public map, public CMS content
       (FAQ, privacy, cookies, contacts, help). Used by the unauthenticated landing
       site, the public map page, and public statistics page.
   - name: Settings
     description: >
-      [AUTH] Authenticated user account settings — password change/setup,
+      [AUTH] Authenticated user account settings - password change/setup,
       email-notification preferences. Used by the Profile/Settings page in mobile and web.
   - name: Problems
     description: >
@@ -29,20 +29,20 @@ tags:
       Used by guest detail/share pages.
   - name: Reporter
     description: >
-      [AUTH-Reporter] Reporter (Pareiškėjas) flows — submit a problem, view own problems
+      [AUTH-Reporter] Reporter (Pareiškėjas) flows - submit a problem, view own problems
       list, statistics, dashboard map (own + public), report details. Used by mobile
       reporter screens and the corresponding web pages: "Pranešimas", "Sąrašas",
       "Statistika", "Žemėlapis" inside the reporter dashboard.
   - name: Internal
     description: >
-      [AUTH-InternalStaff] Internal-staff problem management — list, edit (with
+      [AUTH-InternalStaff] Internal-staff problem management - list, edit (with
       attachments), assign to institution, change status, publish, merge/unmerge,
       review-progress comments. Used by the internal admin pages: "Sąrašas",
       "Žemėlapis", "Problemos detalė", "Nagrinėjimo eiga", "Priskyrimas".
       System Admin can manage everything; staff can only edit their own review entries.
   - name: TwoFactor
     description: >
-      [AUTH-Admin] System-Admin 2FA management — list staff users, toggle per-user
+      [AUTH-Admin] System-Admin 2FA management - list staff users, toggle per-user
       2FA, global 2FA requirement, disable for all staff. Used by the admin RBAC
       "2FA" tab.
 
@@ -69,21 +69,21 @@ paths:
         content:
           application/x-www-form-urlencoded:
             schema:
-              $ref: '#/components/schemas/ApiLoginRequest'
+              $ref: "#/components/schemas/ApiLoginRequest"
           application/json:
             schema:
-              $ref: '#/components/schemas/ApiLoginRequest'
+              $ref: "#/components/schemas/ApiLoginRequest"
       responses:
-        '200':
+        "200":
           description: OK
           content:
             application/json:
               schema:
                 oneOf:
-                  - $ref: '#/components/schemas/AuthTokenResponse'
-                  - $ref: '#/components/schemas/LoginTwoFactorRequiredResponse'
-        '422':
-          $ref: '#/components/responses/ValidationError'
+                  - $ref: "#/components/schemas/AuthTokenResponse"
+                  - $ref: "#/components/schemas/LoginTwoFactorRequiredResponse"
+        "422":
+          $ref: "#/components/responses/ValidationError"
 
   /api/two-factor/challenge:
     post:
@@ -94,16 +94,16 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/ApiTwoFactorChallengeRequest'
+              $ref: "#/components/schemas/ApiTwoFactorChallengeRequest"
       responses:
-        '200':
+        "200":
           description: OK
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/AuthTokenResponse'
-        '422':
-          $ref: '#/components/responses/ValidationError'
+                $ref: "#/components/schemas/AuthTokenResponse"
+        "422":
+          $ref: "#/components/responses/ValidationError"
 
   /api/register:
     post:
@@ -119,7 +119,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/ApiRegisterRequest'
+              $ref: "#/components/schemas/ApiRegisterRequest"
             examples:
               normal_registration:
                 summary: Email/password registration
@@ -139,14 +139,14 @@ paths:
                   phone: "+37060000000"
                   device_name: "mobile-ios"
       responses:
-        '201':
+        "201":
           description: Created
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/AuthTokenResponse'
-        '422':
-          $ref: '#/components/responses/ValidationError'
+                $ref: "#/components/schemas/AuthTokenResponse"
+        "422":
+          $ref: "#/components/responses/ValidationError"
 
   /api/me:
     get:
@@ -167,13 +167,13 @@ paths:
             type: string
             example: "Bearer 6|qByoRAMucVQd90Q9JTG16xE3KPM3wV2imICs2Fro8907502b"
       responses:
-        '200':
+        "200":
           description: OK
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/MeResponse'
-        '401':
+                $ref: "#/components/schemas/MeResponse"
+        "401":
           description: Unauthorized
     delete:
       tags: [Auth]
@@ -193,7 +193,7 @@ paths:
             type: string
             example: "Bearer 6|qByoRAMucVQd90Q9JTG16xE3KPM3wV2imICs2Fro8907502b"
       responses:
-        '200':
+        "200":
           description: Account archived
           content:
             application/json:
@@ -203,7 +203,7 @@ paths:
                   ok:
                     type: boolean
                     example: true
-        '401':
+        "401":
           description: Unauthorized
 
   /api/me/push-device:
@@ -230,7 +230,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/PushDeviceRegisterRequest'
+              $ref: "#/components/schemas/PushDeviceRegisterRequest"
             examples:
               ios:
                 summary: iOS Firebase registration
@@ -247,16 +247,16 @@ paths:
                   platform: "android"
                   app_version: "1.0.0"
       responses:
-        '200':
+        "200":
           description: Push device saved
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/PushDeviceRegisterResponse'
-        '401':
+                $ref: "#/components/schemas/PushDeviceRegisterResponse"
+        "401":
           description: Unauthorized
-        '422':
-          $ref: '#/components/responses/ValidationError'
+        "422":
+          $ref: "#/components/responses/ValidationError"
 
   /api/me/push-test:
     post:
@@ -293,7 +293,7 @@ paths:
                   maxLength: 240
                   example: "Tai bandomasis pranešimas."
       responses:
-        '200':
+        "200":
           description: Push dispatched
           content:
             application/json:
@@ -303,14 +303,14 @@ paths:
                   ok:
                     type: boolean
                     example: true
-        '401':
+        "401":
           description: Unauthorized
-        '422':
+        "422":
           description: Push device not registered
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/MessageOnlyError'
+                $ref: "#/components/schemas/MessageOnlyError"
 
   /api/settings/password:
     put:
@@ -319,7 +319,7 @@ paths:
       description: >
         Updates the authenticated user's password. For VIISP-only users that have not
         yet set a local password (`viisp_local_password_set_at` is null), `current_password`
-        is omitted — this is the "create local password" flow. For everyone else
+        is omitted - this is the "create local password" flow. For everyone else
         `current_password` is required.
 
         Validation follows the active `PasswordPolicy` and rejects passwords containing
@@ -367,7 +367,7 @@ paths:
                   password: "NewStrong!23"
                   password_confirmation: "NewStrong!23"
       responses:
-        '200':
+        "200":
           description: Password saved
           content:
             application/json:
@@ -383,10 +383,10 @@ paths:
                   viisp_local_password_set:
                     type: boolean
                     example: false
-        '401':
+        "401":
           description: Unauthorized
-        '422':
-          $ref: '#/components/responses/ValidationError'
+        "422":
+          $ref: "#/components/responses/ValidationError"
 
   /api/setting/email_notifications:
     patch:
@@ -410,7 +410,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/EmailNotificationSettingsUpdateRequest'
+              $ref: "#/components/schemas/EmailNotificationSettingsUpdateRequest"
             examples:
               enabled:
                 summary: Enable reporter email notifications
@@ -423,16 +423,16 @@ paths:
                   reporter_email_own_problems: false
                   reporter_email_watched_problems: false
       responses:
-        '200':
+        "200":
           description: Email notification settings saved
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/EmailNotificationSettingsResponse'
-        '401':
+                $ref: "#/components/schemas/EmailNotificationSettingsResponse"
+        "401":
           description: Unauthorized
-        '422':
-          $ref: '#/components/responses/ValidationError'
+        "422":
+          $ref: "#/components/responses/ValidationError"
 
   /api/logout:
     post:
@@ -444,7 +444,7 @@ paths:
       security:
         - bearerAuth: []
       responses:
-        '200':
+        "200":
           description: OK
           content:
             application/json:
@@ -454,7 +454,7 @@ paths:
                   ok:
                     type: boolean
                     example: true
-        '401':
+        "401":
           description: Unauthorized
 
   /api/viisp/init:
@@ -466,22 +466,22 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/ViispInitRequest'
+              $ref: "#/components/schemas/ViispInitRequest"
       responses:
-        '200':
+        "200":
           description: Redirect URL created
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ViispInitResponse'
-        '422':
-          $ref: '#/components/responses/ValidationError'
-        '503':
+                $ref: "#/components/schemas/ViispInitResponse"
+        "422":
+          $ref: "#/components/responses/ValidationError"
+        "503":
           description: VIISP unavailable
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/MessageOnlyError'
+                $ref: "#/components/schemas/MessageOnlyError"
 
   /api/viisp/callback:
     get:
@@ -503,28 +503,28 @@ paths:
           schema:
             type: string
       responses:
-        '200':
+        "200":
           description: Existing user token or new-user VIISP registration token
           content:
             application/json:
               schema:
                 oneOf:
-                  - $ref: '#/components/schemas/AuthTokenResponse'
-                  - $ref: '#/components/schemas/ViispRegistrationRequiredResponse'
-        '422':
-          $ref: '#/components/responses/ValidationError'
-        '502':
+                  - $ref: "#/components/schemas/AuthTokenResponse"
+                  - $ref: "#/components/schemas/ViispRegistrationRequiredResponse"
+        "422":
+          $ref: "#/components/responses/ValidationError"
+        "502":
           description: VIISP identity exchange failed
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/MessageOnlyError'
-        '503':
+                $ref: "#/components/schemas/MessageOnlyError"
+        "503":
           description: VIISP unavailable
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/MessageOnlyError'
+                $ref: "#/components/schemas/MessageOnlyError"
 
   /api/viisp/exchange:
     post:
@@ -535,22 +535,22 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/ViispExchangeRequest'
+              $ref: "#/components/schemas/ViispExchangeRequest"
       responses:
-        '200':
+        "200":
           description: Token issued
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/AuthTokenResponse'
-        '422':
-          $ref: '#/components/responses/ValidationError'
-        '404':
+                $ref: "#/components/schemas/AuthTokenResponse"
+        "422":
+          $ref: "#/components/responses/ValidationError"
+        "404":
           description: User not found
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/MessageOnlyError'
+                $ref: "#/components/schemas/MessageOnlyError"
 
   /api/problems:
     get:
@@ -567,7 +567,7 @@ paths:
             maximum: 100
             default: 20
       responses:
-        '200':
+        "200":
           description: OK
           content:
             application/json:
@@ -597,12 +597,12 @@ paths:
         content:
           multipart/form-data:
             schema:
-              $ref: '#/components/schemas/ReporterProblemCreateMultipartRequest'
+              $ref: "#/components/schemas/ReporterProblemCreateMultipartRequest"
           application/json:
             schema:
-              $ref: '#/components/schemas/ReporterProblemCreateRequest'
+              $ref: "#/components/schemas/ReporterProblemCreateRequest"
       responses:
-        '200':
+        "200":
           description: Created
           content:
             application/json:
@@ -619,13 +619,13 @@ paths:
                   attachments:
                     type: array
                     items:
-                      $ref: '#/components/schemas/PublicAttachment'
-        '401':
+                      $ref: "#/components/schemas/PublicAttachment"
+        "401":
           description: Unauthorized
-        '403':
+        "403":
           description: No permission
-        '422':
-          $ref: '#/components/responses/ValidationError'
+        "422":
+          $ref: "#/components/responses/ValidationError"
 
   /api/problems/{problem}:
     get:
@@ -633,15 +633,15 @@ paths:
       summary: "[PUBLIC] Problem details"
       description: "No authentication required. Returns only public problem details."
       parameters:
-        - $ref: '#/components/parameters/problemPath'
+        - $ref: "#/components/parameters/problemPath"
       responses:
-        '200':
+        "200":
           description: OK
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/PublicProblemResponse'
-        '404':
+                $ref: "#/components/schemas/PublicProblemResponse"
+        "404":
           description: Problem not found or not public
 
   /api/problems/{problem}/watch:
@@ -651,9 +651,9 @@ paths:
       security:
         - bearerAuth: []
       parameters:
-        - $ref: '#/components/parameters/problemPath'
+        - $ref: "#/components/parameters/problemPath"
       responses:
-        '200':
+        "200":
           description: Toggled
           content:
             application/json:
@@ -662,9 +662,9 @@ paths:
                 properties:
                   watched:
                     type: boolean
-        '401':
+        "401":
           description: Unauthorized
-        '404':
+        "404":
           description: Not found
 
   /api/problems/{problem}/attachments:
@@ -679,7 +679,7 @@ paths:
       security:
         - bearerAuth: []
       parameters:
-        - $ref: '#/components/parameters/problemPath'
+        - $ref: "#/components/parameters/problemPath"
         - in: header
           name: X-Upload-Channel
           required: false
@@ -692,16 +692,16 @@ paths:
         content:
           multipart/form-data:
             schema:
-              $ref: '#/components/schemas/ProblemAttachmentsUploadMultipartRequest'
+              $ref: "#/components/schemas/ProblemAttachmentsUploadMultipartRequest"
             encoding:
               files:
                 style: form
                 explode: true
           application/json:
             schema:
-              $ref: '#/components/schemas/ProblemAttachmentsUploadRequest'
+              $ref: "#/components/schemas/ProblemAttachmentsUploadRequest"
       responses:
-        '200':
+        "200":
           description: Uploaded
           content:
             application/json:
@@ -714,13 +714,13 @@ paths:
                   attachments:
                     type: array
                     items:
-                      $ref: '#/components/schemas/PublicAttachment'
-        '401':
+                      $ref: "#/components/schemas/PublicAttachment"
+        "401":
           description: Unauthorized
-        '403':
+        "403":
           description: Forbidden
-        '422':
-          $ref: '#/components/responses/ValidationError'
+        "422":
+          $ref: "#/components/responses/ValidationError"
 
   /api/problems/{problem}/attachments/{attachment}:
     delete:
@@ -734,20 +734,20 @@ paths:
       security:
         - bearerAuth: []
       parameters:
-        - $ref: '#/components/parameters/problemPath'
-        - $ref: '#/components/parameters/attachmentPath'
+        - $ref: "#/components/parameters/problemPath"
+        - $ref: "#/components/parameters/attachmentPath"
       responses:
-        '200':
+        "200":
           description: Deleted
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/OkResponse'
-        '401':
+                $ref: "#/components/schemas/OkResponse"
+        "401":
           description: Unauthorized
-        '403':
+        "403":
           description: Forbidden
-        '404':
+        "404":
           description: Not found
 
   /api/problems/{problem}/review-progress:
@@ -761,20 +761,20 @@ paths:
       security:
         - bearerAuth: []
       parameters:
-        - $ref: '#/components/parameters/problemPath'
+        - $ref: "#/components/parameters/problemPath"
       responses:
-        '200':
+        "200":
           description: OK
           content:
             application/json:
               schema:
                 type: object
                 additionalProperties: true
-        '401':
+        "401":
           description: Unauthorized
-        '403':
+        "403":
           description: Forbidden
-        '404':
+        "404":
           description: Not found
 
   /api/info/statistics:
@@ -800,24 +800,24 @@ paths:
             default: all
           example: all
       responses:
-        '200':
+        "200":
           description: OK
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/PublicStatisticsResponse'
+                $ref: "#/components/schemas/PublicStatisticsResponse"
 
   /api/info/map:
     get:
       tags: [Info]
       summary: "[PUBLIC] Public map problems data JSON"
       responses:
-        '200':
+        "200":
           description: OK
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/PublicMapResponse'
+                $ref: "#/components/schemas/PublicMapResponse"
 
   /api/content/{type}:
     get:
@@ -831,13 +831,13 @@ paths:
             type: string
             enum: [faq, privacy, cookies, contacts, help]
       responses:
-        '200':
+        "200":
           description: OK
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/PublicContentResponse'
-        '404':
+                $ref: "#/components/schemas/PublicContentResponse"
+        "404":
           description: Not found
 
   /api/info/file-upload-settings:
@@ -847,13 +847,13 @@ paths:
       security:
         - bearerAuth: []
       responses:
-        '200':
+        "200":
           description: OK
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/FileUploadSettingsResponse'
-        '401':
+                $ref: "#/components/schemas/FileUploadSettingsResponse"
+        "401":
           description: Unauthorized
 
   /api/reporter/problems:
@@ -861,8 +861,8 @@ paths:
       tags: [Reporter]
       summary: "[AUTH] Reporter own problems list (all statuses)"
       description: >
-        Returns ALL problems reported by the authenticated reporter — every status,
-        including archived/merged children — matching the Reporter page 'Sąrašas' in
+        Returns ALL problems reported by the authenticated reporter - every status,
+        including archived/merged children - matching the Reporter page 'Sąrašas' in
         the web app. Optional query parameters narrow the result by free text, report
         number, category, and date range.
       security:
@@ -896,15 +896,15 @@ paths:
             type: string
             format: date
       responses:
-        '200':
+        "200":
           description: OK
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ReporterProblemsListResponse'
-        '401':
+                $ref: "#/components/schemas/ReporterProblemsListResponse"
+        "401":
           description: Unauthorized
-        '403':
+        "403":
           description: Forbidden not reporter
 
   /api/reporter/map:
@@ -927,15 +927,15 @@ paths:
           schema:
             type: boolean
       responses:
-        '200':
+        "200":
           description: OK
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/PublicMapResponse'
-        '401':
+                $ref: "#/components/schemas/PublicMapResponse"
+        "401":
           description: Unauthorized
-        '403':
+        "403":
           description: Forbidden not reporter
 
   /api/reporter/problems/{problem}:
@@ -945,19 +945,19 @@ paths:
       security:
         - bearerAuth: []
       parameters:
-        - $ref: '#/components/parameters/problemPath'
+        - $ref: "#/components/parameters/problemPath"
       responses:
-        '200':
+        "200":
           description: OK
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ReporterProblemShowResponse'
-        '401':
+                $ref: "#/components/schemas/ReporterProblemShowResponse"
+        "401":
           description: Unauthorized
-        '403':
+        "403":
           description: Forbidden not reporter
-        '404':
+        "404":
           description: Not found
 
   /api/reporter/statistics:
@@ -992,7 +992,7 @@ paths:
           schema:
             type: string
             format: date
-          example: '2026-01-01'
+          example: "2026-01-01"
         - in: query
           name: date_to
           required: false
@@ -1000,17 +1000,17 @@ paths:
           schema:
             type: string
             format: date
-          example: '2026-12-31'
+          example: "2026-12-31"
       responses:
-        '200':
+        "200":
           description: OK
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ReporterStatisticsResponse'
-        '401':
+                $ref: "#/components/schemas/ReporterStatisticsResponse"
+        "401":
           description: Unauthorized
-        '403':
+        "403":
           description: Forbidden not reporter
 
   /api/reporter/report-meta:
@@ -1020,15 +1020,15 @@ paths:
       security:
         - bearerAuth: []
       responses:
-        '200':
+        "200":
           description: OK
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ReporterReportMetaResponse'
-        '401':
+                $ref: "#/components/schemas/ReporterReportMetaResponse"
+        "401":
           description: Unauthorized
-        '403':
+        "403":
           description: Forbidden not reporter
 
   /api/reporter/wizard-dismissed:
@@ -1038,15 +1038,15 @@ paths:
       security:
         - bearerAuth: []
       responses:
-        '200':
+        "200":
           description: OK
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/OkResponse'
-        '401':
+                $ref: "#/components/schemas/OkResponse"
+        "401":
           description: Unauthorized
-        '403':
+        "403":
           description: Forbidden not reporter
 
   /api/reporter/report-terms-accepted:
@@ -1056,15 +1056,15 @@ paths:
       security:
         - bearerAuth: []
       responses:
-        '200':
+        "200":
           description: OK
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/OkResponse'
-        '401':
+                $ref: "#/components/schemas/OkResponse"
+        "401":
           description: Unauthorized
-        '403':
+        "403":
           description: Forbidden not reporter
 
   /api/internal/two-factor/users:
@@ -1089,15 +1089,15 @@ paths:
             type: integer
             default: 1
       responses:
-        '200':
+        "200":
           description: OK
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/TwoFactorUsersListResponse'
-        '401':
+                $ref: "#/components/schemas/TwoFactorUsersListResponse"
+        "401":
           description: Unauthorized
-        '403':
+        "403":
           description: Prieiga uždrausta
 
   /api/internal/two-factor/users/{user}:
@@ -1117,20 +1117,20 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/TwoFactorToggleRequest'
+              $ref: "#/components/schemas/TwoFactorToggleRequest"
       responses:
-        '200':
+        "200":
           description: OK
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/TwoFactorUserUpdateResponse'
-        '401':
+                $ref: "#/components/schemas/TwoFactorUserUpdateResponse"
+        "401":
           description: Unauthorized
-        '403':
+        "403":
           description: Prieiga uždrausta
-        '422':
-          $ref: '#/components/responses/ValidationError'
+        "422":
+          $ref: "#/components/responses/ValidationError"
 
   /api/internal/two-factor/global:
     post:
@@ -1144,20 +1144,20 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/TwoFactorToggleRequest'
+              $ref: "#/components/schemas/TwoFactorToggleRequest"
       responses:
-        '200':
+        "200":
           description: OK
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/TwoFactorOkMessageResponse'
-        '401':
+                $ref: "#/components/schemas/TwoFactorOkMessageResponse"
+        "401":
           description: Unauthorized
-        '403':
+        "403":
           description: Prieiga uždrausta
-        '422':
-          $ref: '#/components/responses/ValidationError'
+        "422":
+          $ref: "#/components/responses/ValidationError"
 
   /api/internal/two-factor/disable-all-staff:
     post:
@@ -1166,15 +1166,15 @@ paths:
       security:
         - bearerAuth: []
       responses:
-        '200':
+        "200":
           description: OK
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/TwoFactorOkMessageResponse'
-        '401':
+                $ref: "#/components/schemas/TwoFactorOkMessageResponse"
+        "401":
           description: Unauthorized
-        '403':
+        "403":
           description: Prieiga uždrausta
 
   /api/internal/institutions:
@@ -1185,15 +1185,15 @@ paths:
       security:
         - bearerAuth: []
       responses:
-        '200':
+        "200":
           description: OK
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/InternalInstitutionsListResponse'
-        '401':
+                $ref: "#/components/schemas/InternalInstitutionsListResponse"
+        "401":
           description: Unauthorized
-        '403':
+        "403":
           description: Forbidden
 
   /api/internal/problems:
@@ -1258,16 +1258,16 @@ paths:
             enum: [asc, desc]
             default: desc
       responses:
-        '200':
+        "200":
           description: OK
           content:
             application/json:
               schema:
                 type: object
                 additionalProperties: true
-        '401':
+        "401":
           description: Unauthorized
-        '403':
+        "403":
           description: Forbidden
 
   /api/internal/problems/{problem}:
@@ -1278,33 +1278,33 @@ paths:
       security:
         - bearerAuth: []
       parameters:
-        - $ref: '#/components/parameters/problemPath'
+        - $ref: "#/components/parameters/problemPath"
       requestBody:
         required: true
         content:
           multipart/form-data:
             schema:
-              $ref: '#/components/schemas/InternalProblemUpdateMultipartRequest'
+              $ref: "#/components/schemas/InternalProblemUpdateMultipartRequest"
             encoding:
               files:
                 style: form
                 explode: true
           application/json:
             schema:
-              $ref: '#/components/schemas/InternalProblemUpdateRequestJson'
+              $ref: "#/components/schemas/InternalProblemUpdateRequestJson"
       responses:
-        '200':
+        "200":
           description: Updated
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/InternalProblemUpdateResult'
-        '401':
+                $ref: "#/components/schemas/InternalProblemUpdateResult"
+        "401":
           description: Unauthorized
-        '403':
+        "403":
           description: Forbidden
-        '422':
-          $ref: '#/components/responses/ValidationError'
+        "422":
+          $ref: "#/components/responses/ValidationError"
     delete:
       tags: [Internal]
       summary: "[AUTH] Archive problem and merge group"
@@ -1312,17 +1312,17 @@ paths:
       security:
         - bearerAuth: []
       parameters:
-        - $ref: '#/components/parameters/problemPath'
+        - $ref: "#/components/parameters/problemPath"
       responses:
-        '200':
+        "200":
           description: Archived
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/InternalProblemArchiveResult'
-        '401':
+                $ref: "#/components/schemas/InternalProblemArchiveResult"
+        "401":
           description: Unauthorized
-        '403':
+        "403":
           description: Forbidden
 
   /api/internal/problems/{problem}/attachments:
@@ -1337,7 +1337,7 @@ paths:
       security:
         - bearerAuth: []
       parameters:
-        - $ref: '#/components/parameters/problemPath'
+        - $ref: "#/components/parameters/problemPath"
       requestBody:
         required: true
         content:
@@ -1352,7 +1352,7 @@ paths:
                     type: string
                     format: binary
       responses:
-        '200':
+        "200":
           description: OK
           content:
             application/json:
@@ -1364,13 +1364,13 @@ paths:
                   attachments:
                     type: array
                     items:
-                      $ref: '#/components/schemas/AttachmentPublicPayload'
-        '401':
+                      $ref: "#/components/schemas/AttachmentPublicPayload"
+        "401":
           description: Unauthorized
-        '403':
+        "403":
           description: Forbidden
-        '422':
-          $ref: '#/components/responses/ValidationError'
+        "422":
+          $ref: "#/components/responses/ValidationError"
 
   /api/internal/problems/{problem}/attachments/{attachment}:
     delete:
@@ -1383,14 +1383,14 @@ paths:
       security:
         - bearerAuth: []
       parameters:
-        - $ref: '#/components/parameters/problemPath'
+        - $ref: "#/components/parameters/problemPath"
         - in: path
           name: attachment
           required: true
           schema:
             type: integer
       responses:
-        '200':
+        "200":
           description: OK
           content:
             application/json:
@@ -1399,11 +1399,11 @@ paths:
                 properties:
                   ok:
                     type: boolean
-        '401':
+        "401":
           description: Unauthorized
-        '403':
+        "403":
           description: Forbidden
-        '404':
+        "404":
           description: Attachment not found on this problem
 
   /api/internal/problems/{problem}/status:
@@ -1414,26 +1414,26 @@ paths:
       security:
         - bearerAuth: []
       parameters:
-        - $ref: '#/components/parameters/problemPath'
+        - $ref: "#/components/parameters/problemPath"
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/InternalProblemStatusUpdateRequest'
+              $ref: "#/components/schemas/InternalProblemStatusUpdateRequest"
       responses:
-        '200':
+        "200":
           description: Status updated
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/InternalProblemStatusBatchResult'
-        '401':
+                $ref: "#/components/schemas/InternalProblemStatusBatchResult"
+        "401":
           description: Unauthorized
-        '403':
+        "403":
           description: Forbidden
-        '422':
-          $ref: '#/components/responses/ValidationError'
+        "422":
+          $ref: "#/components/responses/ValidationError"
 
   /api/internal/problems/{problem}/publish:
     patch:
@@ -1443,26 +1443,26 @@ paths:
       security:
         - bearerAuth: []
       parameters:
-        - $ref: '#/components/parameters/problemPath'
+        - $ref: "#/components/parameters/problemPath"
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/InternalProblemPublishUpdateRequest'
+              $ref: "#/components/schemas/InternalProblemPublishUpdateRequest"
       responses:
-        '200':
+        "200":
           description: Publish toggled
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/InternalProblemPublishBatchResult'
-        '401':
+                $ref: "#/components/schemas/InternalProblemPublishBatchResult"
+        "401":
           description: Unauthorized
-        '403':
+        "403":
           description: Forbidden
-        '422':
-          $ref: '#/components/responses/ValidationError'
+        "422":
+          $ref: "#/components/responses/ValidationError"
 
   /api/internal/problems/{problem}/merge:
     post:
@@ -1472,26 +1472,26 @@ paths:
       security:
         - bearerAuth: []
       parameters:
-        - $ref: '#/components/parameters/problemPath'
+        - $ref: "#/components/parameters/problemPath"
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/InternalProblemMergeRequest'
+              $ref: "#/components/schemas/InternalProblemMergeRequest"
       responses:
-        '200':
+        "200":
           description: Merged or no changes
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/InternalProblemMergeResult'
-        '401':
+                $ref: "#/components/schemas/InternalProblemMergeResult"
+        "401":
           description: Unauthorized
-        '403':
+        "403":
           description: Forbidden
-        '422':
-          $ref: '#/components/responses/ValidationError'
+        "422":
+          $ref: "#/components/responses/ValidationError"
 
   /api/internal/problems/assign:
     post:
@@ -1505,24 +1505,24 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/InternalBulkAssignRequest'
+              $ref: "#/components/schemas/InternalBulkAssignRequest"
       responses:
-        '200':
+        "200":
           description: OK
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/InternalAssignBulkResult'
-        '401':
+                $ref: "#/components/schemas/InternalAssignBulkResult"
+        "401":
           description: Unauthorized
-        '403':
+        "403":
           description: Forbidden
-        '422':
+        "422":
           description: Validation error or resolved problems blocked
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/MessageOnlyError'
+                $ref: "#/components/schemas/MessageOnlyError"
 
   /api/internal/problems/{problem}/assign-institution-options:
     get:
@@ -1532,24 +1532,24 @@ paths:
       security:
         - bearerAuth: []
       parameters:
-        - $ref: '#/components/parameters/problemPath'
+        - $ref: "#/components/parameters/problemPath"
       responses:
-        '200':
+        "200":
           description: OK
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/InternalAssignInstitutionOptionsResponse'
-        '401':
+                $ref: "#/components/schemas/InternalAssignInstitutionOptionsResponse"
+        "401":
           description: Unauthorized
-        '403':
+        "403":
           description: Forbidden
-        '422':
+        "422":
           description: Resolved problem
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/MessageOnlyError'
+                $ref: "#/components/schemas/MessageOnlyError"
 
   /api/internal/problems/{problem}/assign-institution:
     post:
@@ -1559,30 +1559,30 @@ paths:
       security:
         - bearerAuth: []
       parameters:
-        - $ref: '#/components/parameters/problemPath'
+        - $ref: "#/components/parameters/problemPath"
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/InternalInstitutionAssignRequest'
+              $ref: "#/components/schemas/InternalInstitutionAssignRequest"
       responses:
-        '200':
+        "200":
           description: Assigned
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/InternalOkProblemId'
-        '401':
+                $ref: "#/components/schemas/InternalOkProblemId"
+        "401":
           description: Unauthorized
-        '403':
+        "403":
           description: Forbidden
-        '422':
+        "422":
           description: Bad assignment payload empty team or resolved problem
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/MessageOnlyError'
+                $ref: "#/components/schemas/MessageOnlyError"
 
   /api/internal/problems/{problem}/reassign-institution:
     post:
@@ -1592,30 +1592,30 @@ paths:
       security:
         - bearerAuth: []
       parameters:
-        - $ref: '#/components/parameters/problemPath'
+        - $ref: "#/components/parameters/problemPath"
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/InternalInstitutionReassignRequest'
+              $ref: "#/components/schemas/InternalInstitutionReassignRequest"
       responses:
-        '200':
+        "200":
           description: Reassigned or already at institution
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/InternalOkProblemId'
-        '401':
+                $ref: "#/components/schemas/InternalOkProblemId"
+        "401":
           description: Unauthorized
-        '403':
+        "403":
           description: Forbidden
-        '422':
+        "422":
           description: Problem already resolved
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/MessageOnlyError'
+                $ref: "#/components/schemas/MessageOnlyError"
 
   /api/internal/problems/{problem}/unmerge:
     patch:
@@ -1624,17 +1624,17 @@ paths:
       security:
         - bearerAuth: []
       parameters:
-        - $ref: '#/components/parameters/problemPath'
+        - $ref: "#/components/parameters/problemPath"
       responses:
-        '200':
+        "200":
           description: OK
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/InternalOkProblemId'
-        '401':
+                $ref: "#/components/schemas/InternalOkProblemId"
+        "401":
           description: Unauthorized
-        '403':
+        "403":
           description: Forbidden
 
   /api/internal/problems/{problem}/return:
@@ -1644,17 +1644,17 @@ paths:
       security:
         - bearerAuth: []
       parameters:
-        - $ref: '#/components/parameters/problemPath'
+        - $ref: "#/components/parameters/problemPath"
       responses:
-        '200':
+        "200":
           description: OK
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/InternalOkProblemId'
-        '401':
+                $ref: "#/components/schemas/InternalOkProblemId"
+        "401":
           description: Unauthorized
-        '403':
+        "403":
           description: Forbidden
 
   /api/internal/problems/{problem}/review-progress:
@@ -1668,20 +1668,20 @@ paths:
       security:
         - bearerAuth: []
       parameters:
-        - $ref: '#/components/parameters/problemPath'
+        - $ref: "#/components/parameters/problemPath"
       responses:
-        '200':
+        "200":
           description: OK
           content:
             application/json:
               schema:
                 type: object
                 additionalProperties: true
-        '401':
+        "401":
           description: Unauthorized
-        '403':
+        "403":
           description: Forbidden
-        '404':
+        "404":
           description: Not found
     post:
       tags: [Internal]
@@ -1695,7 +1695,7 @@ paths:
       security:
         - bearerAuth: []
       parameters:
-        - $ref: '#/components/parameters/problemPath'
+        - $ref: "#/components/parameters/problemPath"
         - in: header
           name: X-Upload-Channel
           required: false
@@ -1708,26 +1708,26 @@ paths:
         content:
           multipart/form-data:
             schema:
-              $ref: '#/components/schemas/ReviewProgressUpsertMultipartRequest'
+              $ref: "#/components/schemas/ReviewProgressUpsertMultipartRequest"
             encoding:
               files:
                 explode: true
           application/json:
             schema:
-              $ref: '#/components/schemas/ReviewProgressUpsertRequestJson'
+              $ref: "#/components/schemas/ReviewProgressUpsertRequestJson"
       responses:
-        '200':
+        "200":
           description: Created
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ReviewProgressOkResponse'
-        '401':
+                $ref: "#/components/schemas/ReviewProgressOkResponse"
+        "401":
           description: Unauthorized
-        '403':
+        "403":
           description: Forbidden
-        '422':
-          $ref: '#/components/responses/ValidationError'
+        "422":
+          $ref: "#/components/responses/ValidationError"
 
   /api/internal/problems/{problem}/review-progress/{entry}:
     put:
@@ -1741,8 +1741,8 @@ paths:
       security:
         - bearerAuth: []
       parameters:
-        - $ref: '#/components/parameters/problemPath'
-        - $ref: '#/components/parameters/entryPath'
+        - $ref: "#/components/parameters/problemPath"
+        - $ref: "#/components/parameters/entryPath"
         - in: header
           name: X-Upload-Channel
           required: false
@@ -1755,20 +1755,20 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/ReviewProgressPartialBody'
+              $ref: "#/components/schemas/ReviewProgressPartialBody"
       responses:
-        '200':
+        "200":
           description: Updated
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ReviewProgressOkResponse'
-        '401':
+                $ref: "#/components/schemas/ReviewProgressOkResponse"
+        "401":
           description: Unauthorized
-        '403':
+        "403":
           description: Forbidden
-        '422':
-          $ref: '#/components/responses/ValidationError'
+        "422":
+          $ref: "#/components/responses/ValidationError"
     post:
       tags: [Internal]
       summary: "[AUTH-InternalStaff] Edit a review entry (multipart, with new files)"
@@ -1779,8 +1779,8 @@ paths:
       security:
         - bearerAuth: []
       parameters:
-        - $ref: '#/components/parameters/problemPath'
-        - $ref: '#/components/parameters/entryPath'
+        - $ref: "#/components/parameters/problemPath"
+        - $ref: "#/components/parameters/entryPath"
         - in: header
           name: X-Upload-Channel
           required: false
@@ -1793,23 +1793,23 @@ paths:
         content:
           multipart/form-data:
             schema:
-              $ref: '#/components/schemas/ReviewProgressPartialMultipartRequest'
+              $ref: "#/components/schemas/ReviewProgressPartialMultipartRequest"
             encoding:
               files:
                 explode: true
       responses:
-        '200':
+        "200":
           description: Updated
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ReviewProgressOkResponse'
-        '401':
+                $ref: "#/components/schemas/ReviewProgressOkResponse"
+        "401":
           description: Unauthorized
-        '403':
+        "403":
           description: Forbidden
-        '422':
-          $ref: '#/components/responses/ValidationError'
+        "422":
+          $ref: "#/components/responses/ValidationError"
 
   /api/internal/problems/{problem}/review-progress/attachments/{attachment}:
     delete:
@@ -1822,20 +1822,20 @@ paths:
       security:
         - bearerAuth: []
       parameters:
-        - $ref: '#/components/parameters/problemPath'
-        - $ref: '#/components/parameters/attachmentPath'
+        - $ref: "#/components/parameters/problemPath"
+        - $ref: "#/components/parameters/attachmentPath"
       responses:
-        '200':
+        "200":
           description: Deleted
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/OkResponse'
-        '401':
+                $ref: "#/components/schemas/OkResponse"
+        "401":
           description: Unauthorized
-        '403':
+        "403":
           description: Forbidden
-        '404':
+        "404":
           description: Not found
 
   /api/internal/problems/bulk-update-status:
@@ -1849,20 +1849,20 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/InternalBulkStatusUpdateRequest'
+              $ref: "#/components/schemas/InternalBulkStatusUpdateRequest"
       responses:
-        '200':
+        "200":
           description: OK
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/InternalBulkStatusResult'
-        '401':
+                $ref: "#/components/schemas/InternalBulkStatusResult"
+        "401":
           description: Unauthorized
-        '403':
+        "403":
           description: Forbidden
-        '422':
-          $ref: '#/components/responses/ValidationError'
+        "422":
+          $ref: "#/components/responses/ValidationError"
 
   /api/internal/problems/bulk-destroy:
     post:
@@ -1875,20 +1875,20 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/InternalBulkIdsRequest'
+              $ref: "#/components/schemas/InternalBulkIdsRequest"
       responses:
-        '200':
+        "200":
           description: OK
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/InternalBulkArchiveResult'
-        '401':
+                $ref: "#/components/schemas/InternalBulkArchiveResult"
+        "401":
           description: Unauthorized
-        '403':
+        "403":
           description: Forbidden
-        '422':
-          $ref: '#/components/responses/ValidationError'
+        "422":
+          $ref: "#/components/responses/ValidationError"
 
   /api/internal/problems/bulk-update-publish:
     post:
@@ -1901,20 +1901,20 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/InternalBulkPublishUpdateRequest'
+              $ref: "#/components/schemas/InternalBulkPublishUpdateRequest"
       responses:
-        '200':
+        "200":
           description: OK
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/InternalBulkPublishResult'
-        '401':
+                $ref: "#/components/schemas/InternalBulkPublishResult"
+        "401":
           description: Unauthorized
-        '403':
+        "403":
           description: Forbidden
-        '422':
-          $ref: '#/components/responses/ValidationError'
+        "422":
+          $ref: "#/components/responses/ValidationError"
 
 components:
   securitySchemes:
@@ -1950,7 +1950,7 @@ components:
       content:
         application/json:
           schema:
-            $ref: '#/components/schemas/LaravelValidationErrorResponse'
+            $ref: "#/components/schemas/LaravelValidationErrorResponse"
 
   schemas:
     AttachmentPublicPayload:
@@ -1991,8 +1991,8 @@ components:
 
     ApiRegisterRequest:
       oneOf:
-        - $ref: '#/components/schemas/ApiPasswordRegisterRequest'
-        - $ref: '#/components/schemas/ApiViispRegisterRequest'
+        - $ref: "#/components/schemas/ApiPasswordRegisterRequest"
+        - $ref: "#/components/schemas/ApiViispRegisterRequest"
 
     ApiPasswordRegisterRequest:
       type: object
@@ -2120,7 +2120,8 @@ components:
           example: true
         email_notifications:
           type: object
-          required: [reporter_email_own_problems, reporter_email_watched_problems]
+          required:
+            [reporter_email_own_problems, reporter_email_watched_problems]
           properties:
             reporter_email_own_problems:
               type: boolean
@@ -2153,7 +2154,17 @@ components:
 
     ViispRegistrationRequiredResponse:
       type: object
-      required: [registration_required, next_step, registration_token, token_type, expires_in, registration_endpoint, required_fields, user]
+      required:
+        [
+          registration_required,
+          next_step,
+          registration_token,
+          token_type,
+          expires_in,
+          registration_endpoint,
+          required_fields,
+          user,
+        ]
       properties:
         registration_required:
           type: boolean
@@ -2228,7 +2239,7 @@ components:
           nullable: true
           example: null
         user:
-          $ref: '#/components/schemas/UserSummary'
+          $ref: "#/components/schemas/UserSummary"
 
     LoginTwoFactorRequiredResponse:
       type: object
@@ -2259,7 +2270,7 @@ components:
           type: string
         code:
           type: string
-          pattern: '^[0-9]{6}$'
+          pattern: "^[0-9]{6}$"
           example: "123456"
 
     UserSummary:
@@ -2427,18 +2438,18 @@ components:
 
     ReporterProblemCreateRequest:
       allOf:
-        - $ref: '#/components/schemas/ReporterProblemCreateRequestBase'
+        - $ref: "#/components/schemas/ReporterProblemCreateRequestBase"
         - type: object
           properties:
             files:
               type: array
               description: Neprivaloma. Base64 (žr. JsonFileUploadItem).
               items:
-                $ref: '#/components/schemas/JsonFileUploadItem'
+                $ref: "#/components/schemas/JsonFileUploadItem"
 
     ReporterProblemCreateMultipartRequest:
       allOf:
-        - $ref: '#/components/schemas/ReporterProblemCreateRequestBase'
+        - $ref: "#/components/schemas/ReporterProblemCreateRequestBase"
         - type: object
           properties:
             files:
@@ -2467,7 +2478,7 @@ components:
           type: array
           minItems: 1
           items:
-            $ref: '#/components/schemas/JsonFileUploadItem'
+            $ref: "#/components/schemas/JsonFileUploadItem"
 
     PublicProblemResponse:
       type: object
@@ -2492,7 +2503,7 @@ components:
         attachments:
           type: array
           items:
-            $ref: '#/components/schemas/PublicAttachment'
+            $ref: "#/components/schemas/PublicAttachment"
 
     PublicAttachment:
       type: object
@@ -2545,9 +2556,9 @@ components:
       type: object
       properties:
         web:
-          $ref: '#/components/schemas/FileUploadChannel'
+          $ref: "#/components/schemas/FileUploadChannel"
         mobile:
-          $ref: '#/components/schemas/FileUploadChannel'
+          $ref: "#/components/schemas/FileUploadChannel"
       additionalProperties: true
 
     FileUploadChannel:
@@ -2601,7 +2612,7 @@ components:
         problems:
           type: array
           items:
-            $ref: '#/components/schemas/ReporterProblemListItem'
+            $ref: "#/components/schemas/ReporterProblemListItem"
         categories:
           type: array
           items:
@@ -2627,7 +2638,17 @@ components:
 
     ReporterStatisticsResponse:
       type: object
-      required: [categories, filters, total, solvedCount, byCategory, monthlyReports, nagrinejamosProblemos, issprestosProblemos]
+      required:
+        [
+          categories,
+          filters,
+          total,
+          solvedCount,
+          byCategory,
+          monthlyReports,
+          nagrinejamosProblemos,
+          issprestosProblemos,
+        ]
       properties:
         categories:
           type: array
@@ -2675,18 +2696,18 @@ components:
             properties:
               month:
                 type: string
-                example: '2026-04'
+                example: "2026-04"
               value:
                 type: integer
                 example: 3
         nagrinejamosProblemos:
           type: array
           items:
-            $ref: '#/components/schemas/ReporterStatisticsListItem'
+            $ref: "#/components/schemas/ReporterStatisticsListItem"
         issprestosProblemos:
           type: array
           items:
-            $ref: '#/components/schemas/ReporterStatisticsListItem'
+            $ref: "#/components/schemas/ReporterStatisticsListItem"
 
     ReporterReportMetaResponse:
       type: object
@@ -2714,13 +2735,13 @@ components:
         hasAcceptedReportTerms:
           type: boolean
         fileUpload:
-          $ref: '#/components/schemas/FileUploadChannel'
+          $ref: "#/components/schemas/FileUploadChannel"
 
     ReporterProblemShowResponse:
       type: object
       properties:
         problem:
-          $ref: '#/components/schemas/PublicProblemResponse'
+          $ref: "#/components/schemas/PublicProblemResponse"
         mergeTarget:
           type: object
           nullable: true
@@ -2776,18 +2797,18 @@ components:
 
     ReviewProgressUpsertRequestJson:
       allOf:
-        - $ref: '#/components/schemas/ReviewProgressUpsertBody'
+        - $ref: "#/components/schemas/ReviewProgressUpsertBody"
         - type: object
           properties:
             files:
               type: array
               description: Neprivalomi JPEG/PNG (base64).
               items:
-                $ref: '#/components/schemas/JsonFileUploadItem'
+                $ref: "#/components/schemas/JsonFileUploadItem"
 
     ReviewProgressUpsertMultipartRequest:
       allOf:
-        - $ref: '#/components/schemas/ReviewProgressUpsertBody'
+        - $ref: "#/components/schemas/ReviewProgressUpsertBody"
         - type: object
           properties:
             files:
@@ -2818,7 +2839,7 @@ components:
 
     ReviewProgressPartialMultipartRequest:
       allOf:
-        - $ref: '#/components/schemas/ReviewProgressPartialBody'
+        - $ref: "#/components/schemas/ReviewProgressPartialBody"
         - type: object
           properties:
             files:
@@ -2892,7 +2913,7 @@ components:
         attachments:
           type: array
           items:
-            $ref: '#/components/schemas/PublicAttachment'
+            $ref: "#/components/schemas/PublicAttachment"
 
     InternalProblemArchiveResult:
       type: object
@@ -3041,18 +3062,18 @@ components:
 
     InternalProblemUpdateRequestJson:
       allOf:
-        - $ref: '#/components/schemas/InternalProblemUpdateRequestBase'
+        - $ref: "#/components/schemas/InternalProblemUpdateRequestBase"
         - type: object
           properties:
             files:
               type: array
               description: Neprivalomi nauji priedai (base64).
               items:
-                $ref: '#/components/schemas/JsonFileUploadItem'
+                $ref: "#/components/schemas/JsonFileUploadItem"
 
     InternalProblemUpdateMultipartRequest:
       allOf:
-        - $ref: '#/components/schemas/InternalProblemUpdateRequestBase'
+        - $ref: "#/components/schemas/InternalProblemUpdateRequestBase"
         - type: object
           properties:
             files:

@@ -11,6 +11,7 @@ class SettingsService
 {
     public function __construct(
         private InstitutionGisConfigService $institutionGisConfigService,
+        private TwoFactorService $twoFactorService,
     ) {}
 
     public function getSettingsPageData(User $user): array
@@ -37,6 +38,7 @@ class SettingsService
             'employees' => $employees,
             'teams' => $teams,
             'inviteRoles' => $inviteRoles,
+            'twoFactorGloballyRequired' => $this->twoFactorService->isGloballyRequired(),
         ];
     }
 
