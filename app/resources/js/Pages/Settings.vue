@@ -9,6 +9,10 @@ import { SETTINGS_PAGE_STYLE } from '@/constants/ui/theme'
 import { useAuth } from '@/composables/useAuth'
 import '@/Components/App/settings-profile-page.css'
 
+const props = defineProps({
+    twoFactorGloballyRequired: { type: Boolean, default: false },
+})
+
 const {
     user,
     permissions,
@@ -89,6 +93,14 @@ const saveReporterEmailWatched = (value) => {
     }, { preserveScroll: true })
 }
 
+const saveTwoFactor = (value) => {
+    const v = value !== undefined ? value : twoFactorEnabled.value
+    twoFactorEnabled.value = v
+    router.patch(route('settings.privacy'), {
+        two_factor_enabled: v,
+    }, { preserveScroll: true })
+}
+
 </script>
 
 <template>
@@ -100,6 +112,7 @@ const saveReporterEmailWatched = (value) => {
                 <div class="settings-inner settings-page-column">
                     <SettingsPrivacyBlock
                         :two-factor-enabled="twoFactorEnabled"
+                        :two-factor-globally-required="props.twoFactorGloballyRequired"
                         :email-updates-institution-admin="emailUpdatesInstitutionAdmin"
                         :email-notifications-enabled="emailNotificationsEnabled"
                         :reporter-email-own-problems="reporterEmailOwnProblems"
@@ -113,6 +126,7 @@ const saveReporterEmailWatched = (value) => {
                         @update:emailNotificationsEnabled="emailNotificationsEnabled = $event"
                         @update:reporterEmailOwnProblems="reporterEmailOwnProblems = $event"
                         @update:reporterEmailWatchedProblems="reporterEmailWatchedProblems = $event"
+                        @save-two-factor="(val) => saveTwoFactor(val)"
                         @save-email-updates-admin="(val) => saveEmailUpdatesInstitutionAdmin(val)"
                         @save-email-notifications="(val) => saveEmailNotificationsEnabled(val)"
                         @save-reporter-email-own="(val) => saveReporterEmailOwn(val)"

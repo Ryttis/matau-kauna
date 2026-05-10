@@ -1,11 +1,12 @@
 <script setup>
-import { Link } from '@inertiajs/vue3'
-import AppSwitch from '@/Components/App/AppSwitch.vue'
-import AppButton from '@/Components/App/AppButton.vue'
-import { computed } from 'vue'
+import { Link } from "@inertiajs/vue3";
+import AppSwitch from "@/Components/App/AppSwitch.vue";
+import AppButton from "@/Components/App/AppButton.vue";
+import { computed } from "vue";
 
 const props = defineProps({
     twoFactorEnabled: { type: Boolean, default: false },
+    twoFactorGloballyRequired: { type: Boolean, default: false },
     emailUpdatesInstitutionAdmin: { type: Boolean, default: false },
     emailNotificationsEnabled: { type: Boolean, default: false },
     reporterEmailOwnProblems: { type: Boolean, default: true },
@@ -14,36 +15,49 @@ const props = defineProps({
     isSystemAdmin: { type: Boolean, default: false },
     isProblemAdmin: { type: Boolean, default: false },
     isReporterOnly: { type: Boolean, default: false },
-})
+});
 
-const showFiveFields = computed(() =>
-    props.isSystemAdmin || props.isProblemAdmin || props.isInstitutionAdmin
-)
+const twoFactorDisabled = computed(() => !props.twoFactorGloballyRequired);
+
+const twoFactorHint = computed(() => {
+    if (!props.twoFactorGloballyRequired) {
+        return "Sistemos administratorius išjungė 2FA - įjungti negalima.";
+    }
+    return "Įjungta sistemos administratoriaus. Norite - galite išjungti tik sau.";
+});
+
+const showFiveFields = computed(
+    () =>
+        props.isSystemAdmin || props.isProblemAdmin || props.isInstitutionAdmin,
+);
 
 const secondSwitchValue = computed(() =>
-    props.isInstitutionAdmin ? props.emailUpdatesInstitutionAdmin : props.emailNotificationsEnabled
-)
+    props.isInstitutionAdmin
+        ? props.emailUpdatesInstitutionAdmin
+        : props.emailNotificationsEnabled,
+);
 
 const emit = defineEmits([
-    'update:twoFactorEnabled',
-    'update:emailUpdatesInstitutionAdmin',
-    'update:emailNotificationsEnabled',
-    'update:reporterEmailOwnProblems',
-    'update:reporterEmailWatchedProblems',
-    'save-email-updates-admin',
-    'save-email-notifications',
-    'save-reporter-email-own',
-    'save-reporter-email-watched',
-    'delete-account',
-])
+    "update:twoFactorEnabled",
+    "update:emailUpdatesInstitutionAdmin",
+    "update:emailNotificationsEnabled",
+    "update:reporterEmailOwnProblems",
+    "update:reporterEmailWatchedProblems",
+    "save-two-factor",
+    "save-email-updates-admin",
+    "save-email-notifications",
+    "save-reporter-email-own",
+    "save-reporter-email-watched",
+    "delete-account",
+]);
 
 function onSecondSwitchChange(v) {
     if (props.isInstitutionAdmin) {
-        emit('update:emailUpdatesInstitutionAdmin', v)
-        emit('save-email-updates-admin', v)
+        emit("update:emailUpdatesInstitutionAdmin", v);
+        emit("save-email-updates-admin", v);
     } else {
-        emit('update:emailNotificationsEnabled', v)
-        emit('save-email-notifications', v)
+        emit("update:emailNotificationsEnabled", v);
+        emit("save-email-notifications", v);
     }
 }
 </script>
@@ -52,33 +66,60 @@ function onSecondSwitchChange(v) {
     <div class="privacy-block">
         <template v-if="showFiveFields">
             <div class="privacy-row privacy-row-switch">
-                <span class="privacy-label">Gauti pranešimus apie įstaigai priskirtas problemas</span>
+                <span class="privacy-label"
+                    >Gauti pranešimus apie įstaigai priskirtas problemas</span
+                >
                 <div class="privacy-row-right">
                     <AppSwitch
                         :modelValue="emailUpdatesInstitutionAdmin"
-                        @update:modelValue="(v) => { emit('update:emailUpdatesInstitutionAdmin', v); emit('save-email-updates-admin', v) }"
+                        @update:modelValue="
+                            (v) => {
+                                emit('update:emailUpdatesInstitutionAdmin', v);
+                                emit('save-email-updates-admin', v);
+                            }
+                        "
                     />
                 </div>
             </div>
             <div class="privacy-row privacy-row-switch">
-                <span class="privacy-label">Gauti pranešimus apie man priskirtas problemas</span>
+                <span class="privacy-label"
+                    >Gauti pranešimus apie man priskirtas problemas</span
+                >
                 <div class="privacy-row-right">
                     <AppSwitch
                         :modelValue="emailNotificationsEnabled"
-                        @update:modelValue="(v) => { emit('update:emailNotificationsEnabled', v); emit('save-email-notifications', v) }"
+                        @update:modelValue="
+                            (v) => {
+                                emit('update:emailNotificationsEnabled', v);
+                                emit('save-email-notifications', v);
+                            }
+                        "
                     />
                 </div>
             </div>
             <div class="privacy-row privacy-row-switch">
-                <span class="privacy-label">2 FA autentifikavimas</span>
+                <span class="privacy-label">
+                    2 FA autentifikavimas
+                    <span v-if="twoFactorHint" class="privacy-hint">{{
+                        twoFactorHint
+                    }}</span>
+                </span>
                 <div class="privacy-row-right">
                     <AppSwitch
                         :modelValue="twoFactorEnabled"
-                        @update:modelValue="emit('update:twoFactorEnabled', $event)"
+                        :disabled="twoFactorDisabled"
+                        @update:modelValue="
+                            (v) => {
+                                emit('update:twoFactorEnabled', v);
+                                emit('save-two-factor', v);
+                            }
+                        "
                     />
                 </div>
             </div>
-            <Link :href="route('privacy')" class="privacy-text-link">Privatumo taisyklės</Link>
+            <Link :href="route('privacy')" class="privacy-text-link"
+                >Privatumo taisyklės</Link
+            >
             <AppButton
                 text="Šalinti paskyrą"
                 variant="link"
@@ -89,33 +130,40 @@ function onSecondSwitchChange(v) {
         </template>
         <template v-else-if="isReporterOnly">
             <div class="privacy-row privacy-row-switch privacy-row--reporter">
-                <span class="privacy-label">2 FA autentifikavimas</span>
-                <div class="privacy-row-right">
-                    <AppSwitch
-                        :modelValue="twoFactorEnabled"
-                        @update:modelValue="emit('update:twoFactorEnabled', $event)"
-                    />
-                </div>
-            </div>
-            <div class="privacy-row privacy-row-switch privacy-row--reporter">
-                <span class="privacy-label">Informuoti el. paštu apie mano problemas</span>
+                <span class="privacy-label"
+                    >Informuoti el. paštu apie mano problemas</span
+                >
                 <div class="privacy-row-right">
                     <AppSwitch
                         :modelValue="reporterEmailOwnProblems"
-                        @update:modelValue="(v) => { emit('update:reporterEmailOwnProblems', v); emit('save-reporter-email-own', v) }"
+                        @update:modelValue="
+                            (v) => {
+                                emit('update:reporterEmailOwnProblems', v);
+                                emit('save-reporter-email-own', v);
+                            }
+                        "
                     />
                 </div>
             </div>
             <div class="privacy-row privacy-row-switch privacy-row--reporter">
-                <span class="privacy-label">Informuoti el. paštu apie mano stebimas problemas</span>
+                <span class="privacy-label"
+                    >Informuoti el. paštu apie mano stebimas problemas</span
+                >
                 <div class="privacy-row-right">
                     <AppSwitch
                         :modelValue="reporterEmailWatchedProblems"
-                        @update:modelValue="(v) => { emit('update:reporterEmailWatchedProblems', v); emit('save-reporter-email-watched', v) }"
+                        @update:modelValue="
+                            (v) => {
+                                emit('update:reporterEmailWatchedProblems', v);
+                                emit('save-reporter-email-watched', v);
+                            }
+                        "
                     />
                 </div>
             </div>
-            <Link :href="route('privacy')" class="privacy-text-link">Privatumo taisyklės</Link>
+            <Link :href="route('privacy')" class="privacy-text-link"
+                >Privatumo taisyklės</Link
+            >
             <AppButton
                 text="Šalinti paskyrą"
                 variant="link"
@@ -126,11 +174,22 @@ function onSecondSwitchChange(v) {
         </template>
         <template v-else>
             <div class="privacy-row privacy-row-switch">
-                <span class="privacy-label">2 FA autentifikavimas</span>
+                <span class="privacy-label">
+                    2 FA autentifikavimas
+                    <span v-if="twoFactorHint" class="privacy-hint">{{
+                        twoFactorHint
+                    }}</span>
+                </span>
                 <div class="privacy-row-right">
                     <AppSwitch
                         :modelValue="twoFactorEnabled"
-                        @update:modelValue="emit('update:twoFactorEnabled', $event)"
+                        :disabled="twoFactorDisabled"
+                        @update:modelValue="
+                            (v) => {
+                                emit('update:twoFactorEnabled', v);
+                                emit('save-two-factor', v);
+                            }
+                        "
                     />
                 </div>
             </div>
@@ -143,7 +202,9 @@ function onSecondSwitchChange(v) {
                     />
                 </div>
             </div>
-            <Link :href="route('privacy')" class="privacy-text-link">Privatumo taisyklės</Link>
+            <Link :href="route('privacy')" class="privacy-text-link"
+                >Privatumo taisyklės</Link
+            >
             <AppButton
                 text="Šalinti paskyrą"
                 variant="link"
@@ -229,6 +290,14 @@ function onSecondSwitchChange(v) {
     justify-self: end;
     flex-shrink: 0;
     padding-top: 2px;
+}
+
+.privacy-hint {
+    display: block;
+    margin-top: 4px;
+    font-size: 13px;
+    font-weight: 400;
+    color: var(--color-text-muted, #666);
 }
 
 .privacy-link {

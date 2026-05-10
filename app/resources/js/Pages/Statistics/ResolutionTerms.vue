@@ -1,118 +1,133 @@
 <script setup>
-import { computed, ref, watch } from 'vue'
-import { Head, router } from '@inertiajs/vue3'
-import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue'
-import AppSelect from '@/Components/App/AppSelect.vue'
-import '@/Components/Statistics/statistics-page.css'
-import { PROBLEM_STATUS_LABELS } from '@/constants/domain/problemStatus'
+import { computed, ref, watch } from "vue";
+import { Head, router } from "@inertiajs/vue3";
+import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout.vue";
+import AppSelect from "@/Components/App/AppSelect.vue";
+import "@/Components/Statistics/statistics-page.css";
+import { PROBLEM_STATUS_LABELS } from "@/constants/domain/problemStatus";
 
 const props = defineProps({
     approaching: { type: Array, default: () => [] },
     overdue: { type: Array, default: () => [] },
     institutions: { type: Array, default: () => [] },
     employees: { type: Array, default: () => [] },
-    filters: { type: Object, default: () => ({ institution: 'all', employee: 'all' }) },
+    filters: {
+        type: Object,
+        default: () => ({ institution: "all", employee: "all" }),
+    },
     filterLocks: {
         type: Object,
         default: () => ({ institution: false, employee: false }),
     },
-    deadlineResolutionStats: { type: Object, default: () => ({ on_time: 0, late: 0 }) },
-})
+    deadlineResolutionStats: {
+        type: Object,
+        default: () => ({ on_time: 0, late: 0 }),
+    },
+});
 
-const institutionSelectDisabled = computed(() => !!props.filterLocks?.institution)
-const employeeSelectDisabled = computed(() => !!props.filterLocks?.employee)
+const institutionSelectDisabled = computed(
+    () => !!props.filterLocks?.institution,
+);
+const employeeSelectDisabled = computed(() => !!props.filterLocks?.employee);
 
-const institutionFilter = ref(props.filters?.institution ?? 'all')
-const employeeFilter = ref(props.filters?.employee ?? 'all')
+const institutionFilter = ref(props.filters?.institution ?? "all");
+const employeeFilter = ref(props.filters?.employee ?? "all");
 
 watch(
     () => props.filters,
     (f) => {
-        if (!f) return
-        institutionFilter.value = f.institution ?? 'all'
-        employeeFilter.value = f.employee ?? 'all'
+        if (!f) return;
+        institutionFilter.value = f.institution ?? "all";
+        employeeFilter.value = f.employee ?? "all";
     },
     { deep: true },
-)
+);
 
 watch(institutionFilter, (newVal, oldVal) => {
-    if (props.filterLocks?.employee) return
+    if (props.filterLocks?.employee) return;
     if (oldVal !== undefined && newVal !== oldVal) {
-        employeeFilter.value = 'all'
+        employeeFilter.value = "all";
     }
-})
+});
 
 const institutionOptions = computed(() => {
-    const options = [{ value: 'all', label: 'Visos' }]
-    ;(props.institutions || []).forEach((inst) => {
-        options.push({ value: String(inst.id), label: inst.name })
-    })
-    return options
-})
+    const options = [{ value: "all", label: "Visos" }];
+    (props.institutions || []).forEach((inst) => {
+        options.push({ value: String(inst.id), label: inst.name });
+    });
+    return options;
+});
 
 const employeeOptions = computed(() => {
-    const options = [{ value: 'all', label: 'Visi' }]
-    ;(props.employees || []).forEach((e) => {
-        options.push({ value: String(e.id), label: e.label })
-    })
-    return options
-})
+    const options = [{ value: "all", label: "Visi" }];
+    (props.employees || []).forEach((e) => {
+        options.push({ value: String(e.id), label: e.label });
+    });
+    return options;
+});
 
 function normFilter(v) {
-    if (v === null || v === undefined || v === '' || v === 'all') return 'all'
-    return String(v)
+    if (v === null || v === undefined || v === "" || v === "all") return "all";
+    return String(v);
 }
 
 const applyFilters = () => {
     router.get(
-        route('statistics.resolution-terms'),
+        route("statistics.resolution-terms"),
         {
-            institution: institutionFilter.value === 'all' ? null : institutionFilter.value,
-            employee: employeeFilter.value === 'all' ? null : employeeFilter.value,
+            institution:
+                institutionFilter.value === "all"
+                    ? null
+                    : institutionFilter.value,
+            employee:
+                employeeFilter.value === "all" ? null : employeeFilter.value,
         },
         { preserveState: true, preserveScroll: true },
-    )
-}
+    );
+};
 
 watch([institutionFilter, employeeFilter], () => {
     if (props.filterLocks?.employee) {
-        return
+        return;
     }
     if (
-        normFilter(institutionFilter.value) === normFilter(props.filters?.institution) &&
+        normFilter(institutionFilter.value) ===
+            normFilter(props.filters?.institution) &&
         normFilter(employeeFilter.value) === normFilter(props.filters?.employee)
     ) {
-        return
+        return;
     }
-    applyFilters()
-})
+    applyFilters();
+});
 
-const onTimeCount = computed(() => props.deadlineResolutionStats?.on_time ?? 0)
-const lateCount = computed(() => props.deadlineResolutionStats?.late ?? 0)
-const totalResolvedWithDeadline = computed(() => onTimeCount.value + lateCount.value)
+const onTimeCount = computed(() => props.deadlineResolutionStats?.on_time ?? 0);
+const lateCount = computed(() => props.deadlineResolutionStats?.late ?? 0);
+const totalResolvedWithDeadline = computed(
+    () => onTimeCount.value + lateCount.value,
+);
 const onTimeBarPct = computed(() => {
-    const t = totalResolvedWithDeadline.value
-    if (!t) return 0
-    return (onTimeCount.value / t) * 100
-})
+    const t = totalResolvedWithDeadline.value;
+    if (!t) return 0;
+    return (onTimeCount.value / t) * 100;
+});
 const lateBarPct = computed(() => {
-    const t = totalResolvedWithDeadline.value
-    if (!t) return 0
-    return (lateCount.value / t) * 100
-})
+    const t = totalResolvedWithDeadline.value;
+    if (!t) return 0;
+    return (lateCount.value / t) * 100;
+});
 
 function goToProblem(id) {
-    router.visit(route('problems.show', id))
+    router.visit(route("problems.show", id));
 }
 
 function statusLabel(status) {
-    return PROBLEM_STATUS_LABELS[status] ?? status ?? '-'
+    return PROBLEM_STATUS_LABELS[status] ?? status ?? "-";
 }
 
 function formatTermDate(isoDate) {
-    if (!isoDate) return '-'
-    const d = new Date(`${isoDate}T12:00:00`)
-    return Number.isNaN(d.getTime()) ? isoDate : d.toLocaleDateString('lt-LT')
+    if (!isoDate) return "-";
+    const d = new Date(`${isoDate}T12:00:00`);
+    return Number.isNaN(d.getTime()) ? isoDate : d.toLocaleDateString("lt-LT");
 }
 </script>
 
@@ -123,7 +138,8 @@ function formatTermDate(isoDate) {
         <div class="resolution-terms-page statistics-page">
             <h1 class="page-title">Sprendimo terminai</h1>
             <p class="page-desc">
-                Problemos, kurių atlikimo terminas artėja arba jau praėjo. Priminimai siunčiami automatiškai kasdien.
+                Problemos, kurių atlikimo terminas artėja arba jau praėjo.
+                Priminimai siunčiami automatiškai kasdien.
             </p>
 
             <div class="filters-section">
@@ -133,7 +149,11 @@ function formatTermDate(isoDate) {
                     variant="white"
                     :disabled="institutionSelectDisabled"
                 >
-                    <option v-for="option in institutionOptions" :key="option.value" :value="option.value">
+                    <option
+                        v-for="option in institutionOptions"
+                        :key="option.value"
+                        :value="option.value"
+                    >
                         {{ option.label }}
                     </option>
                 </AppSelect>
@@ -143,7 +163,11 @@ function formatTermDate(isoDate) {
                     variant="white"
                     :disabled="employeeSelectDisabled"
                 >
-                    <option v-for="option in employeeOptions" :key="option.value" :value="option.value">
+                    <option
+                        v-for="option in employeeOptions"
+                        :key="option.value"
+                        :value="option.value"
+                    >
                         {{ option.label }}
                     </option>
                 </AppSelect>
@@ -152,10 +176,18 @@ function formatTermDate(isoDate) {
             <section class="chart-section">
                 <h2 class="section-title">Išspręstos su terminu</h2>
                 <p class="chart-desc">
-                    Tik išspręstos problemos su nustatytu terminu, pagal būsenos pakeitimo datą.
+                    Tik išspręstos problemos su nustatytu terminu, pagal būsenos
+                    pakeitimo datą.
                 </p>
-                <div v-if="totalResolvedWithDeadline > 0" class="deadline-chart">
-                    <div class="deadline-chart-bar" role="img" :aria-label="`Laiku: ${onTimeCount}, vėlavo: ${lateCount}`">
+                <div
+                    v-if="totalResolvedWithDeadline > 0"
+                    class="deadline-chart"
+                >
+                    <div
+                        class="deadline-chart-bar"
+                        role="img"
+                        :aria-label="`Laiku: ${onTimeCount}, vėlavo: ${lateCount}`"
+                    >
                         <div
                             class="deadline-chart-segment deadline-chart-segment--ontime"
                             :style="{ width: onTimeBarPct + '%' }"
@@ -168,15 +200,23 @@ function formatTermDate(isoDate) {
                     <ul class="deadline-chart-legend">
                         <li>
                             <span class="legend-swatch legend-swatch--ontime" />
-                            <span>Laiku išspręstos: <strong>{{ onTimeCount }}</strong></span>
+                            <span
+                                >Laiku išspręstos:
+                                <strong>{{ onTimeCount }}</strong></span
+                            >
                         </li>
                         <li>
                             <span class="legend-swatch legend-swatch--late" />
-                            <span>Vėlavo (terminas praėjo): <strong>{{ lateCount }}</strong></span>
+                            <span
+                                >Vėlavo (terminas praėjo):
+                                <strong>{{ lateCount }}</strong></span
+                            >
                         </li>
                     </ul>
                 </div>
-                <p v-else class="empty">Pasirinktiems filtrams nėra išspręstų problemų su terminu.</p>
+                <p v-else class="empty">
+                    Pasirinktiems filtrams nėra išspręstų problemų su terminu.
+                </p>
             </section>
 
             <section class="section">
@@ -197,11 +237,19 @@ function formatTermDate(isoDate) {
                             <tr v-for="p in overdue" :key="p.id">
                                 <td>{{ p.internal_number }}</td>
                                 <td>{{ statusLabel(p.status) }}</td>
-                                <td>{{ formatTermDate(p.completion_deadline) }}</td>
-                                <td>{{ p.institution_name || '-' }}</td>
-                                <td>{{ p.assigned_to || '—' }}</td>
                                 <td>
-                                    <button type="button" class="link-btn" @click="goToProblem(p.id)">Atidaryti</button>
+                                    {{ formatTermDate(p.completion_deadline) }}
+                                </td>
+                                <td>{{ p.institution_name || "-" }}</td>
+                                <td>{{ p.assigned_to || "-" }}</td>
+                                <td>
+                                    <button
+                                        type="button"
+                                        class="link-btn"
+                                        @click="goToProblem(p.id)"
+                                    >
+                                        Atidaryti
+                                    </button>
                                 </td>
                             </tr>
                         </tbody>
@@ -211,7 +259,9 @@ function formatTermDate(isoDate) {
             </section>
 
             <section class="section">
-                <h2 class="section-title">Terminas baigiasi šiandien, rytoj arba poryt</h2>
+                <h2 class="section-title">
+                    Terminas baigiasi šiandien, rytoj arba poryt
+                </h2>
                 <div v-if="approaching?.length" class="table-wrap">
                     <table class="data-table">
                         <thead>
@@ -228,17 +278,27 @@ function formatTermDate(isoDate) {
                             <tr v-for="p in approaching" :key="p.id">
                                 <td>{{ p.internal_number }}</td>
                                 <td>{{ statusLabel(p.status) }}</td>
-                                <td>{{ formatTermDate(p.completion_deadline) }}</td>
-                                <td>{{ p.institution_name || '-' }}</td>
-                                <td>{{ p.assigned_to || '—' }}</td>
                                 <td>
-                                    <button type="button" class="link-btn" @click="goToProblem(p.id)">Atidaryti</button>
+                                    {{ formatTermDate(p.completion_deadline) }}
+                                </td>
+                                <td>{{ p.institution_name || "-" }}</td>
+                                <td>{{ p.assigned_to || "-" }}</td>
+                                <td>
+                                    <button
+                                        type="button"
+                                        class="link-btn"
+                                        @click="goToProblem(p.id)"
+                                    >
+                                        Atidaryti
+                                    </button>
                                 </td>
                             </tr>
                         </tbody>
                     </table>
                 </div>
-                <p v-else class="empty">Nėra problemų, kurių terminas artėja.</p>
+                <p v-else class="empty">
+                    Nėra problemų, kurių terminas artėja.
+                </p>
             </section>
         </div>
     </AuthenticatedLayout>
