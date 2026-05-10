@@ -388,6 +388,128 @@ paths:
         "422":
           $ref: "#/components/responses/ValidationError"
 
+  /api/settings/profile:
+    patch:
+      tags: [Settings]
+      summary: "[AUTH] Update own profile (name, surname, email)"
+      description: >
+        Used by the Settings/Profile screen. For VIISP-linked users `name` and `surname`
+        are ignored (set by VIISP only) — only `email` is updated. For email/password
+        users all three fields are updated.
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: header
+          name: X-Authorization
+          required: true
+          description: Swagger-only auth header. Paste full Bearer token here.
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, email]
+              properties:
+                name:
+                  type: string
+                surname:
+                  type: string
+                  nullable: true
+                email:
+                  type: string
+                  format: email
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok:
+                    type: boolean
+                  message:
+                    type: string
+                  user:
+                    type: object
+                    properties:
+                      id:
+                        type: integer
+                      name:
+                        type: string
+                      surname:
+                        type: string
+                        nullable: true
+                      email:
+                        type: string
+                        format: email
+        '401':
+          description: Unauthorized
+        '422':
+          $ref: '#/components/responses/ValidationError'
+
+  /api/settings/two-factor:
+    patch:
+      tags: [Settings]
+      summary: "[AUTH-InternalStaff] Toggle own 2FA (only when globally enabled)"
+      description: >
+        Used by the internal staff Settings page to opt out of 2FA for the current user.
+        The System Admin's global 2FA setting controls availability:
+        - If global is ON, internal staff can disable 2FA for themselves (opt-out).
+        - If global is OFF, no one can enable 2FA — request returns 422.
+        - Reporters cannot use this endpoint (returns 422).
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: header
+          name: X-Authorization
+          required: true
+          description: Swagger-only auth header. Paste full Bearer token here.
+          schema:
+            type: string
+            example: "Bearer 6|qByoRAMucVQd90Q9JTG16xE3KPM3wV2imICs2Fro8907502b"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [two_factor_enabled]
+              properties:
+                two_factor_enabled:
+                  type: boolean
+            examples:
+              disable_for_self:
+                summary: Internal staff opts out of 2FA
+                value:
+                  two_factor_enabled: false
+              enable_for_self:
+                summary: Internal staff enables 2FA (only valid if globally on)
+                value:
+                  two_factor_enabled: true
+      responses:
+        '200':
+          description: Updated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok:
+                    type: boolean
+                  two_factor_enabled:
+                    type: boolean
+                  two_factor_globally_required:
+                    type: boolean
+        '401':
+          description: Unauthorized
+        '422':
+          description: Reporter, or trying to enable while global is off
+          $ref: '#/components/responses/ValidationError'
+
   /api/setting/email_notifications:
     patch:
       tags: [Settings]

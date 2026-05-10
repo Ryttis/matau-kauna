@@ -86,6 +86,18 @@
 - **Web puslapis**: `/settings` (Privatumo blokas)
 - **Endpoint**: `PATCH /api/setting/email_notifications`
 
+### `PATCH /api/settings/two-factor`
+
+- **Ką daro**: vidinis vartotojas išjungia/įjungia 2FA sau (galima tik kai admin globaliai įjungė; pareiškėjui — 422).
+- **Web puslapis**: `/settings` (Privatumo bloko 2FA toggle)
+- **Endpoint**: `PATCH /api/settings/two-factor`
+
+### `PATCH /api/settings/profile`
+
+- **Ką daro**: atnaujina prisijungusio vartotojo profilį (vardas, pavardė, el. paštas); VIISP vartotojui name/surname ignoruojami.
+- **Web puslapis**: `/settings` (Profilio blokas) — `PATCH /settings/profile`
+- **Endpoint**: `PATCH /api/settings/profile`
+
 ---
 
 ## Info (vieši duomenys be auth)
