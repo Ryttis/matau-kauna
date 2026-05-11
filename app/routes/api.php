@@ -8,7 +8,6 @@ use App\Http\Controllers\Api\ProblemApiController;
 use App\Http\Controllers\Api\ReporterProblemApiController;
 use App\Http\Controllers\Api\SettingsApiController;
 use App\Http\Controllers\Api\ViispApiController;
-use App\Http\Controllers\ProblemAttachmentController;
 use App\Http\Controllers\ProblemReviewController;
 use App\Http\Controllers\ProblemWatchController;
 use App\Http\Controllers\ReporterProblemController;
@@ -46,8 +45,6 @@ Route::middleware(['auth:sanctum'])->group(function () {
 
         Route::post('/problems', [ReporterProblemController::class, 'reporterReportStore']);
         Route::post('/problems/{problem}/watch', [ProblemWatchController::class, 'toggle']);
-        Route::post('/problems/{problem}/attachments', [ProblemAttachmentController::class, 'storeAttachments']);
-        Route::delete('/problems/{problem}/attachments/{attachment}', [ProblemAttachmentController::class, 'destroyAttachment']);
         Route::get('/problems/{problem}/review-progress', [ProblemReviewController::class, 'reviewProgress']);
         Route::post('/reporter/wizard-dismissed', [ReporterProblemController::class, 'reporterWizardDismissed']);
         Route::post('/reporter/report-terms-accepted', [ReporterProblemController::class, 'reporterTermsAccepted']);

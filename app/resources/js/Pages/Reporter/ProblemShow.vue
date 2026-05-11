@@ -169,12 +169,20 @@ async function onAttachInputChange(e) {
 
                 <div class="reporter-problem-content">
                     <div class="reporter-problem-fields">
-                        <AppInput
-                            :model-value="problem?.category"
-                            label="Kategorija"
-                            type="text"
-                            readonly
-                        />
+                        <div class="reporter-problem-field-row">
+                            <AppInput
+                                :model-value="problem?.category"
+                                label="Kategorija"
+                                type="text"
+                                readonly
+                            />
+                            <AppInput
+                                :model-value="problem?.nature ?? '—'"
+                                label="Pobūdis"
+                                type="text"
+                                readonly
+                            />
+                        </div>
                         <AppInput
                             :model-value="problem?.address"
                             label="Adresas"
@@ -400,6 +408,18 @@ async function onAttachInputChange(e) {
 
 .reporter-problem-fields :deep(.app-input-group) {
     margin-bottom: 0;
+}
+
+.reporter-problem-field-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+}
+
+@media (max-width: 520px) {
+    .reporter-problem-field-row {
+        grid-template-columns: 1fr;
+    }
 }
 
 .reporter-problem-desc-media-row {

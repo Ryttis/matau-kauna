@@ -197,6 +197,7 @@ class ProblemController extends Controller
         $problem->load('mergedProblems:id,internal_number,merged_into_problem_id');
         $problem->load('mergedInto:id,internal_number');
         $problem->load('attachments');
+        $problem->load('problemNature:id,name');
         $problem->load([
             'institution:id,name',
             'assignedEmployee:id,name,surname,email',

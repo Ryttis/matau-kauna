@@ -136,12 +136,20 @@ const {
                         type="text"
                         readonly
                     />
-                    <AppInput
-                        :model-value="problem.category"
-                        label="Kategorija"
-                        type="text"
-                        readonly
-                    />
+                    <div class="problem-show-field-row">
+                        <AppInput
+                            :model-value="problem.category"
+                            label="Kategorija"
+                            type="text"
+                            readonly
+                        />
+                        <AppInput
+                            :model-value="problem.problem_nature?.name ?? '—'"
+                            label="Pobūdis"
+                            type="text"
+                            readonly
+                        />
+                    </div>
                     <AppInput
                         :model-value="problem.address"
                         label="Adresas"

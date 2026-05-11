@@ -178,7 +178,7 @@ class ReporterProblemApiController extends Controller
             abort(404);
         }
 
-        $problem->load('attachments');
+        $problem->load(['attachments', 'problemNature']);
 
         $mergeContext = $this->mergeContextService->forProblem($problem);
 
@@ -188,6 +188,7 @@ class ReporterProblemApiController extends Controller
                 'internal_number' => $problem->internal_number,
                 'status' => $problem->status,
                 'category' => $problem->category,
+                'nature' => $problem->problemNature?->name,
                 'address' => $problem->address,
                 'description' => $problem->description,
                 'created_at' => $problem->created_at?->toIso8601String(),

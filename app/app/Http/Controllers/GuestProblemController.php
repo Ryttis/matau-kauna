@@ -48,13 +48,14 @@ class GuestProblemController extends Controller
             abort(404);
         }
 
-        $problem->load('attachments');
+        $problem->load(['attachments', 'problemNature']);
 
         $problemData = [
             'id' => $problem->id,
             'internal_number' => $problem->internal_number,
             'status' => $problem->status,
             'category' => $problem->category,
+            'nature' => $problem->problemNature?->name,
             'address' => $problem->address,
             'description' => $problem->description,
             'created_at' => $problem->created_at?->toIso8601String(),
@@ -80,7 +81,7 @@ class GuestProblemController extends Controller
                 'backFrom' => $request->query('from'),
                 'backOnlyMine' => $request->boolean('only_mine'),
                 'fileUpload' => FileUploadSettings::getChannelForClient(FileUploadSettings::CHANNEL_WEB),
-                'canUploadAttachments' => $isReporterOwnProblem,
+                'canUploadAttachments' => false,
                 'canWatch' => $canWatch,
                 'isWatched' => $isWatched,
             ]);

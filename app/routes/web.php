@@ -15,7 +15,6 @@ use App\Http\Controllers\GuestProblemController;
 use App\Http\Controllers\InstitutionAdminController;
 use App\Http\Controllers\InstitutionAdminUserController;
 use App\Http\Controllers\ProblemAdminAssignController;
-use App\Http\Controllers\ProblemAttachmentController;
 use App\Http\Controllers\ProblemController;
 use App\Http\Controllers\ProblemInstitutionAssignmentController;
 use App\Http\Controllers\ProblemMapController;
@@ -60,8 +59,6 @@ Route::middleware(['auth', 'verified', 'reporter.terms'])->group(function () {
     Route::get('/file-upload-settings', \App\Http\Controllers\FileUploadSettingsController::class)->name('file-upload-settings');
     Route::get('/problems/{problem}/review-progress', [ProblemReviewController::class, 'reviewProgress'])->name('problems.reviewProgress');
     Route::post('/problems/{problem}/watch', [ProblemWatchController::class, 'toggle'])->name('problems.watch.toggle');
-    Route::delete('/problems/{problem}/attachments/{attachment}', [ProblemAttachmentController::class, 'destroyAttachment'])->name('problems.attachments.destroy');
-    Route::post('/problems/{problem}/attachments', [ProblemAttachmentController::class, 'storeAttachments'])->name('problems.attachments.store');
 
     Route::middleware(['permission:issues.view'])->group(function () {
         Route::middleware(['automation'])->group(function () {

@@ -99,6 +99,18 @@
     width: 100%;
 }
 
+.problem-show-field-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+}
+
+@media (max-width: 520px) {
+    .problem-show-field-row {
+        grid-template-columns: 1fr;
+    }
+}
+
 .problem-content-bottom {
     display: flex;
     flex-direction: column;
