@@ -83,7 +83,42 @@ class InternalProblemApiController extends Controller
 
         $paginator = $this->dashboardQuery->paginatedStaffProblems($user, $filters, $sortBy, $sortDirection, $perPage);
 
+        $paginator->through(function (Problem $problem) {
+            return $problem->toArray() + [
+                'nature' => $problem->problemNature?->name,
+                'institution_name' => $problem->institution?->name,
+            ];
+        });
+
         return response()->json($paginator);
+    }
+
+    public function show(Request $request, Problem $problem): JsonResponse
+    {
+        $user = $request->user();
+        if ($user->isReporterOnly() || ! $user->hasPermission('issues.view')) {
+            abort(403);
+        }
+        $this->scopeService->authorizeProblemAccess($user, $problem);
+
+        $problem->load(['attachments', 'problemNature', 'institution']);
+
+        return response()->json([
+            'id' => $problem->id,
+            'internal_number' => $problem->internal_number,
+            'status' => $problem->status,
+            'category' => $problem->category,
+            'nature' => $problem->problemNature?->name,
+            'institution_id' => $problem->institution_id,
+            'institution_name' => $problem->institution?->name,
+            'address' => $problem->address,
+            'description' => $problem->description,
+            'lat' => $problem->lat,
+            'lng' => $problem->lng,
+            'created_at' => $problem->created_at?->toIso8601String(),
+            'is_published_publicly' => (bool) $problem->is_published_publicly,
+            'attachments' => $this->problemHttpSupport->attachmentsPayload($problem),
+        ]);
     }
 
     public function update(Request $request, Problem $problem): JsonResponse
