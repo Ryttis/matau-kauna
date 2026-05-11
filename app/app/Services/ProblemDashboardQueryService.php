@@ -6,8 +6,8 @@ use App\Enums\ProblemStatus;
 use App\Models\ClassifierValue;
 use App\Models\Problem;
 use App\Models\User;
-use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Pagination\LengthAwarePaginator;
 
 class ProblemDashboardQueryService
 {

@@ -70,6 +70,7 @@ Route::middleware(['auth:sanctum', 'verified', \App\Http\Middleware\ApplyActiveR
     Route::get('/problems', [InternalProblemApiController::class, 'index']);
     Route::get('/problems/{problem}', [InternalProblemApiController::class, 'show']);
     Route::post('/problems/assign', [InternalProblemApiController::class, 'assignBulk']);
+    Route::post('/problems/assign/email', [InternalProblemApiController::class, 'assignSendEmail']);
     Route::post('/problems/bulk-update-status', [InternalProblemApiController::class, 'bulkUpdateStatus']);
     Route::post('/problems/bulk-destroy', [InternalProblemApiController::class, 'bulkDestroy']);
     Route::post('/problems/bulk-update-publish', [InternalProblemApiController::class, 'bulkUpdatePublish']);

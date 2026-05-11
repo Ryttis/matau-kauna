@@ -1311,6 +1311,27 @@ paths:
           description: Forbidden
 
   /api/internal/problems/{problem}:
+    get:
+      tags: [Internal]
+      summary: "[AUTH] Staff problem detail"
+      description: Bearer required. Permission issues.view. Returns full problem with institution, nature and attachments.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/problemPath"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InternalProblemDetail"
+        "401":
+          description: Unauthorized
+        "403":
+          description: Forbidden
+        "404":
+          description: Not found
     post:
       tags: [Internal]
       summary: "[AUTH] Update problem (classification fields and optional attachments)"
@@ -1559,6 +1580,37 @@ paths:
           description: Forbidden
         "422":
           description: Validation error or resolved problems blocked
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageOnlyError"
+
+  /api/internal/problems/assign/email:
+    post:
+      tags: [Internal]
+      summary: "[AUTH] Assign to institution and send notification email"
+      description: Mirrors web POST `/problems/assign/email` (route `problems.assign.email`). Assigns problems to the institution that owns the selected email, then sends a manual assignment email. System or problem admin only.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/InternalAssignSendEmailRequest"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InternalAssignSendEmailResult"
+        "401":
+          description: Unauthorized
+        "403":
+          description: Forbidden
+        "422":
+          description: Validation error, email mismatch or resolved problems blocked
           content:
             application/json:
               schema:
@@ -3219,7 +3271,7 @@ components:
           type: array
           items:
             type: object
-            required: [id, name]
+            required: [id, name, emails]
             properties:
               id:
                 type: integer
@@ -3228,6 +3280,83 @@ components:
               code:
                 type: string
                 nullable: true
+              emails:
+                type: array
+                description: All notification emails for the institution (contact + integration), deduplicated. Use any value as the email argument of POST /api/internal/problems/assign/email.
+                items:
+                  type: string
+                  format: email
+
+    InternalAssignSendEmailRequest:
+      type: object
+      required: [email, problem_ids, institution_id]
+      properties:
+        email:
+          type: string
+          format: email
+          description: Must match the institution's contact_email or integration_email.
+        problem_ids:
+          type: array
+          items:
+            type: integer
+        institution_id:
+          type: integer
+
+    InternalAssignSendEmailResult:
+      type: object
+      required: [ok, message]
+      properties:
+        ok:
+          type: boolean
+        message:
+          type: string
+        problem_ids:
+          type: array
+          items:
+            type: integer
+
+    InternalProblemDetail:
+      type: object
+      required: [id, internal_number, status, category, address, created_at, is_published_publicly]
+      properties:
+        id:
+          type: integer
+        internal_number:
+          type: string
+        status:
+          type: string
+        category:
+          type: string
+        nature:
+          type: string
+          nullable: true
+        institution_id:
+          type: integer
+          nullable: true
+        institution_name:
+          type: string
+          nullable: true
+        address:
+          type: string
+        description:
+          type: string
+          nullable: true
+        lat:
+          type: number
+          nullable: true
+        lng:
+          type: number
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+        is_published_publicly:
+          type: boolean
+        attachments:
+          type: array
+          items:
+            type: object
+            additionalProperties: true
 
     InternalBulkAssignRequest:
       type: object

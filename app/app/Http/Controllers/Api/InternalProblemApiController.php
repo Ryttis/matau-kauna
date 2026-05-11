@@ -47,7 +47,7 @@ class InternalProblemApiController extends Controller
             ->notArchived()
             ->where('is_active', true)
             ->orderBy('name')
-            ->get(['id', 'name', 'code']);
+            ->get(['id', 'name', 'code', 'contact_email', 'integration_email']);
 
         return response()->json([
             'ok' => true,
@@ -55,7 +55,73 @@ class InternalProblemApiController extends Controller
                 'id' => $i->id,
                 'name' => $i->name,
                 'code' => $i->code,
+                'emails' => array_values(array_unique(array_filter([
+                    $i->contact_email,
+                    $i->integration_email,
+                ]))),
             ])->values()->all(),
+        ]);
+    }
+
+    public function assignSendEmail(Request $request): JsonResponse
+    {
+        $user = $request->user();
+        if (! $user->isProblemAdminOrSystemAdmin()) {
+            abort(403);
+        }
+
+        $validated = $request->validate([
+            'email' => ['required', 'email'],
+            'problem_ids' => ['required', 'array', 'min:1'],
+            'problem_ids.*' => ['required', 'integer', 'exists:problems,id'],
+            'institution_id' => ['required', 'integer', 'exists:institutions,id'],
+        ]);
+
+        $institution = Institution::query()->findOrFail($validated['institution_id']);
+        $allowedEmails = array_values(array_unique(array_filter([
+            $institution->contact_email,
+            $institution->integration_email,
+        ])));
+
+        if (! in_array($validated['email'], $allowedEmails, true)) {
+            return response()->json([
+                'message' => 'Pasirinktas el. paštas nepriklauso pasirinktai įstaigai.',
+            ], 422);
+        }
+
+        $problems = Problem::whereIn('id', $validated['problem_ids'])
+            ->orderBy('created_at', 'desc')
+            ->get(['id', 'internal_number', 'description', 'status', 'created_at', 'completion_deadline']);
+
+        if ($problems->contains(fn (Problem $p) => $p->status === ProblemStatus::RESOLVED->value)) {
+            return response()->json([
+                'message' => 'Išspręstų problemų negalima priskirti.',
+            ], 422);
+        }
+
+        Problem::whereIn('id', $validated['problem_ids'])->update([
+            'institution_id' => $institution->id,
+            'assigned_employee_id' => null,
+            'assigned_institution_team_id' => null,
+        ]);
+
+        foreach ($problems as $p) {
+            $this->resolutionTermService->applyRules($p);
+        }
+
+        $mail = $this->assignmentNotifier->buildManualAssignToInstitutionEmail($institution, $problems);
+        \App\Services\TransactionalMail::send(
+            $validated['email'],
+            $mail['subject'],
+            $mail['body'],
+            ! empty($mail['action_url']) ? $mail['action_url'] : null,
+            $mail['action_label'] ?? null,
+        );
+
+        return response()->json([
+            'ok' => true,
+            'message' => 'Laiškas išsiųstas.',
+            'problem_ids' => array_map('intval', $validated['problem_ids']),
         ]);
     }
 
