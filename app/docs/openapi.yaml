@@ -806,8 +806,7 @@ paths:
           content:
             application/json:
               schema:
-                type: object
-                additionalProperties: true
+                $ref: "#/components/schemas/ReporterReviewProgressResponse"
         "401":
           description: Unauthorized
         "403":
@@ -2823,6 +2822,56 @@ components:
           example: Įrašas išsaugotas.
         entry_id:
           type: integer
+
+    ReporterReviewEntry:
+      type: object
+      properties:
+        id:
+          type: integer
+        user_id:
+          type: integer
+          nullable: true
+        date:
+          type: string
+          format: date-time
+          description: ISO timestamp when the entry was created.
+        status:
+          type: string
+          description: Raw backend status enum value (e.g. `nagrinejama`, `isspresta`).
+        status_changed:
+          type: boolean
+          description: True if this entry recorded a status transition.
+        responsible:
+          type: string
+          description: Display name of the staff member responsible for the change.
+        comment:
+          type: string
+          description: Reporter-facing comment text (always public for this endpoint).
+        visibility:
+          type: string
+          enum: [public, internal]
+        attachments:
+          type: array
+          items:
+            $ref: "#/components/schemas/PublicAttachment"
+
+    ReporterReviewProgressResponse:
+      type: object
+      properties:
+        problem_id:
+          type: integer
+        reviewEntries:
+          type: array
+          items:
+            $ref: "#/components/schemas/ReporterReviewEntry"
+        canAddEntry:
+          type: boolean
+          description: Always false for the reporter (read-only endpoint).
+        canDeleteReviewAttachments:
+          type: boolean
+        fileUpload:
+          type: object
+          additionalProperties: true
 
     ReviewProgressUpsertBody:
       type: object
