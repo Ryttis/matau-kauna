@@ -40,6 +40,8 @@ class InstitutionGisConfig extends Model
         'token_expiration_minutes',
         'feature_server_url',
         'attachment_url',
+        'metadata_url',
+        'metadata_layer_id',
         'wkid',
         'use_field_mapping',
         'field_mapping',

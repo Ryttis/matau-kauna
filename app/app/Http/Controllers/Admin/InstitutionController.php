@@ -11,6 +11,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Collection;
+use RuntimeException;
 use Throwable;
 
 class InstitutionController extends Controller
@@ -79,6 +80,23 @@ class InstitutionController extends Controller
         $fresh->setAttribute('gis', $this->gisConfigService->settingsPayload($fresh->gisConfig));
 
         return $fresh;
+    }
+
+    public function gisMetadata(Institution $institution): JsonResponse
+    {
+        $institution->loadMissing('gisConfig');
+
+        if (! $institution->gisConfig) {
+            return response()->json([
+                'message' => 'Įstaiga neturi GIS integracijos nustatymų.',
+            ], 422);
+        }
+
+        try {
+            return response()->json($this->gisConfigService->metadataPayload($institution->gisConfig));
+        } catch (RuntimeException $e) {
+            return response()->json(['message' => $e->getMessage()], 422);
+        }
     }
 
     public function destroy(Institution $institution): JsonResponse

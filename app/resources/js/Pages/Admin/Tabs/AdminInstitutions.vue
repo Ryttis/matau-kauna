@@ -1,5 +1,5 @@
 <script setup>
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import axios from 'axios'
 import BaseModal from '@/Components/App/BaseModal.vue'
 import ConfirmModal from '@/Components/App/ConfirmModal.vue'
@@ -21,6 +21,9 @@ const GIS_FIELD_MAPPING_DEFAULTS = {
     reporter: 'pranese',
     internal_number: '',
     description: '',
+    reporter_value_mode: 'full_name',
+    reporter_default_value: '',
+    category_value_mapping: {},
 }
 
 const GIS_FIELD_MAPPING_ROWS = [
@@ -35,7 +38,7 @@ const GIS_FIELD_MAPPING_ROWS = [
 ]
 
 function defaultFieldMapping() {
-    return { ...GIS_FIELD_MAPPING_DEFAULTS }
+    return { ...GIS_FIELD_MAPPING_DEFAULTS, category_value_mapping: {} }
 }
 
 function emptyGisForm() {
@@ -49,6 +52,8 @@ function emptyGisForm() {
         token_expiration_minutes: 60,
         feature_server_url: '',
         attachment_url: '',
+        metadata_url: '',
+        metadata_layer_id: '',
         wkid: 3346,
         use_field_mapping: false,
         field_mapping: defaultFieldMapping(),
@@ -87,6 +92,8 @@ function gisFromPayload(source) {
         token_expiration_minutes: source.token_expiration_minutes ?? 60,
         feature_server_url: source.feature_server_url ?? '',
         attachment_url: source.attachment_url ?? '',
+        metadata_url: source.metadata_url ?? '',
+        metadata_layer_id: source.metadata_layer_id ?? '',
         wkid: source.wkid ?? 3346,
         use_field_mapping: Boolean(source.use_field_mapping),
         field_mapping: { ...defaultFieldMapping(), ...(source.field_mapping ?? {}) },
@@ -104,6 +111,8 @@ function gisSubmitPayload(gis) {
         token_expiration_minutes: gis?.token_expiration_minutes ? Number(gis.token_expiration_minutes) : null,
         feature_server_url: gis?.feature_server_url || null,
         attachment_url: gis?.attachment_url || null,
+        metadata_url: gis?.metadata_url || null,
+        metadata_layer_id: gis?.metadata_layer_id || null,
         wkid: gis?.wkid ? Number(gis.wkid) : 3346,
         use_field_mapping: Boolean(gis?.use_field_mapping),
     }
@@ -125,6 +134,13 @@ const isCreateOpen = ref(false)
 const isEditOpen = ref(false)
 const createForm = ref(emptyInstitutionForm())
 const editForm = ref(emptyInstitutionForm())
+const editGisMetadata = ref(null)
+const editGisMetadataLoading = ref(false)
+const editGisMetadataError = ref('')
+const classifierTree = ref([])
+const classifierTreeLoading = ref(false)
+const classifierTreeError = ref('')
+const editCategoryValueMappingOpen = ref(false)
 const showDeleteModal = ref(false)
 const institutionToDelete = ref(null)
 const { showSuccessModal, successMessage, closeSuccessModal, showWithMessage } = useSuccessModal()
@@ -146,6 +162,9 @@ const openCreate = () => {
 }
 
 const openEdit = (inst) => {
+    editGisMetadata.value = null
+    editGisMetadataError.value = ''
+    editCategoryValueMappingOpen.value = false
     editForm.value = {
         id: inst.id,
         name: inst.name ?? '',
@@ -161,7 +180,103 @@ const openEdit = (inst) => {
         gis: gisFromPayload(inst.gis),
     }
     isEditOpen.value = true
+    if (editForm.value.gis.use_field_mapping) {
+        loadEditGisMetadata()
+        loadClassifierTree()
+    }
 }
+
+const loadEditGisMetadata = async (force = false) => {
+    if (!editForm.value?.id || editGisMetadataLoading.value) return
+    if (!force && editGisMetadata.value) return
+
+    editGisMetadataLoading.value = true
+    editGisMetadataError.value = ''
+    try {
+        const { data } = await axios.get(adminApi.institutionGisMetadata(editForm.value.id))
+        editGisMetadata.value = data
+    } catch (e) {
+        editGisMetadataError.value = e.response?.data?.message ?? 'Nepavyko gauti GIS laukų JSON.'
+    } finally {
+        editGisMetadataLoading.value = false
+    }
+}
+
+const loadClassifierTree = async () => {
+    if (classifierTreeLoading.value || classifierTree.value.length) return
+
+    classifierTreeLoading.value = true
+    classifierTreeError.value = ''
+    try {
+        const { data } = await axios.get(adminApi.classifiers)
+        const types = data.types ?? []
+        classifierTree.value = await Promise.all(
+            types.map(async (type) => {
+                const response = await axios.get(adminApi.classifierTypeNatures(type.id))
+                return {
+                    ...type,
+                    children: response.data.natures ?? [],
+                }
+            }),
+        )
+    } catch (e) {
+        classifierTreeError.value = e.response?.data?.message ?? 'Nepavyko gauti klasifikatoriaus reikšmių.'
+    } finally {
+        classifierTreeLoading.value = false
+    }
+}
+
+const editCategoryGisFieldName = computed(() => {
+    return (editForm.value.gis?.field_mapping?.category || GIS_FIELD_MAPPING_DEFAULTS.category).trim()
+})
+
+const editCategoryGisField = computed(() => {
+    const fieldName = editCategoryGisFieldName.value
+    return editGisMetadata.value?.fields?.find((field) => field.name === fieldName) ?? null
+})
+
+const editCategoryGisOptions = computed(() => editCategoryGisField.value?.coded_values ?? [])
+
+const showEditCategoryValueMapping = computed(() => {
+    return Boolean(editForm.value.gis?.use_field_mapping && editCategoryGisOptions.value.length)
+})
+
+function ensureCategoryValueMapping() {
+    if (!editForm.value.gis.field_mapping.category_value_mapping || Array.isArray(editForm.value.gis.field_mapping.category_value_mapping)) {
+        editForm.value.gis.field_mapping.category_value_mapping = {}
+    }
+}
+
+function categoryMappedCode(classifierValueId) {
+    const mappedValue = editForm.value.gis?.field_mapping?.category_value_mapping?.[String(classifierValueId)]
+    if (typeof mappedValue === 'string') return mappedValue
+    return mappedValue?.code ?? ''
+}
+
+function setCategoryValueMapping(classifierValueId, code) {
+    ensureCategoryValueMapping()
+    const key = String(classifierValueId)
+    if (!code) {
+        delete editForm.value.gis.field_mapping.category_value_mapping[key]
+        return
+    }
+
+    const selected = editCategoryGisOptions.value.find((option) => option.code === code)
+    editForm.value.gis.field_mapping.category_value_mapping[key] = {
+        code,
+        name: selected?.name ?? code,
+    }
+}
+
+watch(
+    () => editForm.value.gis?.use_field_mapping,
+    (enabled) => {
+        if (isEditOpen.value && enabled) {
+            loadEditGisMetadata()
+            loadClassifierTree()
+        }
+    },
+)
 
 const confirmDelete = (inst) => {
     institutionToDelete.value = inst
@@ -359,8 +474,10 @@ onMounted(async () => {
                             type="number"
                             label="Token galiojimas (min.)"
                         />
-                        <AppInput v-model="createForm.gis.feature_server_url" label="FeatureServer URL" placeholder="https://..." />
-                        <AppInput v-model="createForm.gis.attachment_url" label="Priedų URL" placeholder="https://..." />
+                        <AppInput v-model="createForm.gis.feature_server_url" placeholder="FeatureServer URL" />
+                        <AppInput v-model="createForm.gis.attachment_url" placeholder="AttachmentUrl" />
+                        <AppInput v-model="createForm.gis.metadata_url" placeholder="GIS JSON URL (queryDomains)" />
+                        <AppInput v-model="createForm.gis.metadata_layer_id" placeholder="Layers ID" />
                         <AppSelect
                             v-model.number="createForm.gis.wkid"
                             label="Koordinačių sistema (WKID)"
@@ -388,6 +505,19 @@ onMounted(async () => {
                                     class="input"
                                     :placeholder="row.placeholder"
                                 />
+                                <div v-if="row.key === 'reporter'" class="gis-reporter-mode">
+                                    <select class="input" v-model="createForm.gis.field_mapping.reporter_value_mode">
+                                        <option value="full_name">Siųsti vardą ir pavardę</option>
+                                        <option value="resident">Siųsti tik Gyventojas</option>
+                                        <option value="custom">Siųsti administratoriaus tekstą</option>
+                                    </select>
+                                    <input
+                                        v-if="createForm.gis.field_mapping.reporter_value_mode === 'custom'"
+                                        v-model="createForm.gis.field_mapping.reporter_default_value"
+                                        class="input"
+                                        placeholder="Numatytoji Pranešėjo reikšmė"
+                                    />
+                                </div>
                             </div>
                         </div>
                     </template>
@@ -465,8 +595,10 @@ onMounted(async () => {
                             type="number"
                             label="Token galiojimas (min.)"
                         />
-                        <AppInput v-model="editForm.gis.feature_server_url" label="FeatureServer URL" placeholder="https://..." />
-                        <AppInput v-model="editForm.gis.attachment_url" label="Priedų URL" placeholder="https://..." />
+                        <AppInput v-model="editForm.gis.feature_server_url" placeholder="FeatureServer URL" />
+                        <AppInput v-model="editForm.gis.attachment_url" placeholder="AttachmentUrl" />
+                        <AppInput v-model="editForm.gis.metadata_url" placeholder="GIS JSON URL (queryDomains)" />
+                        <AppInput v-model="editForm.gis.metadata_layer_id" placeholder="Layers ID" />
                         <AppSelect
                             v-model.number="editForm.gis.wkid"
                             label="Koordinačių sistema (WKID)"
@@ -494,7 +626,140 @@ onMounted(async () => {
                                     class="input"
                                     :placeholder="row.placeholder"
                                 />
+                                <div v-if="row.key === 'reporter'" class="gis-reporter-mode">
+                                    <select class="input" v-model="editForm.gis.field_mapping.reporter_value_mode">
+                                        <option value="full_name">Siųsti vardą ir pavardę</option>
+                                        <option value="resident">Siųsti tik Gyventojas</option>
+                                        <option value="custom">Siųsti administratoriaus tekstą</option>
+                                    </select>
+                                    <input
+                                        v-if="editForm.gis.field_mapping.reporter_value_mode === 'custom'"
+                                        v-model="editForm.gis.field_mapping.reporter_default_value"
+                                        class="input"
+                                        placeholder="Numatytoji Pranešėjo reikšmė"
+                                    />
+                                </div>
                             </div>
+                        </div>
+                        <div v-if="editForm.gis.use_field_mapping" class="gis-metadata">
+                            <div class="gis-metadata-header">
+                                <span>GIS laukai iš FeatureServer</span>
+                                <button
+                                    type="button"
+                                    class="link-btn"
+                                    :disabled="editGisMetadataLoading"
+                                    @click="loadEditGisMetadata(true)"
+                                >
+                                    {{ editGisMetadataLoading ? 'Gaunama...' : 'Gauti GIS laukus' }}
+                                </button>
+                            </div>
+                            <p v-if="editGisMetadataError" class="gis-metadata-error">{{ editGisMetadataError }}</p>
+                            <p v-else-if="editGisMetadataLoading" class="gis-hint">Gaunamas GIS laukų JSON...</p>
+                            <div v-else-if="editGisMetadata?.fields?.length" class="gis-metadata-list">
+                                <div
+                                    v-for="field in editGisMetadata.fields"
+                                    :key="field.name"
+                                    class="gis-metadata-field"
+                                >
+                                    <div class="gis-metadata-field-top">
+                                        <strong>{{ field.name }}</strong>
+                                        <span v-if="field.alias && field.alias !== field.name">{{ field.alias }}</span>
+                                        <span v-if="field.type">{{ field.type }}</span>
+                                    </div>
+                                    <div v-if="field.coded_values?.length" class="gis-coded-values">
+                                        <span
+                                            v-for="option in field.coded_values"
+                                            :key="field.name + '-' + option.code"
+                                            class="gis-coded-value"
+                                        >
+                                            {{ option.name }}: {{ option.code }}
+                                        </span>
+                                    </div>
+                                    <p v-else class="gis-metadata-empty">Pasirinkimų nėra</p>
+                                </div>
+                            </div>
+                            <p v-else-if="editGisMetadata" class="gis-hint">
+                                GIS JSON laukų nerasta.
+                            </p>
+                            <p v-else class="gis-hint">
+                                Paspauskite „Gauti GIS laukus“, kad pamatytumėte laukus ir jų pasirinkimus.
+                            </p>
+                            <div
+                                v-if="showEditCategoryValueMapping"
+                                class="gis-value-mapper"
+                                :class="{ 'gis-value-mapper--collapsed': !editCategoryValueMappingOpen }"
+                            >
+                                <div class="gis-value-mapper-header">
+                                    <span>Kategorija / tipas reikšmių susiejimas</span>
+                                    <span>{{ editCategoryGisFieldName }}</span>
+                                    <button
+                                        type="button"
+                                        class="link-btn"
+                                        @click="editCategoryValueMappingOpen = !editCategoryValueMappingOpen"
+                                    >
+                                        {{ editCategoryValueMappingOpen ? 'Slėpti' : 'Rodyti' }}
+                                    </button>
+                                </div>
+                                <p v-if="!editCategoryValueMappingOpen" class="gis-hint">
+                                    Susiejimai paslėpti, kad forma užimtų mažiau vietos.
+                                </p>
+                                <p v-if="classifierTreeLoading" class="gis-hint">Kraunamos klasifikatoriaus reikšmės...</p>
+                                <p v-else-if="classifierTreeError" class="gis-metadata-error">{{ classifierTreeError }}</p>
+                                <div v-else-if="classifierTree.length" class="gis-classifier-tree">
+                                    <div
+                                        v-for="type in classifierTree"
+                                        :key="'classifier-type-' + type.id"
+                                        class="gis-classifier-group"
+                                    >
+                                        <div class="gis-classifier-group-title">{{ type.name }}</div>
+                                        <div class="gis-value-map-row gis-value-map-row--type">
+                                            <span>Tipas: {{ type.name }}</span>
+                                            <select
+                                                class="input"
+                                                :value="categoryMappedCode(type.id)"
+                                                @change="setCategoryValueMapping(type.id, $event.target.value)"
+                                            >
+                                                <option value="">Siųsti esamą reikšmę</option>
+                                                <option
+                                                    v-for="option in editCategoryGisOptions"
+                                                    :key="'type-' + type.id + '-' + option.code"
+                                                    :value="option.code"
+                                                >
+                                                    {{ option.name }}: {{ option.code }}
+                                                </option>
+                                            </select>
+                                        </div>
+                                        <div
+                                            v-for="nature in type.children"
+                                            :key="'classifier-nature-' + nature.id"
+                                            class="gis-value-map-row gis-value-map-row--nature"
+                                        >
+                                            <span>Pobūdis: {{ nature.name }}</span>
+                                            <select
+                                                class="input"
+                                                :value="categoryMappedCode(nature.id)"
+                                                @change="setCategoryValueMapping(nature.id, $event.target.value)"
+                                            >
+                                                <option value="">Siųsti esamą reikšmę</option>
+                                                <option
+                                                    v-for="option in editCategoryGisOptions"
+                                                    :key="'nature-' + nature.id + '-' + option.code"
+                                                    :value="option.code"
+                                                >
+                                                    {{ option.name }}: {{ option.code }}
+                                                </option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                </div>
+                                <p v-else class="gis-hint">Klasifikatoriaus reikšmių nėra.</p>
+                            </div>
+                            <p
+                                v-else-if="editGisMetadata?.fields?.length && editCategoryGisField && !editCategoryGisOptions.length"
+                                class="gis-hint"
+                            >
+                                Pasirinktas Kategorija / tipas GIS laukas neturi pasirinkimų.
+                            </p>
                         </div>
                         <p v-if="editForm.gis.has_active_token" class="gis-hint">
                             Aktyvus tokenas: yra<span v-if="editForm.gis.active_token_expires_at">, galioja iki {{ editForm.gis.active_token_expires_at }}</span>
@@ -743,5 +1008,158 @@ td {
     font-size: 12px;
     font-weight: 600;
     color: var(--color-text-muted);
+}
+
+.gis-reporter-mode {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.gis-metadata {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 10px;
+    border: 1px solid var(--color-border-light);
+    border-radius: 8px;
+    background: #ffffff;
+}
+
+.gis-metadata-header,
+.gis-metadata-field-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+}
+
+.gis-metadata-header span {
+    font-size: 13px;
+    font-weight: 700;
+}
+
+.gis-metadata-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    max-height: 260px;
+    overflow-y: auto;
+}
+
+.gis-metadata-field {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 8px;
+    border: 1px solid var(--color-border-light);
+    border-radius: 8px;
+    background: #f9fafb;
+}
+
+.gis-metadata-field-top {
+    justify-content: flex-start;
+    flex-wrap: wrap;
+}
+
+.gis-metadata-field-top strong {
+    font-size: 13px;
+}
+
+.gis-metadata-field-top span,
+.gis-metadata-empty {
+    margin: 0;
+    font-size: 12px;
+    color: var(--color-text-muted);
+}
+
+.gis-coded-values {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.gis-coded-value {
+    display: inline-flex;
+    max-width: 100%;
+    padding: 4px 6px;
+    border-radius: 6px;
+    background: #e8f0fe;
+    color: #174ea6;
+    font-size: 12px;
+    line-height: 1.3;
+}
+
+.gis-metadata-error {
+    margin: 0;
+    font-size: 12px;
+    color: var(--color-error);
+}
+
+.gis-value-mapper {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 10px;
+    border: 1px solid var(--color-border-light);
+    border-radius: 8px;
+    background: #f9fafb;
+}
+
+.gis-value-mapper--collapsed .gis-classifier-tree,
+.gis-value-mapper--collapsed .gis-metadata-error,
+.gis-value-mapper--collapsed > .gis-hint:not(:first-of-type) {
+    display: none;
+}
+
+.gis-value-mapper-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    font-size: 13px;
+    font-weight: 700;
+}
+
+.gis-value-mapper-header span:last-child {
+    font-size: 12px;
+    color: var(--color-text-muted);
+}
+
+.gis-classifier-tree {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    max-height: 320px;
+    overflow-y: auto;
+}
+
+.gis-classifier-group {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.gis-classifier-group-title {
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--color-text-muted);
+}
+
+.gis-value-map-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(180px, 1.2fr);
+    gap: 8px;
+    align-items: center;
+}
+
+.gis-value-map-row span {
+    min-width: 0;
+    font-size: 12px;
+    overflow-wrap: anywhere;
+}
+
+.gis-value-map-row--nature span {
+    padding-left: 12px;
 }
 </style>

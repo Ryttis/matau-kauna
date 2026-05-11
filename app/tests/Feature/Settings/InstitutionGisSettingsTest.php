@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Settings;
 
+use App\Models\ClassifierValue;
 use App\Models\Institution;
 use App\Models\InstitutionGisConfig;
 use App\Models\User;
@@ -197,6 +198,10 @@ class InstitutionGisSettingsTest extends TestCase
         $institution = Institution::create([
             'name' => 'Test Institution',
         ]);
+        $nature = ClassifierValue::create([
+            'name' => 'Neveikianti lempa',
+            'is_active' => true,
+        ]);
         $user = User::factory()->create([
             'institution_id' => $institution->id,
         ]);
@@ -223,6 +228,12 @@ class InstitutionGisSettingsTest extends TestCase
                         'completion_deadline' => 'gis_deadline',
                         'address' => 'gis_address',
                         'reporter' => 'gis_reporter',
+                        'category_value_mapping' => [
+                            (string) $nature->id => [
+                                'code' => 'Neveikia šviestuvas',
+                                'name' => 'Neveikia šviestuvas',
+                            ],
+                        ],
                     ],
                 ],
             ]);
@@ -233,5 +244,9 @@ class InstitutionGisSettingsTest extends TestCase
         $this->assertTrue($config->use_field_mapping);
         $this->assertSame('gis_status', $config->field_mapping['status']);
         $this->assertSame('gis_deadline', $config->field_mapping['completion_deadline']);
+        $this->assertSame(
+            'Neveikia šviestuvas',
+            $config->field_mapping['category_value_mapping'][(string) $nature->id]['code']
+        );
     }
 }

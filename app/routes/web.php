@@ -175,6 +175,7 @@ Route::middleware(['auth', 'verified', 'reporter.terms'])->group(function () {
 
             Route::get('/institutions', [AdminInstitutionController::class, 'index']);
             Route::get('/institutions/list', [AdminInstitutionController::class, 'list']);
+            Route::get('/institutions/{institution}/gis-metadata', [AdminInstitutionController::class, 'gisMetadata']);
             Route::post('/institutions', [AdminInstitutionController::class, 'store']);
             Route::put('/institutions/{institution}', [AdminInstitutionController::class, 'update']);
             Route::delete('/institutions/{institution}', [AdminInstitutionController::class, 'destroy']);

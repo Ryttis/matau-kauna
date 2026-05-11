@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Problems;
 
+use App\Models\ClassifierValue;
 use App\Models\Institution;
 use App\Models\InstitutionGisConfig;
 use App\Models\Problem;
@@ -193,6 +194,308 @@ class ProblemGisTransferTest extends TestCase
             ]
             && ($this->requestAttributes($request)['gis_internal_number'] ?? null) === $problem->internal_number
             && ($this->requestAttributes($request)['gis_description'] ?? null) === $problem->description);
+    }
+
+    public function test_category_value_mapping_prefers_problem_nature_for_gis_payload(): void
+    {
+        $institution = Institution::create([
+            'name' => 'GIS Institution',
+        ]);
+        $user = $this->createSystemAdmin();
+        $type = ClassifierValue::create([
+            'name' => 'Apšvietimas',
+            'is_active' => true,
+        ]);
+        $nature = ClassifierValue::create([
+            'parent_id' => $type->id,
+            'name' => 'Neveikianti lempa',
+            'is_active' => true,
+        ]);
+        $problem = Problem::create([
+            'status' => 'nauja',
+            'category' => 'Apšvietimas',
+            'problem_type_id' => $type->id,
+            'problem_nature_id' => $nature->id,
+            'address' => 'Laisvės al. 15, Kaunas',
+            'description' => 'Neveikianti lempa.',
+            'lat' => 54.8985,
+            'lng' => 23.9036,
+            'institution_id' => $institution->id,
+        ]);
+        InstitutionGisConfig::create([
+            'institution_id' => $institution->id,
+            'enabled' => true,
+            'generate_token_url' => 'https://digital.kaunas.lt/portal/sharing/rest/generateToken',
+            'technical_username' => 'arcgis-user',
+            'technical_password' => 'secret',
+            'client_type' => 'referer',
+            'token_expiration_minutes' => 60,
+            'feature_server_url' => 'https://example.test/FeatureServer/1',
+            'attachment_url' => 'https://example.test/FeatureServer/1',
+            'use_field_mapping' => true,
+            'field_mapping' => [
+                'category' => 'pranesimo_tipas',
+                'category_value_mapping' => [
+                    (string) $type->id => [
+                        'code' => 'Kita',
+                        'name' => 'Kita',
+                    ],
+                    (string) $nature->id => [
+                        'code' => 'Neveikia šviestuvas',
+                        'name' => 'Neveikia šviestuvas',
+                    ],
+                ],
+            ],
+            'active_token' => 'cached-token',
+            'active_token_expires_at' => now()->addHour(),
+        ]);
+
+        Http::fake([
+            'https://example.test/FeatureServer/1/applyEdits' => Http::response([
+                'addResults' => [
+                    ['success' => true, 'objectId' => 101],
+                ],
+            ]),
+        ]);
+
+        $this
+            ->actingAs($user)
+            ->post(route('problems.assignInstitution.sendGis', $problem))
+            ->assertSessionHasNoErrors()
+            ->assertRedirect();
+
+        Http::assertSent(fn ($request) => $request->url() === 'https://example.test/FeatureServer/1/applyEdits'
+            && ($this->requestAttributes($request)['pranesimo_tipas'] ?? null) === 'Neveikia šviestuvas');
+    }
+
+    public function test_category_value_mapping_falls_back_to_problem_type_without_nature(): void
+    {
+        $institution = Institution::create([
+            'name' => 'GIS Institution',
+        ]);
+        $user = $this->createSystemAdmin();
+        $type = ClassifierValue::create([
+            'name' => 'Apšvietimas',
+            'is_active' => true,
+        ]);
+        $problem = Problem::create([
+            'status' => 'nauja',
+            'category' => 'Apšvietimas',
+            'problem_type_id' => $type->id,
+            'problem_nature_id' => null,
+            'address' => 'Laisvės al. 15, Kaunas',
+            'description' => 'Trūksta apšvietimo.',
+            'lat' => 54.8985,
+            'lng' => 23.9036,
+            'institution_id' => $institution->id,
+        ]);
+        InstitutionGisConfig::create([
+            'institution_id' => $institution->id,
+            'enabled' => true,
+            'generate_token_url' => 'https://digital.kaunas.lt/portal/sharing/rest/generateToken',
+            'technical_username' => 'arcgis-user',
+            'technical_password' => 'secret',
+            'client_type' => 'referer',
+            'token_expiration_minutes' => 60,
+            'feature_server_url' => 'https://example.test/FeatureServer/1',
+            'attachment_url' => 'https://example.test/FeatureServer/1',
+            'use_field_mapping' => true,
+            'field_mapping' => [
+                'category' => 'pranesimo_tipas',
+                'category_value_mapping' => [
+                    (string) $type->id => [
+                        'code' => 'Kita',
+                        'name' => 'Kita',
+                    ],
+                ],
+            ],
+            'active_token' => 'cached-token',
+            'active_token_expires_at' => now()->addHour(),
+        ]);
+
+        Http::fake([
+            'https://example.test/FeatureServer/1/applyEdits' => Http::response([
+                'addResults' => [
+                    ['success' => true, 'objectId' => 102],
+                ],
+            ]),
+        ]);
+
+        $this
+            ->actingAs($user)
+            ->post(route('problems.assignInstitution.sendGis', $problem))
+            ->assertSessionHasNoErrors()
+            ->assertRedirect();
+
+        Http::assertSent(fn ($request) => $request->url() === 'https://example.test/FeatureServer/1/applyEdits'
+            && ($this->requestAttributes($request)['pranesimo_tipas'] ?? null) === 'Kita');
+    }
+
+    public function test_unmapped_category_value_preserves_problem_category(): void
+    {
+        $institution = Institution::create([
+            'name' => 'GIS Institution',
+        ]);
+        $user = $this->createSystemAdmin();
+        $type = ClassifierValue::create([
+            'name' => 'Apšvietimas',
+            'is_active' => true,
+        ]);
+        $problem = Problem::create([
+            'status' => 'nauja',
+            'category' => 'Apšvietimas',
+            'problem_type_id' => $type->id,
+            'address' => 'Laisvės al. 15, Kaunas',
+            'description' => 'Kitas pranešimas.',
+            'lat' => 54.8985,
+            'lng' => 23.9036,
+            'institution_id' => $institution->id,
+        ]);
+        InstitutionGisConfig::create([
+            'institution_id' => $institution->id,
+            'enabled' => true,
+            'generate_token_url' => 'https://digital.kaunas.lt/portal/sharing/rest/generateToken',
+            'technical_username' => 'arcgis-user',
+            'technical_password' => 'secret',
+            'client_type' => 'referer',
+            'token_expiration_minutes' => 60,
+            'feature_server_url' => 'https://example.test/FeatureServer/1',
+            'attachment_url' => 'https://example.test/FeatureServer/1',
+            'use_field_mapping' => true,
+            'field_mapping' => [
+                'category' => 'pranesimo_tipas',
+                'category_value_mapping' => [],
+            ],
+            'active_token' => 'cached-token',
+            'active_token_expires_at' => now()->addHour(),
+        ]);
+
+        Http::fake([
+            'https://example.test/FeatureServer/1/applyEdits' => Http::response([
+                'addResults' => [
+                    ['success' => true, 'objectId' => 103],
+                ],
+            ]),
+        ]);
+
+        $this
+            ->actingAs($user)
+            ->post(route('problems.assignInstitution.sendGis', $problem))
+            ->assertSessionHasNoErrors()
+            ->assertRedirect();
+
+        Http::assertSent(fn ($request) => $request->url() === 'https://example.test/FeatureServer/1/applyEdits'
+            && ($this->requestAttributes($request)['pranesimo_tipas'] ?? null) === 'Apšvietimas');
+    }
+
+    public function test_reporter_mapping_can_send_resident_label(): void
+    {
+        $institution = Institution::create([
+            'name' => 'GIS Institution',
+        ]);
+        $user = $this->createSystemAdmin();
+        $reporter = User::factory()->create([
+            'name' => 'Jonas',
+            'surname' => 'Jonaitis',
+        ]);
+        $problem = Problem::create([
+            'status' => 'nauja',
+            'category' => 'Apšvietimas',
+            'address' => 'Laisvės al. 15, Kaunas',
+            'description' => 'Neveikia lempa.',
+            'lat' => 54.8985,
+            'lng' => 23.9036,
+            'institution_id' => $institution->id,
+            'reported_by_user_id' => $reporter->id,
+        ]);
+        InstitutionGisConfig::create([
+            'institution_id' => $institution->id,
+            'enabled' => true,
+            'generate_token_url' => 'https://digital.kaunas.lt/portal/sharing/rest/generateToken',
+            'technical_username' => 'arcgis-user',
+            'technical_password' => 'secret',
+            'client_type' => 'referer',
+            'token_expiration_minutes' => 60,
+            'feature_server_url' => 'https://example.test/FeatureServer/1',
+            'attachment_url' => 'https://example.test/FeatureServer/1',
+            'use_field_mapping' => true,
+            'field_mapping' => [
+                'reporter' => 'pranese',
+                'reporter_value_mode' => 'resident',
+            ],
+            'active_token' => 'cached-token',
+            'active_token_expires_at' => now()->addHour(),
+        ]);
+
+        Http::fake([
+            'https://example.test/FeatureServer/1/applyEdits' => Http::response([
+                'addResults' => [
+                    ['success' => true, 'objectId' => 104],
+                ],
+            ]),
+        ]);
+
+        $this
+            ->actingAs($user)
+            ->post(route('problems.assignInstitution.sendGis', $problem))
+            ->assertSessionHasNoErrors()
+            ->assertRedirect();
+
+        Http::assertSent(fn ($request) => $request->url() === 'https://example.test/FeatureServer/1/applyEdits'
+            && ($this->requestAttributes($request)['pranese'] ?? null) === 'Gyventojas');
+    }
+
+    public function test_reporter_mapping_can_send_custom_admin_text(): void
+    {
+        $institution = Institution::create([
+            'name' => 'GIS Institution',
+        ]);
+        $user = $this->createSystemAdmin();
+        $problem = Problem::create([
+            'status' => 'nauja',
+            'category' => 'Apšvietimas',
+            'address' => 'Laisvės al. 15, Kaunas',
+            'description' => 'Neveikia lempa.',
+            'lat' => 54.8985,
+            'lng' => 23.9036,
+            'institution_id' => $institution->id,
+        ]);
+        InstitutionGisConfig::create([
+            'institution_id' => $institution->id,
+            'enabled' => true,
+            'generate_token_url' => 'https://digital.kaunas.lt/portal/sharing/rest/generateToken',
+            'technical_username' => 'arcgis-user',
+            'technical_password' => 'secret',
+            'client_type' => 'referer',
+            'token_expiration_minutes' => 60,
+            'feature_server_url' => 'https://example.test/FeatureServer/1',
+            'attachment_url' => 'https://example.test/FeatureServer/1',
+            'use_field_mapping' => true,
+            'field_mapping' => [
+                'reporter' => 'pranese',
+                'reporter_value_mode' => 'custom',
+                'reporter_default_value' => 'Administratoriaus tekstas',
+            ],
+            'active_token' => 'cached-token',
+            'active_token_expires_at' => now()->addHour(),
+        ]);
+
+        Http::fake([
+            'https://example.test/FeatureServer/1/applyEdits' => Http::response([
+                'addResults' => [
+                    ['success' => true, 'objectId' => 105],
+                ],
+            ]),
+        ]);
+
+        $this
+            ->actingAs($user)
+            ->post(route('problems.assignInstitution.sendGis', $problem))
+            ->assertSessionHasNoErrors()
+            ->assertRedirect();
+
+        Http::assertSent(fn ($request) => $request->url() === 'https://example.test/FeatureServer/1/applyEdits'
+            && ($this->requestAttributes($request)['pranese'] ?? null) === 'Administratoriaus tekstas');
     }
 
     public function test_problem_send_refreshes_token_after_arcgis_498_error(): void
