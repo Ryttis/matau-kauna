@@ -507,7 +507,6 @@ paths:
         '401':
           description: Unauthorized
         '422':
-          description: Reporter, or trying to enable while global is off
           $ref: '#/components/responses/ValidationError'
 
   /api/setting/email_notifications:
@@ -678,7 +677,7 @@ paths:
     get:
       tags: [Problems]
       summary: "[PUBLIC] Problems list"
-      description: "No authentication required. Returns only publicly published problems."
+      description: "No authentication required. Returns only publicly published problems with status `nagrinejama` (in_review) or `atlikta` (resolved) — matches the public map filter used on web (`GuestProblemController::landing`). Excludes archived and merged child problems."
       parameters:
         - in: query
           name: per_page
@@ -945,13 +944,16 @@ paths:
     get:
       tags: [Info]
       summary: "[PUBLIC] Public CMS content by type JSON"
+      description: >
+        Returns the latest published version for the given content type. Response shape is described by
+        `PublicContentResponse`: HTML pages return `body`, FAQ returns structured `items` (and `body` may be empty).
       parameters:
         - in: path
           name: type
           required: true
           schema:
             type: string
-            enum: [faq, privacy, cookies, contacts, help]
+            enum: [terms, faq, privacy, cookies, contacts, help]
       responses:
         "200":
           description: OK
@@ -2666,13 +2668,36 @@ components:
 
     PublicContentResponse:
       type: object
+      description: >
+        Public CMS content payload. `body` carries free-form HTML for text-style pages (privacy, cookies, terms,
+        contacts, help). `items` carries structured Q&A pairs for FAQ — populated only when `type=faq` and the
+        published version was authored using the structured editor; otherwise it is null.
       properties:
         type:
           type: string
+          enum: [terms, faq, privacy, cookies, contacts, help]
         title:
           type: string
         body:
           type: string
+          description: HTML body. Empty string when only structured `items` are used.
+        items:
+          type: array
+          nullable: true
+          description: Present (and non-null) for FAQ when structured Q&A items are published.
+          items:
+            $ref: "#/components/schemas/FaqItem"
+
+    FaqItem:
+      type: object
+      required: [question, answer]
+      properties:
+        question:
+          type: string
+          maxLength: 1000
+        answer:
+          type: string
+          maxLength: 10000
 
     FileUploadSettingsResponse:
       type: object

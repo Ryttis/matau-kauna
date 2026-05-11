@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Enums\ProblemStatus;
 use App\Http\Controllers\Controller;
 use App\Models\Problem;
 use Illuminate\Http\JsonResponse;
@@ -15,6 +16,7 @@ class ProblemApiController extends Controller
 
         $problems = Problem::query()
             ->where('is_published_publicly', true)
+            ->whereIn('status', ProblemStatus::publicMapStatusValues())
             ->notArchived()
             ->whereNull('merged_into_problem_id')
             ->latest('created_at')

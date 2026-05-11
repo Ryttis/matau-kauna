@@ -24,6 +24,7 @@ class ContentVersion extends Model
         'version',
         'title',
         'body',
+        'items',
         'is_published',
         'published_at',
         'require_reconsent',
@@ -31,10 +32,22 @@ class ContentVersion extends Model
     ];
 
     protected $casts = [
+        'items' => 'array',
         'is_published' => 'boolean',
         'published_at' => 'datetime',
         'require_reconsent' => 'boolean',
     ];
+
+    /** Content types that use a structured `items` payload instead of (or in addition to) HTML `body`. */
+    public static function structuredItemsContentTypes(): array
+    {
+        return [self::TYPE_FAQ];
+    }
+
+    public function usesStructuredItems(): bool
+    {
+        return in_array($this->type, self::structuredItemsContentTypes(), true);
+    }
 
     public function creator(): BelongsTo
     {

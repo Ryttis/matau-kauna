@@ -19,7 +19,7 @@ const versions = ref([])
 const loading = ref(true)
 const saving = ref(false)
 const editingId = ref(null)
-const form = ref({ title: '', body: '' })
+const form = ref({ title: '', body: '', items: [] })
 const showEditorModal = ref(false)
 const editingIsPublished = ref(false)
 const bodyTextareaRef = ref(null)
@@ -32,6 +32,7 @@ const showSuccessModal = ref(false)
 const errorMessage = ref('')
 
 const isTerms = () => props.type === 'terms'
+const isFaq = computed(() => props.type === 'faq')
 
 const editorModalTitle = computed(() => {
     if (!editingId.value) {
@@ -76,21 +77,46 @@ function closeEditorModal() {
     showEditorModal.value = false
     editingId.value = null
     editingIsPublished.value = false
-    form.value = { title: '', body: '' }
+    form.value = { title: '', body: '', items: [] }
 }
 
 function openCreateModal() {
     editingId.value = null
     editingIsPublished.value = false
-    form.value = { title: '', body: '' }
+    form.value = {
+        title: '',
+        body: '',
+        items: isFaq.value ? [{ question: '', answer: '' }] : [],
+    }
     showEditorModal.value = true
 }
 
 function openEditModal(v) {
     editingId.value = v.id
     editingIsPublished.value = !!v.is_published
-    form.value = { title: v.title ?? '', body: v.body ?? '' }
+    form.value = {
+        title: v.title ?? '',
+        body: v.body ?? '',
+        items: Array.isArray(v.items) ? v.items.map(it => ({ question: it.question ?? '', answer: it.answer ?? '' })) : [],
+    }
     showEditorModal.value = true
+}
+
+function addFaqItem() {
+    form.value.items.push({ question: '', answer: '' })
+}
+
+function removeFaqItem(index) {
+    form.value.items.splice(index, 1)
+}
+
+function moveFaqItem(index, delta) {
+    const target = index + delta
+    if (target < 0 || target >= form.value.items.length) return
+    const arr = form.value.items
+    const tmp = arr[index]
+    arr[index] = arr[target]
+    arr[target] = tmp
 }
 
 function insertTag(open, close = open) {
@@ -173,9 +199,19 @@ function save() {
     const isEdit = !!editingId.value
     const wasPublishedEdit = isEdit && editingIsPublished.value
     const id = editingId.value
+    const payload = {
+        title: form.value.title,
+        body: form.value.body,
+    }
+    if (isFaq.value) {
+        // Drop empty rows before sending so admins don't end up with blank Q&A on the public page.
+        payload.items = form.value.items
+            .map(it => ({ question: (it.question ?? '').trim(), answer: (it.answer ?? '').trim() }))
+            .filter(it => it.question !== '' || it.answer !== '')
+    }
     const promise = isEdit
-        ? axios.put(adminApi.contentVersion(id), { title: form.value.title, body: form.value.body })
-        : axios.post(adminApi.contentVersions, { type: props.type, title: form.value.title, body: form.value.body })
+        ? axios.put(adminApi.contentVersion(id), payload)
+        : axios.post(adminApi.contentVersions, { type: props.type, ...payload })
     promise
         .then(() => {
             if (!isEdit) {
@@ -381,7 +417,38 @@ function formatDate(s) {
                     label="Pavadinimas"
                     placeholder="Neprivaloma"
                 />
-                <div class="field field--body">
+                <template v-if="isFaq">
+                    <div class="field">
+                        <span class="field-label">Dažniausiai užduodami klausimai</span>
+                        <p class="field-help">Kiekvienas įrašas mobiliojoje programėlėje rodomas kaip atskira sulankstoma eilutė.</p>
+                        <div class="faq-items">
+                            <div v-for="(item, index) in form.items" :key="index" class="faq-item">
+                                <div class="faq-item-header">
+                                    <span class="faq-item-number">#{{ index + 1 }}</span>
+                                    <div class="faq-item-actions">
+                                        <button type="button" class="faq-icon-btn" :disabled="index === 0" @click="moveFaqItem(index, -1)" title="Pakelti">↑</button>
+                                        <button type="button" class="faq-icon-btn" :disabled="index === form.items.length - 1" @click="moveFaqItem(index, 1)" title="Nuleisti">↓</button>
+                                        <button type="button" class="faq-icon-btn faq-icon-btn-danger" @click="removeFaqItem(index)" title="Pašalinti">×</button>
+                                    </div>
+                                </div>
+                                <input
+                                    v-model="item.question"
+                                    type="text"
+                                    class="faq-question-input"
+                                    placeholder="Klausimas"
+                                />
+                                <textarea
+                                    v-model="item.answer"
+                                    class="faq-answer-textarea"
+                                    rows="3"
+                                    placeholder="Atsakymas"
+                                />
+                            </div>
+                        </div>
+                        <button type="button" class="toolbar-btn faq-add-btn" @click="addFaqItem">+ Pridėti klausimą</button>
+                    </div>
+                </template>
+                <div v-else class="field field--body">
                     <span class="field-label">Turinys (HTML)</span>
                     <div class="toolbar">
                         <button type="button" class="toolbar-btn" @click="insertTag('<b>', '</b>')">B</button>
@@ -529,6 +596,82 @@ function formatDate(s) {
     font-family: inherit;
     box-sizing: border-box;
     resize: vertical;
+}
+.field-help {
+    margin: 0 0 8px 0;
+    color: #6b7280;
+    font-size: 12px;
+}
+.faq-items {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-bottom: 8px;
+}
+.faq-item {
+    border: 1px solid #d1d5db;
+    border-radius: 8px;
+    padding: 10px;
+    background: #fafafa;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+.faq-item-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+.faq-item-number {
+    font-size: 12px;
+    color: #6b7280;
+    font-weight: 600;
+}
+.faq-item-actions {
+    display: flex;
+    gap: 4px;
+}
+.faq-icon-btn {
+    background: #fff;
+    border: 1px solid #d1d5db;
+    border-radius: 4px;
+    width: 24px;
+    height: 24px;
+    font-size: 14px;
+    cursor: pointer;
+    padding: 0;
+    line-height: 1;
+}
+.faq-icon-btn:hover { background: #f3f4f6; }
+.faq-icon-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+.faq-icon-btn-danger { color: #b91c1c; }
+.faq-icon-btn-danger:hover { background: #fee2e2; }
+.faq-question-input {
+    width: 100%;
+    padding: 8px 10px;
+    border: 1px solid #d1d5db;
+    border-radius: 6px;
+    font-size: 14px;
+    font-family: inherit;
+    box-sizing: border-box;
+    font-weight: 500;
+}
+.faq-answer-textarea {
+    width: 100%;
+    padding: 8px 10px;
+    border: 1px solid #d1d5db;
+    border-radius: 6px;
+    font-size: 14px;
+    line-height: 1.4;
+    font-family: inherit;
+    box-sizing: border-box;
+    resize: vertical;
+    min-height: 70px;
+    max-height: 200px;
+}
+.faq-add-btn {
+    margin-right: 0;
+    width: fit-content;
 }
 
 .publish-modal .checkbox-row { display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 14px; color: #333; }
