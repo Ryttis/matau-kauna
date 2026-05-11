@@ -51,6 +51,7 @@ class InfoApiController extends Controller
             'type' => $definition->databaseType,
             'title' => (string) ($published?->title ?? $definition->fallbackTitle),
             'body' => (string) ($published?->body ?? ''),
+            'items' => $published?->items,
         ]);
     }
 

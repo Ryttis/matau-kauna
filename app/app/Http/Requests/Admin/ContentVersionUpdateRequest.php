@@ -16,6 +16,9 @@ class ContentVersionUpdateRequest extends FormRequest
         return [
             'title' => ['nullable', 'string', 'max:500'],
             'body' => ['nullable', 'string'],
+            'items' => ['nullable', 'array'],
+            'items.*.question' => ['required_with:items.*', 'string', 'max:1000'],
+            'items.*.answer' => ['required_with:items.*', 'string', 'max:10000'],
         ];
     }
 }

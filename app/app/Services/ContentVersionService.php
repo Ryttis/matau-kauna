@@ -19,6 +19,7 @@ class ContentVersionService
                 'version' => $v->version,
                 'title' => $v->title,
                 'body' => $v->body,
+                'items' => $v->items,
                 'is_published' => $v->is_published,
                 'published_at' => $v->published_at?->toIso8601String(),
                 'require_reconsent' => $v->require_reconsent,

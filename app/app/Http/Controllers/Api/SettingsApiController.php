@@ -19,10 +19,7 @@ class SettingsApiController extends Controller
 
     public function updateProfile(Request $request): JsonResponse
     {
-        $user = $request->user();
-        if (! $user instanceof User) {
-            abort(403);
-        }
+        $user = $this->authenticatedUser($request);
 
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
@@ -52,14 +49,11 @@ class SettingsApiController extends Controller
 
     public function updateTwoFactor(Request $request): JsonResponse
     {
+        $user = $this->authenticatedUser($request);
+
         $validated = $request->validate([
             'two_factor_enabled' => ['required', 'boolean'],
         ]);
-
-        $user = $request->user();
-        if (! $user instanceof User) {
-            abort(403);
-        }
 
         if (! $this->twoFactorService->isStaffUser($user)) {
             throw ValidationException::withMessages([
@@ -86,15 +80,16 @@ class SettingsApiController extends Controller
 
     public function updateEmailNotifications(Request $request): JsonResponse
     {
+        $user = $this->authenticatedUser($request);
+
         $validated = $request->validate([
             'reporter_email_own_problems' => ['required', 'boolean'],
             'reporter_email_watched_problems' => ['required', 'boolean'],
         ]);
 
-        $user = $request->user();
         $user->forceFill([
-            'reporter_email_own_problems' => $request->boolean('reporter_email_own_problems'),
-            'reporter_email_watched_problems' => $request->boolean('reporter_email_watched_problems'),
+            'reporter_email_own_problems' => (bool) $validated['reporter_email_own_problems'],
+            'reporter_email_watched_problems' => (bool) $validated['reporter_email_watched_problems'],
         ])->save();
 
         return response()->json([
@@ -108,11 +103,7 @@ class SettingsApiController extends Controller
 
     public function updatePassword(Request $request): JsonResponse
     {
-        $user = $request->user();
-        if (! $user instanceof User) {
-            abort(403);
-        }
-
+        $user = $this->authenticatedUser($request);
         $policy = PasswordPolicy::get();
         $isViispFirstPassword = $user->viisp_personal_code_hash !== null
             && $user->viisp_local_password_set_at === null;
@@ -154,5 +145,15 @@ class SettingsApiController extends Controller
                 : 'Slaptažodis pakeistas.',
             'viisp_local_password_set' => $user->viisp_personal_code_hash !== null,
         ]);
+    }
+
+    private function authenticatedUser(Request $request): User
+    {
+        $user = $request->user();
+        if (! $user instanceof User) {
+            abort(403);
+        }
+
+        return $user;
     }
 }

@@ -43,6 +43,7 @@ class ContentVersionController extends Controller
                 'version' => $version,
                 'title' => $data['title'] ?? null,
                 'body' => $data['body'] ?? '',
+                'items' => $data['items'] ?? null,
                 'created_by' => $request->user()?->id,
             ]);
             $this->auditLogService->logUserAction($request->user(), 'content_version.create', 'ContentVersion', $content->id, AuditLogResult::Success, null, ['type' => $type]);
@@ -61,6 +62,7 @@ class ContentVersionController extends Controller
             $contentVersion->update([
                 'title' => $data['title'] ?? $contentVersion->title,
                 'body' => $data['body'] ?? $contentVersion->body,
+                'items' => array_key_exists('items', $data) ? $data['items'] : $contentVersion->items,
             ]);
             $this->auditLogService->logUserAction($request->user(), 'content_version.update', 'ContentVersion', $contentVersion->id, AuditLogResult::Success);
 
