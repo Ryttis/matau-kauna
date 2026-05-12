@@ -15,6 +15,7 @@ use App\Services\ProblemAssignmentNotifier;
 use App\Services\ProblemDashboardQueryService;
 use App\Services\ProblemHttpSupport;
 use App\Services\ProblemInstitutionAssignmentPickerService;
+use App\Services\ProblemReporterStatusNotifier;
 use App\Services\ProblemResolutionTermService;
 use App\Services\ProblemReviewHistoryService;
 use App\Services\ProblemScopeService;
@@ -35,6 +36,7 @@ class InternalProblemApiController extends Controller
         private ReporterFileUploadService $reporterFileUploadService,
         private ProblemInstitutionAssignmentPickerService $institutionAssignmentPickerService,
         private ProblemReviewHistoryService $reviewHistoryService,
+        private ProblemReporterStatusNotifier $reporterStatusNotifier,
     ) {}
 
     public function institutionsForAssign(Request $request): JsonResponse
@@ -367,6 +369,8 @@ class InternalProblemApiController extends Controller
         ]);
 
         $ids = $problem->getMergeGroupIds();
+        $mainId = $problem->merged_into_problem_id ?? $problem->id;
+        $oldMainStatus = Problem::where('id', $mainId)->value('status');
         $query = Problem::query()->whereIn('id', $ids);
         $this->scopeService->scopeProblemsForUser($query, $user);
         $this->scopeService->ensureScopeMatchesCount($query, count($ids));
@@ -375,6 +379,16 @@ class InternalProblemApiController extends Controller
             'status' => $validated['status'],
             'status_updated_at' => now(),
         ]);
+
+        $main = Problem::find($mainId);
+
+        if ($oldMainStatus !== null && $oldMainStatus !== $validated['status'] && $main) {
+            $this->reporterStatusNotifier->notifyReportersAndWatchersWhenStatusChanges($main, $oldMainStatus, $validated['status']);
+        }
+
+        if ($main) {
+            $this->reviewHistoryService->logStatusChangeEntry($main, $user, $validated['status']);
+        }
 
         return response()->json([
             'ok' => true,
@@ -399,10 +413,23 @@ class InternalProblemApiController extends Controller
         $query = Problem::query()->whereIn('id', $expandedIds);
         $this->scopeService->scopeProblemsForUser($query, $user);
         $this->scopeService->ensureScopeMatchesCount($query, count($expandedIds));
+
+        $rootIdsMap = Problem::rootIdsMapFromProblemIds($expandedIds);
+        $oldByMain = Problem::statusesByRootId($rootIdsMap);
+
         $query->update([
             'status' => $validated['status'],
             'status_updated_at' => now(),
         ]);
+
+        $this->reporterStatusNotifier->notifyRootsAfterStatusChange($oldByMain, $validated['status']);
+
+        foreach (array_keys($rootIdsMap) as $rootId) {
+            $rootProblem = Problem::find($rootId);
+            if ($rootProblem) {
+                $this->reviewHistoryService->logStatusChangeEntry($rootProblem, $user, $validated['status']);
+            }
+        }
 
         return response()->json([
             'ok' => true,

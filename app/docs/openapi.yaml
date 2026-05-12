@@ -1511,7 +1511,7 @@ paths:
     patch:
       tags: [Internal]
       summary: "[AUTH] Update status for merge group"
-      description: All staff workflow statuses allowed except nauja.
+      description: All staff workflow statuses allowed except nauja. Logs a status change entry to the problem review history and notifies reporters and watchers when the status changes.
       security:
         - bearerAuth: []
       parameters:
@@ -2073,6 +2073,7 @@ paths:
     post:
       tags: [Internal]
       summary: "[AUTH] Bulk update status"
+      description: All staff workflow statuses allowed except nauja. For each affected merge-group root, logs a status change entry to the review history and notifies reporters and watchers when the status changes.
       security:
         - bearerAuth: []
       requestBody:
