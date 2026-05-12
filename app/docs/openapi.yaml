@@ -3368,11 +3368,8 @@ components:
 
     InternalProblemUpdateRequestBase:
       type: object
-      required: [internal_number, category, address]
+      required: [category, address]
       properties:
-        internal_number:
-          type: string
-          description: Internal registration number.
         category:
           type: string
           description: Category identifier (classifier value id or key).
