@@ -83,20 +83,35 @@ class SettingsApiController extends Controller
         $user = $this->authenticatedUser($request);
 
         $validated = $request->validate([
-            'reporter_email_own_problems' => ['required', 'boolean'],
-            'reporter_email_watched_problems' => ['required', 'boolean'],
+            'reporter_email_own_problems' => ['sometimes', 'boolean'],
+            'reporter_email_watched_problems' => ['sometimes', 'boolean'],
+            'email_notifications_enabled' => ['sometimes', 'boolean'],
+            'email_updates_institution_admin' => ['sometimes', 'boolean'],
         ]);
 
-        $user->forceFill([
-            'reporter_email_own_problems' => (bool) $validated['reporter_email_own_problems'],
-            'reporter_email_watched_problems' => (bool) $validated['reporter_email_watched_problems'],
-        ])->save();
+        $payload = [];
+        foreach ([
+            'reporter_email_own_problems',
+            'reporter_email_watched_problems',
+            'email_notifications_enabled',
+            'email_updates_institution_admin',
+        ] as $field) {
+            if (array_key_exists($field, $validated)) {
+                $payload[$field] = (bool) $validated[$field];
+            }
+        }
+
+        if ($payload !== []) {
+            $user->forceFill($payload)->save();
+        }
 
         return response()->json([
             'ok' => true,
             'email_notifications' => [
                 'reporter_email_own_problems' => (bool) $user->reporter_email_own_problems,
                 'reporter_email_watched_problems' => (bool) $user->reporter_email_watched_problems,
+                'email_notifications_enabled' => (bool) $user->email_notifications_enabled,
+                'email_updates_institution_admin' => (bool) $user->email_updates_institution_admin,
             ],
         ]);
     }

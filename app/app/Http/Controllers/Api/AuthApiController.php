@@ -321,6 +321,7 @@ class AuthApiController extends Controller
             'email_verified_at' => $user->email_verified_at?->toIso8601String(),
             'two_factor_enabled' => (bool) $user->two_factor_enabled,
             'two_factor_confirmed_at' => $user->two_factor_confirmed_at?->toIso8601String(),
+            'two_factor_globally_required' => $this->twoFactorService->isGloballyRequired(),
             'viisp_linked' => $user->viisp_personal_code_hash !== null,
             'can_authenticate_with_email_password' => $user->canAuthenticateWithEmailPassword(),
             'email_notifications_enabled' => (bool) $user->email_notifications_enabled,
