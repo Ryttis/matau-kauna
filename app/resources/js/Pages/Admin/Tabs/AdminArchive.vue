@@ -45,7 +45,7 @@ const tabs = [
     { key: 'users', label: 'Naudotojai' },
     { key: 'institutions', label: 'Įstaigos' },
     { key: 'problems', label: 'Problemos' },
-    { key: 'classifiers', label: 'Rūšys ir pobūdžiai' },
+    { key: 'classifiers', label: 'Kategorija ir pobūdžiai' },
 ]
 
 const EMPTY_MESSAGES = {
@@ -153,14 +153,49 @@ function handleRuleToggle(nextValue) {
 
 const restoring = ref(null)
 const destroying = ref(null)
-const confirmDeleteUser = ref(null)
+const confirmDelete = ref(null)
 
 const RESTORE_CONFIG = {
     users: { path: adminApi.archiveRestoreUser, key: 'user', successMsg: 'Naudotojas atkurtas.' },
     institutions: { path: adminApi.archiveRestoreInstitution, key: 'institution', successMsg: 'Įstaiga atkurta.' },
     problems: { path: adminApi.archiveRestoreProblem, key: 'problem', successMsg: 'Problema atkurta.' },
-    classifiers: { path: adminApi.archiveRestoreClassifierValue, key: 'classifier', successMsg: 'Rūšis arba pobūdis atkurtas.' },
+    classifiers: { path: adminApi.archiveRestoreClassifierValue, key: 'classifier', successMsg: 'Įrašas atkurtas.' },
 }
+
+const DESTROY_CONFIG = {
+    users: {
+        path: adminApi.archiveDestroyUser,
+        successMsg: 'Naudotojas galutinai pašalintas.',
+        errorMsg: 'Nepavyko pašalinti naudotojo.',
+        label: (u) => `${u.name} (${u.email})`,
+    },
+    institutions: {
+        path: adminApi.archiveDestroyInstitution,
+        successMsg: 'Įstaiga galutinai pašalinta.',
+        errorMsg: 'Nepavyko pašalinti įstaigos.',
+        label: (i) => i.name,
+    },
+    problems: {
+        path: adminApi.archiveDestroyProblem,
+        successMsg: 'Problema galutinai pašalinta.',
+        errorMsg: 'Nepavyko pašalinti problemos.',
+        label: (p) => p.internal_number,
+    },
+    classifiers: {
+        path: adminApi.archiveDestroyClassifierValue,
+        successMsg: 'Įrašas galutinai pašalintas.',
+        errorMsg: 'Nepavyko pašalinti įrašo.',
+        label: (c) => c.name,
+    },
+}
+
+const confirmDeleteMessage = computed(() => {
+    const c = confirmDelete.value
+    if (!c) return ''
+    const cfg = DESTROY_CONFIG[c.type]
+    if (!cfg) return ''
+    return `Ar tikrai norite galutinai pašalinti ${cfg.label(c.item)}? Šio veiksmo atšaukti nebus galima.`
+})
 
 async function restore(type, item) {
     const cfg = RESTORE_CONFIG[type]
@@ -185,23 +220,29 @@ function restoringKey(type, id) {
     return cfg ? `${cfg.key}-${id}` : ''
 }
 
-async function destroyUser() {
-    const user = confirmDeleteUser.value
-    if (!user?.id) return
-    destroying.value = user.id
+async function destroyConfirmed() {
+    const c = confirmDelete.value
+    if (!c?.item?.id) return
+    const cfg = DESTROY_CONFIG[c.type]
+    if (!cfg) return
+    destroying.value = `${c.type}-${c.item.id}`
     errorMessage.value = ''
     successMessage.value = ''
     try {
-        await axios.delete(adminApi.archiveDestroyUser(user.id))
-        confirmDeleteUser.value = null
-        successMessage.value = 'Naudotojas galutinai pašalintas.'
+        await axios.delete(cfg.path(c.item.id))
+        confirmDelete.value = null
+        successMessage.value = cfg.successMsg
         showSuccessModal.value = true
         await load()
     } catch (e) {
-        errorMessage.value = e.response?.data?.message ?? 'Nepavyko pašalinti naudotojo.'
+        errorMessage.value = e.response?.data?.message ?? cfg.errorMsg
     } finally {
         destroying.value = null
     }
+}
+
+function destroyingKey(type, id) {
+    return `${type}-${id}`
 }
 
 watch(activeTab, syncSettingsFormFromRule)
@@ -310,8 +351,8 @@ onMounted(load)
                                     text="Naikinti"
                                     variant="danger"
                                     as-button
-                                    :disabled="destroying === u.id"
-                                    @click="confirmDeleteUser = u"
+                                    :disabled="destroying === destroyingKey('users', u.id)"
+                                    @click="confirmDelete = { type: 'users', item: u }"
                                 />
                             </td>
                         </tr>
@@ -331,13 +372,20 @@ onMounted(load)
                             <td>{{ i.name }}</td>
                             <td>{{ formatDate(i.archived_at) }}</td>
                             <td>{{ formatDate(i.delete_at) }}</td>
-                            <td>
+                            <td class="actions-cell">
                                 <AppButton
                                     text="Atkurti"
                                     variant="primary"
                                     as-button
                                     :disabled="restoring === restoringKey('institutions', i.id)"
                                     @click="restore('institutions', i)"
+                                />
+                                <AppButton
+                                    text="Naikinti"
+                                    variant="danger"
+                                    as-button
+                                    :disabled="destroying === destroyingKey('institutions', i.id)"
+                                    @click="confirmDelete = { type: 'institutions', item: i }"
                                 />
                             </td>
                         </tr>
@@ -359,13 +407,20 @@ onMounted(load)
                             <td>{{ p.description_preview || '-' }}</td>
                             <td>{{ formatDate(p.archived_at) }}</td>
                             <td>{{ formatDate(p.delete_at) }}</td>
-                            <td>
+                            <td class="actions-cell">
                                 <AppButton
                                     text="Atkurti"
                                     variant="primary"
                                     as-button
                                     :disabled="restoring === restoringKey('problems', p.id)"
                                     @click="restore('problems', p)"
+                                />
+                                <AppButton
+                                    text="Naikinti"
+                                    variant="danger"
+                                    as-button
+                                    :disabled="destroying === destroyingKey('problems', p.id)"
+                                    @click="confirmDelete = { type: 'problems', item: p }"
                                 />
                             </td>
                         </tr>
@@ -387,13 +442,20 @@ onMounted(load)
                             <td>{{ c.kind }}</td>
                             <td>{{ formatDate(c.archived_at) }}</td>
                             <td>{{ formatDate(c.delete_at) }}</td>
-                            <td>
+                            <td class="actions-cell">
                                 <AppButton
                                     text="Atkurti"
                                     variant="primary"
                                     as-button
                                     :disabled="restoring === restoringKey('classifiers', c.id)"
                                     @click="restore('classifiers', c)"
+                                />
+                                <AppButton
+                                    text="Naikinti"
+                                    variant="danger"
+                                    as-button
+                                    :disabled="destroying === destroyingKey('classifiers', c.id)"
+                                    @click="confirmDelete = { type: 'classifiers', item: c }"
                                 />
                             </td>
                         </tr>
@@ -405,15 +467,15 @@ onMounted(load)
             </div>
         </template>
         <ConfirmModal
-            :open="!!confirmDeleteUser"
+            :open="!!confirmDelete"
             title="Galutinis pašalinimas"
-            :message="confirmDeleteUser ? `Ar tikrai norite galutinai pašalinti ${confirmDeleteUser.name} (${confirmDeleteUser.email})? Šio veiksmo atšaukti nebus galima.` : ''"
+            :message="confirmDeleteMessage"
             confirm-text="Naikinti"
             cancel-text="Atšaukti"
             confirm-variant="danger"
             :loading="destroying !== null"
-            @close="confirmDeleteUser = null"
-            @confirm="destroyUser"
+            @close="confirmDelete = null"
+            @confirm="destroyConfirmed"
         />
     </div>
 </template>
