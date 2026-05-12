@@ -22,6 +22,7 @@ use App\Services\ReporterFileUploadService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Validation\Rule;
 
 class InternalProblemApiController extends Controller
 {
@@ -741,6 +742,54 @@ class InternalProblemApiController extends Controller
         }
 
         return response()->json(['ok' => true, 'message' => 'Problema priskirta komandai.', 'problem_id' => $problem->id]);
+    }
+
+    public function sendAssignInstitutionEmail(Request $request, Problem $problem): JsonResponse
+    {
+        $user = $request->user();
+        if (! $user->canAssignInstitutionProblems()) {
+            abort(403);
+        }
+        $this->scopeService->authorizeProblemAccess($user, $problem);
+
+        if ($problem->status === ProblemStatus::RESOLVED->value) {
+            return response()->json(['message' => 'Išspręstos problemos priskirti negalima.'], 422);
+        }
+        if ($user->institution_id === null) {
+            return response()->json(['message' => 'Negalima siųsti el. laiško be įstaigos konteksto.'], 422);
+        }
+
+        $validated = $request->validate([
+            'email' => [
+                'required',
+                'email',
+                Rule::exists('employees', 'email')->where('institution_id', $user->institution_id),
+            ],
+        ]);
+
+        $assignable = User::queryAssignableInstitutionEmployeeUsers((int) $user->institution_id, $user->email)
+            ->where('email', $validated['email'])
+            ->exists();
+        if (! $assignable) {
+            return response()->json([
+                'message' => 'Šis el. paštas nepriskirtas Įstaigos darbuotojo vaidmeniui šioje įstaigoje.',
+            ], 422);
+        }
+
+        $mail = $this->assignmentNotifier->buildInstitutionProblemShareEmail($problem);
+        \App\Services\TransactionalMail::send(
+            $validated['email'],
+            $mail['subject'],
+            $mail['body'],
+            $mail['action_url'] ?? null,
+            $mail['action_label'] ?? null,
+        );
+
+        return response()->json([
+            'ok' => true,
+            'message' => 'Informacija išsiųsta el. paštu.',
+            'problem_id' => $problem->id,
+        ]);
     }
 
     public function reassignInstitution(Request $request, Problem $problem): JsonResponse
