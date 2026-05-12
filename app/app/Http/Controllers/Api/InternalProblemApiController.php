@@ -627,7 +627,7 @@ class InternalProblemApiController extends Controller
 
         $assignableEmails = User::queryAssignableInstitutionEmployeeUsers(
             (int) $user->institution_id,
-            $user->email,
+            $user->assignableInstitutionExcludedEmail(),
         )->pluck('email');
 
         $members = $team->employees()
@@ -685,7 +685,7 @@ class InternalProblemApiController extends Controller
         if ($employeeId !== null) {
             $assignableEmails = User::queryAssignableInstitutionEmployeeUsers(
                 (int) $user->institution_id,
-                $user->email,
+                $user->assignableInstitutionExcludedEmail(),
             )->pluck('email');
             if ($assignableEmails->isEmpty()) {
                 abort(403);
@@ -695,7 +695,7 @@ class InternalProblemApiController extends Controller
                 ->where('institution_id', $user->institution_id)
                 ->whereIn('email', $assignableEmails)
                 ->first();
-            if (! $employee || $employee->email === $user->email) {
+            if (! $employee) {
                 abort(403);
             }
 
@@ -720,7 +720,7 @@ class InternalProblemApiController extends Controller
         }
         $assignableEmails = User::queryAssignableInstitutionEmployeeUsers(
             (int) $user->institution_id,
-            $user->email,
+            $user->assignableInstitutionExcludedEmail(),
         )->pluck('email');
         $teamAssignees = $assignableEmails->isEmpty()
             ? collect()
@@ -767,7 +767,7 @@ class InternalProblemApiController extends Controller
             ],
         ]);
 
-        $assignable = User::queryAssignableInstitutionEmployeeUsers((int) $user->institution_id, $user->email)
+        $assignable = User::queryAssignableInstitutionEmployeeUsers((int) $user->institution_id, $user->assignableInstitutionExcludedEmail())
             ->where('email', $validated['email'])
             ->exists();
         if (! $assignable) {

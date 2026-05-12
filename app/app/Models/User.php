@@ -294,4 +294,9 @@ class User extends Authenticatable implements MustVerifyEmail
             ->whereHas('roles', fn ($q) => $q->where('role', UserRole::ROLE_EMPLOYEE))
             ->when($exceptEmail, fn ($q) => $q->where('email', '!=', $exceptEmail));
     }
+
+    public function assignableInstitutionExcludedEmail(): ?string
+    {
+        return $this->hasAssignedRole(UserRole::ROLE_EMPLOYEE) ? null : $this->email;
+    }
 }
