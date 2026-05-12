@@ -614,6 +614,45 @@ class InternalProblemApiController extends Controller
         ]);
     }
 
+    public function institutionTeamMembers(Request $request, InstitutionTeam $team): JsonResponse
+    {
+        $user = $request->user();
+        if (! $user->canAssignInstitutionProblems()) {
+            abort(403);
+        }
+        if ((int) $team->institution_id !== (int) $user->institution_id) {
+            abort(403);
+        }
+
+        $assignableEmails = User::queryAssignableInstitutionEmployeeUsers(
+            (int) $user->institution_id,
+            $user->email,
+        )->pluck('email');
+
+        $members = $team->employees()
+            ->when($assignableEmails->isEmpty(), fn ($q) => $q->whereRaw('1 = 0'))
+            ->when($assignableEmails->isNotEmpty(), fn ($q) => $q->whereIn('email', $assignableEmails))
+            ->orderBy('name')
+            ->orderBy('surname')
+            ->get(['id', 'name', 'surname', 'email'])
+            ->map(fn ($employee) => [
+                'id' => $employee->id,
+                'name' => trim(($employee->name ?? '').' '.($employee->surname ?? '')) ?: $employee->email,
+                'email' => $employee->email,
+            ])
+            ->values()
+            ->all();
+
+        return response()->json([
+            'ok' => true,
+            'team' => [
+                'id' => $team->id,
+                'name' => $team->name,
+            ],
+            'members' => $members,
+        ]);
+    }
+
     public function assignInstitution(Request $request, Problem $problem): JsonResponse
     {
         $user = $request->user();

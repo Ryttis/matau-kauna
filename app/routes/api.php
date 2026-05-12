@@ -85,6 +85,7 @@ Route::middleware(['auth:sanctum', 'verified', \App\Http\Middleware\ApplyActiveR
     Route::post('/problems/{problem}/merge', [InternalProblemApiController::class, 'merge']);
     Route::patch('/problems/{problem}/unmerge', [InternalProblemApiController::class, 'unmerge']);
     Route::get('/problems/{problem}/assign-institution-options', [InternalProblemApiController::class, 'assignInstitutionOptions']);
+    Route::get('/institution-teams/{team}/members', [InternalProblemApiController::class, 'institutionTeamMembers']);
     Route::post('/problems/{problem}/assign-institution', [InternalProblemApiController::class, 'assignInstitution']);
     Route::post('/problems/{problem}/reassign-institution', [InternalProblemApiController::class, 'reassignInstitution']);
     Route::patch('/problems/{problem}/return', [InternalProblemApiController::class, 'returnToAdmin']);
