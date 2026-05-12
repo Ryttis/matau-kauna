@@ -39,6 +39,7 @@ class User extends Authenticatable implements MustVerifyEmail
         'email_notifications_enabled',
         'email_updates_institution_admin',
         'institution_id',
+        'active_role_id',
         'terms_accepted_at',
         'reporter_wizard_completed_at',
         'reporter_report_terms_accepted_at',

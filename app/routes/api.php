@@ -33,6 +33,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::post('/logout', [AuthApiController::class, 'logout']);
     Route::delete('/me', [AuthApiController::class, 'deleteAccount']);
     Route::get('/me', [AuthApiController::class, 'me']);
+    Route::patch('/me/active-role', [AuthApiController::class, 'updateActiveRole']);
     Route::post('/me/push-device', [AuthApiController::class, 'registerPushDevice']);
     Route::post('/me/push-test', [AuthApiController::class, 'sendPushTest']);
     Route::patch('/setting/email_notifications', [SettingsApiController::class, 'updateEmailNotifications']);

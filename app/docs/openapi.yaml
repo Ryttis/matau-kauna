@@ -206,6 +206,46 @@ paths:
         "401":
           description: Unauthorized
 
+  /api/me/active-role:
+    patch:
+      tags: [Auth]
+      summary: "[AUTH] Switch the authenticated user's active role"
+      description: >
+        Persists the chosen role on the user record so subsequent requests are scoped to it.
+        `role_id` must match one of the role ids returned in `/api/me` `available_roles`.
+        Returns the same payload as `GET /api/me` with the new active role and permissions applied.
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: header
+          name: X-Authorization
+          required: true
+          schema:
+            type: string
+            example: "Bearer 6|qByoRAMucVQd90Q9JTG16xE3KPM3wV2imICs2Fro8907502b"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [role_id]
+              properties:
+                role_id:
+                  type: string
+                  format: uuid
+      responses:
+        "200":
+          description: Active role updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MeResponse"
+        "401":
+          description: Unauthorized
+        "422":
+          $ref: "#/components/responses/ValidationError"
+
   /api/me/push-device:
     post:
       tags: [Auth]
@@ -2491,11 +2531,46 @@ components:
         institution_id:
           type: integer
           nullable: true
+        two_factor_globally_required:
+          type: boolean
+          description: Whether the system administrator has globally enabled 2FA for staff users.
+          example: false
         roles:
           type: array
           items:
             type: string
           example: [reporter]
+        available_roles:
+          type: array
+          description: All roles assigned to the user with their id, key and label. Use these in PATCH /api/me/active-role.
+          items:
+            type: object
+            required: [id, role, name]
+            properties:
+              id:
+                type: string
+                format: uuid
+              role:
+                type: string
+                example: ROLE_INSTITUTION_ADMIN
+              name:
+                type: string
+                example: Įstaigos administratorius
+        active_role_id:
+          type: string
+          format: uuid
+          nullable: true
+        active_role:
+          type: object
+          nullable: true
+          properties:
+            id:
+              type: string
+              format: uuid
+            role:
+              type: string
+            name:
+              type: string
         permissions:
           type: array
           items:

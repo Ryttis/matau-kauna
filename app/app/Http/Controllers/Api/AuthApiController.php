@@ -8,6 +8,7 @@ use App\Http\Controllers\Controller;
 use App\Models\LoginLog;
 use App\Models\User;
 use App\Notifications\PushNotification;
+use App\Services\ActiveRoleService;
 use App\Services\AuditLogService;
 use App\Services\TwoFactorService;
 use Illuminate\Http\JsonResponse;
@@ -25,6 +26,7 @@ class AuthApiController extends Controller
     public function __construct(
         private TwoFactorService $twoFactorService,
         private AuditLogService $auditLogService,
+        private ActiveRoleService $activeRoleService,
     ) {}
 
     public function login(Request $request): JsonResponse
@@ -310,8 +312,42 @@ class AuthApiController extends Controller
     public function me(Request $request): JsonResponse
     {
         $user = $request->user()->load('roles');
+        $context = $this->activeRoleService->resolveAndBind($request, $user);
 
-        return response()->json([
+        return response()->json($this->buildMePayload($user, $context));
+    }
+
+    public function updateActiveRole(Request $request): JsonResponse
+    {
+        $user = $request->user()->load('roles');
+
+        $validated = $request->validate([
+            'role_id' => ['required', 'string'],
+        ]);
+
+        $assignedIds = $user->roles->pluck('id')->map(fn ($id) => (string) $id)->all();
+        if (! in_array($validated['role_id'], $assignedIds, true)) {
+            throw ValidationException::withMessages([
+                'role_id' => ['Vartotojui ši rolė nepriskirta.'],
+            ]);
+        }
+
+        $user->forceFill(['active_role_id' => $validated['role_id']])->save();
+
+        if ($request->hasSession()) {
+            $request->session()->put('active_role_id', $validated['role_id']);
+        }
+        $request->attributes->remove('_resolved_active_role_context');
+
+        $user = $user->fresh()->load('roles');
+        $context = $this->activeRoleService->resolveAndBind($request, $user);
+
+        return response()->json($this->buildMePayload($user, $context));
+    }
+
+    private function buildMePayload(User $user, array $context): array
+    {
+        return [
             'id' => $user->id,
             'name' => $user->name,
             'surname' => $user->surname,
@@ -340,8 +376,11 @@ class AuthApiController extends Controller
             'archived_at' => $user->archived_at?->toIso8601String(),
             'institution_id' => $user->institution_id,
             'roles' => $user->roles->pluck('role')->values()->all(),
-            'permissions' => $user->permissions(),
-        ]);
+            'available_roles' => $context['roles'],
+            'active_role_id' => $context['activeRoleId'],
+            'active_role' => $context['activeRole'],
+            'permissions' => $context['permissions'],
+        ];
     }
 
     public function registerPushDevice(Request $request): JsonResponse
