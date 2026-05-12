@@ -292,6 +292,7 @@ class ReporterProblemController extends Controller
         return response()->json([
             'ok' => true,
             'problem_id' => $problem->id,
+            'internal_number' => $problem->internal_number,
             'attachments' => collect($createdAttachments)
                 ->map(fn ($attachment) => $attachment->toPublicPayload())
                 ->values()
