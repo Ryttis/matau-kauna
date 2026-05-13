@@ -113,7 +113,7 @@ const patchActiveRole = (roleId) => {
                                 placeholder="Vardas ir pavardė"
                                 :show-icon="true"
                                 autocomplete="name"
-                                :readonly="isViispUser"
+                                readonly
                             />
                             <div v-if="isViispUser" class="form-hint">
                                 Vardas ir pavardė atnaujinami automatiškai pagal el. valdžios vartų duomenis ir negali būti keičiami.

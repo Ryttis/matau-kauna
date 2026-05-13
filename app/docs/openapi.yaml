@@ -1922,7 +1922,7 @@ paths:
         A single entry can include: comment text, a status change for the problem,
         responsible person, visibility (Public/Internal), and uploaded photos/videos.
         Multipart upload, field name `files[]`. Any staff with access to the problem
-        can post.
+        can post. When `status` is `neaktuali`, `comment` is required and must be non-empty.
       security:
         - bearerAuth: []
       parameters:

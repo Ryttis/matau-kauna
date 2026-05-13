@@ -10,6 +10,7 @@ import {
     REVIEW_ENTRY_VISIBILITY,
     reviewModalTagKeyForStatus,
 } from '@/constants/domain/reviewProgressEntry'
+import { PROBLEM_STATUS } from '@/constants/domain/problemStatus'
 import { useReviewProgressEntryForm } from '@/composables/useReviewProgressEntryForm'
 import { useFileUploadQueue, defaultFileUploadSettings } from '@/composables/useFileUploadQueue'
 import { firstInertiaErrorForPrefix, humanizeTechnicalUploadError } from '@/utils/laravelApiErrors'
@@ -39,6 +40,7 @@ const emit = defineEmits(['close'])
 const todayDate = new Date().toLocaleDateString('lt-LT')
 const selectedKey = ref(null)
 const localStatusHint = ref('')
+const localCommentHint = ref('')
 
 const modalTitle = computed(() => (props.entry?.id ? 'Koreguoti įrašą' : 'Būsenos keitimas'))
 
@@ -180,6 +182,7 @@ const selectedStatusValue = computed(() => {
 function selectStatus(tag) {
     selectedKey.value = selectedKey.value === tag.key ? null : tag.key
     localStatusHint.value = ''
+    localCommentHint.value = ''
 }
 
 function runSubmit(visibility) {
@@ -189,6 +192,11 @@ function runSubmit(visibility) {
         return
     }
     localStatusHint.value = ''
+    if (selectedStatusValue.value === PROBLEM_STATUS.INACTIVE && !form.comment?.trim()) {
+        localCommentHint.value = 'Pasirinkus „Neaktuali" privaloma įrašyti priežastį.'
+        return
+    }
+    localCommentHint.value = ''
     form.status = selectedStatusValue.value
     pendingSubmitVisibility.value = visibility
     submit(visibility)
@@ -200,6 +208,7 @@ watch(
         if (!isOpen) {
             selectedKey.value = null
             localStatusHint.value = ''
+            localCommentHint.value = ''
             closeRemoveQueuedConfirm()
             if (!deleteExistingReviewLoading.value) {
                 closeDeleteExistingReviewConfirm()
@@ -207,6 +216,7 @@ watch(
             return
         }
         localStatusHint.value = ''
+        localCommentHint.value = ''
         form.clearErrors()
         clearQueue()
         if (entry?.id) {
@@ -292,10 +302,13 @@ const totalAttachmentTileCount = computed(
                             class="add-entry-textarea"
                             rows="4"
                             placeholder="Įrašykite komentarą"
+                            @input="localCommentHint = ''"
                         />
                         <img :src="ICON_PENCIL" alt="" class="add-entry-comment-icon" />
                     </div>
-                    <p v-if="form.errors.comment" class="add-entry-field-error">{{ form.errors.comment }}</p>
+                    <p v-if="localCommentHint || form.errors.comment" class="add-entry-field-error">
+                        {{ localCommentHint || form.errors.comment }}
+                    </p>
                 </div>
 
                 <p v-if="filesErrorText" class="add-entry-field-error add-entry-files-error-after-comment">

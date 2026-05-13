@@ -3,6 +3,7 @@
 namespace App\Http\Requests;
 
 use App\Enums\ProblemReviewCommentVisibility;
+use App\Enums\ProblemStatus;
 use App\Models\ProblemReviewHistory;
 use App\Services\ProblemHttpSupport;
 use App\Services\ProblemReviewHistoryService;
@@ -46,9 +47,14 @@ class StoreProblemReviewHistoryRequest extends FormRequest
             ? ['nullable', 'string', Rule::in(ProblemReviewCommentVisibility::values())]
             : ['required', 'string', Rule::in(ProblemReviewCommentVisibility::values())];
 
+        $commentRules = ['nullable', 'string', 'max:10000'];
+        if ($this->input('status') === ProblemStatus::INACTIVE->value) {
+            $commentRules = ['required', 'string', 'max:10000'];
+        }
+
         return [
             'status' => $statusRules,
-            'comment' => ['nullable', 'string', 'max:10000'],
+            'comment' => $commentRules,
             'files' => ['nullable', 'array'],
             'files.*' => ['file', 'mimes:jpg,jpeg,png'],
             'visibility' => $visibilityRules,
@@ -62,6 +68,7 @@ class StoreProblemReviewHistoryRequest extends FormRequest
             'status.in' => 'Netinkama būsena.',
             'visibility.required' => 'Pasirinkite matomumą.',
             'visibility.in' => 'Netinkamas matomumas.',
+            'comment.required' => 'Pasirinkus „Neaktuali" privaloma įrašyti priežastį.',
             'comment.max' => 'Komentaras per ilgas.',
             'files.array' => 'Netinkami priedai.',
             'files.*.file' => 'Failas per didelis arba nepriimtas.',
