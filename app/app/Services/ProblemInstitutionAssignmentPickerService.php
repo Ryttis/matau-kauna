@@ -24,7 +24,7 @@ class ProblemInstitutionAssignmentPickerService
         if ($user->institution_id) {
             $assignableInstitutionUserQuery = User::queryAssignableInstitutionEmployeeUsers(
                 (int) $user->institution_id,
-                $user->email,
+                $user->assignableInstitutionExcludedEmail(),
             );
 
             foreach ($assignableInstitutionUserQuery->get(['id', 'name', 'surname', 'email']) as $u) {

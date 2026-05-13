@@ -68,9 +68,14 @@ function problemTitle(problem) {
 }
 
 function cardTitle(problem) {
-    const cat = (problem.category || '').trim()
-    if (cat) return cat
     return problem.internal_number || `Problema #${problem.id}`
+}
+
+function cardCategoryLine(problem) {
+    const cat = (problem.category || '').trim()
+    const nature = (problem.nature || '').trim()
+    if (cat && nature) return `${cat} - ${nature}`
+    return cat || nature || ''
 }
 
 function statusDotColor(problem) {
@@ -126,6 +131,11 @@ function onSimpleRowActivate(problem) {
                 }"
             >
                 <template v-if="cardLayout">
+                    <span
+                        class="problems-map-list__status-dot"
+                        :style="{ backgroundColor: statusDotColor(row.problem) }"
+                        aria-hidden="true"
+                    />
                     <div
                         class="problems-map-list__card-body"
                         role="button"
@@ -136,11 +146,6 @@ function onSimpleRowActivate(problem) {
                         @keydown.space.prevent="onRowActivate(row)"
                     >
                         <div class="problems-map-list__card-head">
-                            <span
-                                class="problems-map-list__status-dot"
-                                :style="{ backgroundColor: statusDotColor(row.problem) }"
-                                aria-hidden="true"
-                            />
                             <span class="problems-map-list__card-title">{{ cardTitle(row.problem) }}</span>
                             <button
                                 v-if="showWatchButtonForRow(row)"
@@ -162,27 +167,24 @@ function onSimpleRowActivate(problem) {
                                 </svg>
                             </button>
                         </div>
+                        <div v-if="cardCategoryLine(row.problem)" class="problems-map-list__card-category">
+                            {{ cardCategoryLine(row.problem) }}
+                        </div>
                         <div v-if="row.problem.address" class="problems-map-list__card-meta">
-                            <svg class="problems-map-list__card-icon" viewBox="0 0 24 24" aria-hidden="true">
-                                <path fill="currentColor" d="M12 2a7 7 0 0 0-7 7c0 5.25 7 13 7 13s7-7.75 7-13a7 7 0 0 0-7-7zm0 9.5A2.5 2.5 0 1 1 12 6.5a2.5 2.5 0 0 1 0 5z" />
-                            </svg>
                             <span class="problems-map-list__card-meta-text">{{ shortAddress(row.problem.address) }}</span>
                         </div>
-                    </div>
-                    <div class="problems-map-list__card-footer">
-                        <span v-if="row.problem.created_at" class="problems-map-list__card-meta problems-map-list__card-meta--inline">
-                            <svg class="problems-map-list__card-icon" viewBox="0 0 24 24" aria-hidden="true">
-                                <path fill="currentColor" d="M19 4h-1V2h-2v2H8V2H6v2H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2zm0 16H5V10h14v10zm0-12H5V6h14v2z" />
-                            </svg>
-                            <span>{{ formatDate(row.problem.created_at) }}</span>
-                        </span>
-                        <button
-                            type="button"
-                            class="problems-map-list__view-btn problems-map-list__view-btn--internal problems-map-list__card-view-btn"
-                            @click.stop="emit('open', row.problem.id)"
-                        >
-                            {{ viewButtonText }}
-                        </button>
+                        <div class="problems-map-list__card-footer">
+                            <span v-if="row.problem.created_at" class="problems-map-list__card-date">
+                                {{ formatDate(row.problem.created_at) }}
+                            </span>
+                            <button
+                                type="button"
+                                class="problems-map-list__view-btn problems-map-list__view-btn--internal problems-map-list__card-view-btn"
+                                @click.stop="emit('open', row.problem.id)"
+                            >
+                                {{ viewButtonText }}
+                            </button>
+                        </div>
                     </div>
                 </template>
                 <template v-else>
@@ -487,11 +489,11 @@ function onSimpleRowActivate(problem) {
     background: #fff;
     border: 1px solid #e5e7eb;
     border-radius: 10px;
-    padding: 0.5rem 0.7rem 0.45rem;
+    padding: 0.7rem 0.85rem;
     box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
-    flex-direction: column;
-    align-items: stretch;
-    gap: 0.3rem;
+    flex-direction: row;
+    align-items: center;
+    gap: 0.75rem;
 }
 
 .problems-map-list__item--card:last-child {
@@ -504,9 +506,11 @@ function onSimpleRowActivate(problem) {
 }
 
 .problems-map-list__card-body {
+    flex: 1;
+    min-width: 0;
     display: flex;
     flex-direction: column;
-    gap: 0.2rem;
+    gap: 0.4rem;
     cursor: pointer;
     border-radius: 6px;
     min-height: 0;
@@ -525,8 +529,8 @@ function onSimpleRowActivate(problem) {
 
 .problems-map-list__status-dot {
     flex-shrink: 0;
-    width: 10px;
-    height: 10px;
+    width: 12px;
+    height: 12px;
     border-radius: 50%;
     display: inline-block;
 }
@@ -534,8 +538,8 @@ function onSimpleRowActivate(problem) {
 .problems-map-list__card-title {
     flex: 1;
     min-width: 0;
-    font-size: 0.9375rem;
-    font-weight: 600;
+    font-size: 0.875rem;
+    font-weight: 700;
     color: #1f2937;
     line-height: 1.25;
     overflow: hidden;
@@ -543,31 +547,30 @@ function onSimpleRowActivate(problem) {
     white-space: nowrap;
 }
 
+.problems-map-list__card-category {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: #1f2937;
+    line-height: 1.3;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
 .problems-map-list__card-meta {
-    display: flex;
-    align-items: flex-start;
-    gap: 0.4rem;
     font-size: 0.8125rem;
     color: #6b7280;
     line-height: 1.3;
-    margin-left: 1.125rem;
 }
 
 .problems-map-list__card-meta-text {
     word-break: break-word;
 }
 
-.problems-map-list__card-meta--inline {
-    margin-left: 0;
-    align-items: center;
-}
-
-.problems-map-list__card-icon {
-    flex-shrink: 0;
-    width: 14px;
-    height: 14px;
-    margin-top: 1px;
+.problems-map-list__card-date {
+    font-size: 0.8125rem;
     color: #9ca3af;
+    line-height: 1.3;
 }
 
 .problems-map-list__card-footer {
@@ -575,7 +578,6 @@ function onSimpleRowActivate(problem) {
     align-items: center;
     justify-content: space-between;
     gap: 0.5rem;
-    margin-left: 1.125rem;
 }
 
 .problems-map-list__card-view-btn {

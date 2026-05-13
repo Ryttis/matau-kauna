@@ -61,12 +61,26 @@ class ArchiveController extends Controller
         return response()->json(['ok' => true]);
     }
 
+    public function destroyInstitution(Institution $institution): JsonResponse
+    {
+        $institution->delete();
+
+        return response()->json(['ok' => true]);
+    }
+
     public function restoreProblem(Problem $problem): JsonResponse
     {
         if (! $problem->is_archived) {
             return response()->json(['message' => 'Problema nearchyvuota.'], 422);
         }
         $problem->update(['is_archived' => false, 'archived_at' => null]);
+
+        return response()->json(['ok' => true]);
+    }
+
+    public function destroyProblem(Problem $problem): JsonResponse
+    {
+        $problem->delete();
 
         return response()->json(['ok' => true]);
     }
@@ -80,6 +94,16 @@ class ArchiveController extends Controller
         if ($classifier_value->parent_id === null) {
             ClassifierValue::where('parent_id', $classifier_value->id)->update(['archived_at' => null]);
         }
+
+        return response()->json(['ok' => true]);
+    }
+
+    public function destroyClassifierValue(ClassifierValue $classifier_value): JsonResponse
+    {
+        if ($classifier_value->parent_id === null) {
+            ClassifierValue::where('parent_id', $classifier_value->id)->delete();
+        }
+        $classifier_value->delete();
 
         return response()->json(['ok' => true]);
     }

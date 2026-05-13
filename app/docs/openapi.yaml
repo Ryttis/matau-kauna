@@ -112,7 +112,7 @@ paths:
       description: >
         Supports two flows:
         1) normal email/password reporter registration;
-        2) mobile VIISP registration completion after `/api/viisp/callback` returns `registration_required: true`.
+        2) mobile VIISP registration completion after `/viisp/mobile-callback` returns `registration_required: true`.
         For VIISP, `name`, `surname`, and `viisp_personal_code_hash` come from the short-lived registration token, so the mobile app sends only `viisp_registration_token`, a real `email`, and optional `phone` / `device_name`.
       requestBody:
         required: true
@@ -147,6 +147,44 @@ paths:
                 $ref: "#/components/schemas/AuthTokenResponse"
         "422":
           $ref: "#/components/responses/ValidationError"
+
+  /api/forgot-password:
+    post:
+      tags: [Auth]
+      summary: "[PUBLIC] Send password reset link to email"
+      description: >
+        Sends a password reset link to the provided email address. Throttled to 6 requests per minute.
+        Returns 422 if no user exists with the given email, if rate-limited, or if validation fails.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email]
+              properties:
+                email:
+                  type: string
+                  format: email
+                  example: testas@example.com
+      responses:
+        "200":
+          description: Reset link sent
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: "Nuoroda išsiųsta į nurodytą el. paštą. Patikrinkite paštą."
+        "422":
+          $ref: "#/components/responses/ValidationError"
+        "429":
+          description: Too many requests (rate limited)
 
   /api/me:
     get:
@@ -205,6 +243,46 @@ paths:
                     example: true
         "401":
           description: Unauthorized
+
+  /api/me/active-role:
+    patch:
+      tags: [Auth]
+      summary: "[AUTH] Switch the authenticated user's active role"
+      description: >
+        Persists the chosen role on the user record so subsequent requests are scoped to it.
+        `role_id` must match one of the role ids returned in `/api/me` `available_roles`.
+        Returns the same payload as `GET /api/me` with the new active role and permissions applied.
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: header
+          name: X-Authorization
+          required: true
+          schema:
+            type: string
+            example: "Bearer 6|qByoRAMucVQd90Q9JTG16xE3KPM3wV2imICs2Fro8907502b"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [role_id]
+              properties:
+                role_id:
+                  type: string
+                  format: uuid
+      responses:
+        "200":
+          description: Active role updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MeResponse"
+        "401":
+          description: Unauthorized
+        "422":
+          $ref: "#/components/responses/ValidationError"
 
   /api/me/push-device:
     post:
@@ -604,12 +682,13 @@ paths:
               schema:
                 $ref: "#/components/schemas/MessageOnlyError"
 
-  /api/viisp/callback:
+  /viisp/mobile-callback:
     get:
       tags: [VIISP]
       summary: "[PUBLIC] VIISP callback endpoint for mobile flow"
       description: >
-        Called after VIISP authentication. Existing VIISP users receive a Sanctum Bearer token immediately.
+        Called after VIISP authentication (note: NOT under `/api` prefix — sits next to the web `/viisp/callback` so it shares the same ingress route).
+        Existing VIISP users receive a Sanctum Bearer token immediately.
         New VIISP identities receive a short-lived `registration_token`; send it to POST `/api/register`
         with a real email address to finish mobile registration.
       parameters:
@@ -806,8 +885,7 @@ paths:
           content:
             application/json:
               schema:
-                type: object
-                additionalProperties: true
+                $ref: "#/components/schemas/ReporterReviewProgressResponse"
         "401":
           description: Unauthorized
         "403":
@@ -1312,6 +1390,27 @@ paths:
           description: Forbidden
 
   /api/internal/problems/{problem}:
+    get:
+      tags: [Internal]
+      summary: "[AUTH] Staff problem detail"
+      description: Bearer required. Permission issues.view. Returns full problem with institution, nature and attachments.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/problemPath"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InternalProblemDetail"
+        "401":
+          description: Unauthorized
+        "403":
+          description: Forbidden
+        "404":
+          description: Not found
     post:
       tags: [Internal]
       summary: "[AUTH] Update problem (classification fields and optional attachments)"
@@ -1451,7 +1550,7 @@ paths:
     patch:
       tags: [Internal]
       summary: "[AUTH] Update status for merge group"
-      description: All staff workflow statuses allowed except nauja.
+      description: All staff workflow statuses allowed except nauja. Logs a status change entry to the problem review history and notifies reporters and watchers when the status changes.
       security:
         - bearerAuth: []
       parameters:
@@ -1565,6 +1664,37 @@ paths:
               schema:
                 $ref: "#/components/schemas/MessageOnlyError"
 
+  /api/internal/problems/assign/email:
+    post:
+      tags: [Internal]
+      summary: "[AUTH] Assign to institution and send notification email"
+      description: Mirrors web POST `/problems/assign/email` (route `problems.assign.email`). Assigns problems to the institution that owns the selected email, then sends a manual assignment email. System or problem admin only.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/InternalAssignSendEmailRequest"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InternalAssignSendEmailResult"
+        "401":
+          description: Unauthorized
+        "403":
+          description: Forbidden
+        "422":
+          description: Validation error, email mismatch or resolved problems blocked
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageOnlyError"
+
   /api/internal/problems/{problem}/assign-institution-options:
     get:
       tags: [Internal]
@@ -1591,6 +1721,55 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/MessageOnlyError"
+
+  /api/internal/institution-teams/{team}/members:
+    get:
+      tags: [Internal]
+      summary: "[AUTH] Institution team members (assignable employees)"
+      description: Returns assignable employees of the given team. The team must belong to the authenticated user's institution. Used by the mobile institution-assign flow to preview team members before picking the team.
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: team
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [ok, team, members]
+                properties:
+                  ok:
+                    type: boolean
+                  team:
+                    type: object
+                    required: [id, name]
+                    properties:
+                      id:
+                        type: integer
+                      name:
+                        type: string
+                  members:
+                    type: array
+                    items:
+                      type: object
+                      required: [id, name, email]
+                      properties:
+                        id:
+                          type: integer
+                        name:
+                          type: string
+                        email:
+                          type: string
+        "401":
+          description: Unauthorized
+        "403":
+          description: Forbidden
 
   /api/internal/problems/{problem}/assign-institution:
     post:
@@ -1620,6 +1799,56 @@ paths:
           description: Forbidden
         "422":
           description: Bad assignment payload empty team or resolved problem
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageOnlyError"
+
+  /api/internal/problems/{problem}/assign-institution/send-email:
+    post:
+      tags: [Internal]
+      summary: "[AUTH] Send institution-share email to an assignable institution employee"
+      description: >
+        Mirrors web POST `/problems/{problem}/send-assign-email`
+        (route `problems.assignInstitution.sendEmail`). Requires `issues.assign` and the user's
+        institution context. The `email` must belong to an assignable employee of the same
+        institution. Sends the institution-share email built by `ProblemAssignmentNotifier`.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/problemPath"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email]
+              properties:
+                email:
+                  type: string
+                  format: email
+      responses:
+        "200":
+          description: Email sent
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [ok, message]
+                properties:
+                  ok:
+                    type: boolean
+                  message:
+                    type: string
+                  problem_id:
+                    type: integer
+        "401":
+          description: Unauthorized
+        "403":
+          description: Forbidden
+        "422":
+          description: Validation error, resolved problem, or email not in assignable employees
           content:
             application/json:
               schema:
@@ -1732,7 +1961,7 @@ paths:
         A single entry can include: comment text, a status change for the problem,
         responsible person, visibility (Public/Internal), and uploaded photos/videos.
         Multipart upload, field name `files[]`. Any staff with access to the problem
-        can post.
+        can post. When `status` is `neaktuali`, `comment` is required and must be non-empty.
       security:
         - bearerAuth: []
       parameters:
@@ -1883,6 +2112,7 @@ paths:
     post:
       tags: [Internal]
       summary: "[AUTH] Bulk update status"
+      description: All staff workflow statuses allowed except nauja. For each affected merge-group root, logs a status change entry to the review history and notifies reporters and watchers when the status changes.
       security:
         - bearerAuth: []
       requestBody:
@@ -2073,7 +2303,7 @@ components:
           type: string
           minLength: 64
           maxLength: 64
-          description: Short-lived token returned from GET /api/viisp/callback when registration_required is true.
+          description: Short-lived token returned from GET /viisp/mobile-callback when registration_required is true.
         email:
           type: string
           format: email
@@ -2440,11 +2670,46 @@ components:
         institution_id:
           type: integer
           nullable: true
+        two_factor_globally_required:
+          type: boolean
+          description: Whether the system administrator has globally enabled 2FA for staff users.
+          example: false
         roles:
           type: array
           items:
             type: string
           example: [reporter]
+        available_roles:
+          type: array
+          description: All roles assigned to the user with their id, key and label. Use these in PATCH /api/me/active-role.
+          items:
+            type: object
+            required: [id, role, name]
+            properties:
+              id:
+                type: string
+                format: uuid
+              role:
+                type: string
+                example: ROLE_INSTITUTION_ADMIN
+              name:
+                type: string
+                example: Įstaigos administratorius
+        active_role_id:
+          type: string
+          format: uuid
+          nullable: true
+        active_role:
+          type: object
+          nullable: true
+          properties:
+            id:
+              type: string
+              format: uuid
+            role:
+              type: string
+            name:
+              type: string
         permissions:
           type: array
           items:
@@ -2824,6 +3089,56 @@ components:
         entry_id:
           type: integer
 
+    ReporterReviewEntry:
+      type: object
+      properties:
+        id:
+          type: integer
+        user_id:
+          type: integer
+          nullable: true
+        date:
+          type: string
+          format: date-time
+          description: ISO timestamp when the entry was created.
+        status:
+          type: string
+          description: Raw backend status enum value (e.g. `nagrinejama`, `isspresta`).
+        status_changed:
+          type: boolean
+          description: True if this entry recorded a status transition.
+        responsible:
+          type: string
+          description: Display name of the staff member responsible for the change.
+        comment:
+          type: string
+          description: Reporter-facing comment text (always public for this endpoint).
+        visibility:
+          type: string
+          enum: [public, internal]
+        attachments:
+          type: array
+          items:
+            $ref: "#/components/schemas/PublicAttachment"
+
+    ReporterReviewProgressResponse:
+      type: object
+      properties:
+        problem_id:
+          type: integer
+        reviewEntries:
+          type: array
+          items:
+            $ref: "#/components/schemas/ReporterReviewEntry"
+        canAddEntry:
+          type: boolean
+          description: Always false for the reporter (read-only endpoint).
+        canDeleteReviewAttachments:
+          type: boolean
+        fileUpload:
+          type: object
+          additionalProperties: true
+
     ReviewProgressUpsertBody:
       type: object
       required: [status, visibility]
@@ -3093,11 +3408,8 @@ components:
 
     InternalProblemUpdateRequestBase:
       type: object
-      required: [internal_number, category, address]
+      required: [category, address]
       properties:
-        internal_number:
-          type: string
-          description: Internal registration number.
         category:
           type: string
           description: Category identifier (classifier value id or key).
@@ -3170,7 +3482,7 @@ components:
           type: array
           items:
             type: object
-            required: [id, name]
+            required: [id, name, emails]
             properties:
               id:
                 type: integer
@@ -3179,6 +3491,83 @@ components:
               code:
                 type: string
                 nullable: true
+              emails:
+                type: array
+                description: All notification emails for the institution (contact + integration), deduplicated. Use any value as the email argument of POST /api/internal/problems/assign/email.
+                items:
+                  type: string
+                  format: email
+
+    InternalAssignSendEmailRequest:
+      type: object
+      required: [email, problem_ids, institution_id]
+      properties:
+        email:
+          type: string
+          format: email
+          description: Must match the institution's contact_email or integration_email.
+        problem_ids:
+          type: array
+          items:
+            type: integer
+        institution_id:
+          type: integer
+
+    InternalAssignSendEmailResult:
+      type: object
+      required: [ok, message]
+      properties:
+        ok:
+          type: boolean
+        message:
+          type: string
+        problem_ids:
+          type: array
+          items:
+            type: integer
+
+    InternalProblemDetail:
+      type: object
+      required: [id, internal_number, status, category, address, created_at, is_published_publicly]
+      properties:
+        id:
+          type: integer
+        internal_number:
+          type: string
+        status:
+          type: string
+        category:
+          type: string
+        nature:
+          type: string
+          nullable: true
+        institution_id:
+          type: integer
+          nullable: true
+        institution_name:
+          type: string
+          nullable: true
+        address:
+          type: string
+        description:
+          type: string
+          nullable: true
+        lat:
+          type: number
+          nullable: true
+        lng:
+          type: number
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+        is_published_publicly:
+          type: boolean
+        attachments:
+          type: array
+          items:
+            type: object
+            additionalProperties: true
 
     InternalBulkAssignRequest:
       type: object

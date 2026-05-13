@@ -17,6 +17,7 @@ use Illuminate\Support\Facades\Route;
 Route::post('/login', [AuthApiController::class, 'login']);
 Route::post('/two-factor/challenge', [AuthApiController::class, 'verifyTwoFactorLogin']);
 Route::post('/register', [AuthApiController::class, 'register']);
+Route::post('/forgot-password', [AuthApiController::class, 'forgotPassword'])->middleware('throttle:6,1');
 
 Route::post('/viisp/init', [ViispApiController::class, 'init']);
 Route::get('/viisp/callback', [ViispApiController::class, 'callback']);
@@ -33,6 +34,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::post('/logout', [AuthApiController::class, 'logout']);
     Route::delete('/me', [AuthApiController::class, 'deleteAccount']);
     Route::get('/me', [AuthApiController::class, 'me']);
+    Route::patch('/me/active-role', [AuthApiController::class, 'updateActiveRole']);
     Route::post('/me/push-device', [AuthApiController::class, 'registerPushDevice']);
     Route::post('/me/push-test', [AuthApiController::class, 'sendPushTest']);
     Route::patch('/setting/email_notifications', [SettingsApiController::class, 'updateEmailNotifications']);
@@ -68,7 +70,9 @@ Route::middleware(['auth:sanctum', 'verified', \App\Http\Middleware\ApplyActiveR
     Route::get('/institutions', [InternalProblemApiController::class, 'institutionsForAssign']);
 
     Route::get('/problems', [InternalProblemApiController::class, 'index']);
+    Route::get('/problems/{problem}', [InternalProblemApiController::class, 'show']);
     Route::post('/problems/assign', [InternalProblemApiController::class, 'assignBulk']);
+    Route::post('/problems/assign/email', [InternalProblemApiController::class, 'assignSendEmail']);
     Route::post('/problems/bulk-update-status', [InternalProblemApiController::class, 'bulkUpdateStatus']);
     Route::post('/problems/bulk-destroy', [InternalProblemApiController::class, 'bulkDestroy']);
     Route::post('/problems/bulk-update-publish', [InternalProblemApiController::class, 'bulkUpdatePublish']);
@@ -82,7 +86,9 @@ Route::middleware(['auth:sanctum', 'verified', \App\Http\Middleware\ApplyActiveR
     Route::post('/problems/{problem}/merge', [InternalProblemApiController::class, 'merge']);
     Route::patch('/problems/{problem}/unmerge', [InternalProblemApiController::class, 'unmerge']);
     Route::get('/problems/{problem}/assign-institution-options', [InternalProblemApiController::class, 'assignInstitutionOptions']);
+    Route::get('/institution-teams/{team}/members', [InternalProblemApiController::class, 'institutionTeamMembers']);
     Route::post('/problems/{problem}/assign-institution', [InternalProblemApiController::class, 'assignInstitution']);
+    Route::post('/problems/{problem}/assign-institution/send-email', [InternalProblemApiController::class, 'sendAssignInstitutionEmail']);
     Route::post('/problems/{problem}/reassign-institution', [InternalProblemApiController::class, 'reassignInstitution']);
     Route::patch('/problems/{problem}/return', [InternalProblemApiController::class, 'returnToAdmin']);
 

@@ -8,12 +8,14 @@ use App\Http\Controllers\Controller;
 use App\Models\LoginLog;
 use App\Models\User;
 use App\Notifications\PushNotification;
+use App\Services\ActiveRoleService;
 use App\Services\AuditLogService;
 use App\Services\TwoFactorService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Password as PasswordBroker;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rules\Password;
 use Illuminate\Validation\ValidationException;
@@ -25,6 +27,7 @@ class AuthApiController extends Controller
     public function __construct(
         private TwoFactorService $twoFactorService,
         private AuditLogService $auditLogService,
+        private ActiveRoleService $activeRoleService,
     ) {}
 
     public function login(Request $request): JsonResponse
@@ -310,8 +313,42 @@ class AuthApiController extends Controller
     public function me(Request $request): JsonResponse
     {
         $user = $request->user()->load('roles');
+        $context = $this->activeRoleService->resolveAndBind($request, $user);
 
-        return response()->json([
+        return response()->json($this->buildMePayload($user, $context));
+    }
+
+    public function updateActiveRole(Request $request): JsonResponse
+    {
+        $user = $request->user()->load('roles');
+
+        $validated = $request->validate([
+            'role_id' => ['required', 'string'],
+        ]);
+
+        $assignedIds = $user->roles->pluck('id')->map(fn ($id) => (string) $id)->all();
+        if (! in_array($validated['role_id'], $assignedIds, true)) {
+            throw ValidationException::withMessages([
+                'role_id' => ['Vartotojui ši rolė nepriskirta.'],
+            ]);
+        }
+
+        $user->forceFill(['active_role_id' => $validated['role_id']])->save();
+
+        if ($request->hasSession()) {
+            $request->session()->put('active_role_id', $validated['role_id']);
+        }
+        $request->attributes->remove('_resolved_active_role_context');
+
+        $user = $user->fresh()->load('roles');
+        $context = $this->activeRoleService->resolveAndBind($request, $user);
+
+        return response()->json($this->buildMePayload($user, $context));
+    }
+
+    private function buildMePayload(User $user, array $context): array
+    {
+        return [
             'id' => $user->id,
             'name' => $user->name,
             'surname' => $user->surname,
@@ -321,6 +358,7 @@ class AuthApiController extends Controller
             'email_verified_at' => $user->email_verified_at?->toIso8601String(),
             'two_factor_enabled' => (bool) $user->two_factor_enabled,
             'two_factor_confirmed_at' => $user->two_factor_confirmed_at?->toIso8601String(),
+            'two_factor_globally_required' => $this->twoFactorService->isGloballyRequired(),
             'viisp_linked' => $user->viisp_personal_code_hash !== null,
             'can_authenticate_with_email_password' => $user->canAuthenticateWithEmailPassword(),
             'email_notifications_enabled' => (bool) $user->email_notifications_enabled,
@@ -339,8 +377,11 @@ class AuthApiController extends Controller
             'archived_at' => $user->archived_at?->toIso8601String(),
             'institution_id' => $user->institution_id,
             'roles' => $user->roles->pluck('role')->values()->all(),
-            'permissions' => $user->permissions(),
-        ]);
+            'available_roles' => $context['roles'],
+            'active_role_id' => $context['activeRoleId'],
+            'active_role' => $context['activeRole'],
+            'permissions' => $context['permissions'],
+        ];
     }
 
     public function registerPushDevice(Request $request): JsonResponse
@@ -377,6 +418,35 @@ class AuthApiController extends Controller
         $request->user()->currentAccessToken()?->delete();
 
         return response()->json(['ok' => true]);
+    }
+
+    public function forgotPassword(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'email' => ['required', 'email'],
+        ], [
+            'email.required' => 'Įveskite el. paštą.',
+            'email.email' => 'Neteisingas el. pašto formatas.',
+        ]);
+
+        $status = PasswordBroker::sendResetLink($validated);
+
+        if ($status === PasswordBroker::RESET_LINK_SENT) {
+            return response()->json([
+                'ok' => true,
+                'message' => 'Nuoroda išsiųsta į nurodytą el. paštą. Patikrinkite paštą.',
+            ]);
+        }
+
+        if ($status === PasswordBroker::RESET_THROTTLED) {
+            throw ValidationException::withMessages([
+                'email' => ['Siųsti daugiau negalima. Pabandykite po minutės.'],
+            ]);
+        }
+
+        throw ValidationException::withMessages([
+            'email' => ['Su tokiu el. paštu naudotojo nėra.'],
+        ]);
     }
 
     public function sendPushTest(Request $request): JsonResponse

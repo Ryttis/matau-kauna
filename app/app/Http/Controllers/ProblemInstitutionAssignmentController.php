@@ -116,7 +116,7 @@ class ProblemInstitutionAssignmentController extends Controller
         if ($employeeId !== null) {
             $assignableEmails = User::queryAssignableInstitutionEmployeeUsers(
                 (int) $user->institution_id,
-                $user->email,
+                $user->assignableInstitutionExcludedEmail(),
             )->pluck('email');
             if ($assignableEmails->isEmpty()) {
                 abort(403);
@@ -128,9 +128,6 @@ class ProblemInstitutionAssignmentController extends Controller
 
             if (! $employee) {
                 abort(403);
-            }
-            if ($employee->email === $user->email) {
-                abort(403, 'Negalite priskirti problemos sau.');
             }
 
             $problem->update([
@@ -155,7 +152,7 @@ class ProblemInstitutionAssignmentController extends Controller
         }
         $assignableEmails = User::queryAssignableInstitutionEmployeeUsers(
             (int) $user->institution_id,
-            $user->email,
+            $user->assignableInstitutionExcludedEmail(),
         )->pluck('email');
         $teamAssignees = $assignableEmails->isEmpty()
             ? collect()
@@ -203,7 +200,7 @@ class ProblemInstitutionAssignmentController extends Controller
             ],
         ]);
 
-        $assignable = User::queryAssignableInstitutionEmployeeUsers((int) $user->institution_id, $user->email)
+        $assignable = User::queryAssignableInstitutionEmployeeUsers((int) $user->institution_id, $user->assignableInstitutionExcludedEmail())
             ->where('email', $validated['email'])
             ->exists();
         if (! $assignable) {

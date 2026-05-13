@@ -33,13 +33,24 @@ final class ActiveRoleService
             return $payload;
         }
 
-        $sessionId = $request->session()->get('active_role_id');
+        $hasSession = $request->hasSession();
+        $sessionId = $hasSession ? $request->session()->get('active_role_id') : null;
         $sessionId = is_string($sessionId) ? $sessionId : null;
-        $activeId = ($sessionId !== null && in_array($sessionId, $roleIds, true))
-            ? $sessionId
-            : $this->defaultPersonalActiveRoleId($rolesCollection);
 
-        if ($sessionId !== $activeId) {
+        $activeId = null;
+        if ($sessionId !== null && in_array($sessionId, $roleIds, true)) {
+            $activeId = $sessionId;
+        } else {
+            $persisted = $user->active_role_id !== null ? (string) $user->active_role_id : null;
+            if ($persisted !== null && in_array($persisted, $roleIds, true)) {
+                $activeId = $persisted;
+            }
+        }
+        if ($activeId === null) {
+            $activeId = $this->defaultPersonalActiveRoleId($rolesCollection);
+        }
+
+        if ($hasSession && $sessionId !== $activeId) {
             $request->session()->put('active_role_id', $activeId);
         }
 

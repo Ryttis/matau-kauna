@@ -21,8 +21,6 @@ class ViispApiController extends Controller
 
     private const STATE_TTL_SECONDS = 600;
 
-    private const EXCHANGE_TTL_SECONDS = 600;
-
     public const REGISTRATION_TTL_SECONDS = 600;
 
     public function init(Request $request): JsonResponse
@@ -49,7 +47,7 @@ class ViispApiController extends Controller
 
         $gatewayUrl = config('services.viisp.gateway_url');
         $postbackBase = config('services.viisp.gateway_postback_base');
-        $callbackUrl = url('/api/viisp/callback?state='.$state);
+        $callbackUrl = url('/viisp/mobile-callback?state='.$state);
 
         $response = Http::timeout(45)->asJson()->post("{$gatewayUrl}/gateway/viisp/login", [
             'postbackUrl' => $postbackBase,

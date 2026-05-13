@@ -84,7 +84,6 @@ onBeforeUnmount(() => {
 })
 
 const form = ref({
-    internal_number: '',
     category: '',
     address: '',
     description: '',
@@ -155,7 +154,6 @@ watch(
     (newVal) => {
         if (newVal && props.problem) {
             form.value = {
-                internal_number: props.problem.internal_number || '',
                 category: props.problem.category || '',
                 address: props.problem.address || '',
                 description: props.problem.description || '',
@@ -226,10 +224,12 @@ const handleSave = async () => {
                 <label class="edit-modal-nr-label" for="edit-modal-internal-number">Problemos numeris</label>
                 <input
                     id="edit-modal-internal-number"
-                    v-model="form.internal_number"
+                    :value="problem?.internal_number || ''"
                     type="text"
                     class="edit-modal-nr-input"
-                    :placeholder="problem?.internal_number || 'Nr'"
+                    readonly
+                    disabled
+                    aria-readonly="true"
                 />
             </div>
 

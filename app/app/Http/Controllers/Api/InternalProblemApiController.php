@@ -15,6 +15,7 @@ use App\Services\ProblemAssignmentNotifier;
 use App\Services\ProblemDashboardQueryService;
 use App\Services\ProblemHttpSupport;
 use App\Services\ProblemInstitutionAssignmentPickerService;
+use App\Services\ProblemReporterStatusNotifier;
 use App\Services\ProblemResolutionTermService;
 use App\Services\ProblemReviewHistoryService;
 use App\Services\ProblemScopeService;
@@ -22,6 +23,7 @@ use App\Services\ReporterFileUploadService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Validation\Rule;
 
 class InternalProblemApiController extends Controller
 {
@@ -34,6 +36,7 @@ class InternalProblemApiController extends Controller
         private ReporterFileUploadService $reporterFileUploadService,
         private ProblemInstitutionAssignmentPickerService $institutionAssignmentPickerService,
         private ProblemReviewHistoryService $reviewHistoryService,
+        private ProblemReporterStatusNotifier $reporterStatusNotifier,
     ) {}
 
     public function institutionsForAssign(Request $request): JsonResponse
@@ -47,7 +50,7 @@ class InternalProblemApiController extends Controller
             ->notArchived()
             ->where('is_active', true)
             ->orderBy('name')
-            ->get(['id', 'name', 'code']);
+            ->get(['id', 'name', 'code', 'contact_email', 'integration_email']);
 
         return response()->json([
             'ok' => true,
@@ -55,7 +58,73 @@ class InternalProblemApiController extends Controller
                 'id' => $i->id,
                 'name' => $i->name,
                 'code' => $i->code,
+                'emails' => array_values(array_unique(array_filter([
+                    $i->contact_email,
+                    $i->integration_email,
+                ]))),
             ])->values()->all(),
+        ]);
+    }
+
+    public function assignSendEmail(Request $request): JsonResponse
+    {
+        $user = $request->user();
+        if (! $user->isProblemAdminOrSystemAdmin()) {
+            abort(403);
+        }
+
+        $validated = $request->validate([
+            'email' => ['required', 'email'],
+            'problem_ids' => ['required', 'array', 'min:1'],
+            'problem_ids.*' => ['required', 'integer', 'exists:problems,id'],
+            'institution_id' => ['required', 'integer', 'exists:institutions,id'],
+        ]);
+
+        $institution = Institution::query()->findOrFail($validated['institution_id']);
+        $allowedEmails = array_values(array_unique(array_filter([
+            $institution->contact_email,
+            $institution->integration_email,
+        ])));
+
+        if (! in_array($validated['email'], $allowedEmails, true)) {
+            return response()->json([
+                'message' => 'Pasirinktas el. paštas nepriklauso pasirinktai įstaigai.',
+            ], 422);
+        }
+
+        $problems = Problem::whereIn('id', $validated['problem_ids'])
+            ->orderBy('created_at', 'desc')
+            ->get(['id', 'internal_number', 'description', 'status', 'created_at', 'completion_deadline']);
+
+        if ($problems->contains(fn (Problem $p) => $p->status === ProblemStatus::RESOLVED->value)) {
+            return response()->json([
+                'message' => 'Išspręstų problemų negalima priskirti.',
+            ], 422);
+        }
+
+        Problem::whereIn('id', $validated['problem_ids'])->update([
+            'institution_id' => $institution->id,
+            'assigned_employee_id' => null,
+            'assigned_institution_team_id' => null,
+        ]);
+
+        foreach ($problems as $p) {
+            $this->resolutionTermService->applyRules($p);
+        }
+
+        $mail = $this->assignmentNotifier->buildManualAssignToInstitutionEmail($institution, $problems);
+        \App\Services\TransactionalMail::send(
+            $validated['email'],
+            $mail['subject'],
+            $mail['body'],
+            ! empty($mail['action_url']) ? $mail['action_url'] : null,
+            $mail['action_label'] ?? null,
+        );
+
+        return response()->json([
+            'ok' => true,
+            'message' => 'Laiškas išsiųstas.',
+            'problem_ids' => array_map('intval', $validated['problem_ids']),
         ]);
     }
 
@@ -83,7 +152,42 @@ class InternalProblemApiController extends Controller
 
         $paginator = $this->dashboardQuery->paginatedStaffProblems($user, $filters, $sortBy, $sortDirection, $perPage);
 
+        $paginator->through(function (Problem $problem) {
+            return $problem->toArray() + [
+                'nature' => $problem->problemNature?->name,
+                'institution_name' => $problem->institution?->name,
+            ];
+        });
+
         return response()->json($paginator);
+    }
+
+    public function show(Request $request, Problem $problem): JsonResponse
+    {
+        $user = $request->user();
+        if ($user->isReporterOnly() || ! $user->hasPermission('issues.view')) {
+            abort(403);
+        }
+        $this->scopeService->authorizeProblemAccess($user, $problem);
+
+        $problem->load(['attachments', 'problemNature', 'institution']);
+
+        return response()->json([
+            'id' => $problem->id,
+            'internal_number' => $problem->internal_number,
+            'status' => $problem->status,
+            'category' => $problem->category,
+            'nature' => $problem->problemNature?->name,
+            'institution_id' => $problem->institution_id,
+            'institution_name' => $problem->institution?->name,
+            'address' => $problem->address,
+            'description' => $problem->description,
+            'lat' => $problem->lat,
+            'lng' => $problem->lng,
+            'created_at' => $problem->created_at?->toIso8601String(),
+            'is_published_publicly' => (bool) $problem->is_published_publicly,
+            'attachments' => $this->problemHttpSupport->attachmentsPayload($problem),
+        ]);
     }
 
     public function update(Request $request, Problem $problem): JsonResponse
@@ -95,7 +199,6 @@ class InternalProblemApiController extends Controller
         $this->scopeService->authorizeProblemAccess($user, $problem);
 
         $validated = $request->validate([
-            'internal_number' => 'required|string|max:255',
             'category' => 'required|string|max:100',
             'address' => 'required|string|max:255',
             'description' => 'nullable|string',
@@ -266,6 +369,8 @@ class InternalProblemApiController extends Controller
         ]);
 
         $ids = $problem->getMergeGroupIds();
+        $mainId = $problem->merged_into_problem_id ?? $problem->id;
+        $oldMainStatus = Problem::where('id', $mainId)->value('status');
         $query = Problem::query()->whereIn('id', $ids);
         $this->scopeService->scopeProblemsForUser($query, $user);
         $this->scopeService->ensureScopeMatchesCount($query, count($ids));
@@ -274,6 +379,16 @@ class InternalProblemApiController extends Controller
             'status' => $validated['status'],
             'status_updated_at' => now(),
         ]);
+
+        $main = Problem::find($mainId);
+
+        if ($oldMainStatus !== null && $oldMainStatus !== $validated['status'] && $main) {
+            $this->reporterStatusNotifier->notifyReportersAndWatchersWhenStatusChanges($main, $oldMainStatus, $validated['status']);
+        }
+
+        if ($main) {
+            $this->reviewHistoryService->logStatusChangeEntry($main, $user, $validated['status']);
+        }
 
         return response()->json([
             'ok' => true,
@@ -298,10 +413,23 @@ class InternalProblemApiController extends Controller
         $query = Problem::query()->whereIn('id', $expandedIds);
         $this->scopeService->scopeProblemsForUser($query, $user);
         $this->scopeService->ensureScopeMatchesCount($query, count($expandedIds));
+
+        $rootIdsMap = Problem::rootIdsMapFromProblemIds($expandedIds);
+        $oldByMain = Problem::statusesByRootId($rootIdsMap);
+
         $query->update([
             'status' => $validated['status'],
             'status_updated_at' => now(),
         ]);
+
+        $this->reporterStatusNotifier->notifyRootsAfterStatusChange($oldByMain, $validated['status']);
+
+        foreach (array_keys($rootIdsMap) as $rootId) {
+            $rootProblem = Problem::find($rootId);
+            if ($rootProblem) {
+                $this->reviewHistoryService->logStatusChangeEntry($rootProblem, $user, $validated['status']);
+            }
+        }
 
         return response()->json([
             'ok' => true,
@@ -513,6 +641,45 @@ class InternalProblemApiController extends Controller
         ]);
     }
 
+    public function institutionTeamMembers(Request $request, InstitutionTeam $team): JsonResponse
+    {
+        $user = $request->user();
+        if (! $user->canAssignInstitutionProblems()) {
+            abort(403);
+        }
+        if ((int) $team->institution_id !== (int) $user->institution_id) {
+            abort(403);
+        }
+
+        $assignableEmails = User::queryAssignableInstitutionEmployeeUsers(
+            (int) $user->institution_id,
+            $user->assignableInstitutionExcludedEmail(),
+        )->pluck('email');
+
+        $members = $team->employees()
+            ->when($assignableEmails->isEmpty(), fn ($q) => $q->whereRaw('1 = 0'))
+            ->when($assignableEmails->isNotEmpty(), fn ($q) => $q->whereIn('email', $assignableEmails))
+            ->orderBy('name')
+            ->orderBy('surname')
+            ->get(['id', 'name', 'surname', 'email'])
+            ->map(fn ($employee) => [
+                'id' => $employee->id,
+                'name' => trim(($employee->name ?? '').' '.($employee->surname ?? '')) ?: $employee->email,
+                'email' => $employee->email,
+            ])
+            ->values()
+            ->all();
+
+        return response()->json([
+            'ok' => true,
+            'team' => [
+                'id' => $team->id,
+                'name' => $team->name,
+            ],
+            'members' => $members,
+        ]);
+    }
+
     public function assignInstitution(Request $request, Problem $problem): JsonResponse
     {
         $user = $request->user();
@@ -544,7 +711,7 @@ class InternalProblemApiController extends Controller
         if ($employeeId !== null) {
             $assignableEmails = User::queryAssignableInstitutionEmployeeUsers(
                 (int) $user->institution_id,
-                $user->email,
+                $user->assignableInstitutionExcludedEmail(),
             )->pluck('email');
             if ($assignableEmails->isEmpty()) {
                 abort(403);
@@ -554,7 +721,7 @@ class InternalProblemApiController extends Controller
                 ->where('institution_id', $user->institution_id)
                 ->whereIn('email', $assignableEmails)
                 ->first();
-            if (! $employee || $employee->email === $user->email) {
+            if (! $employee) {
                 abort(403);
             }
 
@@ -579,7 +746,7 @@ class InternalProblemApiController extends Controller
         }
         $assignableEmails = User::queryAssignableInstitutionEmployeeUsers(
             (int) $user->institution_id,
-            $user->email,
+            $user->assignableInstitutionExcludedEmail(),
         )->pluck('email');
         $teamAssignees = $assignableEmails->isEmpty()
             ? collect()
@@ -601,6 +768,54 @@ class InternalProblemApiController extends Controller
         }
 
         return response()->json(['ok' => true, 'message' => 'Problema priskirta komandai.', 'problem_id' => $problem->id]);
+    }
+
+    public function sendAssignInstitutionEmail(Request $request, Problem $problem): JsonResponse
+    {
+        $user = $request->user();
+        if (! $user->canAssignInstitutionProblems()) {
+            abort(403);
+        }
+        $this->scopeService->authorizeProblemAccess($user, $problem);
+
+        if ($problem->status === ProblemStatus::RESOLVED->value) {
+            return response()->json(['message' => 'Išspręstos problemos priskirti negalima.'], 422);
+        }
+        if ($user->institution_id === null) {
+            return response()->json(['message' => 'Negalima siųsti el. laiško be įstaigos konteksto.'], 422);
+        }
+
+        $validated = $request->validate([
+            'email' => [
+                'required',
+                'email',
+                Rule::exists('employees', 'email')->where('institution_id', $user->institution_id),
+            ],
+        ]);
+
+        $assignable = User::queryAssignableInstitutionEmployeeUsers((int) $user->institution_id, $user->assignableInstitutionExcludedEmail())
+            ->where('email', $validated['email'])
+            ->exists();
+        if (! $assignable) {
+            return response()->json([
+                'message' => 'Šis el. paštas nepriskirtas Įstaigos darbuotojo vaidmeniui šioje įstaigoje.',
+            ], 422);
+        }
+
+        $mail = $this->assignmentNotifier->buildInstitutionProblemShareEmail($problem);
+        \App\Services\TransactionalMail::send(
+            $validated['email'],
+            $mail['subject'],
+            $mail['body'],
+            $mail['action_url'] ?? null,
+            $mail['action_label'] ?? null,
+        );
+
+        return response()->json([
+            'ok' => true,
+            'message' => 'Informacija išsiųsta el. paštu.',
+            'problem_id' => $problem->id,
+        ]);
     }
 
     public function reassignInstitution(Request $request, Problem $problem): JsonResponse

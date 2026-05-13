@@ -228,7 +228,6 @@ class ProblemController extends Controller
         }
 
         $validated = $request->validate([
-            'internal_number' => 'required|string|max:255',
             'category' => 'required|string|max:100',
             'address' => 'required|string|max:255',
             'description' => 'nullable|string',

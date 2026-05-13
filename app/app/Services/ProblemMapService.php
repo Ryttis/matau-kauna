@@ -149,8 +149,8 @@ class ProblemMapService
             })
             ->orderBy('address')
             ->orderBy('created_at', 'desc')
-            ->with('mergedInto:id,reported_by_user_id')
-            ->get(['id', 'internal_number', 'description', 'status', 'category', 'address', 'lat', 'lng', 'created_at', 'merged_into_problem_id', 'is_published_publicly', 'reported_by_user_id']);
+            ->with('mergedInto:id,reported_by_user_id', 'problemNature:id,name')
+            ->get(['id', 'internal_number', 'description', 'status', 'category', 'problem_nature_id', 'address', 'lat', 'lng', 'created_at', 'merged_into_problem_id', 'is_published_publicly', 'reported_by_user_id']);
 
         $index = 0;
 
@@ -222,6 +222,7 @@ class ProblemMapService
             'description' => $description,
             'status' => $problem->status ?? ProblemStatus::NEW->value,
             'category' => $problem->category,
+            'nature' => $problem->problemNature?->name,
             'address' => $problem->address,
             'created_at' => $problem->created_at?->toIso8601String(),
             'lat' => $hasCoords ? (float) $problem->lat : $centerLat + ($offset * 0.1),

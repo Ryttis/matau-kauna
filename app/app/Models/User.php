@@ -39,6 +39,7 @@ class User extends Authenticatable implements MustVerifyEmail
         'email_notifications_enabled',
         'email_updates_institution_admin',
         'institution_id',
+        'active_role_id',
         'terms_accepted_at',
         'reporter_wizard_completed_at',
         'reporter_report_terms_accepted_at',
@@ -292,5 +293,10 @@ class User extends Authenticatable implements MustVerifyEmail
             ->where('institution_id', $institutionId)
             ->whereHas('roles', fn ($q) => $q->where('role', UserRole::ROLE_EMPLOYEE))
             ->when($exceptEmail, fn ($q) => $q->where('email', '!=', $exceptEmail));
+    }
+
+    public function assignableInstitutionExcludedEmail(): ?string
+    {
+        return $this->hasAssignedRole(UserRole::ROLE_EMPLOYEE) ? null : $this->email;
     }
 }

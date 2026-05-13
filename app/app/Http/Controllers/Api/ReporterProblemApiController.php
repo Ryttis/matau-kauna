@@ -178,9 +178,11 @@ class ReporterProblemApiController extends Controller
             abort(404);
         }
 
-        $problem->load(['attachments', 'problemNature']);
+        $problem->load(['attachments', 'problemNature', 'mergedInto']);
 
         $mergeContext = $this->mergeContextService->forProblem($problem);
+
+        $isWatched = $this->problemHttpSupport->problemIsWatchedByUser($reporter, $problem);
 
         return response()->json([
             'problem' => [
@@ -193,6 +195,9 @@ class ReporterProblemApiController extends Controller
                 'description' => $problem->description,
                 'created_at' => $problem->created_at?->toIso8601String(),
                 'is_published_publicly' => $problem->is_published_publicly,
+                'reported_by_me' => $isOwnReport
+                    || (int) ($problem->mergedInto?->reported_by_user_id ?? 0) === (int) $reporter->id,
+                'is_watched' => $isOwnReport ? false : $isWatched,
                 'attachments' => $this->problemHttpSupport->attachmentsPayload($problem),
             ],
             'mergeTarget' => $mergeContext['mergeTarget'],
