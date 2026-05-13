@@ -32,6 +32,8 @@ class ArcGisProblemTransferService
             'attachments',
             'reportedByUser:id,name,surname,email',
             'gisTransfer.attachmentTransfers',
+            'problemType:id,name,parent_id',
+            'problemNature:id,name,parent_id',
         ]);
 
         if (! $problem->institution_id || ! $problem->institution?->gisConfig?->enabled) {
@@ -133,7 +135,7 @@ class ArcGisProblemTransferService
 
         if ($attributes !== []) {
             $mapping = $this->gisConfigService->effectiveFieldMapping($config);
-            $statusChange = $this->applyStatusFromGis($transfer->problem, $attributes, $mapping['status']);
+            $statusChange = $this->applyStatusFromGis($transfer->problem, $attributes, $mapping);
             $deadlineChanged = $this->applyDeadlineFromGis($transfer->problem, $attributes, $mapping['completion_deadline']);
         }
 
@@ -377,14 +379,20 @@ class ArcGisProblemTransferService
     /**
      * @return array{changed: bool, old: ?string, new: ?string}
      */
-    private function applyStatusFromGis(?Problem $problem, array $attributes, string $statusField): array
+    private function applyStatusFromGis(?Problem $problem, array $attributes, array $mapping): array
     {
         if (! $problem) {
             return ['changed' => false, 'old' => null, 'new' => null];
         }
 
+        $statusField = (string) ($mapping['status'] ?? '');
         $rawStatus = (string) ($attributes[$statusField] ?? '');
-        $newStatus = $this->resolveStatusFromLabel($rawStatus);
+        $newStatus = $this->resolveStatusFromMappedValue(
+            $rawStatus,
+            is_array($mapping[InstitutionGisConfigService::STATUS_VALUE_MAPPING_KEY] ?? null)
+                ? $mapping[InstitutionGisConfigService::STATUS_VALUE_MAPPING_KEY]
+                : []
+        ) ?? $this->resolveStatusFromLabel($rawStatus);
         if ($newStatus === null) {
             return ['changed' => false, 'old' => null, 'new' => null];
         }
@@ -412,6 +420,32 @@ class ArcGisProblemTransferService
         }
 
         return ['changed' => true, 'old' => $oldStatus, 'new' => $newStatus->value];
+    }
+
+    private function resolveStatusFromMappedValue(string $raw, array $valueMapping): ?ProblemStatus
+    {
+        $value = trim($raw);
+        if ($value === '' || $valueMapping === []) {
+            return null;
+        }
+
+        $normalized = $this->normalizeStatusLabel($value);
+        foreach ($valueMapping as $localStatus => $gisValue) {
+            $status = ProblemStatus::tryFrom((string) $localStatus);
+            if (! $status) {
+                continue;
+            }
+
+            $code = is_array($gisValue) ? (string) ($gisValue['code'] ?? '') : (string) $gisValue;
+            $name = is_array($gisValue) ? (string) ($gisValue['name'] ?? '') : (string) $gisValue;
+            foreach ([$code, $name] as $candidate) {
+                if (trim($candidate) !== '' && $this->normalizeStatusLabel($candidate) === $normalized) {
+                    return $status;
+                }
+            }
+        }
+
+        return null;
     }
 
     private function applyDeadlineFromGis(?Problem $problem, array $attributes, string $deadlineField): bool
@@ -585,21 +619,21 @@ class ArcGisProblemTransferService
             ]))) ?: $problem->reportedByUser->email ?: $reporterName;
         }
 
-        $status = ProblemStatus::tryFrom((string) $problem->status);
         $values = [
-            'status' => $status?->label() ?? (string) $problem->status,
-            'category' => $problem->category ?? 'Problema',
+            'status' => $this->resolveOutgoingStatusValue($config, $problem),
+            'category' => $this->resolveCategoryValue($config, $problem),
             'created_at' => $problem->created_at?->getTimestampMs() ?? now()->getTimestampMs(),
             'completion_deadline' => $problem->completion_deadline?->startOfDay()->getTimestampMs(),
             'address' => $problem->address,
-            'reporter' => $reporterName,
+            'reporter' => $this->resolveReporterValue($config, $reporterName),
             'internal_number' => $problem->internal_number,
             'description' => $problem->description,
         ];
         $mapping = $this->gisConfigService->effectiveFieldMapping($config);
         $attributes = [];
-        foreach ($mapping as $source => $fieldName) {
-            if ($fieldName === '') {
+        foreach (InstitutionGisConfig::FIELD_MAPPING_SOURCES as $source) {
+            $fieldName = $mapping[$source] ?? '';
+            if (! is_string($fieldName) || $fieldName === '') {
                 continue;
             }
             $attributes[$fieldName] = $values[$source] ?? null;
@@ -615,6 +649,77 @@ class ArcGisProblemTransferService
                 ],
             ],
         ];
+    }
+
+    private function resolveOutgoingStatusValue(InstitutionGisConfig $config, Problem $problem): string
+    {
+        $status = ProblemStatus::tryFrom((string) $problem->status);
+        $fallback = $status?->label() ?? (string) $problem->status;
+        if (! $config->use_field_mapping) {
+            return $fallback;
+        }
+
+        $mapping = $this->gisConfigService->effectiveFieldMapping($config);
+        $valueMapping = $mapping[InstitutionGisConfigService::STATUS_VALUE_MAPPING_KEY] ?? [];
+        if (! is_array($valueMapping)) {
+            return $fallback;
+        }
+
+        $mappedValue = $valueMapping[(string) $problem->status] ?? null;
+        if (is_array($mappedValue) && filled($mappedValue['code'] ?? null)) {
+            return (string) $mappedValue['code'];
+        }
+        if (is_string($mappedValue) && filled($mappedValue)) {
+            return $mappedValue;
+        }
+
+        return $fallback;
+    }
+
+    private function resolveCategoryValue(InstitutionGisConfig $config, Problem $problem): string
+    {
+        $fallback = $problem->category ?? 'Problema';
+        if (! $config->use_field_mapping) {
+            return $fallback;
+        }
+
+        $mapping = $this->gisConfigService->effectiveFieldMapping($config);
+        $valueMapping = $mapping[InstitutionGisConfigService::CATEGORY_VALUE_MAPPING_KEY] ?? [];
+        if (! is_array($valueMapping) || $valueMapping === []) {
+            return $fallback;
+        }
+
+        foreach ([$problem->problem_nature_id, $problem->problem_type_id] as $classifierValueId) {
+            if (! $classifierValueId) {
+                continue;
+            }
+
+            $mappedValue = $valueMapping[(string) $classifierValueId] ?? null;
+            if (is_array($mappedValue) && filled($mappedValue['code'] ?? null)) {
+                return (string) $mappedValue['code'];
+            }
+            if (is_string($mappedValue) && filled($mappedValue)) {
+                return $mappedValue;
+            }
+        }
+
+        return $fallback;
+    }
+
+    private function resolveReporterValue(InstitutionGisConfig $config, string $defaultReporterName): string
+    {
+        if (! $config->use_field_mapping) {
+            return $defaultReporterName;
+        }
+
+        $mapping = $this->gisConfigService->effectiveFieldMapping($config);
+        $mode = $mapping[InstitutionGisConfigService::REPORTER_VALUE_MODE_KEY] ?? 'full_name';
+
+        return match ($mode) {
+            'resident' => 'Gyventojas',
+            'custom' => trim((string) ($mapping[InstitutionGisConfigService::REPORTER_DEFAULT_VALUE_KEY] ?? '')) ?: 'Gyventojas',
+            default => $defaultReporterName,
+        };
     }
 
     private function postWithTokenRetry(

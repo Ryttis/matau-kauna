@@ -44,4 +44,18 @@ return [
         'exchange_secret' => env('VIISP_EXCHANGE_SECRET'),
     ],
 
+    'dvs_kontora' => [
+        'base_url' => rtrim((string) env('DVS_KONTORA_BASE_URL', 'https://kontorat-api2.kaunas.lt'), '/'),
+        'client_id' => env('DVS_KONTORA_CLIENT_ID'),
+        'client_secret' => env('DVS_KONTORA_CLIENT_SECRET'),
+        'username' => env('DVS_KONTORA_USERNAME'),
+        'password' => env('DVS_KONTORA_PASSWORD'),
+        'ad_domain_id' => env('DVS_KONTORA_AD_DOMAIN_ID'),
+        'pilieciu_laiskai' => [
+            'registro_id' => env('DVS_KONTORA_PILIECIAI_REGISTRO_ID'),
+            'registro_kodas' => env('DVS_KONTORA_PILIECIAI_REGISTRO_KODAS'),
+            'nukreipto_id' => env('DVS_KONTORA_PILIECIAI_NUKREIPTO_ID'),
+        ],
+    ],
+
 ];

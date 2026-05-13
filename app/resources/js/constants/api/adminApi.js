@@ -4,6 +4,7 @@ export const adminApi = {
     institutions: `${BASE}/institutions`,
     institutionsList: `${BASE}/institutions/list`,
     institution: (id) => `${BASE}/institutions/${id}`,
+    institutionGisMetadata: (id) => `${BASE}/institutions/${id}/gis-metadata`,
     emailNotifications: `${BASE}/email-notifications`,
     emailNotificationPreviewBody: `${BASE}/email-notifications/preview-body`,
     emailNotification: (id) => `${BASE}/email-notifications/${id}`,
