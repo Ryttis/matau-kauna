@@ -468,7 +468,15 @@ class AuthApiController extends Controller
 
     public function logout(Request $request): JsonResponse
     {
-        $request->user()->currentAccessToken()?->delete();
+        $user = $request->user();
+        $user->forceFill([
+            'push_device_id' => null,
+            'push_fcm_token' => null,
+            'push_platform' => null,
+            'push_app_version' => null,
+            'push_registered_at' => null,
+        ])->save();
+        $user->currentAccessToken()?->delete();
 
         return response()->json(['ok' => true]);
     }
