@@ -18,7 +18,6 @@ const form = ref({
     require_lowercase: true,
     require_uppercase: true,
     require_special: true,
-    two_factor_can_enable: true,
     prohibit_name_email: true,
 })
 
@@ -94,12 +93,6 @@ onMounted(load)
                 <label class="checkbox-row">
                     <AppCheckbox v-model="form.prohibit_name_email" />
                     <span>Drausti slaptažodyje naudoti vardą, pavardę ar el. pašto adresą</span>
-                </label>
-            </div>
-            <div class="form-block">
-                <label class="checkbox-row">
-                    <AppCheckbox v-model="form.two_factor_can_enable" />
-                    <span>Leisti įjungti dviejų faktorių autentifikavimą</span>
                 </label>
             </div>
             <AppButton text="Išsaugoti" variant="primary" as-button :disabled="saving" @click="save" />
