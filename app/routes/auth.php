@@ -70,6 +70,9 @@ Route::get('email/verify/{id}/{hash}', VerifyEmailController::class)
     ->middleware(['signed', 'throttle:6,1'])
     ->name('verification.verify');
 
+Route::get('email/verified-success', fn () => Inertia::render('Auth/VerifyEmailSuccess'))
+    ->name('verification.success');
+
 Route::middleware('auth')->group(function () {
     Route::get('verify-email', fn () => Inertia::render('Auth/VerifyEmail'))->name('verification.notice');
 

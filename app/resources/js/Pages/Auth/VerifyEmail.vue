@@ -3,7 +3,7 @@ import AppButton from '@/Components/App/AppButton.vue';
 import SuccessModal from '@/Components/App/SuccessModal.vue';
 import GuestHeader from '@/Components/Landing/GuestHeader.vue';
 import LandingFooter from '@/Components/Landing/LandingFooter.vue';
-import { Head, useForm, usePage } from '@inertiajs/vue3';
+import { Head, router, useForm, usePage } from '@inertiajs/vue3';
 import { computed, nextTick, onBeforeUnmount, onMounted, ref } from 'vue';
 
 const page = usePage();
@@ -15,6 +15,10 @@ const COOLDOWN_SECONDS = 120;
 const COOLDOWN_STORAGE_KEY = 'verify-email-resend-next-at';
 const remainingSeconds = ref(0);
 let cooldownIntervalId = null;
+
+const VERIFY_POLL_INTERVAL_MS = 5000;
+let verifyPollIntervalId = null;
+let verifyRedirected = false;
 
 const form = useForm({});
 
@@ -95,6 +99,34 @@ function resend() {
     });
 }
 
+function stopVerifyPoll() {
+    if (verifyPollIntervalId !== null) {
+        window.clearInterval(verifyPollIntervalId);
+        verifyPollIntervalId = null;
+    }
+}
+
+function checkVerified() {
+    if (verifyRedirected) return;
+    if (page.props.auth?.user?.email_verified_at) {
+        verifyRedirected = true;
+        stopVerifyPoll();
+        router.visit(route('dashboard'));
+    }
+}
+
+function startVerifyPoll() {
+    stopVerifyPoll();
+    verifyPollIntervalId = window.setInterval(() => {
+        router.reload({
+            only: ['auth'],
+            preserveScroll: true,
+            preserveState: true,
+            onSuccess: checkVerified,
+        });
+    }, VERIFY_POLL_INTERVAL_MS);
+}
+
 onMounted(() => {
     const cooldown = getRemainingCooldown();
     if (cooldown > 0) {
@@ -105,6 +137,9 @@ onMounted(() => {
     if (typeof initial === 'string' && initial !== '') {
         openSuccessModal(initial);
     }
+
+    checkVerified();
+    startVerifyPoll();
 });
 
 onBeforeUnmount(() => {
@@ -112,6 +147,7 @@ onBeforeUnmount(() => {
         window.clearInterval(cooldownIntervalId);
         cooldownIntervalId = null;
     }
+    stopVerifyPoll();
 });
 </script>
 
