@@ -13,7 +13,7 @@ use App\Support\EmailBody;
 
 class ProblemReporterStatusNotifier
 {
-    public const PUSH_ON_STATUS_CHANGE_ENABLED = true;
+    public const PUSH_ON_STATUS_CHANGE_ENABLED = false;
 
     private const CTA_LABEL = 'Peržiūrėti problemą';
 
@@ -108,7 +108,7 @@ class ProblemReporterStatusNotifier
             ->whereIn('id', $groupIds)
             ->whereNotNull('reported_by_user_id')
             ->pluck('reported_by_user_id')
-            ->map(fn ($id) => (int) $id)
+            ->map(fn($id) => (int) $id)
             ->unique()
             ->filter();
 
@@ -117,9 +117,9 @@ class ProblemReporterStatusNotifier
         $watcherIds = ProblemWatch::query()
             ->whereIn('problem_id', $groupIds)
             ->pluck('user_id')
-            ->map(fn ($id) => (int) $id)
+            ->map(fn($id) => (int) $id)
             ->unique()
-            ->reject(fn ($id) => isset($reporterIdSet[$id]));
+            ->reject(fn($id) => isset($reporterIdSet[$id]));
 
         $this->sendToUsers($reporterIds, 'reporter_email_own_problems', $subject, $body, $url);
         $this->sendToUsers($watcherIds, 'reporter_email_watched_problems', $subject, $body, $url);
@@ -154,7 +154,7 @@ class ProblemReporterStatusNotifier
             ->whereIn('id', $groupIds)
             ->whereNotNull('reported_by_user_id')
             ->pluck('reported_by_user_id')
-            ->map(fn ($id) => (int) $id)
+            ->map(fn($id) => (int) $id)
             ->unique()
             ->filter();
 
@@ -163,9 +163,9 @@ class ProblemReporterStatusNotifier
         $watcherIds = ProblemWatch::query()
             ->whereIn('problem_id', $groupIds)
             ->pluck('user_id')
-            ->map(fn ($id) => (int) $id)
+            ->map(fn($id) => (int) $id)
             ->unique()
-            ->reject(fn ($id) => isset($reporterIdSet[$id]));
+            ->reject(fn($id) => isset($reporterIdSet[$id]));
 
         $title = 'Pranešimo būsena pasikeitė';
         $body = sprintf(
