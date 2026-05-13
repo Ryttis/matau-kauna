@@ -20,6 +20,7 @@ class UpdateInstitutionUserRequest extends FormRequest
 
         return [
             'name' => ['required', 'string', 'max:255'],
+            'surname' => ['nullable', 'string', 'max:255'],
             'email' => [
                 'required',
                 'email',
@@ -33,7 +34,14 @@ class UpdateInstitutionUserRequest extends FormRequest
 
     public function messages(): array
     {
-        return PasswordPolicy::get()->validationMessagesForPasswordField();
+        return array_merge(
+            PasswordPolicy::get()->validationMessagesForPasswordField(),
+            [
+                'name.required' => 'Vardas privalomas.',
+                'name.max' => 'Vardas per ilgas.',
+                'surname.max' => 'Pavardė per ilga.',
+            ]
+        );
     }
 
     public function withValidator($validator): void

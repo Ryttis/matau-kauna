@@ -18,6 +18,7 @@ class CreateUserRequest extends FormRequest
 
         return [
             'name' => ['required', 'string', 'max:255'],
+            'surname' => ['nullable', 'string', 'max:255'],
             'email' => ['required', 'email', 'max:255', 'unique:users,email'],
             'password' => $policy->rules(),
             'password_confirmation' => ['required_with:password', 'same:password'],
@@ -35,6 +36,7 @@ class CreateUserRequest extends FormRequest
             [
                 'name.required' => 'Vardas privalomas.',
                 'name.max' => 'Vardas per ilgas.',
+                'surname.max' => 'Pavardė per ilga.',
                 'email.required' => 'El. paštas privalomas.',
                 'email.email' => 'Neteisingas el. pašto formatas.',
                 'email.unique' => 'Toks el. paštas jau naudojamas.',

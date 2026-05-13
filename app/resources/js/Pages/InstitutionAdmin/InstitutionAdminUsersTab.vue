@@ -57,6 +57,7 @@ const resetTwoFactorBusyUserId = ref(null);
 const editForm = ref({
     id: null,
     name: "",
+    surname: "",
     email: "",
     password: "",
     password_confirmation: "",
@@ -146,6 +147,7 @@ function openEdit(u) {
     editForm.value = {
         id: u.id,
         name: u.name ?? "",
+        surname: u.surname ?? "",
         email: u.email ?? "",
         password: "",
         password_confirmation: "",
@@ -199,6 +201,7 @@ async function saveEdit() {
         const params = institutionAdminParams();
         const payload = {
             name: f.name,
+            surname: f.surname || null,
             email: f.email,
         };
         if (f.password) {
@@ -433,7 +436,16 @@ async function saveEdit() {
                     v-model="editForm.name"
                     class="input"
                     type="text"
-                    autocomplete="name"
+                    autocomplete="given-name"
+                />
+            </label>
+            <label class="field">
+                <span>Pavardė</span>
+                <input
+                    v-model="editForm.surname"
+                    class="input"
+                    type="text"
+                    autocomplete="family-name"
                 />
             </label>
             <label class="field">

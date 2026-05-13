@@ -25,7 +25,7 @@ class RbacService
             ],
             [
                 'name' => $user->name ?? '',
-                'surname' => '',
+                'surname' => $user->surname ?? '',
             ]
         );
 
@@ -34,6 +34,7 @@ class RbacService
         }
 
         $employee->name = $user->name ?? $employee->name;
+        $employee->surname = $user->surname ?? $employee->surname;
         $employee->save();
     }
 
@@ -41,6 +42,7 @@ class RbacService
     {
         $user = User::create([
             'name' => $data['name'],
+            'surname' => $data['surname'] ?? null,
             'email' => $data['email'],
             'password' => Hash::make($data['password']),
             'institution_id' => $data['institution_id'] ?? null,
@@ -64,6 +66,9 @@ class RbacService
     public function updateUser(User $user, array $data): void
     {
         $user->name = $data['name'];
+        if (array_key_exists('surname', $data)) {
+            $user->surname = $data['surname'];
+        }
         $user->email = $data['email'];
         $user->institution_id = array_key_exists('institution_id', $data) ? $data['institution_id'] : $user->institution_id;
 

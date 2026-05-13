@@ -27,23 +27,23 @@ const assignRolesError = ref('')
 const createError = ref('')
 const createErrors = ref([])
 
-const createForm = ref({ name: '', email: '', password: '', password_confirmation: '', institution_id: '', role_id: '' })
+const createForm = ref({ name: '', surname: '', email: '', password: '', password_confirmation: '', institution_id: '', role_id: '' })
 const inviteForm = ref({ email: '', institution_id: '', role_id: '' })
-const editForm = ref({ id: null, name: '', email: '', password: '', institution_id: '' })
+const editForm = ref({ id: null, name: '', surname: '', email: '', password: '', institution_id: '' })
 const deleteTarget = ref({ id: null, name: '', email: '' })
 
 const selectedUser = ref(null)
 const selectedRoleIds = ref([])
 
 const openCreate = () => {
-    createForm.value = { name: '', email: '', password: '', password_confirmation: '', institution_id: '', role_id: '' }
+    createForm.value = { name: '', surname: '', email: '', password: '', password_confirmation: '', institution_id: '', role_id: '' }
     createError.value = ''
     createErrors.value = []
     isCreateOpen.value = true
 }
 
 const openEdit = (u) => {
-    editForm.value = { id: u.id, name: u.name, email: u.email, password: '', password_confirmation: '', institution_id: u.institution_id ?? '' }
+    editForm.value = { id: u.id, name: u.name, surname: u.surname ?? '', email: u.email, password: '', password_confirmation: '', institution_id: u.institution_id ?? '' }
     isEditOpen.value = true
 }
 
@@ -144,6 +144,7 @@ const createUser = async () => {
     try {
         await axios.post(adminRbacApi.users, {
             name: createForm.value.name,
+            surname: createForm.value.surname || null,
             email: createForm.value.email,
             password: createForm.value.password,
             password_confirmation: createForm.value.password_confirmation,
@@ -173,6 +174,7 @@ const updateUser = async () => {
     try {
         const payload = {
             name: editForm.value.name,
+            surname: editForm.value.surname || null,
             email: editForm.value.email,
             institution_id: editForm.value.institution_id || null
         }
@@ -287,6 +289,11 @@ const saveUserRoles = async () => {
             </label>
 
             <label class="field">
+                <span>Pavardė</span>
+                <input class="input" v-model="createForm.surname" />
+            </label>
+
+            <label class="field">
                 <span>Paštas</span>
                 <input class="input" v-model="createForm.email" />
             </label>
@@ -363,6 +370,11 @@ const saveUserRoles = async () => {
             <label class="field">
                 <span>Vardas</span>
                 <input class="input" v-model="editForm.name" />
+            </label>
+
+            <label class="field">
+                <span>Pavardė</span>
+                <input class="input" v-model="editForm.surname" />
             </label>
 
             <label class="field">
