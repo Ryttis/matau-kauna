@@ -196,6 +196,7 @@ class AuthApiController extends Controller
             'email' => $validated['email'],
             'phone' => $validated['phone'] ?? null,
             'password' => $validated['password'],
+            'terms_accepted_at' => now(),
         ]);
 
         $reporterRole = \App\Models\UserRole::firstOrCreate(
@@ -418,6 +419,24 @@ class AuthApiController extends Controller
         $request->user()->currentAccessToken()?->delete();
 
         return response()->json(['ok' => true]);
+    }
+
+    public function resendEmailVerification(Request $request): JsonResponse
+    {
+        $user = $request->user();
+        if ($user->hasVerifiedEmail()) {
+            return response()->json([
+                'ok' => true,
+                'already_verified' => true,
+                'message' => 'El. paštas jau patvirtintas.',
+            ]);
+        }
+        $user->sendEmailVerificationNotification();
+
+        return response()->json([
+            'ok' => true,
+            'message' => 'Patvirtinimo nuoroda išsiųsta. Patikrinkite el. paštą.',
+        ]);
     }
 
     public function forgotPassword(Request $request): JsonResponse

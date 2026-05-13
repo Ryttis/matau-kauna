@@ -28,14 +28,28 @@ const twoFactorGlobalRequired = ref(true)
 const roles = ref([])
 const institutions = ref([])
 const permissions = ref([])
+const userFilters = ref({ search: '', role_id: '', institution_id: '' })
 
 const clearError = () => {
     errorMessage.value = ''
 }
 
 const loadUsers = async () => {
-    const { data } = await axios.get(adminRbacApi.users)
+    const params = {}
+    if (userFilters.value.search) params.search = userFilters.value.search
+    if (userFilters.value.role_id) params.role_id = userFilters.value.role_id
+    if (userFilters.value.institution_id) params.institution_id = userFilters.value.institution_id
+    const { data } = await axios.get(adminRbacApi.users, { params })
     usersPage.value = data
+}
+
+const onUserFilter = async (next) => {
+    userFilters.value = next
+    try {
+        await loadUsers()
+    } catch {
+        errorMessage.value = 'Nepavyko užkrauti duomenų.'
+    }
 }
 
 const loadUsers2fa = async () => {
@@ -144,6 +158,7 @@ onMounted(async () => {
                 :institutions="institutions"
                 @set-saving="saving = $event"
                 @refresh="setTab('users')"
+                @filter="onUserFilter"
                 @show-success="showWithMessage($event)"
             />
 

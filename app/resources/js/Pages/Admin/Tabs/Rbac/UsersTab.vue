@@ -1,5 +1,5 @@
 <script setup>
-import { computed, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 import axios from 'axios'
 import BaseModal from '@/Components/App/BaseModal.vue'
 import { adminRbacApi } from '@/constants/api/adminRbacApi'
@@ -15,7 +15,29 @@ const props = defineProps({
     saving: Boolean
 })
 
-const emit = defineEmits(['refresh', 'set-saving', 'show-success'])
+const emit = defineEmits(['refresh', 'set-saving', 'show-success', 'filter'])
+
+const filters = ref({ search: '', role_id: '', institution_id: '' })
+
+let searchDebounce = null
+watch(() => filters.value.search, () => {
+    clearTimeout(searchDebounce)
+    searchDebounce = setTimeout(() => {
+        emit('filter', { ...filters.value })
+    }, 300)
+})
+
+watch([() => filters.value.role_id, () => filters.value.institution_id], () => {
+    emit('filter', { ...filters.value })
+})
+
+const hasActiveFilters = computed(
+    () => !!(filters.value.search || filters.value.role_id || filters.value.institution_id)
+)
+
+const clearFilters = () => {
+    filters.value = { search: '', role_id: '', institution_id: '' }
+}
 
 const isCreateOpen = ref(false)
 const isEditOpen = ref(false)
@@ -26,6 +48,8 @@ const inviteError = ref('')
 const assignRolesError = ref('')
 const createError = ref('')
 const createErrors = ref([])
+const editError = ref('')
+const editErrors = ref([])
 
 const createForm = ref({ name: '', surname: '', email: '', password: '', password_confirmation: '', institution_id: '', role_id: '' })
 const inviteForm = ref({ email: '', institution_id: '', role_id: '' })
@@ -44,6 +68,8 @@ const openCreate = () => {
 
 const openEdit = (u) => {
     editForm.value = { id: u.id, name: u.name, surname: u.surname ?? '', email: u.email, password: '', password_confirmation: '', institution_id: u.institution_id ?? '' }
+    editError.value = ''
+    editErrors.value = []
     isEditOpen.value = true
 }
 
@@ -170,6 +196,8 @@ const createUser = async () => {
 }
 
 const updateUser = async () => {
+    editError.value = ''
+    editErrors.value = []
     emit('set-saving', true)
     try {
         const payload = {
@@ -186,6 +214,16 @@ const updateUser = async () => {
         isEditOpen.value = false
         emit('show-success', 'Naudotojas atnaujintas.')
         emit('refresh')
+    } catch (e) {
+        const errors = e.response?.data?.errors
+        if (errors && typeof errors === 'object') {
+            const list = [...new Set(Object.values(errors).flat().filter(Boolean))]
+            editErrors.value = list.length ? list : [e.response?.data?.message || 'Nepavyko atnaujinti naudotojo.']
+            editError.value = editErrors.value.length === 1 ? editErrors.value[0] : ''
+        } else {
+            editError.value = e.response?.data?.message || 'Nepavyko atnaujinti naudotojo.'
+            editErrors.value = editError.value ? [editError.value] : []
+        }
     } finally {
         emit('set-saving', false)
     }
@@ -246,6 +284,27 @@ const saveUserRoles = async () => {
             </div>
         </div>
 
+        <div class="filters">
+            <input
+                v-model="filters.search"
+                type="text"
+                class="input filter-search"
+                placeholder="Vardas, pavardė arba el. paštas"
+            />
+            <select v-model="filters.role_id" class="input filter-select">
+                <option value="">Visos rolės</option>
+                <option v-for="r in (roles ?? [])" :key="r.id" :value="r.id">{{ r.name }}</option>
+            </select>
+            <select v-model="filters.institution_id" class="input filter-select">
+                <option value="">Visos įstaigos</option>
+                <option value="none">Be įstaigos</option>
+                <option v-for="i in (institutions ?? [])" :key="i.id" :value="i.id">{{ i.name }}</option>
+            </select>
+            <button v-if="hasActiveFilters" type="button" class="link-btn" @click="clearFilters">
+                Išvalyti filtrus
+            </button>
+        </div>
+
         <table class="table" v-if="usersPage?.data?.length">
             <thead>
                 <tr>
@@ -274,7 +333,7 @@ const saveUserRoles = async () => {
             </tbody>
         </table>
 
-        <div v-else>Nėra naudotojų.</div>
+        <div v-else>{{ hasActiveFilters ? 'Pagal pasirinktus filtrus naudotojų nerasta.' : 'Nėra naudotojų.' }}</div>
 
         <BaseModal :open="isCreateOpen" title="Sukurti naudotoją" @close="isCreateOpen = false">
             <div v-if="createErrors.length" class="error">
@@ -367,6 +426,12 @@ const saveUserRoles = async () => {
         </BaseModal>
 
         <BaseModal :open="isEditOpen" title="Redaguoti naudotoją" @close="isEditOpen = false">
+            <div v-if="editErrors.length" class="error">
+                <ul v-if="editErrors.length > 1" class="error-list">
+                    <li v-for="(err, i) in editErrors" :key="i">{{ err }}</li>
+                </ul>
+                <span v-else>{{ editErrors[0] }}</span>
+            </div>
             <label class="field">
                 <span>Vardas</span>
                 <input class="input" v-model="editForm.name" />
@@ -459,3 +524,23 @@ const saveUserRoles = async () => {
         />
     </div>
 </template>
+
+<style scoped>
+.filters {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 14px;
+}
+
+.filter-search {
+    flex: 1 1 240px;
+    min-width: 200px;
+}
+
+.filter-select {
+    flex: 0 1 200px;
+    min-width: 160px;
+}
+</style>

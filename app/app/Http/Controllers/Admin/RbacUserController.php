@@ -22,14 +22,40 @@ class RbacUserController extends Controller
         private TwoFactorService $twoFactorService,
     ) {}
 
-    public function users()
+    public function users(Request $request)
     {
-        return User::query()
+        $query = User::query()
             ->notArchived()
             ->select(['id', 'name', 'surname', 'email', 'institution_id', 'two_factor_enabled'])
-            ->with(['roles:id,role,name', 'institution:id,name'])
+            ->with(['roles:id,role,name', 'institution:id,name']);
+
+        $search = trim((string) $request->query('search', ''));
+        if ($search !== '') {
+            $like = '%'.str_replace(['\\', '%', '_'], ['\\\\', '\\%', '\\_'], $search).'%';
+            $query->where(function ($q) use ($like) {
+                $q->where('name', 'like', $like)
+                    ->orWhere('surname', 'like', $like)
+                    ->orWhere('email', 'like', $like)
+                    ->orWhereRaw("CONCAT_WS(' ', name, surname) like ?", [$like]);
+            });
+        }
+
+        $roleId = $request->query('role_id');
+        if ($roleId !== null && $roleId !== '') {
+            $query->whereHas('roles', fn ($q) => $q->where('user_role.id', $roleId));
+        }
+
+        $institutionId = $request->query('institution_id');
+        if ($institutionId === 'none') {
+            $query->whereNull('institution_id');
+        } elseif ($institutionId !== null && $institutionId !== '') {
+            $query->where('institution_id', $institutionId);
+        }
+
+        return $query
             ->orderBy('id', 'desc')
-            ->paginate(20);
+            ->paginate(20)
+            ->withQueryString();
     }
 
     public function usersTwoFactor()
