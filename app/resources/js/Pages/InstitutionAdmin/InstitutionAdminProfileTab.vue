@@ -20,6 +20,10 @@ const GIS_FIELD_MAPPING_DEFAULTS = {
     reporter: 'pranese',
     internal_number: '',
     description: '',
+    reporter_value_mode: 'full_name',
+    reporter_default_value: '',
+    category_value_mapping: {},
+    status_value_mapping: {},
 }
 
 const GIS_FIELD_MAPPING_ROWS = [
@@ -34,7 +38,7 @@ const GIS_FIELD_MAPPING_ROWS = [
 ]
 
 function defaultFieldMapping() {
-    return { ...GIS_FIELD_MAPPING_DEFAULTS }
+    return { ...GIS_FIELD_MAPPING_DEFAULTS, category_value_mapping: {}, status_value_mapping: {} }
 }
 
 const props = defineProps({
@@ -71,6 +75,50 @@ const settingsForm = useForm({
 const adminSaving = ref(false)
 const adminError = ref('')
 
+function normalizeArcGisServiceBaseUrl(url) {
+    const value = String(url ?? '').trim().replace(/[?#].*$/, '').replace(/\/+$/, '')
+    return value.replace(/\/FeatureServer(?:\/.*)?$/i, '').replace(/\/+$/, '')
+}
+
+function serviceBaseUrlFromPayload(source) {
+    return source?.service_base_url
+        || normalizeArcGisServiceBaseUrl(source?.feature_server_url || source?.metadata_url || '')
+}
+
+function serviceLayerIdFromPayload(source) {
+    if (source?.service_layer_id !== undefined && source?.service_layer_id !== null && source.service_layer_id !== '') {
+        return String(source.service_layer_id)
+    }
+    if (source?.metadata_layer_id !== undefined && source?.metadata_layer_id !== null && source.metadata_layer_id !== '') {
+        return String(source.metadata_layer_id)
+    }
+    const match = String(source?.feature_server_url ?? '').match(/\/FeatureServer\/(\d+)(?:\/|$|[?#])/i)
+    return match?.[1] ?? ''
+}
+
+function derivedGisUrls(gis) {
+    const rawBaseUrl = gis?.service_base_url || ''
+    const baseUrl = normalizeArcGisServiceBaseUrl(rawBaseUrl)
+    const pastedLayer = String(rawBaseUrl).match(/\/FeatureServer\/(\d+)(?:\/|$|[?#])/i)?.[1] ?? ''
+    const layerId = String(gis?.service_layer_id ?? pastedLayer).trim()
+    if (!baseUrl || !layerId) {
+        return {
+            feature_server_url: gis?.feature_server_url || null,
+            attachment_url: gis?.attachment_url || null,
+            metadata_url: gis?.metadata_url || null,
+            metadata_layer_id: gis?.metadata_layer_id || null,
+        }
+    }
+
+    const featureServerUrl = `${baseUrl}/FeatureServer/${layerId}`
+    return {
+        feature_server_url: featureServerUrl,
+        attachment_url: featureServerUrl,
+        metadata_url: `${baseUrl}/FeatureServer/queryDomains`,
+        metadata_layer_id: layerId,
+    }
+}
+
 function gisFromPayload(source) {
     const base = {
         enabled: false,
@@ -79,8 +127,12 @@ function gisFromPayload(source) {
         technical_password: '',
         client_type: 'referer',
         token_expiration_minutes: 60,
+        service_base_url: '',
+        service_layer_id: '',
         feature_server_url: '',
         attachment_url: '',
+        metadata_url: '',
+        metadata_layer_id: '',
         wkid: 3346,
         use_field_mapping: false,
         field_mapping: defaultFieldMapping(),
@@ -98,8 +150,12 @@ function gisFromPayload(source) {
         has_technical_password: Boolean(source.has_technical_password),
         client_type: source.client_type || 'referer',
         token_expiration_minutes: source.token_expiration_minutes ?? 60,
+        service_base_url: serviceBaseUrlFromPayload(source),
+        service_layer_id: serviceLayerIdFromPayload(source),
         feature_server_url: source.feature_server_url ?? '',
         attachment_url: source.attachment_url ?? '',
+        metadata_url: source.metadata_url ?? '',
+        metadata_layer_id: source.metadata_layer_id ?? '',
         wkid: source.wkid ?? 3346,
         use_field_mapping: Boolean(source.use_field_mapping),
         field_mapping: { ...defaultFieldMapping(), ...(source.field_mapping ?? {}) },
@@ -109,14 +165,18 @@ function gisFromPayload(source) {
 }
 
 function gisSubmitPayload(gis) {
+    const derivedUrls = derivedGisUrls(gis)
     const payload = {
         enabled: Boolean(gis?.enabled),
         generate_token_url: gis?.generate_token_url || null,
         technical_username: gis?.technical_username || null,
         client_type: gis?.client_type || null,
         token_expiration_minutes: gis?.token_expiration_minutes ? Number(gis.token_expiration_minutes) : null,
-        feature_server_url: gis?.feature_server_url || null,
-        attachment_url: gis?.attachment_url || null,
+        service_base_url: normalizeArcGisServiceBaseUrl(gis?.service_base_url || '') || null,
+        service_layer_id: gis?.service_layer_id !== '' && gis?.service_layer_id !== null && gis?.service_layer_id !== undefined
+            ? Number(gis.service_layer_id)
+            : null,
+        ...derivedUrls,
         wkid: gis?.wkid ? Number(gis.wkid) : 3346,
         use_field_mapping: Boolean(gis?.use_field_mapping),
     }
@@ -347,8 +407,17 @@ async function submitAdmin() {
                     />
                     <AppInput v-model="adminForm.gis.client_type" label="Kliento tipas" />
                     <AppInput v-model="adminForm.gis.token_expiration_minutes" type="number" label="Token galiojimas (min.)" />
-                    <AppInput v-model="adminForm.gis.feature_server_url" label="FeatureServer Url" />
-                    <AppInput v-model="adminForm.gis.attachment_url" label="AttachmentUrl" />
+                    <AppInput
+                        v-model="adminForm.gis.service_base_url"
+                        label="ArcGIS paslaugos URL"
+                        placeholder="https://digital.kaunas.lt/arcgis/rest/services/Testavimai/Dispeceris_update_Kaunas_tvarko"
+                    />
+                    <AppInput
+                        v-model="adminForm.gis.service_layer_id"
+                        type="number"
+                        label="Sluoksnio ID"
+                        placeholder="1"
+                    />
                     <label class="gis-select-row">
                         <span>Koordinačių sistema (WKID)</span>
                         <select v-model.number="adminForm.gis.wkid" class="gis-select">

@@ -7,6 +7,7 @@ use App\Http\Controllers\Admin\InvitationController as AdminInvitationController
 use App\Http\Controllers\Admin\RbacPermissionController;
 use App\Http\Controllers\Admin\RbacRoleController;
 use App\Http\Controllers\Admin\RbacUserController;
+use App\Http\Controllers\Api\InternalProblemApiController;
 use App\Http\Controllers\AutomationAssignmentRuleController;
 use App\Http\Controllers\AutomationController;
 use App\Http\Controllers\AutomationPublishRuleController;
@@ -94,6 +95,8 @@ Route::middleware(['auth', 'verified', 'reporter.terms'])->group(function () {
         Route::patch('/problems/{problem}/unmerge', [ProblemMergeController::class, 'unmerge'])->name('problems.unmerge');
         Route::get('/problems/{problem}', [ProblemController::class, 'show'])->name('problems.show');
         Route::put('/problems/{problem}', [ProblemController::class, 'update'])->name('problems.update');
+        Route::post('/problems/{problem}/attachments', [InternalProblemApiController::class, 'storeAttachments'])->name('problems.attachments.store');
+        Route::delete('/problems/{problem}/attachments/{attachment}', [ProblemController::class, 'destroyAttachment'])->name('problems.attachments.destroy');
         Route::delete('/problems/{problem}', [ProblemController::class, 'destroy'])->name('problems.destroy');
         Route::patch('/problems/{problem}/status', [ProblemController::class, 'updateStatus'])->name('problems.updateStatus');
         Route::post('/problems/{problem}/review-progress', [ProblemReviewController::class, 'storeReviewProgress'])->name('problems.reviewProgress.store');

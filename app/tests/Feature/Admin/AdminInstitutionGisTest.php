@@ -40,8 +40,8 @@ class AdminInstitutionGisTest extends TestCase
                     'technical_password' => 'arcgis-secret',
                     'client_type' => 'referer',
                     'token_expiration_minutes' => 60,
-                    'feature_server_url' => 'https://example.test/FeatureServer/0',
-                    'attachment_url' => 'https://example.test/FeatureServer/0',
+                    'service_base_url' => 'https://example.test',
+                    'service_layer_id' => 0,
                     'wkid' => 3346,
                 ],
             ]);
@@ -59,6 +59,13 @@ class AdminInstitutionGisTest extends TestCase
 
         $config = InstitutionGisConfig::where('institution_id', $institution->id)->firstOrFail();
         $this->assertSame('arcgis-secret', $config->technical_password);
+        $this->assertSame('https://example.test/FeatureServer/0', $config->feature_server_url);
+        $this->assertSame('https://example.test/FeatureServer/0', $config->attachment_url);
+        $this->assertSame('https://example.test/FeatureServer/queryDomains', $config->metadata_url);
+        $this->assertSame('0', $config->metadata_layer_id);
+        $response->assertJsonPath('gis.service_base_url', 'https://example.test');
+        $response->assertJsonPath('gis.service_layer_id', '0');
+        $response->assertJsonPath('gis.feature_server_url', 'https://example.test/FeatureServer/0');
     }
 
     public function test_admin_edits_institution_and_blank_password_preserves_existing(): void
@@ -156,10 +163,8 @@ class AdminInstitutionGisTest extends TestCase
                     'technical_password' => '',
                     'client_type' => 'referer',
                     'token_expiration_minutes' => 60,
-                    'feature_server_url' => 'https://example.test/FeatureServer/0',
-                    'attachment_url' => 'https://example.test/FeatureServer/0',
-                    'metadata_url' => 'https://example.test/FeatureServer/queryDomains',
-                    'metadata_layer_id' => '0',
+                    'service_base_url' => 'https://example.test/',
+                    'service_layer_id' => 0,
                     'wkid' => 3346,
                     'use_field_mapping' => true,
                     'field_mapping' => [
@@ -173,6 +178,12 @@ class AdminInstitutionGisTest extends TestCase
                         'reporter_default_value' => 'Dispečeris',
                         'internal_number' => 'gis_number',
                         'description' => 'gis_description',
+                        'status_value_mapping' => [
+                            'nauja' => [
+                                'code' => 'Registruojama',
+                                'name' => 'Registruojama',
+                            ],
+                        ],
                         'category_value_mapping' => [
                             (string) $nature->id => [
                                 'code' => 'Neveikia šviestuvas',
@@ -190,10 +201,13 @@ class AdminInstitutionGisTest extends TestCase
         $this->assertSame('gis_status', $config->field_mapping['status']);
         $this->assertSame('gis_deadline', $config->field_mapping['completion_deadline']);
         $this->assertSame('gis_description', $config->field_mapping['description']);
+        $this->assertSame('https://example.test/FeatureServer/0', $config->feature_server_url);
+        $this->assertSame('https://example.test/FeatureServer/0', $config->attachment_url);
         $this->assertSame('custom', $config->field_mapping['reporter_value_mode']);
         $this->assertSame('Dispečeris', $config->field_mapping['reporter_default_value']);
         $this->assertSame('https://example.test/FeatureServer/queryDomains', $config->metadata_url);
         $this->assertSame('0', $config->metadata_layer_id);
+        $this->assertSame('Registruojama', $config->field_mapping['status_value_mapping']['nauja']['code']);
         $this->assertSame(
             'Neveikia šviestuvas',
             $config->field_mapping['category_value_mapping'][(string) $nature->id]['code']
@@ -202,6 +216,47 @@ class AdminInstitutionGisTest extends TestCase
             'gis.field_mapping.category_value_mapping.'.$nature->id.'.code',
             'Neveikia šviestuvas'
         );
+        $response->assertJsonPath('gis.field_mapping.status_value_mapping.nauja.code', 'Registruojama');
+        $response->assertJsonPath('gis.service_base_url', 'https://example.test');
+        $response->assertJsonPath('gis.service_layer_id', '0');
+    }
+
+    public function test_admin_normalizes_pasted_feature_server_url_from_service_base_field(): void
+    {
+        $admin = $this->createSystemAdmin();
+        $institution = Institution::create([
+            'name' => 'Test',
+            'contact_email' => 'test@example.com',
+        ]);
+
+        $response = $this
+            ->actingAs($admin)
+            ->putJson('/admin/institutions/'.$institution->id, [
+                'name' => 'Test',
+                'contact_email' => 'test@example.com',
+                'is_active' => true,
+                'is_email_only' => false,
+                'gis' => [
+                    'enabled' => true,
+                    'generate_token_url' => 'https://digital.kaunas.lt/portal/sharing/rest/generateToken',
+                    'technical_username' => 'u',
+                    'technical_password' => 'secret',
+                    'client_type' => 'referer',
+                    'token_expiration_minutes' => 60,
+                    'service_base_url' => 'https://example.test/arcgis/rest/services/Test/Service/FeatureServer/1?f=json',
+                    'wkid' => 3346,
+                ],
+            ]);
+
+        $response->assertSuccessful();
+
+        $config = InstitutionGisConfig::where('institution_id', $institution->id)->firstOrFail();
+        $this->assertSame('https://example.test/arcgis/rest/services/Test/Service/FeatureServer/1', $config->feature_server_url);
+        $this->assertSame($config->feature_server_url, $config->attachment_url);
+        $this->assertSame('https://example.test/arcgis/rest/services/Test/Service/FeatureServer/queryDomains', $config->metadata_url);
+        $this->assertSame('1', $config->metadata_layer_id);
+        $response->assertJsonPath('gis.service_base_url', 'https://example.test/arcgis/rest/services/Test/Service');
+        $response->assertJsonPath('gis.service_layer_id', '1');
     }
 
     public function test_admin_can_fetch_gis_metadata_fields_and_domain_values(): void

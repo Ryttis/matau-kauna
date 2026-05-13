@@ -73,8 +73,8 @@ class InstitutionGisSettingsTest extends TestCase
                 'gis.technical_username',
                 'gis.client_type',
                 'gis.token_expiration_minutes',
-                'gis.feature_server_url',
-                'gis.attachment_url',
+                'gis.service_base_url',
+                'gis.service_layer_id',
             ]);
 
         $this->assertDatabaseMissing('institution_gis_configs', [
@@ -127,6 +127,41 @@ class InstitutionGisSettingsTest extends TestCase
 
         $this->assertSame('secret-1', $config->technical_password);
         $this->assertSame(120, $config->token_expiration_minutes);
+    }
+
+    public function test_service_base_url_and_layer_id_are_derived_for_institution_settings(): void
+    {
+        $institution = Institution::create([
+            'name' => 'Test Institution',
+        ]);
+        $user = User::factory()->create([
+            'institution_id' => $institution->id,
+        ]);
+
+        $response = $this
+            ->actingAs($user)
+            ->patch(route('settings.institution'), [
+                'name' => 'Updated Institution',
+                'gis' => [
+                    'enabled' => true,
+                    'generate_token_url' => 'https://digital.kaunas.lt/portal/sharing/rest/generateToken',
+                    'technical_username' => 'arcgis-user',
+                    'technical_password' => 'secret-1',
+                    'client_type' => 'referer',
+                    'token_expiration_minutes' => 60,
+                    'service_base_url' => 'https://example.test/arcgis/rest/services/Test/Service/',
+                    'service_layer_id' => 1,
+                    'wkid' => 3346,
+                ],
+            ]);
+
+        $response->assertSessionHasNoErrors()->assertRedirect();
+
+        $config = InstitutionGisConfig::where('institution_id', $institution->id)->firstOrFail();
+        $this->assertSame('https://example.test/arcgis/rest/services/Test/Service/FeatureServer/1', $config->feature_server_url);
+        $this->assertSame($config->feature_server_url, $config->attachment_url);
+        $this->assertSame('https://example.test/arcgis/rest/services/Test/Service/FeatureServer/queryDomains', $config->metadata_url);
+        $this->assertSame('1', $config->metadata_layer_id);
     }
 
     public function test_wkid_is_persisted_on_settings_update(): void
@@ -228,6 +263,12 @@ class InstitutionGisSettingsTest extends TestCase
                         'completion_deadline' => 'gis_deadline',
                         'address' => 'gis_address',
                         'reporter' => 'gis_reporter',
+                        'status_value_mapping' => [
+                            'nauja' => [
+                                'code' => 'Registruojama',
+                                'name' => 'Registruojama',
+                            ],
+                        ],
                         'category_value_mapping' => [
                             (string) $nature->id => [
                                 'code' => 'Neveikia šviestuvas',
@@ -248,5 +289,6 @@ class InstitutionGisSettingsTest extends TestCase
             'Neveikia šviestuvas',
             $config->field_mapping['category_value_mapping'][(string) $nature->id]['code']
         );
+        $this->assertSame('Registruojama', $config->field_mapping['status_value_mapping']['nauja']['code']);
     }
 }

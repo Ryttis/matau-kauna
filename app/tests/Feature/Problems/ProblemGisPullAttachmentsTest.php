@@ -200,6 +200,50 @@ class ProblemGisPullAttachmentsTest extends TestCase
             && $request['outFields'] === 'gis_status,gis_deadline,gis_type,gis_created,gis_address,gis_reporter');
     }
 
+    public function test_pull_resolves_mapped_gis_status_value_to_local_status(): void
+    {
+        [$user, $problem, $transfer] = $this->setupTransferReadyForPull();
+        $problem->update(['status' => 'nagrinejama']);
+
+        InstitutionGisConfig::findOrFail($transfer->institution_gis_config_id)->forceFill([
+            'use_field_mapping' => true,
+            'field_mapping' => [
+                'status' => 'gis_status',
+                'category' => 'gis_type',
+                'created_at' => 'gis_created',
+                'completion_deadline' => 'gis_deadline',
+                'address' => 'gis_address',
+                'reporter' => 'gis_reporter',
+                'status_value_mapping' => [
+                    'isspresta' => [
+                        'code' => 'Atlikta',
+                        'name' => 'Atlikta',
+                    ],
+                ],
+            ],
+        ])->save();
+
+        Http::fake([
+            'https://example.test/FeatureServer/1/query' => Http::response([
+                'features' => [[
+                    'attributes' => [
+                        'gis_status' => 'Atlikta',
+                    ],
+                ]],
+            ]),
+            'https://example.test/FeatureServer/1/queryAttachments' => Http::response([
+                'attachmentGroups' => [],
+            ]),
+        ]);
+
+        $response = $this
+            ->actingAs($user)
+            ->post(route('problems.assignInstitution.pullGis', $problem));
+
+        $response->assertSessionHasNoErrors()->assertRedirect();
+        $this->assertSame('isspresta', $problem->fresh()->status);
+    }
+
     /**
      * @return array{0:User,1:Problem,2:ProblemGisTransfer}
      */

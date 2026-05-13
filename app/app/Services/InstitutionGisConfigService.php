@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Enums\ProblemStatus;
 use App\Models\Institution;
 use App\Models\InstitutionGisConfig;
 use Carbon\Carbon;
@@ -14,6 +15,8 @@ use RuntimeException;
 class InstitutionGisConfigService
 {
     public const CATEGORY_VALUE_MAPPING_KEY = 'category_value_mapping';
+
+    public const STATUS_VALUE_MAPPING_KEY = 'status_value_mapping';
 
     public const REPORTER_VALUE_MODE_KEY = 'reporter_value_mode';
 
@@ -35,6 +38,8 @@ class InstitutionGisConfigService
             'has_technical_password' => filled($config?->technical_password),
             'client_type' => $config?->client_type ?? 'referer',
             'token_expiration_minutes' => $config?->token_expiration_minutes ?? 60,
+            'service_base_url' => $this->serviceBaseUrlForPayload($config),
+            'service_layer_id' => $this->serviceLayerIdForPayload($config),
             'feature_server_url' => $config?->feature_server_url ?? '',
             'attachment_url' => $config?->attachment_url ?? '',
             'metadata_url' => $config?->metadata_url ?? '',
@@ -42,6 +47,7 @@ class InstitutionGisConfigService
             'wkid' => $config?->wkid ?? 3346,
             'use_field_mapping' => $config?->use_field_mapping ?? false,
             'field_mapping' => $this->normalizeFieldMapping($config?->field_mapping ?? []),
+            'status_options' => ProblemStatus::options(),
             'has_active_token' => filled($config?->active_token),
             'active_token_expires_at' => $config?->active_token_expires_at?->toIso8601String(),
         ];
@@ -61,6 +67,7 @@ class InstitutionGisConfigService
         $payload = $payload === [] ? ['enabled' => false] : $payload;
         $enabled = filter_var($payload['enabled'] ?? false, FILTER_VALIDATE_BOOLEAN);
         $useFieldMapping = filter_var($payload['use_field_mapping'] ?? false, FILTER_VALIDATE_BOOLEAN);
+        $payload = $this->withDerivedServiceUrls($payload);
 
         $config = $institution->gisConfig()->first();
 
@@ -283,12 +290,49 @@ class InstitutionGisConfigService
                 ? $mapping[self::CATEGORY_VALUE_MAPPING_KEY]
                 : []
         );
+        $normalized[self::STATUS_VALUE_MAPPING_KEY] = $this->normalizeStatusValueMapping(
+            is_array($mapping[self::STATUS_VALUE_MAPPING_KEY] ?? null)
+                ? $mapping[self::STATUS_VALUE_MAPPING_KEY]
+                : []
+        );
         $normalized[self::REPORTER_VALUE_MODE_KEY] = $this->normalizeReporterValueMode(
             $mapping[self::REPORTER_VALUE_MODE_KEY] ?? 'full_name'
         );
         $normalized[self::REPORTER_DEFAULT_VALUE_KEY] = trim(
             (string) ($mapping[self::REPORTER_DEFAULT_VALUE_KEY] ?? '')
         );
+
+        return $normalized;
+    }
+
+    private function normalizeStatusValueMapping(array $mapping): array
+    {
+        $normalized = [];
+        $allowedStatuses = ProblemStatus::values();
+
+        foreach ($mapping as $localStatus => $gisValue) {
+            $key = trim((string) $localStatus);
+            if (! in_array($key, $allowedStatuses, true)) {
+                continue;
+            }
+
+            if (is_array($gisValue)) {
+                $code = trim((string) ($gisValue['code'] ?? ''));
+                $name = trim((string) ($gisValue['name'] ?? '')) ?: $code;
+            } else {
+                $code = trim((string) $gisValue);
+                $name = $code;
+            }
+
+            if ($code === '') {
+                continue;
+            }
+
+            $normalized[$key] = [
+                'code' => $code,
+                'name' => $name,
+            ];
+        }
 
         return $normalized;
     }
@@ -380,6 +424,68 @@ class InstitutionGisConfigService
         $path = $parts['path'] ?? '';
 
         return [$scheme.'://'.$host.$port.$path, $query];
+    }
+
+    private function withDerivedServiceUrls(array $payload): array
+    {
+        $serviceBaseUrl = trim((string) ($payload['service_base_url'] ?? ''));
+        $layerId = trim((string) ($payload['service_layer_id'] ?? ''));
+        if ($serviceBaseUrl === '') {
+            return $payload;
+        }
+
+        if ($layerId === '' && preg_match('~/FeatureServer/(?<layer>\d+)(?:/|$|[?#])~i', $serviceBaseUrl, $matches)) {
+            $layerId = (string) $matches['layer'];
+        }
+
+        $normalizedBaseUrl = $this->normalizeServiceBaseUrl($serviceBaseUrl);
+        if ($normalizedBaseUrl === '' || $layerId === '') {
+            return $payload;
+        }
+
+        $featureServerUrl = $normalizedBaseUrl.'/FeatureServer/'.$layerId;
+        $payload['feature_server_url'] = $featureServerUrl;
+        $payload['attachment_url'] = $featureServerUrl;
+        $payload['metadata_url'] = $normalizedBaseUrl.'/FeatureServer/queryDomains';
+        $payload['metadata_layer_id'] = $layerId;
+
+        return $payload;
+    }
+
+    private function normalizeServiceBaseUrl(string $url): string
+    {
+        $baseUrl = rtrim(preg_replace('~[?#].*$~', '', trim($url)), '/');
+        $baseUrl = preg_replace('~/FeatureServer(?:/.*)?$~i', '', $baseUrl) ?: $baseUrl;
+
+        return rtrim($baseUrl, '/');
+    }
+
+    private function serviceBaseUrlForPayload(?InstitutionGisConfig $config): string
+    {
+        if (! $config) {
+            return '';
+        }
+
+        $source = $config->feature_server_url ?: $config->metadata_url;
+
+        return $source ? $this->normalizeServiceBaseUrl((string) $source) : '';
+    }
+
+    private function serviceLayerIdForPayload(?InstitutionGisConfig $config): string
+    {
+        if (! $config) {
+            return '';
+        }
+
+        if (filled($config->metadata_layer_id)) {
+            return (string) $config->metadata_layer_id;
+        }
+
+        if (preg_match('~/FeatureServer/(?<layer>\d+)(?:/|$)~i', (string) $config->feature_server_url, $matches)) {
+            return (string) $matches['layer'];
+        }
+
+        return '';
     }
 
     private function getArcGisJson(InstitutionGisConfig $config, string $url, array $query): array

@@ -119,7 +119,8 @@ class ProblemGisTransferTest extends TestCase
                 'vykdymo_terminas',
                 'adresas',
                 'pranese',
-            ]);
+            ]
+            && ($this->requestAttributes($request)['busena'] ?? null) === 'Nauja');
         Http::assertNotSent(fn ($request) => $request->url() === 'https://digital.kaunas.lt/portal/sharing/rest/generateToken');
     }
 
@@ -194,6 +195,115 @@ class ProblemGisTransferTest extends TestCase
             ]
             && ($this->requestAttributes($request)['gis_internal_number'] ?? null) === $problem->internal_number
             && ($this->requestAttributes($request)['gis_description'] ?? null) === $problem->description);
+    }
+
+    public function test_status_value_mapping_sends_mapped_gis_code(): void
+    {
+        $institution = Institution::create([
+            'name' => 'GIS Institution',
+        ]);
+        $user = $this->createSystemAdmin();
+        $problem = Problem::create([
+            'status' => 'nauja',
+            'category' => 'Apšvietimas',
+            'address' => 'Laisvės al. 15, Kaunas',
+            'description' => 'Neveikia lempa.',
+            'lat' => 54.8985,
+            'lng' => 23.9036,
+            'institution_id' => $institution->id,
+        ]);
+        InstitutionGisConfig::create([
+            'institution_id' => $institution->id,
+            'enabled' => true,
+            'generate_token_url' => 'https://digital.kaunas.lt/portal/sharing/rest/generateToken',
+            'technical_username' => 'arcgis-user',
+            'technical_password' => 'secret',
+            'client_type' => 'referer',
+            'token_expiration_minutes' => 60,
+            'feature_server_url' => 'https://example.test/FeatureServer/1',
+            'attachment_url' => 'https://example.test/FeatureServer/1',
+            'use_field_mapping' => true,
+            'field_mapping' => [
+                'status' => 'busena',
+                'status_value_mapping' => [
+                    'nauja' => [
+                        'code' => 'Registruojama',
+                        'name' => 'Registruojama',
+                    ],
+                ],
+            ],
+            'active_token' => 'cached-token',
+            'active_token_expires_at' => now()->addHour(),
+        ]);
+
+        Http::fake([
+            'https://example.test/FeatureServer/1/applyEdits' => Http::response([
+                'addResults' => [
+                    ['success' => true, 'objectId' => 1001],
+                ],
+            ]),
+        ]);
+
+        $this
+            ->actingAs($user)
+            ->post(route('problems.assignInstitution.sendGis', $problem))
+            ->assertSessionHasNoErrors()
+            ->assertRedirect();
+
+        Http::assertSent(fn ($request) => $request->url() === 'https://example.test/FeatureServer/1/applyEdits'
+            && ($this->requestAttributes($request)['busena'] ?? null) === 'Registruojama');
+    }
+
+    public function test_missing_status_value_mapping_preserves_status_label(): void
+    {
+        $institution = Institution::create([
+            'name' => 'GIS Institution',
+        ]);
+        $user = $this->createSystemAdmin();
+        $problem = Problem::create([
+            'status' => 'nauja',
+            'category' => 'Apšvietimas',
+            'address' => 'Laisvės al. 15, Kaunas',
+            'description' => 'Neveikia lempa.',
+            'lat' => 54.8985,
+            'lng' => 23.9036,
+            'institution_id' => $institution->id,
+        ]);
+        InstitutionGisConfig::create([
+            'institution_id' => $institution->id,
+            'enabled' => true,
+            'generate_token_url' => 'https://digital.kaunas.lt/portal/sharing/rest/generateToken',
+            'technical_username' => 'arcgis-user',
+            'technical_password' => 'secret',
+            'client_type' => 'referer',
+            'token_expiration_minutes' => 60,
+            'feature_server_url' => 'https://example.test/FeatureServer/1',
+            'attachment_url' => 'https://example.test/FeatureServer/1',
+            'use_field_mapping' => true,
+            'field_mapping' => [
+                'status' => 'busena',
+                'status_value_mapping' => [],
+            ],
+            'active_token' => 'cached-token',
+            'active_token_expires_at' => now()->addHour(),
+        ]);
+
+        Http::fake([
+            'https://example.test/FeatureServer/1/applyEdits' => Http::response([
+                'addResults' => [
+                    ['success' => true, 'objectId' => 1002],
+                ],
+            ]),
+        ]);
+
+        $this
+            ->actingAs($user)
+            ->post(route('problems.assignInstitution.sendGis', $problem))
+            ->assertSessionHasNoErrors()
+            ->assertRedirect();
+
+        Http::assertSent(fn ($request) => $request->url() === 'https://example.test/FeatureServer/1/applyEdits'
+            && ($this->requestAttributes($request)['busena'] ?? null) === 'Nauja');
     }
 
     public function test_category_value_mapping_prefers_problem_nature_for_gis_payload(): void

@@ -7,6 +7,7 @@ use App\Exports\ProblemsExport;
 use App\Models\ClassifierValue;
 use App\Models\FileUploadSettings;
 use App\Models\Problem;
+use App\Models\ProblemAttachment;
 use App\Services\ProblemDashboardQueryService;
 use App\Services\ProblemMergeContextService;
 use App\Services\ProblemReporterStatusNotifier;
@@ -14,6 +15,7 @@ use App\Services\ProblemReviewHistoryService;
 use App\Services\ProblemScopeService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\File;
 use Inertia\Inertia;
 use Inertia\Response;
 use Maatwebsite\Excel\Facades\Excel;
@@ -251,6 +253,28 @@ class ProblemController extends Controller
         ]);
 
         return redirect()->route('dashboard')->with('success', 'Problema perkelta į archyvą');
+    }
+
+    public function destroyAttachment(Request $request, Problem $problem, ProblemAttachment $attachment): RedirectResponse
+    {
+        $user = $request->user();
+        if (! $user->canEditProblemClassification()) {
+            abort(403);
+        }
+        $this->scopeService->authorizeProblemAccess($user, $problem);
+
+        if ((int) $attachment->problem_id !== (int) $problem->id) {
+            abort(404);
+        }
+
+        $absolute = public_path(ltrim($attachment->path, '/'));
+        if ($absolute !== '' && File::exists($absolute)) {
+            File::delete($absolute);
+        }
+
+        $attachment->delete();
+
+        return redirect()->back()->with('success', 'Priedas pašalintas.');
     }
 
     public function bulkDestroy(Request $request): RedirectResponse

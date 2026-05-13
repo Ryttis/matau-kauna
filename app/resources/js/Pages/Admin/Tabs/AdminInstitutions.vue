@@ -24,6 +24,7 @@ const GIS_FIELD_MAPPING_DEFAULTS = {
     reporter_value_mode: 'full_name',
     reporter_default_value: '',
     category_value_mapping: {},
+    status_value_mapping: {},
 }
 
 const GIS_FIELD_MAPPING_ROWS = [
@@ -37,8 +38,17 @@ const GIS_FIELD_MAPPING_ROWS = [
     { key: 'description', label: 'Aprašymas', placeholder: 'Pvz. aprasymas' },
 ]
 
+const GIS_STATUS_OPTIONS = [
+    { value: 'neuzregistruota', label: 'Neužregistruota' },
+    { value: 'nauja', label: 'Nauja' },
+    { value: 'nagrinejama', label: 'Nagrinėjama' },
+    { value: 'grazinta_nagrinejimui', label: 'Grąžinta nagrinėjimui' },
+    { value: 'isspresta', label: 'Išspręsta' },
+    { value: 'neaktuali', label: 'Neaktuali' },
+]
+
 function defaultFieldMapping() {
-    return { ...GIS_FIELD_MAPPING_DEFAULTS, category_value_mapping: {} }
+    return { ...GIS_FIELD_MAPPING_DEFAULTS, category_value_mapping: {}, status_value_mapping: {} }
 }
 
 function emptyGisForm() {
@@ -50,6 +60,8 @@ function emptyGisForm() {
         has_technical_password: false,
         client_type: 'referer',
         token_expiration_minutes: 60,
+        service_base_url: '',
+        service_layer_id: '',
         feature_server_url: '',
         attachment_url: '',
         metadata_url: '',
@@ -78,6 +90,50 @@ function emptyInstitutionForm() {
     }
 }
 
+function normalizeArcGisServiceBaseUrl(url) {
+    const value = String(url ?? '').trim().replace(/[?#].*$/, '').replace(/\/+$/, '')
+    return value.replace(/\/FeatureServer(?:\/.*)?$/i, '').replace(/\/+$/, '')
+}
+
+function serviceBaseUrlFromPayload(source) {
+    return source?.service_base_url
+        || normalizeArcGisServiceBaseUrl(source?.feature_server_url || source?.metadata_url || '')
+}
+
+function serviceLayerIdFromPayload(source) {
+    if (source?.service_layer_id !== undefined && source?.service_layer_id !== null && source.service_layer_id !== '') {
+        return String(source.service_layer_id)
+    }
+    if (source?.metadata_layer_id !== undefined && source?.metadata_layer_id !== null && source.metadata_layer_id !== '') {
+        return String(source.metadata_layer_id)
+    }
+    const match = String(source?.feature_server_url ?? '').match(/\/FeatureServer\/(\d+)(?:\/|$|[?#])/i)
+    return match?.[1] ?? ''
+}
+
+function derivedGisUrls(gis) {
+    const rawBaseUrl = gis?.service_base_url || ''
+    const baseUrl = normalizeArcGisServiceBaseUrl(rawBaseUrl)
+    const pastedLayer = String(rawBaseUrl).match(/\/FeatureServer\/(\d+)(?:\/|$|[?#])/i)?.[1] ?? ''
+    const layerId = String(gis?.service_layer_id ?? pastedLayer).trim()
+    if (!baseUrl || !layerId) {
+        return {
+            feature_server_url: gis?.feature_server_url || null,
+            attachment_url: gis?.attachment_url || null,
+            metadata_url: gis?.metadata_url || null,
+            metadata_layer_id: gis?.metadata_layer_id || null,
+        }
+    }
+
+    const featureServerUrl = `${baseUrl}/FeatureServer/${layerId}`
+    return {
+        feature_server_url: featureServerUrl,
+        attachment_url: featureServerUrl,
+        metadata_url: `${baseUrl}/FeatureServer/queryDomains`,
+        metadata_layer_id: layerId,
+    }
+}
+
 function gisFromPayload(source) {
     const base = emptyGisForm()
     if (!source) return base
@@ -90,6 +146,8 @@ function gisFromPayload(source) {
         has_technical_password: Boolean(source.has_technical_password),
         client_type: source.client_type || 'referer',
         token_expiration_minutes: source.token_expiration_minutes ?? 60,
+        service_base_url: serviceBaseUrlFromPayload(source),
+        service_layer_id: serviceLayerIdFromPayload(source),
         feature_server_url: source.feature_server_url ?? '',
         attachment_url: source.attachment_url ?? '',
         metadata_url: source.metadata_url ?? '',
@@ -103,16 +161,18 @@ function gisFromPayload(source) {
 }
 
 function gisSubmitPayload(gis) {
+    const derivedUrls = derivedGisUrls(gis)
     const payload = {
         enabled: Boolean(gis?.enabled),
         generate_token_url: gis?.generate_token_url || null,
         technical_username: gis?.technical_username || null,
         client_type: gis?.client_type || null,
         token_expiration_minutes: gis?.token_expiration_minutes ? Number(gis.token_expiration_minutes) : null,
-        feature_server_url: gis?.feature_server_url || null,
-        attachment_url: gis?.attachment_url || null,
-        metadata_url: gis?.metadata_url || null,
-        metadata_layer_id: gis?.metadata_layer_id || null,
+        service_base_url: normalizeArcGisServiceBaseUrl(gis?.service_base_url || '') || null,
+        service_layer_id: gis?.service_layer_id !== '' && gis?.service_layer_id !== null && gis?.service_layer_id !== undefined
+            ? Number(gis.service_layer_id)
+            : null,
+        ...derivedUrls,
         wkid: gis?.wkid ? Number(gis.wkid) : 3346,
         use_field_mapping: Boolean(gis?.use_field_mapping),
     }
@@ -141,6 +201,7 @@ const classifierTree = ref([])
 const classifierTreeLoading = ref(false)
 const classifierTreeError = ref('')
 const editCategoryValueMappingOpen = ref(false)
+const editStatusValueMappingOpen = ref(false)
 const showDeleteModal = ref(false)
 const institutionToDelete = ref(null)
 const { showSuccessModal, successMessage, closeSuccessModal, showWithMessage } = useSuccessModal()
@@ -165,6 +226,7 @@ const openEdit = (inst) => {
     editGisMetadata.value = null
     editGisMetadataError.value = ''
     editCategoryValueMappingOpen.value = false
+    editStatusValueMappingOpen.value = false
     editForm.value = {
         id: inst.id,
         name: inst.name ?? '',
@@ -241,6 +303,21 @@ const showEditCategoryValueMapping = computed(() => {
     return Boolean(editForm.value.gis?.use_field_mapping && editCategoryGisOptions.value.length)
 })
 
+const editStatusGisFieldName = computed(() => {
+    return (editForm.value.gis?.field_mapping?.status || GIS_FIELD_MAPPING_DEFAULTS.status).trim()
+})
+
+const editStatusGisField = computed(() => {
+    const fieldName = editStatusGisFieldName.value
+    return editGisMetadata.value?.fields?.find((field) => field.name === fieldName) ?? null
+})
+
+const editStatusGisOptions = computed(() => editStatusGisField.value?.coded_values ?? [])
+
+const showEditStatusValueMapping = computed(() => {
+    return Boolean(editForm.value.gis?.use_field_mapping && editStatusGisOptions.value.length)
+})
+
 function ensureCategoryValueMapping() {
     if (!editForm.value.gis.field_mapping.category_value_mapping || Array.isArray(editForm.value.gis.field_mapping.category_value_mapping)) {
         editForm.value.gis.field_mapping.category_value_mapping = {}
@@ -263,6 +340,33 @@ function setCategoryValueMapping(classifierValueId, code) {
 
     const selected = editCategoryGisOptions.value.find((option) => option.code === code)
     editForm.value.gis.field_mapping.category_value_mapping[key] = {
+        code,
+        name: selected?.name ?? code,
+    }
+}
+
+function ensureStatusValueMapping() {
+    if (!editForm.value.gis.field_mapping.status_value_mapping || Array.isArray(editForm.value.gis.field_mapping.status_value_mapping)) {
+        editForm.value.gis.field_mapping.status_value_mapping = {}
+    }
+}
+
+function statusMappedCode(statusValue) {
+    const mappedValue = editForm.value.gis?.field_mapping?.status_value_mapping?.[String(statusValue)]
+    if (typeof mappedValue === 'string') return mappedValue
+    return mappedValue?.code ?? ''
+}
+
+function setStatusValueMapping(statusValue, code) {
+    ensureStatusValueMapping()
+    const key = String(statusValue)
+    if (!code) {
+        delete editForm.value.gis.field_mapping.status_value_mapping[key]
+        return
+    }
+
+    const selected = editStatusGisOptions.value.find((option) => option.code === code)
+    editForm.value.gis.field_mapping.status_value_mapping[key] = {
         code,
         name: selected?.name ?? code,
     }
@@ -474,10 +578,17 @@ onMounted(async () => {
                             type="number"
                             label="Token galiojimas (min.)"
                         />
-                        <AppInput v-model="createForm.gis.feature_server_url" placeholder="FeatureServer URL" />
-                        <AppInput v-model="createForm.gis.attachment_url" placeholder="AttachmentUrl" />
-                        <AppInput v-model="createForm.gis.metadata_url" placeholder="GIS JSON URL (queryDomains)" />
-                        <AppInput v-model="createForm.gis.metadata_layer_id" placeholder="Layers ID" />
+                        <AppInput
+                            v-model="createForm.gis.service_base_url"
+                            label="ArcGIS paslaugos URL"
+                            placeholder="https://digital.kaunas.lt/arcgis/rest/services/Testavimai/Dispeceris_update_Kaunas_tvarko"
+                        />
+                        <AppInput
+                            v-model="createForm.gis.service_layer_id"
+                            type="number"
+                            label="Sluoksnio ID"
+                            placeholder="1"
+                        />
                         <AppSelect
                             v-model.number="createForm.gis.wkid"
                             label="Koordinačių sistema (WKID)"
@@ -595,10 +706,17 @@ onMounted(async () => {
                             type="number"
                             label="Token galiojimas (min.)"
                         />
-                        <AppInput v-model="editForm.gis.feature_server_url" placeholder="FeatureServer URL" />
-                        <AppInput v-model="editForm.gis.attachment_url" placeholder="AttachmentUrl" />
-                        <AppInput v-model="editForm.gis.metadata_url" placeholder="GIS JSON URL (queryDomains)" />
-                        <AppInput v-model="editForm.gis.metadata_layer_id" placeholder="Layers ID" />
+                        <AppInput
+                            v-model="editForm.gis.service_base_url"
+                            label="ArcGIS paslaugos URL"
+                            placeholder="https://digital.kaunas.lt/arcgis/rest/services/Testavimai/Dispeceris_update_Kaunas_tvarko"
+                        />
+                        <AppInput
+                            v-model="editForm.gis.service_layer_id"
+                            type="number"
+                            label="Sluoksnio ID"
+                            placeholder="1"
+                        />
                         <AppSelect
                             v-model.number="editForm.gis.wkid"
                             label="Koordinačių sistema (WKID)"
@@ -754,8 +872,51 @@ onMounted(async () => {
                                 </div>
                                 <p v-else class="gis-hint">Klasifikatoriaus reikšmių nėra.</p>
                             </div>
+                            <div
+                                v-if="showEditStatusValueMapping"
+                                class="gis-value-mapper"
+                                :class="{ 'gis-value-mapper--collapsed': !editStatusValueMappingOpen }"
+                            >
+                                <div class="gis-value-mapper-header">
+                                    <span>Būsena reikšmių susiejimas</span>
+                                    <span>{{ editStatusGisFieldName }}</span>
+                                    <button
+                                        type="button"
+                                        class="link-btn"
+                                        @click="editStatusValueMappingOpen = !editStatusValueMappingOpen"
+                                    >
+                                        {{ editStatusValueMappingOpen ? 'Slėpti' : 'Rodyti' }}
+                                    </button>
+                                </div>
+                                <p v-if="!editStatusValueMappingOpen" class="gis-hint">
+                                    Susiejimai paslėpti, kad forma užimtų mažiau vietos.
+                                </p>
+                                <div v-else class="gis-classifier-tree">
+                                    <div
+                                        v-for="status in GIS_STATUS_OPTIONS"
+                                        :key="'status-map-' + status.value"
+                                        class="gis-value-map-row"
+                                    >
+                                        <span>{{ status.label }}</span>
+                                        <select
+                                            class="input"
+                                            :value="statusMappedCode(status.value)"
+                                            @change="setStatusValueMapping(status.value, $event.target.value)"
+                                        >
+                                            <option value="">Siųsti esamą reikšmę</option>
+                                            <option
+                                                v-for="option in editStatusGisOptions"
+                                                :key="'status-' + status.value + '-' + option.code"
+                                                :value="option.code"
+                                            >
+                                                {{ option.name }}: {{ option.code }}
+                                            </option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
                             <p
-                                v-else-if="editGisMetadata?.fields?.length && editCategoryGisField && !editCategoryGisOptions.length"
+                                v-if="editGisMetadata?.fields?.length && editCategoryGisField && !editCategoryGisOptions.length"
                                 class="gis-hint"
                             >
                                 Pasirinktas Kategorija / tipas GIS laukas neturi pasirinkimų.
