@@ -23,6 +23,8 @@ class ArcGisProblemTransferService
     public function __construct(
         private InstitutionGisConfigService $gisConfigService,
         private ProblemReporterStatusNotifier $reporterStatusNotifier,
+        private ProblemAutoAssignmentService $autoAssignmentService,
+        private ProblemAutoPublishService $autoPublishService,
     ) {}
 
     public function transferProblem(Problem $problem): array
@@ -418,6 +420,9 @@ class ArcGisProblemTransferService
                 $newStatus->value
             );
         }
+
+        $this->autoAssignmentService->applyRules($problem);
+        $this->autoPublishService->applyRules($problem);
 
         return ['changed' => true, 'old' => $oldStatus, 'new' => $newStatus->value];
     }

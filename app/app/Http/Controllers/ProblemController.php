@@ -8,6 +8,8 @@ use App\Models\ClassifierValue;
 use App\Models\FileUploadSettings;
 use App\Models\Problem;
 use App\Models\ProblemAttachment;
+use App\Services\ProblemAutoAssignmentService;
+use App\Services\ProblemAutoPublishService;
 use App\Services\ProblemDashboardQueryService;
 use App\Services\ProblemMergeContextService;
 use App\Services\ProblemReporterStatusNotifier;
@@ -28,6 +30,8 @@ class ProblemController extends Controller
         private ProblemScopeService $scopeService,
         private ProblemReporterStatusNotifier $reporterStatusNotifier,
         private ProblemReviewHistoryService $reviewHistoryService,
+        private ProblemAutoAssignmentService $autoAssignmentService,
+        private ProblemAutoPublishService $autoPublishService,
     ) {}
 
     public function index(Request $request): Response
@@ -98,6 +102,11 @@ class ProblemController extends Controller
             $this->reviewHistoryService->logStatusChangeEntry($main, $user, $validated['status']);
         }
 
+        foreach (Problem::query()->whereIn('id', $ids)->get() as $p) {
+            $this->autoAssignmentService->applyRules($p);
+            $this->autoPublishService->applyRules($p);
+        }
+
         $message = count($ids) > 1
             ? 'Būsena atnaujinta visoms apjungtoms problemoms.'
             : 'Būsena atnaujinta';
@@ -136,6 +145,11 @@ class ProblemController extends Controller
             if ($rootProblem) {
                 $this->reviewHistoryService->logStatusChangeEntry($rootProblem, $user, $validated['status']);
             }
+        }
+
+        foreach (Problem::query()->whereIn('id', $expandedIds)->get() as $p) {
+            $this->autoAssignmentService->applyRules($p);
+            $this->autoPublishService->applyRules($p);
         }
 
         return redirect()->back()->with('success', 'Būsenos atnaujintos');

@@ -6,6 +6,7 @@ use App\Enums\ProblemStatus;
 use App\Models\Institution;
 use App\Models\Problem;
 use App\Services\ProblemAssignmentNotifier;
+use App\Services\ProblemAutoPublishService;
 use App\Services\ProblemHttpSupport;
 use App\Services\ProblemReporterStatusNotifier;
 use App\Services\ProblemResolutionTermService;
@@ -24,6 +25,7 @@ class ProblemAdminAssignController extends Controller
         private ProblemResolutionTermService $resolutionTermService,
         private ProblemReporterStatusNotifier $reporterStatusNotifier,
         private ProblemReviewHistoryService $reviewHistoryService,
+        private ProblemAutoPublishService $autoPublishService,
     ) {}
 
     public function assign(Request $request): Response|RedirectResponse
@@ -114,6 +116,12 @@ class ProblemAdminAssignController extends Controller
                 $this->resolutionTermService->applyRules($p);
             }
             $this->assignmentNotifier->notifyInstitutionOfAssignment($validated['problem_ids'], (int) $newInstitutionId);
+        }
+
+        if (! empty($newStatus)) {
+            foreach (Problem::query()->whereIn('id', $validated['problem_ids'])->get() as $p) {
+                $this->autoPublishService->applyRules($p);
+            }
         }
 
         $message = empty($newInstitutionId)

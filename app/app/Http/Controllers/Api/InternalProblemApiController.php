@@ -12,6 +12,8 @@ use App\Models\Problem;
 use App\Models\ProblemAttachment;
 use App\Models\User;
 use App\Services\ProblemAssignmentNotifier;
+use App\Services\ProblemAutoAssignmentService;
+use App\Services\ProblemAutoPublishService;
 use App\Services\ProblemDashboardQueryService;
 use App\Services\ProblemHttpSupport;
 use App\Services\ProblemInstitutionAssignmentPickerService;
@@ -37,6 +39,8 @@ class InternalProblemApiController extends Controller
         private ProblemInstitutionAssignmentPickerService $institutionAssignmentPickerService,
         private ProblemReviewHistoryService $reviewHistoryService,
         private ProblemReporterStatusNotifier $reporterStatusNotifier,
+        private ProblemAutoAssignmentService $autoAssignmentService,
+        private ProblemAutoPublishService $autoPublishService,
     ) {}
 
     public function institutionsForAssign(Request $request): JsonResponse
@@ -232,6 +236,10 @@ class InternalProblemApiController extends Controller
             );
         }
 
+        $problem->refresh();
+        $this->autoAssignmentService->applyRules($problem);
+        $this->autoPublishService->applyRules($problem);
+
         return response()->json([
             'ok' => true,
             'message' => 'Problema atnaujinta.',
@@ -390,6 +398,11 @@ class InternalProblemApiController extends Controller
             $this->reviewHistoryService->logStatusChangeEntry($main, $user, $validated['status']);
         }
 
+        foreach (Problem::query()->whereIn('id', $ids)->get() as $p) {
+            $this->autoAssignmentService->applyRules($p);
+            $this->autoPublishService->applyRules($p);
+        }
+
         return response()->json([
             'ok' => true,
             'message' => 'Būsena atnaujinta.',
@@ -429,6 +442,11 @@ class InternalProblemApiController extends Controller
             if ($rootProblem) {
                 $this->reviewHistoryService->logStatusChangeEntry($rootProblem, $user, $validated['status']);
             }
+        }
+
+        foreach (Problem::query()->whereIn('id', $expandedIds)->get() as $p) {
+            $this->autoAssignmentService->applyRules($p);
+            $this->autoPublishService->applyRules($p);
         }
 
         return response()->json([
@@ -609,6 +627,12 @@ class InternalProblemApiController extends Controller
                 $this->resolutionTermService->applyRules($p);
             }
             $this->assignmentNotifier->notifyInstitutionOfAssignment($validated['problem_ids'], (int) $newInstitutionId);
+        }
+
+        if (! empty($newStatus)) {
+            foreach (Problem::query()->whereIn('id', $validated['problem_ids'])->get() as $p) {
+                $this->autoPublishService->applyRules($p);
+            }
         }
 
         return response()->json([
