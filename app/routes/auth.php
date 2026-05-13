@@ -7,6 +7,7 @@ use App\Http\Controllers\Auth\PasswordResetLinkController;
 use App\Http\Controllers\Auth\TwoFactorChallengeController;
 use App\Http\Controllers\Auth\VerifyEmailController;
 use App\Http\Controllers\Auth\ViispAuthController;
+use App\Http\Controllers\Api\ViispApiController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
@@ -27,6 +28,8 @@ Route::middleware('guest')->group(function () {
         ->name('viisp.redirect');
     Route::get('viisp/callback', [ViispAuthController::class, 'callback'])
         ->name('viisp.callback');
+    Route::get('viisp/mobile-callback', [ViispApiController::class, 'callback'])
+        ->name('viisp.mobile-callback');
 
     Route::get('viisp/register/terms', [ViispAuthController::class, 'showRegistrationTerms'])
         ->name('viisp.register.terms');

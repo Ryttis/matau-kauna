@@ -112,7 +112,7 @@ paths:
       description: >
         Supports two flows:
         1) normal email/password reporter registration;
-        2) mobile VIISP registration completion after `/api/viisp/callback` returns `registration_required: true`.
+        2) mobile VIISP registration completion after `/viisp/mobile-callback` returns `registration_required: true`.
         For VIISP, `name`, `surname`, and `viisp_personal_code_hash` come from the short-lived registration token, so the mobile app sends only `viisp_registration_token`, a real `email`, and optional `phone` / `device_name`.
       requestBody:
         required: true
@@ -682,12 +682,13 @@ paths:
               schema:
                 $ref: "#/components/schemas/MessageOnlyError"
 
-  /api/viisp/callback:
+  /viisp/mobile-callback:
     get:
       tags: [VIISP]
       summary: "[PUBLIC] VIISP callback endpoint for mobile flow"
       description: >
-        Called after VIISP authentication. Existing VIISP users receive a Sanctum Bearer token immediately.
+        Called after VIISP authentication (note: NOT under `/api` prefix — sits next to the web `/viisp/callback` so it shares the same ingress route).
+        Existing VIISP users receive a Sanctum Bearer token immediately.
         New VIISP identities receive a short-lived `registration_token`; send it to POST `/api/register`
         with a real email address to finish mobile registration.
       parameters:
@@ -2302,7 +2303,7 @@ components:
           type: string
           minLength: 64
           maxLength: 64
-          description: Short-lived token returned from GET /api/viisp/callback when registration_required is true.
+          description: Short-lived token returned from GET /viisp/mobile-callback when registration_required is true.
         email:
           type: string
           format: email
