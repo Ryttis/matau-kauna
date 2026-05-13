@@ -17,6 +17,7 @@ use Illuminate\Support\Facades\Route;
 Route::post('/login', [AuthApiController::class, 'login']);
 Route::post('/two-factor/challenge', [AuthApiController::class, 'verifyTwoFactorLogin']);
 Route::post('/register', [AuthApiController::class, 'register']);
+Route::post('/forgot-password', [AuthApiController::class, 'forgotPassword'])->middleware('throttle:6,1');
 
 Route::post('/viisp/init', [ViispApiController::class, 'init']);
 Route::get('/viisp/callback', [ViispApiController::class, 'callback']);

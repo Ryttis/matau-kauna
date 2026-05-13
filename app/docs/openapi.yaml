@@ -148,6 +148,44 @@ paths:
         "422":
           $ref: "#/components/responses/ValidationError"
 
+  /api/forgot-password:
+    post:
+      tags: [Auth]
+      summary: "[PUBLIC] Send password reset link to email"
+      description: >
+        Sends a password reset link to the provided email address. Throttled to 6 requests per minute.
+        Returns 422 if no user exists with the given email, if rate-limited, or if validation fails.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email]
+              properties:
+                email:
+                  type: string
+                  format: email
+                  example: testas@example.com
+      responses:
+        "200":
+          description: Reset link sent
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: "Nuoroda išsiųsta į nurodytą el. paštą. Patikrinkite paštą."
+        "422":
+          $ref: "#/components/responses/ValidationError"
+        "429":
+          description: Too many requests (rate limited)
+
   /api/me:
     get:
       tags: [Auth]

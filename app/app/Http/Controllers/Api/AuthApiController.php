@@ -15,6 +15,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Password as PasswordBroker;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rules\Password;
 use Illuminate\Validation\ValidationException;
@@ -417,6 +418,35 @@ class AuthApiController extends Controller
         $request->user()->currentAccessToken()?->delete();
 
         return response()->json(['ok' => true]);
+    }
+
+    public function forgotPassword(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'email' => ['required', 'email'],
+        ], [
+            'email.required' => 'Įveskite el. paštą.',
+            'email.email' => 'Neteisingas el. pašto formatas.',
+        ]);
+
+        $status = PasswordBroker::sendResetLink($validated);
+
+        if ($status === PasswordBroker::RESET_LINK_SENT) {
+            return response()->json([
+                'ok' => true,
+                'message' => 'Nuoroda išsiųsta į nurodytą el. paštą. Patikrinkite paštą.',
+            ]);
+        }
+
+        if ($status === PasswordBroker::RESET_THROTTLED) {
+            throw ValidationException::withMessages([
+                'email' => ['Siųsti daugiau negalima. Pabandykite po minutės.'],
+            ]);
+        }
+
+        throw ValidationException::withMessages([
+            'email' => ['Su tokiu el. paštu naudotojo nėra.'],
+        ]);
     }
 
     public function sendPushTest(Request $request): JsonResponse
