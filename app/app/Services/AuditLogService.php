@@ -58,7 +58,7 @@ class AuditLogService
         ]);
     }
 
-    public function logUserAction(?User $user, string $action, ?string $subjectType, ?int $subjectId, AuditLogResult|string $result, ?string $message = null, array $metadata = []): void
+    public function logUserAction(?User $user, string $action, ?string $subjectType, int|string|null $subjectId, AuditLogResult|string $result, ?string $message = null, array $metadata = []): void
     {
         if (! $this->shouldLog(AuditLog::EVENT_USER_ACTION)) {
             return;
