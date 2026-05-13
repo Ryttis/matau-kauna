@@ -34,6 +34,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::post('/logout', [AuthApiController::class, 'logout']);
     Route::delete('/me', [AuthApiController::class, 'deleteAccount']);
     Route::get('/me', [AuthApiController::class, 'me']);
+    Route::post('/me/accept-terms', [AuthApiController::class, 'acceptTerms']);
     Route::post('/email/verification-notification', [AuthApiController::class, 'resendEmailVerification'])
         ->middleware('throttle:1,2');
     Route::patch('/me/active-role', [AuthApiController::class, 'updateActiveRole']);
