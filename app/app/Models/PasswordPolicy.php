@@ -108,9 +108,12 @@ class PasswordPolicy extends Model
         ];
     }
 
-    public function validateProhibitNameEmail(string $password, ?string $name, ?string $email): bool
+    public function validateProhibitNameEmail(?string $password, ?string $name, ?string $email): bool
     {
         if (! $this->prohibit_name_email) {
+            return true;
+        }
+        if (! is_string($password) || $password === '') {
             return true;
         }
         $lower = mb_strtolower($password);

@@ -52,6 +52,9 @@ class CreateUserRequest extends FormRequest
     public function withValidator($validator): void
     {
         $validator->after(function ($validator) {
+            if (empty($this->input('password'))) {
+                return;
+            }
             $policy = PasswordPolicy::get();
             if (! $policy->validateProhibitNameEmail(
                 $this->input('password'),

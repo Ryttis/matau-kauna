@@ -186,6 +186,38 @@ paths:
         "429":
           description: Too many requests (rate limited)
 
+  /api/email/verification-notification:
+    post:
+      tags: [Auth]
+      summary: "[AUTH] Resend email verification link"
+      description: >
+        Sends (or re-sends) the email verification link to the authenticated user's email.
+        Throttled to 1 request per 2 minutes. Returns `already_verified: true` when the user
+        is already verified (in that case no email is sent).
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Verification link sent or user already verified
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok:
+                    type: boolean
+                    example: true
+                  already_verified:
+                    type: boolean
+                    example: false
+                  message:
+                    type: string
+                    example: "Patvirtinimo nuoroda išsiųsta. Patikrinkite el. paštą."
+        "401":
+          description: Unauthorized
+        "429":
+          description: Too many requests (rate limited)
+
   /api/me:
     get:
       tags: [Auth]

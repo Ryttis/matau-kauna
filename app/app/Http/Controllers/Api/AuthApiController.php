@@ -196,6 +196,7 @@ class AuthApiController extends Controller
             'email' => $validated['email'],
             'phone' => $validated['phone'] ?? null,
             'password' => $validated['password'],
+            'terms_accepted_at' => now(),
         ]);
 
         $reporterRole = \App\Models\UserRole::firstOrCreate(
@@ -318,6 +319,58 @@ class AuthApiController extends Controller
         return response()->json($this->buildMePayload($user, $context));
     }
 
+    public function acceptTerms(Request $request): JsonResponse
+    {
+        $user = $request->user()->load('roles');
+
+        if (! $user->hasAssignedRole(UserRoleEnum::Reporter->value)) {
+            return response()->json([
+                'ok' => true,
+                'already_accepted' => $user->terms_accepted_at !== null,
+                'skipped' => true,
+            ]);
+        }
+
+        $validated = $request->validate([
+            'email' => ['nullable', 'email', 'max:255'],
+            'phone' => ['nullable', 'string', 'max:50'],
+        ]);
+
+        $updates = [];
+
+        if (! empty($validated['email']) && $validated['email'] !== $user->email) {
+            $emailTaken = User::query()
+                ->where('email', $validated['email'])
+                ->where('id', '!=', $user->id)
+                ->exists();
+            if ($emailTaken) {
+                throw ValidationException::withMessages([
+                    'email' => ['Toks el. paštas jau naudojamas.'],
+                ]);
+            }
+            $updates['email'] = $validated['email'];
+        }
+
+        if (! empty($validated['phone']) && $validated['phone'] !== $user->phone) {
+            $updates['phone'] = $validated['phone'];
+        }
+
+        if ($user->terms_accepted_at === null) {
+            $updates['terms_accepted_at'] = now();
+        }
+
+        if ($updates !== []) {
+            $user->update($updates);
+        }
+
+        $context = $this->activeRoleService->resolveAndBind($request, $user->fresh()->load('roles'));
+
+        return response()->json([
+            'ok' => true,
+            'user' => $this->buildMePayload($user->fresh()->load('roles'), $context),
+        ]);
+    }
+
     public function updateActiveRole(Request $request): JsonResponse
     {
         $user = $request->user()->load('roles');
@@ -415,9 +468,35 @@ class AuthApiController extends Controller
 
     public function logout(Request $request): JsonResponse
     {
-        $request->user()->currentAccessToken()?->delete();
+        $user = $request->user();
+        $user->forceFill([
+            'push_device_id' => null,
+            'push_fcm_token' => null,
+            'push_platform' => null,
+            'push_app_version' => null,
+            'push_registered_at' => null,
+        ])->save();
+        $user->currentAccessToken()?->delete();
 
         return response()->json(['ok' => true]);
+    }
+
+    public function resendEmailVerification(Request $request): JsonResponse
+    {
+        $user = $request->user();
+        if ($user->hasVerifiedEmail()) {
+            return response()->json([
+                'ok' => true,
+                'already_verified' => true,
+                'message' => 'El. paštas jau patvirtintas.',
+            ]);
+        }
+        $user->sendEmailVerificationNotification();
+
+        return response()->json([
+            'ok' => true,
+            'message' => 'Patvirtinimo nuoroda išsiųsta. Patikrinkite el. paštą.',
+        ]);
     }
 
     public function forgotPassword(Request $request): JsonResponse
