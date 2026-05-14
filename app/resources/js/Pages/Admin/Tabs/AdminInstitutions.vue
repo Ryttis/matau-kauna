@@ -47,6 +47,11 @@ const GIS_STATUS_OPTIONS = [
     { value: 'neaktuali', label: 'Neaktuali' },
 ]
 
+const DVS_COMPLAINT_API_OPTIONS = [
+    { value: 'gaunami_dokumentai', label: 'GaunamiDokumentai' },
+    { value: 'pilieciu_laiskai', label: 'PilieciuLaiskai' },
+]
+
 function defaultFieldMapping() {
     return { ...GIS_FIELD_MAPPING_DEFAULTS, category_value_mapping: {}, status_value_mapping: {} }
 }
@@ -74,6 +79,38 @@ function emptyGisForm() {
     }
 }
 
+function emptyDvsForm() {
+    return {
+        enabled: false,
+        complaint_api: 'gaunami_dokumentai',
+        token_url: '',
+        username: '',
+        password: '',
+        has_password: false,
+        client_id: '',
+        client_secret: '',
+        has_client_secret: false,
+        gaunami_dokumentai_url: '',
+        pilieciu_laiskai_url: '',
+        rusis_url: '',
+        saved_rusis_url: '',
+        rusis_kodas: '',
+        rusys_options: [],
+        rastines_id: '',
+        registras_id: '',
+        darbuotojo_kodas: '',
+        sudarytojas_kodas: '',
+        gaunami_registro_kodas: '',
+        gaunami_registro_id: '',
+        gaunami_nukreipto_id: '',
+        gaunami_sudarytojas_id: '',
+        pilieciu_registro_kodas: '',
+        pilieciu_registro_id: '',
+        pilieciu_nukreipto_id: '',
+        pilieciu_sudarytojas_id: '',
+    }
+}
+
 function emptyInstitutionForm() {
     return {
         name: '',
@@ -86,6 +123,7 @@ function emptyInstitutionForm() {
         integration_dvs: '',
         is_active: true,
         is_email_only: false,
+        dvs: emptyDvsForm(),
         gis: emptyGisForm(),
     }
 }
@@ -186,6 +224,84 @@ function gisSubmitPayload(gis) {
     return payload
 }
 
+function dvsFromPayload(source) {
+    const base = emptyDvsForm()
+    if (!source) return base
+    return {
+        ...base,
+        enabled: Boolean(source.enabled),
+        complaint_api: source.complaint_api || 'gaunami_dokumentai',
+        token_url: source.token_url ?? '',
+        username: source.username ?? '',
+        password: '',
+        has_password: Boolean(source.has_password),
+        client_id: source.client_id ?? '',
+        client_secret: '',
+        has_client_secret: Boolean(source.has_client_secret),
+        gaunami_dokumentai_url: source.gaunami_dokumentai_url ?? '',
+        pilieciu_laiskai_url: source.pilieciu_laiskai_url ?? '',
+        rusis_url: source.rusis_url ?? '',
+        saved_rusis_url: source.rusis_url ?? '',
+        rusis_kodas: source.rusis_kodas ?? '',
+        rusys_options: Array.isArray(source.rusys_options) ? source.rusys_options : [],
+        rastines_id: source.rastines_id ?? '',
+        registras_id: source.registras_id ?? '',
+        darbuotojo_kodas: source.darbuotojo_kodas ?? '',
+        sudarytojas_kodas: source.sudarytojas_kodas ?? '',
+        gaunami_registro_kodas: source.gaunami_registro_kodas ?? '',
+        gaunami_registro_id: source.gaunami_registro_id ?? '',
+        gaunami_nukreipto_id: source.gaunami_nukreipto_id ?? '',
+        gaunami_sudarytojas_id: source.gaunami_sudarytojas_id ?? '',
+        pilieciu_registro_kodas: source.pilieciu_registro_kodas ?? '',
+        pilieciu_registro_id: source.pilieciu_registro_id ?? '',
+        pilieciu_nukreipto_id: source.pilieciu_nukreipto_id ?? '',
+        pilieciu_sudarytojas_id: source.pilieciu_sudarytojas_id ?? '',
+    }
+}
+
+function nullableString(value) {
+    const normalized = String(value ?? '').trim()
+    return normalized === '' ? null : normalized
+}
+
+function dvsSubmitPayload(dvs) {
+    const payload = {
+        enabled: Boolean(dvs?.enabled),
+        complaint_api: dvs?.complaint_api || 'gaunami_dokumentai',
+        token_url: nullableString(dvs?.token_url),
+        username: nullableString(dvs?.username),
+        client_id: nullableString(dvs?.client_id),
+        gaunami_dokumentai_url: nullableString(dvs?.gaunami_dokumentai_url),
+        pilieciu_laiskai_url: nullableString(dvs?.pilieciu_laiskai_url),
+        rusis_url: nullableString(dvs?.rusis_url),
+        rusis_kodas: nullableString(dvs?.rusis_kodas),
+        rastines_id: nullableString(dvs?.rastines_id),
+        registras_id: nullableString(dvs?.registras_id),
+        darbuotojo_kodas: nullableString(dvs?.darbuotojo_kodas),
+        sudarytojas_kodas: nullableString(dvs?.sudarytojas_kodas),
+        gaunami_registro_kodas: nullableString(dvs?.gaunami_registro_kodas),
+        gaunami_registro_id: nullableString(dvs?.gaunami_registro_id),
+        gaunami_nukreipto_id: nullableString(dvs?.gaunami_nukreipto_id),
+        gaunami_sudarytojas_id: nullableString(dvs?.gaunami_sudarytojas_id),
+        pilieciu_registro_kodas: nullableString(dvs?.pilieciu_registro_kodas),
+        pilieciu_registro_id: nullableString(dvs?.pilieciu_registro_id),
+        pilieciu_nukreipto_id: nullableString(dvs?.pilieciu_nukreipto_id),
+        pilieciu_sudarytojas_id: nullableString(dvs?.pilieciu_sudarytojas_id),
+    }
+
+    const password = nullableString(dvs?.password)
+    if (password !== null) {
+        payload.password = password
+    }
+
+    const clientSecret = nullableString(dvs?.client_secret)
+    if (clientSecret !== null) {
+        payload.client_secret = clientSecret
+    }
+
+    return payload
+}
+
 const loading = ref(false)
 const saving = ref(false)
 const errorMessage = ref('')
@@ -197,6 +313,8 @@ const editForm = ref(emptyInstitutionForm())
 const editGisMetadata = ref(null)
 const editGisMetadataLoading = ref(false)
 const editGisMetadataError = ref('')
+const editDvsRusysLoading = ref(false)
+const editDvsRusysError = ref('')
 const classifierTree = ref([])
 const classifierTreeLoading = ref(false)
 const classifierTreeError = ref('')
@@ -225,6 +343,7 @@ const openCreate = () => {
 const openEdit = (inst) => {
     editGisMetadata.value = null
     editGisMetadataError.value = ''
+    editDvsRusysError.value = ''
     editCategoryValueMappingOpen.value = false
     editStatusValueMappingOpen.value = false
     editForm.value = {
@@ -239,6 +358,7 @@ const openEdit = (inst) => {
         integration_dvs: inst.integration_dvs ?? '',
         is_active: inst.is_active ?? true,
         is_email_only: inst.is_email_only ?? false,
+        dvs: dvsFromPayload(inst.dvs),
         gis: gisFromPayload(inst.gis),
     }
     isEditOpen.value = true
@@ -317,6 +437,30 @@ const editStatusGisOptions = computed(() => editStatusGisField.value?.coded_valu
 const showEditStatusValueMapping = computed(() => {
     return Boolean(editForm.value.gis?.use_field_mapping && editStatusGisOptions.value.length)
 })
+
+const canFetchEditDvsRusys = computed(() => {
+    return Boolean(editForm.value?.id && editForm.value.dvs?.saved_rusis_url && !editDvsRusysLoading.value)
+})
+
+const fetchEditDvsRusys = async () => {
+    if (!canFetchEditDvsRusys.value) return
+
+    editDvsRusysLoading.value = true
+    editDvsRusysError.value = ''
+    try {
+        const { data } = await axios.post(adminApi.institutionDvsRusys(editForm.value.id))
+        const options = Array.isArray(data.rusys_options) ? data.rusys_options : []
+        editForm.value.dvs.rusys_options = options
+        editForm.value.dvs.saved_rusis_url = data.rusis_url ?? editForm.value.dvs.saved_rusis_url
+        if (!options.some((option) => option.kodas === editForm.value.dvs.rusis_kodas)) {
+            editForm.value.dvs.rusis_kodas = data.rusis_kodas ?? ''
+        }
+    } catch (e) {
+        editDvsRusysError.value = e.response?.data?.message ?? 'Nepavyko gauti DVS rūšių.'
+    } finally {
+        editDvsRusysLoading.value = false
+    }
+}
 
 function ensureCategoryValueMapping() {
     if (!editForm.value.gis.field_mapping.category_value_mapping || Array.isArray(editForm.value.gis.field_mapping.category_value_mapping)) {
@@ -411,11 +555,12 @@ const createInstitution = async () => {
     errorMessage.value = ''
     saving.value = true
     try {
-        const { gis, ...rest } = createForm.value
+        const { gis, dvs, ...rest } = createForm.value
         await axios.post(adminApi.institutions, {
             ...rest,
             integration_email: createForm.value.contact_email || null,
             is_email_only: createForm.value.is_email_only ?? false,
+            dvs: dvsSubmitPayload(dvs),
             gis: gisSubmitPayload(gis),
         })
         isCreateOpen.value = false
@@ -443,6 +588,7 @@ const updateInstitution = async () => {
             integration_dvs: editForm.value.integration_dvs || null,
             is_active: editForm.value.is_active,
             is_email_only: editForm.value.is_email_only ?? false,
+            dvs: dvsSubmitPayload(editForm.value.dvs),
             gis: gisSubmitPayload(editForm.value.gis),
         })
         isEditOpen.value = false
@@ -552,8 +698,74 @@ onMounted(async () => {
                 <div class="field full">
                     <AppInput v-model="createForm.contact_address" label="Adresas" />
                 </div>
-                <div class="field full">
-                    <AppInput v-model="createForm.integration_dvs" label="Integracija (DVS)" />
+                <div class="field full dvs-section">
+                    <div class="gis-row">
+                        <span class="field-label">Integracija (DVS)</span>
+                        <label class="gis-toggle">
+                            <input type="checkbox" v-model="createForm.dvs.enabled" />
+                            <span>Įjungti</span>
+                        </label>
+                    </div>
+                    <div v-if="createForm.dvs.enabled" class="dvs-grid">
+                        <AppInput v-model="createForm.dvs.token_url" label="Token URL" placeholder="https://..." />
+                        <AppInput v-model="createForm.dvs.username" label="User" />
+                        <AppInput
+                            v-model="createForm.dvs.password"
+                            type="password"
+                            label="Password"
+                            autocomplete="new-password"
+                        />
+                        <AppInput v-model="createForm.dvs.client_id" label="Client ID" />
+                        <AppInput
+                            v-model="createForm.dvs.client_secret"
+                            type="password"
+                            label="Client secret"
+                            autocomplete="new-password"
+                        />
+                        <AppInput v-model="createForm.dvs.gaunami_dokumentai_url" label="GaunamiDokumentai URL" placeholder="https://..." />
+                        <AppInput v-model="createForm.dvs.pilieciu_laiskai_url" label="PilieciuLaiskai URL" placeholder="https://..." />
+                        <AppInput v-model="createForm.dvs.rusis_url" label="Rūšis URL" placeholder="https://..." />
+                        <AppSelect
+                            v-if="createForm.dvs.rusys_options.length"
+                            v-model="createForm.dvs.rusis_kodas"
+                            label="Rūšis"
+                            variant="white"
+                            placeholder="Pasirinkti"
+                        >
+                            <option
+                                v-for="option in createForm.dvs.rusys_options"
+                                :key="'create-dvs-rusis-' + option.kodas"
+                                :value="option.kodas"
+                            >
+                                {{ option.pavadinimas }}
+                            </option>
+                        </AppSelect>
+                        <AppSelect
+                            v-model="createForm.dvs.complaint_api"
+                            class="dvs-full-row"
+                            label="Skundus siųsti per"
+                            variant="white"
+                            :placeholder="''"
+                        >
+                            <option
+                                v-for="option in DVS_COMPLAINT_API_OPTIONS"
+                                :key="'create-dvs-complaint-api-visible-' + option.value"
+                                :value="option.value"
+                            >
+                                {{ option.label }}
+                            </option>
+                        </AppSelect>
+                        <template v-if="createForm.dvs.complaint_api === 'pilieciu_laiskai'">
+                            <AppInput v-model="createForm.dvs.pilieciu_registro_kodas" label="Registro Kodas" />
+                            <AppInput v-model="createForm.dvs.pilieciu_nukreipto_id" label="Nukreipto ID" />
+                            <AppInput v-model="createForm.dvs.pilieciu_sudarytojas_id" label="Sudarytojas ID" />
+                        </template>
+                        <template v-else>
+                            <AppInput v-model="createForm.dvs.gaunami_registro_kodas" label="Registro Kodas" />
+                            <AppInput v-model="createForm.dvs.gaunami_nukreipto_id" label="Nukreipto ID" />
+                            <AppInput v-model="createForm.dvs.gaunami_sudarytojas_id" label="Sudarytojas ID" />
+                        </template>
+                    </div>
                 </div>
                 <div class="field full">
                     <div class="gis-row">
@@ -679,8 +891,89 @@ onMounted(async () => {
                 <div class="field full">
                     <AppInput v-model="editForm.contact_address" label="Adresas" />
                 </div>
-                <div class="field full">
-                    <AppInput v-model="editForm.integration_dvs" label="Integracija (DVS)" />
+                <div class="field full dvs-section">
+                    <div class="gis-row">
+                        <span class="field-label">Integracija (DVS)</span>
+                        <label class="gis-toggle">
+                            <input type="checkbox" v-model="editForm.dvs.enabled" />
+                            <span>Įjungti</span>
+                        </label>
+                    </div>
+                    <div v-if="editForm.dvs.enabled" class="dvs-grid">
+                        <AppInput v-model="editForm.dvs.token_url" label="Token URL" placeholder="https://..." />
+                        <AppInput v-model="editForm.dvs.username" label="User" />
+                        <AppInput
+                            v-model="editForm.dvs.password"
+                            type="password"
+                            label="Password"
+                            :placeholder="editForm.dvs.has_password ? 'Palikite tuščią, jei nekeičiate' : ''"
+                            autocomplete="new-password"
+                        />
+                        <AppInput v-model="editForm.dvs.client_id" label="Client ID" />
+                        <AppInput
+                            v-model="editForm.dvs.client_secret"
+                            type="password"
+                            label="Client secret"
+                            :placeholder="editForm.dvs.has_client_secret ? 'Palikite tuščią, jei nekeičiate' : ''"
+                            autocomplete="new-password"
+                        />
+                        <AppInput v-model="editForm.dvs.gaunami_dokumentai_url" label="GaunamiDokumentai URL" placeholder="https://..." />
+                        <AppInput v-model="editForm.dvs.pilieciu_laiskai_url" label="PilieciuLaiskai URL" placeholder="https://..." />
+                        <AppInput v-model="editForm.dvs.rusis_url" label="Rūšis URL" placeholder="https://..." />
+                        <div class="dvs-rusis-row">
+                            <AppSelect
+                                v-model="editForm.dvs.rusis_kodas"
+                                label="Rūšis"
+                                variant="white"
+                                placeholder="Pasirinkti"
+                                :disabled="!editForm.dvs.rusys_options.length"
+                            >
+                                <option
+                                    v-for="option in editForm.dvs.rusys_options"
+                                    :key="'edit-dvs-rusis-' + option.kodas"
+                                    :value="option.kodas"
+                                >
+                                    {{ option.pavadinimas }}
+                                </option>
+                            </AppSelect>
+                            <button
+                                type="button"
+                                class="dvs-fetch-btn"
+                                :disabled="!canFetchEditDvsRusys"
+                                @click="fetchEditDvsRusys"
+                            >
+                                {{ editDvsRusysLoading ? 'Gaunama...' : 'Gauti Rūšis' }}
+                            </button>
+                            <p v-if="editDvsRusysError" class="gis-metadata-error dvs-rusis-error">
+                                {{ editDvsRusysError }}
+                            </p>
+                        </div>
+                        <AppSelect
+                            v-model="editForm.dvs.complaint_api"
+                            class="dvs-full-row"
+                            label="Skundus siųsti per"
+                            variant="white"
+                            :placeholder="''"
+                        >
+                            <option
+                                v-for="option in DVS_COMPLAINT_API_OPTIONS"
+                                :key="'edit-dvs-complaint-api-visible-' + option.value"
+                                :value="option.value"
+                            >
+                                {{ option.label }}
+                            </option>
+                        </AppSelect>
+                        <template v-if="editForm.dvs.complaint_api === 'pilieciu_laiskai'">
+                            <AppInput v-model="editForm.dvs.pilieciu_registro_kodas" label="Registro Kodas" />
+                            <AppInput v-model="editForm.dvs.pilieciu_nukreipto_id" label="Nukreipto ID" />
+                            <AppInput v-model="editForm.dvs.pilieciu_sudarytojas_id" label="Sudarytojas ID" />
+                        </template>
+                        <template v-else>
+                            <AppInput v-model="editForm.dvs.gaunami_registro_kodas" label="Registro Kodas" />
+                            <AppInput v-model="editForm.dvs.gaunami_nukreipto_id" label="Nukreipto ID" />
+                            <AppInput v-model="editForm.dvs.gaunami_sudarytojas_id" label="Sudarytojas ID" />
+                        </template>
+                    </div>
                 </div>
                 <div class="field full">
                     <div class="gis-row">
@@ -1122,6 +1415,50 @@ td {
     border-color: var(--color-primary);
 }
 
+.dvs-section {
+    padding-top: 2px;
+}
+
+.dvs-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px 14px;
+}
+
+.dvs-full-row {
+    grid-column: 1 / -1;
+}
+
+.dvs-rusis-row {
+    grid-column: 1 / -1;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 10px;
+    align-items: end;
+}
+
+.dvs-fetch-btn {
+    min-height: 44px;
+    padding: 0 16px;
+    border: 1px solid var(--color-primary);
+    border-radius: 12px;
+    background: #ffffff;
+    color: var(--color-primary);
+    font-weight: 700;
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+.dvs-fetch-btn:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+}
+
+.dvs-rusis-error {
+    grid-column: 1 / -1;
+    margin: 0;
+}
+
 .gis-row {
     display: flex;
     align-items: center;
@@ -1322,5 +1659,12 @@ td {
 
 .gis-value-map-row--nature span {
     padding-left: 12px;
+}
+
+@media (max-width: 640px) {
+    .dvs-grid,
+    .dvs-rusis-row {
+        grid-template-columns: 1fr;
+    }
 }
 </style>

@@ -59,6 +59,11 @@ class Institution extends Model
         return $this->hasOne(InstitutionGisConfig::class);
     }
 
+    public function dvsConfig(): HasOne
+    {
+        return $this->hasOne(InstitutionDvsConfig::class);
+    }
+
     public function creator(): BelongsTo
     {
         return $this->belongsTo(User::class, 'created_by');

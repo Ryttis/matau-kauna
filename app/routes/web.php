@@ -86,6 +86,8 @@ Route::middleware(['auth', 'verified', 'reporter.terms'])->group(function () {
         Route::get('/problems/{problem}/assign-institution', [ProblemInstitutionAssignmentController::class, 'assignInstitution'])->name('problems.assignInstitution');
         Route::post('/problems/{problem}/assign-institution', [ProblemInstitutionAssignmentController::class, 'storeAssignInstitution'])->name('problems.assignInstitution.store');
         Route::post('/problems/{problem}/send-assign-email', [ProblemInstitutionAssignmentController::class, 'sendAssignInstitutionEmail'])->name('problems.assignInstitution.sendEmail');
+        Route::post('/problems/{problem}/send-dvs', [ProblemInstitutionAssignmentController::class, 'sendToDvs'])->name('problems.assignInstitution.sendDvs');
+        Route::post('/problems/{problem}/pull-dvs', [ProblemInstitutionAssignmentController::class, 'pullFromDvs'])->name('problems.assignInstitution.pullDvs');
         Route::post('/problems/{problem}/send-gis', [ProblemInstitutionAssignmentController::class, 'sendToGis'])->name('problems.assignInstitution.sendGis');
         Route::post('/problems/{problem}/pull-gis', [ProblemInstitutionAssignmentController::class, 'pullFromGis'])->name('problems.assignInstitution.pullGis');
         Route::patch('/problems/{problem}/return', [ProblemInstitutionAssignmentController::class, 'returnToAdmin'])->name('problems.return');
@@ -179,6 +181,7 @@ Route::middleware(['auth', 'verified', 'reporter.terms'])->group(function () {
             Route::get('/institutions', [AdminInstitutionController::class, 'index']);
             Route::get('/institutions/list', [AdminInstitutionController::class, 'list']);
             Route::get('/institutions/{institution}/gis-metadata', [AdminInstitutionController::class, 'gisMetadata']);
+            Route::post('/institutions/{institution}/dvs-rusys', [AdminInstitutionController::class, 'dvsRusys']);
             Route::post('/institutions', [AdminInstitutionController::class, 'store']);
             Route::put('/institutions/{institution}', [AdminInstitutionController::class, 'update']);
             Route::delete('/institutions/{institution}', [AdminInstitutionController::class, 'destroy']);

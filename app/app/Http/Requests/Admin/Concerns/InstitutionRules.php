@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Admin\Concerns;
 
+use App\Models\InstitutionDvsConfig;
 use Illuminate\Validation\Rule;
 
 trait InstitutionRules
@@ -24,6 +25,38 @@ trait InstitutionRules
             'integration_dvs' => ['nullable', 'string', 'max:255'],
             'is_active' => ['boolean'],
             'is_email_only' => ['boolean'],
+
+            'dvs' => ['nullable', 'array'],
+            'dvs.enabled' => ['nullable', 'boolean'],
+            'dvs.complaint_api' => [
+                'nullable',
+                'string',
+                Rule::in([
+                    InstitutionDvsConfig::COMPLAINT_API_GAUNAMI_DOKUMENTAI,
+                    InstitutionDvsConfig::COMPLAINT_API_PILIECIAI_LAISKAI,
+                ]),
+            ],
+            'dvs.token_url' => ['nullable', 'url', 'max:512'],
+            'dvs.username' => ['nullable', 'string', 'max:255'],
+            'dvs.password' => ['nullable', 'string', 'max:255'],
+            'dvs.client_id' => ['nullable', 'string', 'max:255'],
+            'dvs.client_secret' => ['nullable', 'string', 'max:255'],
+            'dvs.gaunami_dokumentai_url' => ['nullable', 'url', 'max:512'],
+            'dvs.pilieciu_laiskai_url' => ['nullable', 'url', 'max:512'],
+            'dvs.rusis_url' => ['nullable', 'url', 'max:512'],
+            'dvs.rusis_kodas' => ['nullable', 'string', 'max:255'],
+            'dvs.rastines_id' => ['nullable', 'string', 'max:255'],
+            'dvs.registras_id' => ['nullable', 'string', 'max:255'],
+            'dvs.darbuotojo_kodas' => ['nullable', 'string', 'max:255'],
+            'dvs.sudarytojas_kodas' => ['nullable', 'string', 'max:255'],
+            'dvs.gaunami_registro_kodas' => ['nullable', 'string', 'max:255'],
+            'dvs.gaunami_registro_id' => ['nullable', 'string', 'max:255'],
+            'dvs.gaunami_nukreipto_id' => ['nullable', 'string', 'max:255'],
+            'dvs.gaunami_sudarytojas_id' => ['nullable', 'string', 'max:255'],
+            'dvs.pilieciu_registro_kodas' => ['nullable', 'string', 'max:255'],
+            'dvs.pilieciu_registro_id' => ['nullable', 'string', 'max:255'],
+            'dvs.pilieciu_nukreipto_id' => ['nullable', 'string', 'max:255'],
+            'dvs.pilieciu_sudarytojas_id' => ['nullable', 'string', 'max:255'],
 
             'gis' => ['nullable', 'array'],
             'gis.enabled' => ['nullable', 'boolean'],

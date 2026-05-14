@@ -31,6 +31,18 @@ const props = defineProps({
         type: Object,
         default: null,
     },
+    dvsAvailable: {
+        type: Boolean,
+        default: false,
+    },
+    dvsTransfer: {
+        type: Object,
+        default: null,
+    },
+    dvsComplaintApi: {
+        type: String,
+        default: '',
+    },
 })
 
 const {
@@ -47,6 +59,8 @@ const {
     selectedReassignIds,
     assignSubmitting,
     emailSubmitting,
+    dvsSubmitting,
+    dvsPullSubmitting,
     returnSubmitting,
     reassignSubmitting,
     teamsList,
@@ -65,6 +79,10 @@ const {
     handleSendEmail,
     handleReturnToAdmin,
     handleReassign,
+    dvsStatusLabel,
+    dvsApiLabel,
+    handleSendToDvs,
+    handlePullFromDvs,
     gisStatusLabel,
     gisSubmitting,
     gisPullSubmitting,
@@ -191,6 +209,49 @@ const {
                         :loading="assignSubmitting"
                         @click="handleSendAssign"
                     />
+                </div>
+            </div>
+
+            <div class="assign-institution-section">
+                <h2 class="section-title">Perduoti į DVS</h2>
+                <div v-if="dvsAvailable" class="gis-transfer-card">
+                    <p class="gis-transfer-text">
+                        DVS API:
+                        <strong>{{ dvsApiLabel(dvsTransfer?.complaint_api || dvsComplaintApi) }}</strong>
+                    </p>
+                    <p class="gis-transfer-text">
+                        DVS būsena:
+                        <strong>{{ dvsStatusLabel(dvsTransfer?.send_status) }}</strong>
+                    </p>
+                    <p v-if="dvsTransfer?.external_object_id" class="gis-transfer-text">
+                        Išorinis objekto ID: {{ dvsTransfer.external_object_id }}
+                    </p>
+                    <p v-if="dvsTransfer?.external_reg_nr" class="gis-transfer-text">
+                        Registracijos Nr.: {{ dvsTransfer.external_reg_nr }}
+                    </p>
+                    <p v-if="dvsTransfer?.last_error" class="gis-transfer-error">
+                        Paskutinė klaida: {{ dvsTransfer.last_error }}
+                    </p>
+                    <div class="btn-row">
+                        <AppButton
+                            text="Siųsti į DVS"
+                            variant="primary"
+                            as-button
+                            :loading="dvsSubmitting"
+                            @click="handleSendToDvs"
+                        />
+                        <AppButton
+                            v-if="dvsTransfer?.external_object_id"
+                            text="Patikrinti DVS statusą"
+                            variant="secondary"
+                            as-button
+                            :loading="dvsPullSubmitting"
+                            @click="handlePullFromDvs"
+                        />
+                    </div>
+                </div>
+                <div v-else class="assign-empty-state assign-empty-state--left">
+                    <span class="assign-empty-text">Šiai įstaigai DVS siuntimas dar nesukonfigūruotas.</span>
                 </div>
             </div>
 

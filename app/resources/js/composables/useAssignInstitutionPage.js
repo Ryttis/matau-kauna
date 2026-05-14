@@ -5,6 +5,7 @@ import { useAuth } from '@/composables/useAuth'
 import { useSuccessModal } from '@/composables/useSuccessModal'
 import { settingsApi } from '@/constants/api/settingsApi'
 import { gisSendStatusLabel } from '@/constants/domain/gisTransfer'
+import { dvsComplaintApiLabel, dvsSendStatusLabel } from '@/constants/domain/dvsTransfer'
 
 export function useAssignInstitutionPage(props) {
     const { canSeeInstitutionAdminButtons } = useAuth()
@@ -42,6 +43,8 @@ export function useAssignInstitutionPage(props) {
 
     const assignSubmitting = ref(false)
     const emailSubmitting = ref(false)
+    const dvsSubmitting = ref(false)
+    const dvsPullSubmitting = ref(false)
     const gisSubmitting = ref(false)
     const gisPullSubmitting = ref(false)
     const returnSubmitting = ref(false)
@@ -204,6 +207,19 @@ export function useAssignInstitutionPage(props) {
         router.post(route('problems.assignInstitution.sendGis', props.problem.id), {}, finishVisit(gisSubmitting))
     }
 
+    const handleSendToDvs = () => {
+        dvsSubmitting.value = true
+        router.post(route('problems.assignInstitution.sendDvs', props.problem.id), {}, finishVisit(dvsSubmitting))
+    }
+
+    const handlePullFromDvs = () => {
+        if (dvsPullSubmitting.value) {
+            return
+        }
+        dvsPullSubmitting.value = true
+        router.post(route('problems.assignInstitution.pullDvs', props.problem.id), {}, finishVisit(dvsPullSubmitting))
+    }
+
     const handlePullFromGis = () => {
         if (gisPullSubmitting.value) {
             return
@@ -245,10 +261,16 @@ export function useAssignInstitutionPage(props) {
         selectedReassignIds,
         assignSubmitting,
         emailSubmitting,
+        dvsSubmitting,
+        dvsPullSubmitting,
         gisSubmitting,
         gisPullSubmitting,
         returnSubmitting,
         reassignSubmitting,
+        dvsStatusLabel: dvsSendStatusLabel,
+        dvsApiLabel: dvsComplaintApiLabel,
+        handleSendToDvs,
+        handlePullFromDvs,
         gisStatusLabel: gisSendStatusLabel,
         handleSendToGis,
         handlePullFromGis,

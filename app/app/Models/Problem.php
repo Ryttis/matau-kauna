@@ -314,6 +314,11 @@ class Problem extends Model
         return $this->hasOne(ProblemGisTransfer::class);
     }
 
+    public function dvsTransfer(): HasOne
+    {
+        return $this->hasOne(ProblemDvsTransfer::class);
+    }
+
     public function getMergeGroupIds(): array
     {
         $mainId = $this->merged_into_problem_id ?? $this->id;

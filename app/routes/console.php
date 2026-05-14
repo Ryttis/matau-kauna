@@ -29,4 +29,7 @@ Schedule::command('gis:pull-attachments')
     ->everyFifteenMinutes()
     ->timezone('Europe/Vilnius')
     ->withoutOverlapping();
-
+Schedule::command('dvs:pull-statuses')
+    ->daily()
+    ->timezone('Europe/Vilnius')
+    ->withoutOverlapping();

@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\StoreInstitutionRequest;
 use App\Http\Requests\Admin\UpdateInstitutionRequest;
 use App\Models\Institution;
+use App\Services\InstitutionDvsConfigService;
 use App\Services\InstitutionGisConfigService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Pagination\LengthAwarePaginator;
@@ -18,19 +19,21 @@ class InstitutionController extends Controller
 {
     public function __construct(
         private InstitutionGisConfigService $gisConfigService,
+        private InstitutionDvsConfigService $dvsConfigService,
     ) {}
 
     public function index(): LengthAwarePaginator
     {
         $paginator = Institution::query()
             ->notArchived()
-            ->with('gisConfig')
+            ->with(['gisConfig', 'dvsConfig'])
             ->withCount('users')
             ->orderBy('name')
             ->paginate(20);
 
         $paginator->getCollection()->transform(function (Institution $institution) {
             $institution->setAttribute('gis', $this->gisConfigService->settingsPayload($institution->gisConfig));
+            $institution->setAttribute('dvs', $this->dvsConfigService->settingsPayload($institution->dvsConfig));
 
             return $institution;
         });
@@ -50,6 +53,7 @@ class InstitutionController extends Controller
     {
         $validated = $request->validated();
         $gisPayload = Arr::pull($validated, 'gis', []);
+        $dvsPayload = Arr::pull($validated, 'dvs', []);
 
         $validated['is_active'] = $validated['is_active'] ?? true;
         $validated['is_email_only'] = $validated['is_email_only'] ?? false;
@@ -59,9 +63,11 @@ class InstitutionController extends Controller
         $institution = Institution::create($validated);
 
         $this->gisConfigService->updateForInstitution($institution, $gisPayload);
+        $this->dvsConfigService->updateForInstitution($institution, $dvsPayload);
 
-        $institution->load('gisConfig');
+        $institution->load(['gisConfig', 'dvsConfig']);
         $institution->setAttribute('gis', $this->gisConfigService->settingsPayload($institution->gisConfig));
+        $institution->setAttribute('dvs', $this->dvsConfigService->settingsPayload($institution->dvsConfig));
 
         return $institution;
     }
@@ -70,14 +76,17 @@ class InstitutionController extends Controller
     {
         $validated = $request->validated();
         $gisPayload = Arr::pull($validated, 'gis', []);
+        $dvsPayload = Arr::pull($validated, 'dvs', []);
 
         $validated['updated_by'] = $request->user()->id;
         $institution->update($validated);
 
         $this->gisConfigService->updateForInstitution($institution, $gisPayload);
+        $this->dvsConfigService->updateForInstitution($institution, $dvsPayload);
 
-        $fresh = $institution->fresh(['gisConfig']);
+        $fresh = $institution->fresh(['gisConfig', 'dvsConfig']);
         $fresh->setAttribute('gis', $this->gisConfigService->settingsPayload($fresh->gisConfig));
+        $fresh->setAttribute('dvs', $this->dvsConfigService->settingsPayload($fresh->dvsConfig));
 
         return $fresh;
     }
@@ -96,6 +105,17 @@ class InstitutionController extends Controller
             return response()->json($this->gisConfigService->metadataPayload($institution->gisConfig));
         } catch (RuntimeException $e) {
             return response()->json(['message' => $e->getMessage()], 422);
+        }
+    }
+
+    public function dvsRusys(Institution $institution): JsonResponse
+    {
+        try {
+            return response()->json($this->dvsConfigService->fetchRusysForInstitution($institution));
+        } catch (RuntimeException $e) {
+            return response()->json(['message' => $e->getMessage()], 422);
+        } catch (Throwable $e) {
+            return response()->json(['message' => 'Nepavyko gauti DVS rūšių.'], 422);
         }
     }
 

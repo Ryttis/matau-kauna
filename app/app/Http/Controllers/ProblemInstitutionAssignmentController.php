@@ -10,6 +10,7 @@ use App\Models\Problem;
 use App\Models\User;
 use App\Models\UserRole;
 use App\Services\ArcGisProblemTransferService;
+use App\Services\DvsProblemTransferService;
 use App\Services\ProblemAssignmentNotifier;
 use App\Services\ProblemInstitutionAssignmentPickerService;
 use App\Services\ProblemReviewHistoryService;
@@ -28,6 +29,7 @@ class ProblemInstitutionAssignmentController extends Controller
         private ProblemAssignmentNotifier $assignmentNotifier,
         private ProblemInstitutionAssignmentPickerService $assignmentPickerService,
         private ArcGisProblemTransferService $arcGisProblemTransferService,
+        private DvsProblemTransferService $dvsProblemTransferService,
         private ProblemReviewHistoryService $reviewHistoryService,
     ) {}
 
@@ -69,7 +71,9 @@ class ProblemInstitutionAssignmentController extends Controller
 
         $problem->loadMissing([
             'institution.gisConfig',
+            'institution.dvsConfig',
             'gisTransfer.attachmentTransfers.attachment',
+            'dvsTransfer',
         ]);
 
         $picker = $this->assignmentPickerService->pickerDataFor($user);
@@ -81,6 +85,9 @@ class ProblemInstitutionAssignmentController extends Controller
             'institutions' => $picker['institutions'],
             'gisAvailable' => (bool) $problem->institution?->gisConfig?->enabled,
             'gisTransfer' => $problem->gisTransfer?->loadMissing('attachmentTransfers.attachment'),
+            'dvsAvailable' => (bool) $problem->institution?->dvsConfig?->enabled,
+            'dvsTransfer' => $problem->dvsTransfer,
+            'dvsComplaintApi' => $problem->institution?->dvsConfig?->complaint_api,
         ]);
     }
 
@@ -242,6 +249,57 @@ class ProblemInstitutionAssignmentController extends Controller
             : 'Problema sėkmingai perduota į GIS.';
 
         return redirect()->back()->with('success', $message);
+    }
+
+    public function sendToDvs(Request $request, Problem $problem): RedirectResponse
+    {
+        $user = $request->user();
+        if (! $user->isInstitutionAdminOrSystemAdmin()) {
+            abort(403);
+        }
+        $this->scopeService->authorizeProblemAccess($user, $problem);
+
+        if ($problem->status === ProblemStatus::RESOLVED->value) {
+            return redirect()->back()->with('error', 'Išspręstos problemos perduoti negalima.');
+        }
+
+        try {
+            $this->dvsProblemTransferService->transferProblem($problem);
+        } catch (\Throwable $e) {
+            return redirect()->back()->with('error', $e->getMessage());
+        }
+
+        return redirect()->back()->with('success', 'Problema sėkmingai perduota į DVS.');
+    }
+
+    public function pullFromDvs(Request $request, Problem $problem): RedirectResponse
+    {
+        $user = $request->user();
+        if (! $user->isInstitutionAdminOrSystemAdmin()) {
+            abort(403);
+        }
+        $this->scopeService->authorizeProblemAccess($user, $problem);
+
+        $problem->loadMissing('dvsTransfer');
+        if (! $problem->dvsTransfer || ! filled($problem->dvsTransfer->external_object_id)) {
+            return redirect()->back()->with('error', 'Problema dar nebuvo perduota į DVS.');
+        }
+
+        try {
+            $result = $this->dvsProblemTransferService->syncFromDvs($problem->dvsTransfer);
+        } catch (\Throwable $e) {
+            return redirect()->back()->with('error', $e->getMessage());
+        }
+
+        if ($result['status_changed']) {
+            return redirect()->back()->with('success', 'Atnaujinta iš DVS: būsena pakeista į „Išspręsta".');
+        }
+
+        if ($result['answer_found']) {
+            return redirect()->back()->with('success', 'DVS atsakymas jau užfiksuotas.');
+        }
+
+        return redirect()->back()->with('success', 'DVS pusėje pakeitimų nerasta.');
     }
 
     public function pullFromGis(Request $request, Problem $problem): RedirectResponse

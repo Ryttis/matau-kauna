@@ -1,0 +1,469 @@
+<?php
+
+namespace App\Services;
+
+use App\Enums\ProblemStatus;
+use App\Models\InstitutionDvsConfig;
+use App\Models\Problem;
+use App\Models\ProblemAttachment;
+use App\Models\ProblemDvsTransfer;
+use Carbon\Carbon;
+use Illuminate\Http\Client\ConnectionException;
+use Illuminate\Support\Arr;
+use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Str;
+use RuntimeException;
+
+class DvsProblemTransferService
+{
+    private const DVS_ACCEPT_HEADER = 'application/json;odata.metadata=minimal;odata.streaming=true';
+
+    public function __construct(
+        private ProblemReporterStatusNotifier $reporterStatusNotifier,
+    ) {}
+
+    public function transferProblem(Problem $problem): array
+    {
+        $problem->loadMissing([
+            'institution.dvsConfig',
+            'attachments',
+            'reportedByUser:id,name,surname,email,phone',
+            'problemNature:id,name',
+            'problemType:id,name',
+            'dvsTransfer',
+        ]);
+
+        $config = $this->activeConfigForProblem($problem);
+        $api = $this->selectedApi($config);
+
+        $transfer = ProblemDvsTransfer::firstOrCreate(
+            ['problem_id' => $problem->id],
+            [
+                'institution_dvs_config_id' => $config->id,
+                'complaint_api' => $api,
+                'send_status' => ProblemDvsTransfer::STATUS_PENDING,
+            ]
+        );
+
+        $transfer->forceFill([
+            'institution_dvs_config_id' => $config->id,
+            'complaint_api' => $api,
+        ])->save();
+
+        try {
+            if (! filled($transfer->external_object_id)) {
+                $payload = $this->buildPayload($problem, $config, $api);
+                $response = $this->postJsonWithToken($config, $this->sendUrl($config, $api), $payload);
+                $data = $this->responseData($response);
+                $objectId = $this->firstFilled($data, ['objectId', 'ObjectId', 'id', 'Id']);
+
+                if (blank($objectId)) {
+                    throw new RuntimeException('DVS API negrąžino sukurto objekto ID.');
+                }
+
+                $transfer->forceFill([
+                    'external_object_id' => (string) $objectId,
+                    'external_reg_nr' => $this->firstFilled($data, ['regNr', 'RegNr', 'registroNr', 'RegistroNr']),
+                    'send_status' => ProblemDvsTransfer::STATUS_SENT,
+                    'last_error' => null,
+                    'sent_at' => now(),
+                    'last_response_json' => $response,
+                ])->save();
+            }
+
+            return [
+                'transfer' => $transfer->fresh(),
+                'created' => true,
+            ];
+        } catch (\Throwable $e) {
+            $transfer->forceFill([
+                'send_status' => ProblemDvsTransfer::STATUS_FAILED,
+                'last_error' => $e->getMessage(),
+            ])->save();
+
+            throw $e;
+        }
+    }
+
+    public function syncFromDvs(ProblemDvsTransfer $transfer): array
+    {
+        $transfer->loadMissing(['config', 'problem.reportedByUser']);
+        $config = $transfer->config;
+
+        if (! $config || ! $config->enabled || ! filled($transfer->external_object_id)) {
+            return [
+                'status_changed' => false,
+                'old_status' => null,
+                'new_status' => null,
+                'answer_found' => false,
+            ];
+        }
+
+        $api = $this->selectedApi($config, $transfer->complaint_api);
+        $response = $this->getJsonWithToken($config, $this->statusUrl($config, $api, $transfer->external_object_id));
+        $data = $this->responseData($response);
+
+        $answerDateValue = $api === InstitutionDvsConfig::COMPLAINT_API_GAUNAMI_DOKUMENTAI
+            ? $this->firstFilled($data, ['atsakytaData', 'AtsakytaData'])
+            : $this->firstFilled($data, ['atsakymoData', 'AtsakymoData']);
+        $answerNotes = $this->firstFilled($data, ['atsakymoPastabos', 'AtsakymoPastabos']);
+        $answerDate = $this->parseDate($answerDateValue);
+
+        $statusChanged = false;
+        $oldStatus = null;
+        $newStatus = null;
+
+        if ($answerDate && $transfer->problem && $transfer->problem->status !== ProblemStatus::RESOLVED->value) {
+            $oldStatus = (string) $transfer->problem->status;
+            $newStatus = ProblemStatus::RESOLVED->value;
+            $transfer->problem->forceFill([
+                'status' => $newStatus,
+                'status_updated_at' => now(),
+            ])->save();
+            $statusChanged = true;
+
+            $main = $transfer->problem->merged_into_problem_id
+                ? Problem::find($transfer->problem->merged_into_problem_id)
+                : $transfer->problem;
+
+            if ($main) {
+                $this->reporterStatusNotifier->notifyReportersAndWatchersWhenStatusChanges(
+                    $main,
+                    $oldStatus,
+                    $newStatus
+                );
+            }
+        }
+
+        $transfer->forceFill([
+            'last_checked_at' => now(),
+            'answer_date' => $answerDate,
+            'answer_notes' => filled($answerNotes) ? (string) $answerNotes : $transfer->answer_notes,
+            'last_response_json' => $response,
+            'send_status' => $answerDate ? ProblemDvsTransfer::STATUS_RESOLVED : $transfer->send_status,
+            'last_error' => null,
+        ])->save();
+
+        return [
+            'status_changed' => $statusChanged,
+            'old_status' => $oldStatus,
+            'new_status' => $newStatus,
+            'answer_found' => $answerDate !== null,
+        ];
+    }
+
+    public function buildPayload(Problem $problem, InstitutionDvsConfig $config, ?string $api = null): array
+    {
+        $problem->loadMissing([
+            'attachments',
+            'reportedByUser:id,name,surname,email,phone',
+            'problemNature:id,name',
+            'problemType:id,name',
+        ]);
+
+        $api = $this->selectedApi($config, $api);
+
+        return $api === InstitutionDvsConfig::COMPLAINT_API_GAUNAMI_DOKUMENTAI
+            ? $this->buildGaunamiDokumentaiPayload($problem, $config)
+            : $this->buildPilieciuLaiskaiPayload($problem, $config);
+    }
+
+    private function activeConfigForProblem(Problem $problem): InstitutionDvsConfig
+    {
+        if (! $problem->institution_id || ! $problem->institution?->dvsConfig?->enabled) {
+            throw new RuntimeException('Šiai problemai nepriskirta aktyvi DVS integracija.');
+        }
+
+        return $problem->institution->dvsConfig;
+    }
+
+    private function buildGaunamiDokumentaiPayload(Problem $problem, InstitutionDvsConfig $config): array
+    {
+        foreach ([
+            'gaunami_dokumentai_url' => 'GaunamiDokumentai URL',
+            'rusis_kodas' => 'Rūšis',
+            'gaunami_nukreipto_id' => 'Nukreipto ID',
+            'gaunami_sudarytojas_id' => 'Sudarytojas ID',
+        ] as $field => $label) {
+            if (blank($config->{$field})) {
+                throw new RuntimeException('DVS siuntimui trūksta lauko: '.$label.'.');
+            }
+        }
+
+        if (blank($config->gaunami_registro_kodas) && blank($config->gaunami_registro_id)) {
+            throw new RuntimeException('DVS siuntimui truksta lauko: Registro Kodas.');
+        }
+
+        $createdAt = $problem->created_at ?? now();
+        $payload = [
+            'rusiesKodas' => (string) $config->rusis_kodas,
+            'nukreiptoId' => (int) $config->gaunami_nukreipto_id,
+            'autoriausId' => (int) $config->gaunami_sudarytojas_id,
+            'regData' => $createdAt->toIso8601String(),
+            'dokData' => $createdAt->toIso8601String(),
+            'dokNr' => $problem->internal_number,
+            'patikslinimas' => $this->reporterName($problem),
+            'antraste' => Str::limit($this->problemNatureTitle($problem), 250, ''),
+            'pastabos' => $problem->description,
+            'elektroninis' => true,
+            'failai' => $this->attachmentsPayload($problem),
+        ];
+
+        if (! blank($config->gaunami_registro_kodas)) {
+            $payload['registroKodas'] = (string) $config->gaunami_registro_kodas;
+        } elseif (! blank($config->gaunami_registro_id)) {
+            $payload['registroId'] = is_numeric($config->gaunami_registro_id)
+                ? (int) $config->gaunami_registro_id
+                : (string) $config->gaunami_registro_id;
+        }
+
+        if (! blank($problem->completion_deadline)) {
+            $payload['terminoData'] = $problem->completion_deadline->toIso8601String();
+        }
+
+        return $this->stripEmpty($payload);
+    }
+
+    private function buildPilieciuLaiskaiPayload(Problem $problem, InstitutionDvsConfig $config): array
+    {
+        foreach ([
+            'pilieciu_laiskai_url' => 'PilieciuLaiskai URL',
+            'pilieciu_nukreipto_id' => 'Nukreipto ID',
+        ] as $field => $label) {
+            if (blank($config->{$field})) {
+                throw new RuntimeException('DVS siuntimui trūksta lauko: '.$label.'.');
+            }
+        }
+
+        if (blank($config->pilieciu_registro_kodas) && blank($config->pilieciu_registro_id)) {
+            throw new RuntimeException('DVS siuntimui truksta lauko: Registro Kodas.');
+        }
+
+        $createdAt = $problem->created_at ?? now();
+        $payload = [
+            'regData' => $createdAt->toIso8601String(),
+            'dokData' => $createdAt->toIso8601String(),
+            'dokNr' => $problem->internal_number,
+            'autorius' => $this->reporterName($problem) ?: 'Gyventojas',
+            'adresas' => $problem->address,
+            'elektroninisPastas' => $problem->reportedByUser?->email,
+            'telefonoNumeris' => $problem->reportedByUser?->phone,
+            'elektroninis' => true,
+            'antraste' => Str::limit(trim(implode(' - ', array_filter([
+                $problem->internal_number,
+                $this->problemNatureTitle($problem),
+            ]))), 250, ''),
+            'pastabos' => $problem->description,
+            'nukreiptoId' => (int) $config->pilieciu_nukreipto_id,
+            'failai' => $this->attachmentsPayload($problem),
+        ];
+
+        if (! blank($config->pilieciu_registro_kodas)) {
+            $payload['registroKodas'] = (string) $config->pilieciu_registro_kodas;
+        } elseif (! blank($config->pilieciu_registro_id)) {
+            $payload['registroId'] = is_numeric($config->pilieciu_registro_id)
+                ? (int) $config->pilieciu_registro_id
+                : (string) $config->pilieciu_registro_id;
+        }
+
+        if (! blank($problem->completion_deadline)) {
+            $payload['terminoData'] = $problem->completion_deadline->toIso8601String();
+        }
+
+        return $this->stripEmpty($payload);
+    }
+
+    private function attachmentsPayload(Problem $problem): array
+    {
+        return $problem->attachments
+            ->map(function (ProblemAttachment $attachment) {
+                $absolutePath = public_path(ltrim((string) $attachment->path, '/'));
+                if (! is_file($absolutePath)) {
+                    throw new RuntimeException('Nepavyko rasti DVS priedo failo serveryje.');
+                }
+
+                $now = now()->toIso8601String();
+
+                return [
+                    'aprasymas' => $attachment->original_name ?: basename($absolutePath),
+                    'regData' => $now,
+                    'verData' => $now,
+                    'failoPavadinimas' => $attachment->original_name ?: basename($absolutePath),
+                    'failoDuomenys' => base64_encode((string) file_get_contents($absolutePath)),
+                    'pagrindinis' => false,
+                    'konvertuotiIPdf' => true,
+                ];
+            })
+            ->values()
+            ->all();
+    }
+
+    private function reporterName(Problem $problem): string
+    {
+        $reporter = $problem->reportedByUser;
+        if (! $reporter) {
+            return '';
+        }
+
+        return trim(implode(' ', array_filter([
+            $reporter->name,
+            $reporter->surname,
+        ]))) ?: (string) $reporter->email;
+    }
+
+    private function problemNatureTitle(Problem $problem): string
+    {
+        return trim((string) (
+            $problem->problemNature?->name
+            ?? $problem->problemType?->name
+            ?? $problem->category
+            ?? 'Problema'
+        ));
+    }
+
+    private function sendUrl(InstitutionDvsConfig $config, string $api): string
+    {
+        return $api === InstitutionDvsConfig::COMPLAINT_API_GAUNAMI_DOKUMENTAI
+            ? (string) $config->gaunami_dokumentai_url
+            : (string) $config->pilieciu_laiskai_url;
+    }
+
+    private function statusUrl(InstitutionDvsConfig $config, string $api, int|string $id): string
+    {
+        return rtrim($this->sendUrl($config, $api), '/').'/'.rawurlencode((string) $id);
+    }
+
+    private function selectedApi(InstitutionDvsConfig $config, ?string $api = null): string
+    {
+        $api = $api ?: $config->complaint_api ?: InstitutionDvsConfig::COMPLAINT_API_GAUNAMI_DOKUMENTAI;
+
+        return in_array($api, [
+            InstitutionDvsConfig::COMPLAINT_API_GAUNAMI_DOKUMENTAI,
+            InstitutionDvsConfig::COMPLAINT_API_PILIECIAI_LAISKAI,
+        ], true)
+            ? $api
+            : InstitutionDvsConfig::COMPLAINT_API_GAUNAMI_DOKUMENTAI;
+    }
+
+    private function postJsonWithToken(InstitutionDvsConfig $config, string $url, array $payload): array
+    {
+        $token = $this->getToken($config);
+        $response = Http::withToken($token)
+            ->withHeaders(['Accept' => self::DVS_ACCEPT_HEADER])
+            ->timeout(90)
+            ->post($url, $payload);
+
+        if (! $response->successful()) {
+            throw new RuntimeException('DVS API grąžino HTTP '.$response->status().'.');
+        }
+
+        $json = $response->json();
+        if (! is_array($json)) {
+            throw new RuntimeException('DVS API grąžino netinkamą JSON atsakymą.');
+        }
+
+        return $json;
+    }
+
+    private function getJsonWithToken(InstitutionDvsConfig $config, string $url): array
+    {
+        $token = $this->getToken($config);
+        $response = Http::withToken($token)
+            ->withHeaders(['Accept' => self::DVS_ACCEPT_HEADER])
+            ->timeout(90)
+            ->get($url);
+
+        if (! $response->successful()) {
+            throw new RuntimeException('DVS statuso API grąžino HTTP '.$response->status().'.');
+        }
+
+        $json = $response->json();
+        if (! is_array($json)) {
+            throw new RuntimeException('DVS statuso API grąžino netinkamą JSON atsakymą.');
+        }
+
+        return $json;
+    }
+
+    private function getToken(InstitutionDvsConfig $config): string
+    {
+        foreach ([
+            'token_url' => 'Token URL',
+            'username' => 'User',
+            'password' => 'Password',
+            'client_id' => 'Client ID',
+            'client_secret' => 'Client secret',
+        ] as $field => $label) {
+            if (blank($config->{$field})) {
+                throw new RuntimeException('DVS prisijungimui trūksta lauko: '.$label.'.');
+            }
+        }
+
+        try {
+            $response = Http::asForm()
+                ->timeout(60)
+                ->post($config->token_url, [
+                    'grant_type' => 'password',
+                    'UserName' => $config->username,
+                    'Password' => $config->password,
+                    'client_id' => $config->client_id,
+                    'client_secret' => $config->client_secret,
+                ]);
+        } catch (ConnectionException $e) {
+            throw new RuntimeException('Nepavyko prisijungti prie DVS Token API.');
+        }
+
+        if (! $response->successful()) {
+            throw new RuntimeException('DVS Token API grąžino HTTP '.$response->status().'.');
+        }
+
+        $token = $response->json('access_token');
+        if (blank($token)) {
+            throw new RuntimeException('DVS Token API negrąžino access_token.');
+        }
+
+        return (string) $token;
+    }
+
+    private function responseData(array $response): array
+    {
+        $status = $response['status'] ?? $response['Status'] ?? null;
+        $data = $response['data'] ?? $response['Data'] ?? null;
+
+        if ($status !== null && ! in_array((string) $status, ['0', '1'], true)) {
+            throw new RuntimeException('DVS API grąžino nesėkmingą statusą.');
+        }
+
+        return is_array($data) ? $data : $response;
+    }
+
+    private function firstFilled(array $data, array $keys): mixed
+    {
+        foreach ($keys as $key) {
+            $value = Arr::get($data, $key);
+            if (filled($value)) {
+                return $value;
+            }
+        }
+
+        return null;
+    }
+
+    private function parseDate(mixed $value): ?Carbon
+    {
+        if (blank($value)) {
+            return null;
+        }
+
+        try {
+            return Carbon::parse((string) $value);
+        } catch (\Throwable) {
+            return null;
+        }
+    }
+
+    private function stripEmpty(array $payload): array
+    {
+        return array_filter($payload, fn ($value) => $value !== null && $value !== '' && $value !== []);
+    }
+}
