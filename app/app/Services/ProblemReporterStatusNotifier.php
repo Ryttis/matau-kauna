@@ -182,19 +182,20 @@ class ProblemReporterStatusNotifier
             'new_status' => $newStatus,
         ];
 
-        $this->pushToUsers($reporterIds, 'reporter_email_own_problems', $title, $body, $data);
-        $this->pushToUsers($watcherIds, 'reporter_email_watched_problems', $title, $body, $data);
+        $this->pushToUsers($reporterIds, $title, $body, $data);
+        $this->pushToUsers($watcherIds, $title, $body, $data);
     }
 
-    private function pushToUsers(iterable $userIds, string $preferenceColumn, string $title, string $body, array $data): void
+    private function pushToUsers(iterable $userIds, string $title, string $body, array $data): void
     {
         foreach ($userIds as $userId) {
             $user = User::query()
                 ->notArchived()
                 ->whereKey($userId)
-                ->first(['id', 'push_fcm_token', $preferenceColumn]);
+                ->whereNotNull('push_fcm_token')
+                ->first(['id', 'push_fcm_token']);
 
-            if (! $user || ! $user->push_fcm_token || $user->{$preferenceColumn} !== true) {
+            if (! $user) {
                 continue;
             }
 
