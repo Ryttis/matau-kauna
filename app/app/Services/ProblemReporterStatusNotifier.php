@@ -13,7 +13,7 @@ use App\Support\EmailBody;
 
 class ProblemReporterStatusNotifier
 {
-    public const PUSH_ON_STATUS_CHANGE_ENABLED = false;
+    public const PUSH_ON_STATUS_CHANGE_ENABLED = true;
 
     private const CTA_LABEL = 'Peržiūrėti problemą';
 
