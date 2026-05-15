@@ -8,10 +8,10 @@ import { createApp, h } from 'vue';
 import { ZiggyVue } from '../../vendor/tightenco/ziggy';
 import '@fortawesome/fontawesome-free/css/all.css'
 
-const appName = import.meta.env.VITE_APP_NAME || 'Laravel';
+const appName = import.meta.env.VITE_APP_NAME || 'Kauno problemos';
 
 createInertiaApp({
-    title: (title) => `${title} - ${appName}`,
+    title: (title) => title || appName,
     resolve: (name) =>
         resolvePageComponent(
             `./Pages/${name}.vue`,
