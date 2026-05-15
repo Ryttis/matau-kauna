@@ -51,6 +51,7 @@ class GuestContentController extends Controller
         return Inertia::render($definition->inertiaView, [
             'title' => (string) ($published?->title ?? $definition->fallbackTitle),
             'body' => (string) ($published?->body ?? ''),
+            'items' => $published?->usesStructuredItems() ? ($published->items ?? []) : [],
         ]);
     }
 }

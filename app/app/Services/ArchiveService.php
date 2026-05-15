@@ -105,7 +105,7 @@ class ArchiveService
     private function withDeleteAt($archivedAt, ?DataRetentionRule $rule, array $row): array
     {
         $days = $rule?->delete_after_days;
-        if (! $archivedAt || ! $days || $days < 1) {
+        if (! $archivedAt || ! $rule || ! $rule->is_active || ! $days || $days < 1) {
             $row['delete_at'] = null;
 
             return $row;

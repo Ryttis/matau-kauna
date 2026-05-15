@@ -164,10 +164,11 @@ const reporterDateMax = `${currentYear}-12-31`
                     </div>
                     <div class="reporter-dashboard-actions">
                         <AppButton
+                            v-if="reporterCanToggleWatchSelection"
                             :text="reporterSelectedIsWatched ? 'Nebestebėti' : 'Stebėti eigą'"
                             variant="primary"
                             as-button
-                            :disabled="!reporterCanToggleWatchSelection || reporterWatchBusy"
+                            :disabled="reporterWatchBusy"
                             :loading="reporterStebetiButtonLoading"
                             @click="reporterHandleStebeti"
                         />
