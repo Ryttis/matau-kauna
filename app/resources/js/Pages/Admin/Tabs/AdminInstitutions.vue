@@ -48,8 +48,8 @@ const GIS_STATUS_OPTIONS = [
 ]
 
 const DVS_COMPLAINT_API_OPTIONS = [
-    { value: 'gaunami_dokumentai', label: 'GaunamiDokumentai' },
-    { value: 'pilieciu_laiskai', label: 'PilieciuLaiskai' },
+    { value: 'gaunami_dokumentai', label: 'Gaunami dokumentai' },
+    { value: 'pilieciu_laiskai', label: 'Piliečių laiškai' },
 ]
 
 function defaultFieldMapping() {
@@ -749,7 +749,7 @@ onMounted(async () => {
                         <AppSelect
                             v-model="createForm.dvs.complaint_api"
                             class="dvs-full-row"
-                            label="Skundus siųsti per"
+                            label="Dokumento tipas"
                             variant="white"
                             :placeholder="''"
                         >
@@ -959,7 +959,7 @@ onMounted(async () => {
                         <AppSelect
                             v-model="editForm.dvs.complaint_api"
                             class="dvs-full-row"
-                            label="Skundus siųsti per"
+                            label="Dokumento tipas"
                             variant="white"
                             :placeholder="''"
                         >

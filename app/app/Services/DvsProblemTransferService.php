@@ -196,13 +196,14 @@ class DvsProblemTransferService
             throw new RuntimeException('DVS siuntimui truksta lauko: Registro Kodas.');
         }
 
-        $createdAt = $problem->created_at ?? now();
+        $registeredAt = now();
+        $documentAt = $problem->created_at ?? $registeredAt;
         $payload = [
             'rusiesKodas' => (string) $config->rusis_kodas,
             'nukreiptoId' => (int) $config->gaunami_nukreipto_id,
             'autoriausId' => (int) $config->gaunami_sudarytojas_id,
-            'regData' => $createdAt->toIso8601String(),
-            'dokData' => $createdAt->toIso8601String(),
+            'regData' => $registeredAt->toIso8601String(),
+            'dokData' => $documentAt->toIso8601String(),
             'dokNr' => $problem->internal_number,
             'patikslinimas' => $this->reporterName($problem),
             'antraste' => Str::limit($this->problemNatureTitle($problem), 250, ''),
@@ -241,10 +242,11 @@ class DvsProblemTransferService
             throw new RuntimeException('DVS siuntimui truksta lauko: Registro Kodas.');
         }
 
-        $createdAt = $problem->created_at ?? now();
+        $registeredAt = now();
+        $documentAt = $problem->created_at ?? $registeredAt;
         $payload = [
-            'regData' => $createdAt->toIso8601String(),
-            'dokData' => $createdAt->toIso8601String(),
+            'regData' => $registeredAt->toIso8601String(),
+            'dokData' => $documentAt->toIso8601String(),
             'dokNr' => $problem->internal_number,
             'autorius' => $this->reporterName($problem) ?: 'Gyventojas',
             'adresas' => $problem->address,
