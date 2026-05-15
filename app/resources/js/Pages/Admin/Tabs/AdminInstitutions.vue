@@ -104,10 +104,12 @@ function emptyDvsForm() {
         gaunami_registro_id: '',
         gaunami_nukreipto_id: '',
         gaunami_sudarytojas_id: '',
+        gaunami_failu_registro_kodas: '',
         pilieciu_registro_kodas: '',
         pilieciu_registro_id: '',
         pilieciu_nukreipto_id: '',
         pilieciu_sudarytojas_id: '',
+        pilieciu_failu_registro_kodas: '',
     }
 }
 
@@ -252,10 +254,12 @@ function dvsFromPayload(source) {
         gaunami_registro_id: source.gaunami_registro_id ?? '',
         gaunami_nukreipto_id: source.gaunami_nukreipto_id ?? '',
         gaunami_sudarytojas_id: source.gaunami_sudarytojas_id ?? '',
+        gaunami_failu_registro_kodas: source.gaunami_failu_registro_kodas ?? '',
         pilieciu_registro_kodas: source.pilieciu_registro_kodas ?? '',
         pilieciu_registro_id: source.pilieciu_registro_id ?? '',
         pilieciu_nukreipto_id: source.pilieciu_nukreipto_id ?? '',
         pilieciu_sudarytojas_id: source.pilieciu_sudarytojas_id ?? '',
+        pilieciu_failu_registro_kodas: source.pilieciu_failu_registro_kodas ?? '',
     }
 }
 
@@ -283,10 +287,12 @@ function dvsSubmitPayload(dvs) {
         gaunami_registro_id: nullableString(dvs?.gaunami_registro_id),
         gaunami_nukreipto_id: nullableString(dvs?.gaunami_nukreipto_id),
         gaunami_sudarytojas_id: nullableString(dvs?.gaunami_sudarytojas_id),
+        gaunami_failu_registro_kodas: nullableString(dvs?.gaunami_failu_registro_kodas),
         pilieciu_registro_kodas: nullableString(dvs?.pilieciu_registro_kodas),
         pilieciu_registro_id: nullableString(dvs?.pilieciu_registro_id),
         pilieciu_nukreipto_id: nullableString(dvs?.pilieciu_nukreipto_id),
         pilieciu_sudarytojas_id: nullableString(dvs?.pilieciu_sudarytojas_id),
+        pilieciu_failu_registro_kodas: nullableString(dvs?.pilieciu_failu_registro_kodas),
     }
 
     const password = nullableString(dvs?.password)
@@ -759,11 +765,13 @@ onMounted(async () => {
                             <AppInput v-model="createForm.dvs.pilieciu_registro_kodas" label="Registro Kodas" />
                             <AppInput v-model="createForm.dvs.pilieciu_nukreipto_id" label="Nukreipto ID" />
                             <AppInput v-model="createForm.dvs.pilieciu_sudarytojas_id" label="Sudarytojas ID" />
+                            <AppInput v-model="createForm.dvs.pilieciu_failu_registro_kodas" label="Failų Registro Kodas" />
                         </template>
                         <template v-else>
                             <AppInput v-model="createForm.dvs.gaunami_registro_kodas" label="Registro Kodas" />
                             <AppInput v-model="createForm.dvs.gaunami_nukreipto_id" label="Nukreipto ID" />
                             <AppInput v-model="createForm.dvs.gaunami_sudarytojas_id" label="Sudarytojas ID" />
+                            <AppInput v-model="createForm.dvs.gaunami_failu_registro_kodas" label="Failų Registro Kodas" />
                         </template>
                     </div>
                 </div>
@@ -967,11 +975,13 @@ onMounted(async () => {
                             <AppInput v-model="editForm.dvs.pilieciu_registro_kodas" label="Registro Kodas" />
                             <AppInput v-model="editForm.dvs.pilieciu_nukreipto_id" label="Nukreipto ID" />
                             <AppInput v-model="editForm.dvs.pilieciu_sudarytojas_id" label="Sudarytojas ID" />
+                            <AppInput v-model="editForm.dvs.pilieciu_failu_registro_kodas" label="Failų Registro Kodas" />
                         </template>
                         <template v-else>
                             <AppInput v-model="editForm.dvs.gaunami_registro_kodas" label="Registro Kodas" />
                             <AppInput v-model="editForm.dvs.gaunami_nukreipto_id" label="Nukreipto ID" />
                             <AppInput v-model="editForm.dvs.gaunami_sudarytojas_id" label="Sudarytojas ID" />
+                            <AppInput v-model="editForm.dvs.gaunami_failu_registro_kodas" label="Failų Registro Kodas" />
                         </template>
                     </div>
                 </div>
