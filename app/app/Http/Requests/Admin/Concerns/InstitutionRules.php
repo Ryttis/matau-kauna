@@ -53,10 +53,12 @@ trait InstitutionRules
             'dvs.gaunami_registro_id' => ['nullable', 'string', 'max:255'],
             'dvs.gaunami_nukreipto_id' => ['nullable', 'string', 'max:255'],
             'dvs.gaunami_sudarytojas_id' => ['nullable', 'string', 'max:255'],
+            'dvs.gaunami_failu_registro_kodas' => ['nullable', 'string', 'max:255'],
             'dvs.pilieciu_registro_kodas' => ['nullable', 'string', 'max:255'],
             'dvs.pilieciu_registro_id' => ['nullable', 'string', 'max:255'],
             'dvs.pilieciu_nukreipto_id' => ['nullable', 'string', 'max:255'],
             'dvs.pilieciu_sudarytojas_id' => ['nullable', 'string', 'max:255'],
+            'dvs.pilieciu_failu_registro_kodas' => ['nullable', 'string', 'max:255'],
 
             'gis' => ['nullable', 'array'],
             'gis.enabled' => ['nullable', 'boolean'],

@@ -33,10 +33,12 @@ class InstitutionDvsConfig extends Model
         'gaunami_registro_id',
         'gaunami_nukreipto_id',
         'gaunami_sudarytojas_id',
+        'gaunami_failu_registro_kodas',
         'pilieciu_registro_kodas',
         'pilieciu_registro_id',
         'pilieciu_nukreipto_id',
         'pilieciu_sudarytojas_id',
+        'pilieciu_failu_registro_kodas',
     ];
 
     protected $hidden = [

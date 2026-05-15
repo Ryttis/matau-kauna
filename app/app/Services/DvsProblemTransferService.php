@@ -104,9 +104,11 @@ class DvsProblemTransferService
         $data = $this->responseData($response);
 
         $answerDateValue = $api === InstitutionDvsConfig::COMPLAINT_API_GAUNAMI_DOKUMENTAI
-            ? $this->firstFilled($data, ['atsakytaData', 'AtsakytaData'])
+            ? $this->firstFilled($data, ['atsakytaData', 'AtsakytaData', 'ivykdymoData', 'IvykdymoData'])
             : $this->firstFilled($data, ['atsakymoData', 'AtsakymoData']);
-        $answerNotes = $this->firstFilled($data, ['atsakymoPastabos', 'AtsakymoPastabos']);
+        $answerNotes = $api === InstitutionDvsConfig::COMPLAINT_API_GAUNAMI_DOKUMENTAI
+            ? $this->firstFilled($data, ['atsakymoPastabos', 'AtsakymoPastabos', 'ivykdymoPastabos', 'IvykdymoPastabos'])
+            : $this->firstFilled($data, ['atsakymoPastabos', 'AtsakymoPastabos']);
         $answerDate = $this->parseDate($answerDateValue);
 
         $statusChanged = false;
@@ -206,16 +208,16 @@ class DvsProblemTransferService
             'antraste' => Str::limit($this->problemNatureTitle($problem), 250, ''),
             'pastabos' => $problem->description,
             'elektroninis' => true,
-            'failai' => $this->attachmentsPayload($problem),
+            'failai' => $this->attachmentsPayload(
+                $problem,
+                $config->gaunami_failu_registro_kodas
+            ),
         ];
 
-        if (! blank($config->gaunami_registro_kodas)) {
-            $payload['registroKodas'] = (string) $config->gaunami_registro_kodas;
-        } elseif (! blank($config->gaunami_registro_id)) {
-            $payload['registroId'] = is_numeric($config->gaunami_registro_id)
-                ? (int) $config->gaunami_registro_id
-                : (string) $config->gaunami_registro_id;
-        }
+        $payload = array_merge(
+            $payload,
+            $this->registryPayload($config->gaunami_registro_kodas, $config->gaunami_registro_id)
+        );
 
         if (! blank($problem->completion_deadline)) {
             $payload['terminoData'] = $problem->completion_deadline->toIso8601String();
@@ -255,16 +257,16 @@ class DvsProblemTransferService
             ]))), 250, ''),
             'pastabos' => $problem->description,
             'nukreiptoId' => (int) $config->pilieciu_nukreipto_id,
-            'failai' => $this->attachmentsPayload($problem),
+            'failai' => $this->attachmentsPayload(
+                $problem,
+                $config->pilieciu_failu_registro_kodas
+            ),
         ];
 
-        if (! blank($config->pilieciu_registro_kodas)) {
-            $payload['registroKodas'] = (string) $config->pilieciu_registro_kodas;
-        } elseif (! blank($config->pilieciu_registro_id)) {
-            $payload['registroId'] = is_numeric($config->pilieciu_registro_id)
-                ? (int) $config->pilieciu_registro_id
-                : (string) $config->pilieciu_registro_id;
-        }
+        $payload = array_merge(
+            $payload,
+            $this->registryPayload($config->pilieciu_registro_kodas, $config->pilieciu_registro_id)
+        );
 
         if (! blank($problem->completion_deadline)) {
             $payload['terminoData'] = $problem->completion_deadline->toIso8601String();
@@ -273,29 +275,50 @@ class DvsProblemTransferService
         return $this->stripEmpty($payload);
     }
 
-    private function attachmentsPayload(Problem $problem): array
+    private function attachmentsPayload(Problem $problem, ?string $failuRegistroKodas): array
     {
+        if ($problem->attachments->isEmpty()) {
+            return [];
+        }
+
+        if (blank($failuRegistroKodas)) {
+            throw new RuntimeException('DVS siuntimui su priedais trūksta lauko: Failų Registro Kodas.');
+        }
+
         return $problem->attachments
-            ->map(function (ProblemAttachment $attachment) {
+            ->values()
+            ->map(function (ProblemAttachment $attachment, int $index) use ($failuRegistroKodas) {
                 $absolutePath = public_path(ltrim((string) $attachment->path, '/'));
                 if (! is_file($absolutePath)) {
                     throw new RuntimeException('Nepavyko rasti DVS priedo failo serveryje.');
                 }
 
-                $now = now()->toIso8601String();
-
                 return [
-                    'aprasymas' => $attachment->original_name ?: basename($absolutePath),
-                    'regData' => $now,
-                    'verData' => $now,
+                    'registroKodas' => (string) $failuRegistroKodas,
                     'failoPavadinimas' => $attachment->original_name ?: basename($absolutePath),
                     'failoDuomenys' => base64_encode((string) file_get_contents($absolutePath)),
-                    'pagrindinis' => false,
-                    'konvertuotiIPdf' => true,
+                    'pagrindinis' => $index === 0,
                 ];
             })
             ->values()
             ->all();
+    }
+
+    private function registryPayload(?string $registroKodas, ?string $registroId): array
+    {
+        if (! blank($registroKodas)) {
+            return ['registroKodas' => (string) $registroKodas];
+        }
+
+        if (! blank($registroId)) {
+            return [
+                'registroId' => is_numeric($registroId)
+                    ? (int) $registroId
+                    : (string) $registroId,
+            ];
+        }
+
+        return [];
     }
 
     private function reporterName(Problem $problem): string

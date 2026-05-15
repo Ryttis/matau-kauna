@@ -28,10 +28,12 @@ class InstitutionDvsConfigService
         'gaunami_registro_id',
         'gaunami_nukreipto_id',
         'gaunami_sudarytojas_id',
+        'gaunami_failu_registro_kodas',
         'pilieciu_registro_kodas',
         'pilieciu_registro_id',
         'pilieciu_nukreipto_id',
         'pilieciu_sudarytojas_id',
+        'pilieciu_failu_registro_kodas',
     ];
 
     public function settingsPayload(?InstitutionDvsConfig $config): array
@@ -59,10 +61,12 @@ class InstitutionDvsConfigService
             'gaunami_registro_id' => $config?->gaunami_registro_id ?? '',
             'gaunami_nukreipto_id' => $config?->gaunami_nukreipto_id ?? '',
             'gaunami_sudarytojas_id' => $config?->gaunami_sudarytojas_id ?? '',
+            'gaunami_failu_registro_kodas' => $config?->gaunami_failu_registro_kodas ?? '',
             'pilieciu_registro_kodas' => $config?->pilieciu_registro_kodas ?? '',
             'pilieciu_registro_id' => $config?->pilieciu_registro_id ?? '',
             'pilieciu_nukreipto_id' => $config?->pilieciu_nukreipto_id ?? '',
             'pilieciu_sudarytojas_id' => $config?->pilieciu_sudarytojas_id ?? '',
+            'pilieciu_failu_registro_kodas' => $config?->pilieciu_failu_registro_kodas ?? '',
         ];
     }
 
