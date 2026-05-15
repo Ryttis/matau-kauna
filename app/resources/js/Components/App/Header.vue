@@ -42,7 +42,7 @@ const showNavToggle = computed(() => isAuthenticated.value && !!appShell?.toggle
                 </div>
                 <span>{{ user?.name }}</span>
             </Link>
-            <img :src="ICON_BELL" alt="" class="header-bell-icon" />
+<!--            <img :src="ICON_BELL" alt="" class="header-bell-icon" />-->
             <button
                 class="header-icon-button"
                 type="button"
