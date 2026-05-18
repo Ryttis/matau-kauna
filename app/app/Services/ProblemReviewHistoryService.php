@@ -29,7 +29,16 @@ class ProblemReviewHistoryService
             );
         }
 
-        return $rows->map(fn (ProblemReviewHistory $entry) => $this->entryToArray($entry))->values()->all();
+        return $rows
+            ->map(function (ProblemReviewHistory $entry) use ($reporterOnlyView) {
+                $row = $this->entryToArray($entry);
+                if ($reporterOnlyView) {
+                    $row['responsible'] = '';
+                }
+                return $row;
+            })
+            ->values()
+            ->all();
     }
 
     public function entryToArray(ProblemReviewHistory $entry): array

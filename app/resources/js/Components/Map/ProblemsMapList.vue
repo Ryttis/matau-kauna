@@ -100,6 +100,7 @@ function rowSelected(selectedIds, problemId) {
 }
 
 function onRowActivate(row) {
+    if (props.enableWatch && isOwnProblemRow(row)) return
     if (row.groupIds?.length > 1) {
         emit('select-group', row.groupIds)
     } else {
@@ -108,6 +109,7 @@ function onRowActivate(row) {
 }
 
 function onSimpleRowActivate(problem) {
+    if (props.enableWatch && problem?.reported_by_me) return
     emit('select', problem.id)
 }
 </script>
@@ -138,9 +140,10 @@ function onSimpleRowActivate(problem) {
                     />
                     <div
                         class="problems-map-list__card-body"
-                        role="button"
-                        tabindex="0"
-                        title="Pasirinkti"
+                        :class="{ 'problems-map-list__card-body--no-select': enableWatch && isOwnProblemRow(row) }"
+                        :role="enableWatch && isOwnProblemRow(row) ? null : 'button'"
+                        :tabindex="enableWatch && isOwnProblemRow(row) ? null : 0"
+                        :title="enableWatch && isOwnProblemRow(row) ? null : 'Pasirinkti'"
                         @click="onRowActivate(row)"
                         @keydown.enter.prevent="onRowActivate(row)"
                         @keydown.space.prevent="onRowActivate(row)"
@@ -514,6 +517,10 @@ function onSimpleRowActivate(problem) {
     cursor: pointer;
     border-radius: 6px;
     min-height: 0;
+}
+
+.problems-map-list__card-body--no-select {
+    cursor: default;
 }
 
 .problems-map-list__card-body:focus-visible {
