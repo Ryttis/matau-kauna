@@ -10,6 +10,10 @@ use Illuminate\Support\Facades\Hash;
 
 class RbacService
 {
+    public function __construct(
+        private TwoFactorService $twoFactorService,
+    ) {}
+
     public function ensureEmployeeForInstitution(User $user): void
     {
         if (! $user->institution_id) {
@@ -52,6 +56,7 @@ class RbacService
             $user->roles()->sync([$data['role_id']]);
         }
 
+        $this->twoFactorService->enforceGlobalRequirement($user);
         $this->ensureEmployeeForInstitution($user);
 
         if ($user instanceof MustVerifyEmail && ! $user->hasVerifiedEmail()) {

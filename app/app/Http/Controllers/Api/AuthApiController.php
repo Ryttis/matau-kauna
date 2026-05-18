@@ -68,6 +68,9 @@ class AuthApiController extends Controller
 
         $deviceName = $validated['device_name'] ?? 'swagger';
 
+        $this->twoFactorService->ensurePrepared($user);
+        $user->refresh();
+
         if ($this->twoFactorService->requiresChallenge($user)) {
             $plain = Str::random(64);
             $key = 'api_2fa_pending:'.hash('sha256', $plain);

@@ -416,7 +416,6 @@ async function submitAdmin() {
                         v-model="adminForm.gis.service_layer_id"
                         type="number"
                         label="Sluoksnio ID"
-                        placeholder="1"
                     />
                     <label class="gis-select-row">
                         <span>Koordinačių sistema (WKID)</span>

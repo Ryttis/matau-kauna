@@ -22,8 +22,14 @@ class TwoFactorService
     {
         return $this->isStaffUser($user)
             && $this->isGloballyRequired()
-            && (bool) $user->two_factor_enabled
+            && $this->isEffectivelyEnabled($user)
             && filled($user->two_factor_secret);
+    }
+
+    public function isEffectivelyEnabled(User $user): bool
+    {
+        return (bool) $user->two_factor_enabled
+            || ($this->isGloballyRequired() && $this->isStaffUser($user));
     }
 
     public function ensureSecret(User $user): string
@@ -43,15 +49,21 @@ class TwoFactorService
 
     public function ensurePrepared(User $user): void
     {
-        if (
-            ! $this->isStaffUser($user)
-            || ! $this->isGloballyRequired()
-            || ! (bool) $user->two_factor_enabled
-        ) {
+        if (! $this->isGloballyRequired() || ! $this->isStaffUser($user)) {
             return;
         }
 
+        if (! (bool) $user->two_factor_enabled) {
+            $user->update(['two_factor_enabled' => true]);
+            $user->refresh();
+        }
+
         $this->ensureSecret($user);
+    }
+
+    public function enforceGlobalRequirement(User $user): void
+    {
+        $this->ensurePrepared($user);
     }
 
     public function verifyCode(User $user, string $code): bool

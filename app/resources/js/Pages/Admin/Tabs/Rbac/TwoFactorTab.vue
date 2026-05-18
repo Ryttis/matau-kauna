@@ -158,7 +158,7 @@ const toggleGlobalRequired = async (checked) => {
                                     @click="resetTwoFactorConfirmation(u)"
                                 />
                                 <AppButton
-                                    v-if="u.two_factor_enabled"
+                                    v-if="u.two_factor_enabled && !globalRequired"
                                     text="Išjungti"
                                     variant="secondary"
                                     as-button
@@ -166,6 +166,7 @@ const toggleGlobalRequired = async (checked) => {
                                     :disabled="saving"
                                     @click="toggleTwoFactor(u, false)"
                                 />
+                                <span v-else-if="u.two_factor_enabled && globalRequired" class="muted">Privaloma</span>
                                 <AppButton
                                     v-else
                                     text="Įjungti"

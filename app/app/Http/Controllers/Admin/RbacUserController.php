@@ -60,6 +60,8 @@ class RbacUserController extends Controller
 
     public function usersTwoFactor()
     {
+        $globalRequired = $this->twoFactorService->isGloballyRequired();
+
         $users = User::query()
             ->notArchived()
             ->whereHas('roles', fn ($q) => $q->whereIn('role', UserRoleEnum::staffValues()))
@@ -74,7 +76,7 @@ class RbacUserController extends Controller
                     'email' => $user->email,
                     'institution' => $user->institution,
                     'roles' => $user->roles,
-                    'two_factor_enabled' => (bool) $user->two_factor_enabled,
+                    'two_factor_enabled' => $this->twoFactorService->isEffectivelyEnabled($user),
                     'two_factor_ready' => filled($user->two_factor_secret) && $user->two_factor_confirmed_at !== null,
                     'is_staff' => true,
                 ];
@@ -82,7 +84,7 @@ class RbacUserController extends Controller
 
         return [
             'users' => $users,
-            'global_required' => $this->twoFactorService->isGloballyRequired(),
+            'global_required' => $globalRequired,
         ];
     }
 
@@ -112,6 +114,10 @@ class RbacUserController extends Controller
                 'otpauth_url' => $needsSetup && $freshUser ? $this->twoFactorService->otpauthUrl($freshUser) : '',
                 'qr_image_url' => $needsSetup && $freshUser ? $this->twoFactorService->qrImageUrl($freshUser) : '',
             ];
+        }
+
+        if ($this->twoFactorService->isGloballyRequired()) {
+            abort(422, 'Globalus 2FA ijungtas visiems vidiniams naudotojams.');
         }
 
         $user->update([
@@ -181,6 +187,10 @@ class RbacUserController extends Controller
 
     public function disableTwoFactorForAllStaff()
     {
+        if ($this->twoFactorService->isGloballyRequired()) {
+            abort(422, 'Globalus 2FA ijungtas visiems vidiniams naudotojams.');
+        }
+
         User::query()
             ->notArchived()
             ->whereHas('roles', fn ($q) => $q->whereIn('role', UserRoleEnum::staffValues()))
@@ -200,6 +210,7 @@ class RbacUserController extends Controller
 
         try {
             $user->roles()->sync($roleIds);
+            $this->twoFactorService->enforceGlobalRequirement($user);
             $this->auditLogService->logUserAction($request->user(), 'rbac.user.sync_roles', 'User', $user->id, AuditLogResult::Success, null, ['user_id' => $user->id]);
 
             return $user->load('roles:id,role,name');

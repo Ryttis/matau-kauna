@@ -807,7 +807,6 @@ onMounted(async () => {
                             v-model="createForm.gis.service_layer_id"
                             type="number"
                             label="Sluoksnio ID"
-                            placeholder="1"
                         />
                         <AppSelect
                             v-model.number="createForm.gis.wkid"
@@ -1018,7 +1017,6 @@ onMounted(async () => {
                             v-model="editForm.gis.service_layer_id"
                             type="number"
                             label="Sluoksnio ID"
-                            placeholder="1"
                         />
                         <AppSelect
                             v-model.number="editForm.gis.wkid"

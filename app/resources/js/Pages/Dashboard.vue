@@ -91,7 +91,7 @@ const reporterDateMax = `${currentYear}-12-31`
 </script>
 
 <template>
-    <Head title="Dashboard" />
+    <Head title="Žemėlapis" />
 
     <AuthenticatedLayout>
         <SuccessModal

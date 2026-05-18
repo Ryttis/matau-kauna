@@ -15,6 +15,10 @@ use Illuminate\Support\Str;
 
 class InvitationService
 {
+    public function __construct(
+        private TwoFactorService $twoFactorService,
+    ) {}
+
     public function getIndexQuery($user): Builder
     {
         $query = Invitation::query()
@@ -73,6 +77,7 @@ class InvitationService
         ]);
 
         $user->roles()->sync([$invitation->role_id]);
+        $this->twoFactorService->enforceGlobalRequirement($user);
 
         if ($invitation->institution_id) {
             Employee::firstOrCreate(

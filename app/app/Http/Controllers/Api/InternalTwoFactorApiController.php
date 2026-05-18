@@ -32,7 +32,7 @@ class InternalTwoFactorApiController extends Controller
                     'email' => $user->email,
                     'institution' => $user->institution,
                     'roles' => $user->roles,
-                    'two_factor_enabled' => (bool) $user->two_factor_enabled,
+                    'two_factor_enabled' => $this->twoFactorService->isEffectivelyEnabled($user),
                     'two_factor_ready' => filled($user->two_factor_secret) && $user->two_factor_confirmed_at !== null,
                     'is_staff' => true,
                 ];
@@ -70,6 +70,10 @@ class InternalTwoFactorApiController extends Controller
                 'otpauth_url' => $needsSetup && $freshUser ? $this->twoFactorService->otpauthUrl($freshUser) : '',
                 'qr_image_url' => $needsSetup && $freshUser ? $this->twoFactorService->qrImageUrl($freshUser) : '',
             ]);
+        }
+
+        if ($this->twoFactorService->isGloballyRequired()) {
+            abort(422, 'Globalus 2FA ijungtas visiems vidiniams naudotojams.');
         }
 
         $user->update(['two_factor_enabled' => false]);
@@ -113,6 +117,10 @@ class InternalTwoFactorApiController extends Controller
 
     public function disableAllStaff(): JsonResponse
     {
+        if ($this->twoFactorService->isGloballyRequired()) {
+            abort(422, 'Globalus 2FA ijungtas visiems vidiniams naudotojams.');
+        }
+
         User::query()
             ->notArchived()
             ->whereHas('roles', fn ($q) => $q->whereIn('role', UserRoleEnum::staffValues()))
