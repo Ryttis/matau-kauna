@@ -216,7 +216,7 @@ class ProblemController extends Controller
         $problem->load('problemNature:id,name');
         $problem->load([
             'institution:id,name',
-            'reportedByUser:id,name,surname',
+            'reportedByUser:id,name,surname,email,phone',
             'assignedEmployee:id,name,surname,email',
             'assignedInstitutionTeam:id,name',
         ]);

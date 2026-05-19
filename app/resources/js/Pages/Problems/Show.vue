@@ -70,6 +70,9 @@ const reporterName = computed(() => {
     const reporter = props.problem?.reported_by_user
     return [reporter?.name, reporter?.surname].filter(Boolean).join(' ').trim()
 })
+
+const reporterEmail = computed(() => (props.problem?.reported_by_user?.email ?? '').trim())
+const reporterPhone = computed(() => (props.problem?.reported_by_user?.phone ?? '').trim())
 </script>
 
 <template>
@@ -125,6 +128,20 @@ const reporterName = computed(() => {
                         :model-value="reporterName || '—'"
                         label="Pareiškėjas"
                         type="text"
+                        readonly
+                    />
+                    <AppInput
+                        v-if="reporterEmail"
+                        :model-value="reporterEmail"
+                        label="El. paštas"
+                        type="email"
+                        readonly
+                    />
+                    <AppInput
+                        v-if="reporterPhone"
+                        :model-value="reporterPhone"
+                        label="Telefonas"
+                        type="tel"
                         readonly
                     />
                     <AppInput
