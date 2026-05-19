@@ -238,7 +238,7 @@ const handleDashboardListClick = () => {
                     class="nav-link"
                     :class="{ active: isActive('/institution-admin') }"
                 >
-                    <span>Įstaigos administratorius</span>
+                    <span>Įstaigos Administravimas</span>
                 </Link>
                 <Link
                     href="/settings"

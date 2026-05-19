@@ -41,7 +41,7 @@ const props = defineProps({
     },
     closeOnOverlayClick: {
         type: Boolean,
-        default: true
+        default: false
     },
     footerLayout: {
         type: String,

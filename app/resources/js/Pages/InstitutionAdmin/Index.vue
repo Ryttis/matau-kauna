@@ -76,7 +76,7 @@ const usersBind = computed(() => ({
 </script>
 
 <template>
-    <Head title="Įstaigos administratorius" />
+    <Head title="įstaigos administravimas" />
 
     <AuthenticatedLayout>
         <div class="admin-shell admin-shell--no-link-underline institution-admin-shell">

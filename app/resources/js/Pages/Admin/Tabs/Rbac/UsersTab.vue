@@ -59,6 +59,8 @@ const deleteTarget = ref({ id: null, name: '', email: '' })
 const selectedUser = ref(null)
 const selectedRoleIds = ref([])
 
+const displayUserName = (user) => [user?.name, user?.surname].filter(Boolean).join(' ').trim()
+
 const openCreate = () => {
     createForm.value = { name: '', surname: '', email: '', password: '', password_confirmation: '', institution_id: '', role_id: '' }
     createError.value = ''
@@ -67,7 +69,7 @@ const openCreate = () => {
 }
 
 const openEdit = (u) => {
-    editForm.value = { id: u.id, name: u.name, surname: u.surname ?? '', email: u.email, password: '', password_confirmation: '', institution_id: u.institution_id ?? '' }
+    editForm.value = { id: u.id, name: displayUserName(u) || u.name, surname: '', email: u.email, password: '', password_confirmation: '', institution_id: u.institution_id ?? '' }
     editError.value = ''
     editErrors.value = []
     isEditOpen.value = true
@@ -170,7 +172,7 @@ const createUser = async () => {
     try {
         await axios.post(adminRbacApi.users, {
             name: createForm.value.name,
-            surname: createForm.value.surname || null,
+            surname: null,
             email: createForm.value.email,
             password: createForm.value.password,
             password_confirmation: createForm.value.password_confirmation,
@@ -202,7 +204,7 @@ const updateUser = async () => {
     try {
         const payload = {
             name: editForm.value.name,
-            surname: editForm.value.surname || null,
+            surname: null,
             email: editForm.value.email,
             institution_id: editForm.value.institution_id || null
         }
@@ -320,7 +322,7 @@ const saveUserRoles = async () => {
             <tbody>
                 <tr v-for="u in usersPage.data" :key="u.id">
                     <td>{{ u.id }}</td>
-                    <td>{{ [u.name, u.surname].filter(Boolean).join(' ') || '-' }}</td>
+                    <td>{{ displayUserName(u) || '-' }}</td>
                     <td>{{ u.email }}</td>
                     <td>{{ u.institution?.name ?? '-' }}</td>
                     <td>
@@ -343,13 +345,8 @@ const saveUserRoles = async () => {
                 <span v-else>{{ createErrors[0] }}</span>
             </div>
             <label class="field">
-                <span>Vardas</span>
+                <span>Vardas Pavardė</span>
                 <input class="input" v-model="createForm.name" />
-            </label>
-
-            <label class="field">
-                <span>Pavardė</span>
-                <input class="input" v-model="createForm.surname" />
             </label>
 
             <label class="field">
@@ -433,13 +430,8 @@ const saveUserRoles = async () => {
                 <span v-else>{{ editErrors[0] }}</span>
             </div>
             <label class="field">
-                <span>Vardas</span>
+                <span>Vardas Pavardė</span>
                 <input class="input" v-model="editForm.name" />
-            </label>
-
-            <label class="field">
-                <span>Pavardė</span>
-                <input class="input" v-model="editForm.surname" />
             </label>
 
             <label class="field">

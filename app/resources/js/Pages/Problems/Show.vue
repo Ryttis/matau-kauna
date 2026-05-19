@@ -1,4 +1,5 @@
 <script setup>
+import { computed } from 'vue'
 import { Head, router } from '@inertiajs/vue3'
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue'
 import ConfirmModal from '@/Components/App/ConfirmModal.vue'
@@ -64,6 +65,11 @@ const {
     problemIdForMergePage,
     assignmentSummary,
 } = useProblemShowPage(props)
+
+const reporterName = computed(() => {
+    const reporter = props.problem?.reported_by_user
+    return [reporter?.name, reporter?.surname].filter(Boolean).join(' ').trim()
+})
 </script>
 
 <template>
@@ -112,6 +118,12 @@ const {
                         v-if="assignmentSummary.institutionName"
                         :model-value="assignmentSummary.institutionName"
                         label="Įstaiga"
+                        type="text"
+                        readonly
+                    />
+                    <AppInput
+                        :model-value="reporterName || '—'"
+                        label="Pareiškėjas"
                         type="text"
                         readonly
                     />
