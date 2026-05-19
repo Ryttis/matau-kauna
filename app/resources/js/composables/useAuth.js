@@ -40,13 +40,16 @@ export function useAuth() {
     }
 
     const isActiveRoleReporter = computed(() => (activeRole.value?.role ?? '') === ROLE_REPORTER)
+    const isActiveRoleInstitutionAdmin = computed(() => (activeRole.value?.role ?? '') === ROLE_INSTITUTION_ADMIN)
 
     const isProblemAdmin = computed(() => hasRole(ROLE_PROBLEM_ADMIN) || hasPermission('issues.publish'))
     const isInstitutionAdmin = computed(() => hasRole(ROLE_INSTITUTION_ADMIN))
     const isEmployee = computed(() => hasRole(ROLE_EMPLOYEE))
     const isMunicipalityRep = computed(() => hasRole(ROLE_MUNICIPALITY_REP))
 
-    const canSeeProblemAdminButtons = computed(() => isProblemAdmin.value || isSystemAdmin.value)
+    const canSeeProblemAdminButtons = computed(() =>
+        !isActiveRoleInstitutionAdmin.value && (isProblemAdmin.value || isSystemAdmin.value)
+    )
     const canSeeInstitutionAdminButtons = computed(() => isInstitutionAdmin.value || isSystemAdmin.value)
     const canExport = computed(() => hasPermission('issues.export'))
     const canDeleteProblem = computed(() => hasPermission('issues.delete'))
