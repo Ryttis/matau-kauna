@@ -51,12 +51,10 @@ class ProblemInstitutionAssignmentController extends Controller
                 ->get(['id', 'name', 'surname', 'email']);
 
             foreach ($institutionUsers as $institutionUser) {
-                Employee::firstOrCreate(
+                Employee::updateOrCreate(
+                    ['email' => $institutionUser->email],
                     [
-                        'email' => $institutionUser->email,
                         'institution_id' => $user->institution_id,
-                    ],
-                    [
                         'name' => $institutionUser->name ?? '',
                         'surname' => $institutionUser->surname ?? '',
                     ]

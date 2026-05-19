@@ -80,12 +80,10 @@ class InvitationService
         $this->twoFactorService->enforceGlobalRequirement($user);
 
         if ($invitation->institution_id) {
-            Employee::firstOrCreate(
+            Employee::updateOrCreate(
+                ['email' => $user->email],
                 [
-                    'email' => $user->email,
                     'institution_id' => $invitation->institution_id,
-                ],
-                [
                     'name' => $user->name ?? '',
                     'surname' => '',
                 ]

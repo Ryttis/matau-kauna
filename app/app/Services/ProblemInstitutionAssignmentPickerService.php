@@ -28,12 +28,10 @@ class ProblemInstitutionAssignmentPickerService
             );
 
             foreach ($assignableInstitutionUserQuery->get(['id', 'name', 'surname', 'email']) as $u) {
-                Employee::firstOrCreate(
+                Employee::updateOrCreate(
+                    ['email' => $u->email],
                     [
-                        'email' => $u->email,
                         'institution_id' => $user->institution_id,
-                    ],
-                    [
                         'name' => $u->name ?? '',
                         'surname' => $u->surname ?? '',
                     ]

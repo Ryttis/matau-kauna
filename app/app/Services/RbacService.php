@@ -22,24 +22,14 @@ class RbacService
             return;
         }
 
-        $employee = Employee::firstOrCreate(
+        Employee::updateOrCreate(
+            ['email' => $user->email],
             [
-                'email' => $user->email,
                 'institution_id' => $user->institution_id,
-            ],
-            [
                 'name' => $user->name ?? '',
                 'surname' => $user->surname ?? '',
             ]
         );
-
-        if ($employee->wasRecentlyCreated) {
-            return;
-        }
-
-        $employee->name = $user->name ?? $employee->name;
-        $employee->surname = $user->surname ?? $employee->surname;
-        $employee->save();
     }
 
     public function createUser(array $data): User
