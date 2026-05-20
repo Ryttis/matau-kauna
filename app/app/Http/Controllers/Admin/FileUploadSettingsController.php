@@ -18,7 +18,10 @@ class FileUploadSettingsController extends Controller
 
     public function update(UpdateFileUploadSettingsRequest $request): JsonResponse
     {
-        FileUploadSettings::set($request->validated('config'));
+        $config = $request->validated('config');
+        $config[FileUploadSettings::CHANNEL_MOBILE] = $config[FileUploadSettings::CHANNEL_WEB];
+
+        FileUploadSettings::set($config);
 
         return response()->json(['ok' => true]);
     }

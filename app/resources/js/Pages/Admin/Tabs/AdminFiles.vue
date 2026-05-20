@@ -38,6 +38,11 @@ function mergeChannel(base, incoming) {
     return { ...base, ...incoming }
 }
 
+function formatVideoCount(count) {
+    const normalized = Number(count) || 0
+    return normalized === 1 ? '1 vaizdo įrašas' : `${normalized} vaizdo įrašai`
+}
+
 async function load() {
     loading.value = true
     errorMessage.value = ''
@@ -60,9 +65,11 @@ async function save() {
     errorMessage.value = ''
     successMessage.value = ''
     try {
-        const payload = { web: { ...config.value.web }, mobile: { ...config.value.mobile } }
-        payload.web.max_video_files_per_problem = 1
-        payload.mobile.max_video_files_per_problem = 1
+        const sharedChannel = { ...config.value.web }
+        const payload = {
+            web: { ...sharedChannel },
+            mobile: { ...sharedChannel },
+        }
         await axios.put(adminApi.fileUploadSettings, { config: payload })
         successMessage.value = 'Nustatymai išsaugoti.'
         showSuccessModal.value = true
@@ -86,8 +93,11 @@ onMounted(load)
 
 <template>
     <div class="admin-files">
-        <h2 class="title">Failai</h2>
-        <p class="page-desc">Nustatykite, kokius failus pareiškėjas gali įkelti prie problemos naršyklėje.</p>
+        <h2 class="title">Failai ir Tekstas</h2>
+        <p class="page-desc">
+            Nustatykite, kokius failus pareiškėjas gali įkelti ir kiek teksto gali pateikti prie problemos.
+            Tie patys nustatymai taikomi naršyklei ir mobiliajai programėlei.
+        </p>
 
         <p v-if="errorMessage" class="error">{{ errorMessage }}</p>
         <SuccessModal
@@ -99,7 +109,7 @@ onMounted(load)
         <div v-if="loading" class="loading">Kraunama...</div>
 
         <template v-else>
-            <div class="channels-row">
+            <div class="channels-row channels-row--single">
                 <section v-for="(label, ch) in CHANNEL" :key="ch" class="card">
                     <h3 class="card-title">{{ label }}</h3>
 
@@ -119,7 +129,7 @@ onMounted(load)
                             <span class="toggle-label-wrap">
                                 Vaizdai (MP4, WebM, MOV)
                                 <span class="toggle-hint">
-                                    1 vaizdo įrašas,
+                                    {{ formatVideoCount(config[ch].max_video_files_per_problem) }},
                                     {{
                                         config[ch].max_video_duration_seconds >= 60
                                             ? 'iki 1 min.'
@@ -150,6 +160,16 @@ onMounted(load)
                                 </option>
                             </select>
                         </div>
+                        <div v-if="config[ch].allow_video" class="field-row">
+                            <span class="field-lbl">Vaizdo įrašų sk.</span>
+                            <input
+                                v-model.number="config[ch].max_video_files_per_problem"
+                                type="number"
+                                min="0"
+                                max="20"
+                                class="inp"
+                            />
+                        </div>
                         <div class="field-row">
                             <span class="field-lbl">Nuotraukų sk.</span>
                             <input
@@ -157,6 +177,16 @@ onMounted(load)
                                 type="number"
                                 min="0"
                                 max="50"
+                                class="inp"
+                            />
+                        </div>
+                        <div class="field-row">
+                            <span class="field-lbl">Aprašymo simbolių sk.</span>
+                            <input
+                                v-model.number="config[ch].description_max_chars"
+                                type="number"
+                                min="1000"
+                                max="65535"
                                 class="inp"
                             />
                         </div>
@@ -207,6 +237,11 @@ onMounted(load)
     gap: 20px;
     align-items: stretch;
     width: 100%;
+}
+
+.channels-row--single {
+    grid-template-columns: minmax(0, 1fr);
+    max-width: 790px;
 }
 
 @media (max-width: 960px) {
