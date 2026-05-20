@@ -220,6 +220,17 @@ const showNavToggle = computed(() => isAuthenticated.value && !!appShell?.toggle
         .header-icons {
             gap: 12px;
         }
+    }
+
+    @media (max-width: 1023px) {
+        .header-icons {
+            gap: 8px;
+        }
+
+        .icon-text-wrp {
+            gap: 0;
+            max-width: none;
+        }
 
         .icon-text-wrp span {
             display: none;
