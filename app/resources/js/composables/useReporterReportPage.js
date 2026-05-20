@@ -170,13 +170,6 @@ export function useReporterReportPage(props) {
             errors.problemTypeId = 'Pasirinkite problemos rūšį.'
         }
 
-        const natures = natureOptionsForSelectedType.value
-        const natureRequired = natures.length > 0
-
-        if (natureRequired && !problemNatureId.value) {
-            errors.problemNatureId = 'Pasirinkite problemos pobūdį.'
-        }
-
         if (!(description.value ?? '').trim()) {
             errors.description = 'Įveskite aprašymą.'
         }

@@ -188,7 +188,6 @@ watch(step, (s) => {
                                 placeholder="Pasirinkti pobūdį"
                                 variant="white"
                                 :disabled="!problemTypeId || !natureOptionsForSelectedType.length"
-                                required
                             >
                                 <option
                                     v-for="v in natureOptionsForSelectedType"
