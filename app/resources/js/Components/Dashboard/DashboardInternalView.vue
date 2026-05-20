@@ -6,7 +6,6 @@ import StatusChangeModal from '@/Components/App/Modals/StatusChangeModal.vue'
 import FilterModal from '@/Components/App/Modals/FilterModal.vue'
 import SearchFilterBar from '@/Components/App/SearchFilterBar.vue'
 import ProblemsTable from '@/Components/Problems/ProblemsTable.vue'
-import { PROBLEM_STATUS_LABELS } from '@/constants/domain/problemStatus'
 import { ICON_CIRCLE_ARROW_RIGHT } from '@/constants/ui/icons'
 import { useAuth } from '@/composables/useAuth'
 import { useDashboardProblemList } from '@/composables/useDashboardProblemList'
@@ -105,7 +104,6 @@ const {
         :problems="problemsList"
         :display-rows="displayRows"
         :selected-problems="selectedProblems"
-        :status-labels="PROBLEM_STATUS_LABELS"
         :sort-by="sortBy"
         :sort-direction="sortDirection"
         :can-publish="canPublish"

@@ -3,6 +3,7 @@ import { computed } from 'vue'
 import EntityTable from '@/Components/App/Tables/EntityTable.vue'
 import ProblemTableUnmergeCell from '@/Components/Problems/ProblemTableUnmergeCell.vue'
 import ProblemTablePublishCell from '@/Components/Problems/ProblemTablePublishCell.vue'
+import StatusBadge from '@/Components/Problems/StatusBadge.vue'
 
 function normalizeProblemList(problems) {
     if (problems == null) return []
@@ -23,10 +24,6 @@ const props = defineProps({
     selectedProblems: {
         type: Array,
         default: () => []
-    },
-    statusLabels: {
-        type: Object,
-        required: true
     },
     sortBy: {
         type: String,
@@ -80,7 +77,11 @@ const columns = computed(() => {
             sortable: true,
             headerClass: 'problem-col-status',
             class: 'problem-col-status',
-            value: (row) => props.statusLabels[getRowData(row).status] || getRowData(row).status
+            cellComponent: StatusBadge,
+            cellProps: (row) => ({
+                status: getRowData(row).status,
+                size: 'small',
+            })
         },
         {
             key: 'created_at',
