@@ -7,10 +7,10 @@
                 class="landing-hero-phone"
             />
         </div>
-        <div class="landing-hero-taglines-wrap" aria-hidden="true">
-            <span class="landing-hero-tagline">Pažymėk ir stebėk</span>
-            <span class="landing-hero-tagline">Patogu ir paprasta naudotis</span>
-        </div>
+<!--        <div class="landing-hero-taglines-wrap" aria-hidden="true">-->
+<!--            <span class="landing-hero-tagline">Pažymėk ir stebėk</span>-->
+<!--            <span class="landing-hero-tagline">Patogu ir paprasta naudotis</span>-->
+<!--        </div>-->
         <div class="landing-hero-content">
             <div class="landing-hero-content-top">
                 <h1 class="landing-hero-title">Pastebėjai problemą mieste?</h1>
