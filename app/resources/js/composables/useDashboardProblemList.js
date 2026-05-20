@@ -79,6 +79,9 @@ export function useDashboardProblemList(props) {
         if ((categoryFilter.value || '').trim() !== '') {
             return true
         }
+        if ((statusFilter.value || '').trim() !== '') {
+            return true
+        }
         if ((dateFromFilter.value || '').trim() !== '') {
             return true
         }

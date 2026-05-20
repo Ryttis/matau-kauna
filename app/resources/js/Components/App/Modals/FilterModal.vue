@@ -47,6 +47,11 @@ const publicMapStatusOptions = computed(() => {
     return PUBLIC_PROBLEM_STATUS_OPTIONS
 })
 
+const dashboardStatusOptions = computed(() => {
+    const options = props.allStatusOptions
+    return Array.isArray(options) ? options : []
+})
+
 function getInitialFilters() {
     return {
         reportNumber: props.filters?.reportNumber || '',
@@ -148,6 +153,25 @@ const handleClose = () => {
                     placeholder="Įrašykite numerį"
                     variant="filter"
                 />
+            </div>
+
+            <div v-if="!isPublicMap()" class="filter-section">
+                <AppSelect
+                    v-model="localFilters.status"
+                    label="Būsena"
+                    placeholder="Pasirinkti būseną"
+                    variant="white"
+                    :rounded="true"
+                >
+                    <option value="">Visos būsenos</option>
+                    <option
+                        v-for="statusOption in dashboardStatusOptions"
+                        :key="statusOption.value"
+                        :value="statusOption.value"
+                    >
+                        {{ statusOption.label }}
+                    </option>
+                </AppSelect>
             </div>
 
             <div v-if="isPublicMap()" class="filter-section">
