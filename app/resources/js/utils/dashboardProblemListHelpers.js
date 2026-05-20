@@ -9,36 +9,15 @@ export function allProblemsFlatFromList(list) {
     return out
 }
 
-export function computeProblemsListAfterPropsChange(newProblems, oldProblems, prevList) {
+export function computeProblemsListAfterPropsChange(newProblems) {
     if (!newProblems) {
         return []
     }
-    const rows = Array.isArray(newProblems)
+    return Array.isArray(newProblems)
         ? newProblems
         : Array.isArray(newProblems.data)
             ? newProblems.data
             : []
-    if (rows.length === 0) {
-        return []
-    }
-    const isPaginator = !Array.isArray(newProblems) && newProblems.data
-    const currentPage = isPaginator ? (newProblems.current_page || 1) : 1
-    const oldPage = oldProblems && !Array.isArray(oldProblems) && oldProblems.current_page
-        ? oldProblems.current_page
-        : 1
-    if (!isPaginator || !oldProblems || currentPage === 1) {
-        return rows.slice(0, 6)
-    }
-    if (currentPage > oldPage) {
-        const newItems = rows.slice(0, 6)
-        const existingIds = new Set(prevList.map((p) => p.id))
-        const uniqueNewItems = newItems.filter((item) => !existingIds.has(item.id))
-        return [...prevList, ...uniqueNewItems]
-    }
-    if (currentPage < oldPage) {
-        return rows.slice(0, 6)
-    }
-    return prevList
 }
 
 export function buildDashboardListRouterParams({
@@ -51,6 +30,7 @@ export function buildDashboardListRouterParams({
     sort_by,
     sort_direction,
     page,
+    per_page,
 }) {
     const params = {
         search: search || null,
@@ -61,17 +41,10 @@ export function buildDashboardListRouterParams({
         date_to: date_to || null,
         sort_by,
         sort_direction,
+        per_page,
     }
     if (page !== undefined && page !== null) {
         params.page = page
     }
     return params
-}
-
-export function removeDashboardPageFromUrl() {
-    const url = new URL(window.location.href)
-    if (url.searchParams.has('page')) {
-        url.searchParams.delete('page')
-        window.history.replaceState({}, '', url.toString())
-    }
 }

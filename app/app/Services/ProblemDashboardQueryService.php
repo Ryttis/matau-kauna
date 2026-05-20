@@ -11,6 +11,8 @@ use Illuminate\Pagination\LengthAwarePaginator;
 
 class ProblemDashboardQueryService
 {
+    public const STAFF_PAGE_SIZES = [10, 20, 50, 100];
+
     public function __construct(
         private ProblemScopeService $scopeService,
         private ProblemMapService $mapService,
@@ -32,7 +34,7 @@ class ProblemDashboardQueryService
 
     public function paginatedStaffProblems(User $user, array $filters, string $sortBy, string $sortDirection, ?int $perPage = null): LengthAwarePaginator
     {
-        $pageSize = $perPage === null ? 6 : min(max($perPage, 1), 100);
+        $pageSize = $this->normalizeStaffPerPage($perPage);
         $employeeId = $this->scopeService->employeeIdForUser($user);
         $mergeRootIdsFromChildMatch = Problem::mergeGroupRootIdsFromMatchingMergedChildren($filters);
 
@@ -73,20 +75,21 @@ class ProblemDashboardQueryService
             ->withQueryString();
     }
 
-    public function staffDashboardProps(User $user, array $filters, string $sortBy, string $sortDirection): array
+    public function staffDashboardProps(User $user, array $filters, string $sortBy, string $sortDirection, ?int $perPage = null): array
     {
         return [
             'reporterView' => false,
-            'problems' => $this->paginatedStaffProblems($user, $filters, $sortBy, $sortDirection),
+            'problems' => $this->paginatedStaffProblems($user, $filters, $sortBy, $sortDirection, $perPage),
             'filters' => $filters,
             'sortBy' => $sortBy,
             'sortDirection' => $sortDirection,
             'categories' => ClassifierValue::getActiveTypeNames()->values(),
             'statusOptions' => ProblemStatus::selectableOptions(),
+            'pageSizeOptions' => self::STAFF_PAGE_SIZES,
         ];
     }
 
-    public function problemsForExport(User $user, array $filters, string $sortBy, string $sortDirection, string $scope, int $page): Collection
+    public function problemsForExport(User $user, array $filters, string $sortBy, string $sortDirection, string $scope, int $page, ?int $perPage = null): Collection
     {
         $query = Problem::query()
             ->notArchived()
@@ -98,11 +101,16 @@ class ProblemDashboardQueryService
             ->sorted($sortBy, $sortDirection);
 
         if ($scope === 'current_page') {
-            $perPage = 6;
+            $perPage = $this->normalizeStaffPerPage($perPage);
 
             return $query->skip(($page - 1) * $perPage)->take($perPage)->get();
         }
 
         return $query->get();
+    }
+
+    public function normalizeStaffPerPage(?int $perPage): int
+    {
+        return in_array($perPage, self::STAFF_PAGE_SIZES, true) ? $perPage : self::STAFF_PAGE_SIZES[0];
     }
 }

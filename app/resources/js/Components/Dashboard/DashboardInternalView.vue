@@ -6,7 +6,6 @@ import StatusChangeModal from '@/Components/App/Modals/StatusChangeModal.vue'
 import FilterModal from '@/Components/App/Modals/FilterModal.vue'
 import SearchFilterBar from '@/Components/App/SearchFilterBar.vue'
 import ProblemsTable from '@/Components/Problems/ProblemsTable.vue'
-import { ICON_CIRCLE_ARROW_RIGHT } from '@/constants/ui/icons'
 import { useAuth } from '@/composables/useAuth'
 import { useDashboardProblemList } from '@/composables/useDashboardProblemList'
 
@@ -17,6 +16,7 @@ const props = defineProps({
     sortDirection: String,
     categories: Array,
     statusOptions: Array,
+    pageSizeOptions: Array,
 })
 
 const {
@@ -37,6 +37,11 @@ const {
     statusFilter,
     sortBy,
     sortDirection,
+    perPage,
+    pageSizeOptions,
+    currentPage,
+    lastPage,
+    totalProblems,
     selectedProblems,
     showStatusModal,
     selectedProblem,
@@ -61,7 +66,8 @@ const {
     selectedProblemIdForReview,
     allStatusOptions,
     bulkPublishButtonLabel,
-    loadMoreProblems,
+    goToPage,
+    handlePerPageChange,
     handleSearch,
     handleSort,
     handleStatusChange,
@@ -85,203 +91,222 @@ const {
 
 <template>
     <div class="dashboard-internal">
-    <h1 class="dashboard-title">Sąrašas</h1>
-    <p class="dashboard-desc">
-        <template v-if="isEmployee">Jums priskirtų ir per komandą paskirstytų problemų peržiūra, filtravimas ir valdymas.</template>
-        <template v-else>Visų problemų peržiūra, filtravimas ir valdymas.</template>
-    </p>
-    <div class="search-wrp">
-        <SearchFilterBar
-            v-model="search"
-            placeholder="Ieškoti"
-            :filters-active="hasActiveListFilters"
-            @input="handleSearch"
-            @filter-click="showFilterModal = true"
+        <h1 class="dashboard-title">Sąrašas</h1>
+        <p class="dashboard-desc">
+            <template v-if="isEmployee">
+                Jums priskirtų ir per komandą paskirstytų problemų peržiūra, filtravimas ir valdymas.
+            </template>
+            <template v-else>Visų problemų peržiūra, filtravimas ir valdymas.</template>
+        </p>
+        <div class="search-wrp">
+            <SearchFilterBar
+                v-model="search"
+                placeholder="Ieškoti"
+                :filters-active="hasActiveListFilters"
+                @input="handleSearch"
+                @filter-click="showFilterModal = true"
+            />
+        </div>
+
+        <ProblemsTable
+            :problems="problemsList"
+            :display-rows="displayRows"
+            :selected-problems="selectedProblems"
+            :sort-by="sortBy"
+            :sort-direction="sortDirection"
+            :can-publish="canPublish"
+            select-by-row-click
+            @sort="handleSort"
+            @select-all="handleSelectAll"
+            @select-item="handleSelectItem"
         />
-    </div>
 
-    <ProblemsTable
-        :problems="problemsList"
-        :display-rows="displayRows"
-        :selected-problems="selectedProblems"
-        :sort-by="sortBy"
-        :sort-direction="sortDirection"
-        :can-publish="canPublish"
-        select-by-row-click
-        @sort="handleSort"
-        @select-all="handleSelectAll"
-        @select-item="handleSelectItem"
-    />
+        <div class="table-pagination">
+            <label class="per-page-control">
+                <span>Rodyti:</span>
+                <select v-model.number="perPage" class="per-page-select" @change="handlePerPageChange">
+                    <option v-for="option in pageSizeOptions" :key="option" :value="option">
+                        {{ option }}
+                    </option>
+                </select>
+            </label>
 
-    <div
-        v-if="props.problems?.next_page_url && problemsList.length >= 6"
-        class="table-footer-wrp"
-    >
-        <a
-            :href="props.problems.next_page_url"
-            class="view-more-link"
-            @click.prevent="loadMoreProblems"
-        >
-            <span>Žiūrėti daugiau</span>
-            <img :src="ICON_CIRCLE_ARROW_RIGHT" alt="" class="view-more-arrow" />
-        </a>
-    </div>
+            <div class="pagination-controls">
+                <button
+                    type="button"
+                    class="pagination-button"
+                    :disabled="currentPage <= 1"
+                    @click="goToPage(currentPage - 1)"
+                >
+                    Ankstesnis
+                </button>
+                <span class="page-info">{{ currentPage }} / {{ lastPage }} (iš viso {{ totalProblems }})</span>
+                <button
+                    type="button"
+                    class="pagination-button"
+                    :disabled="currentPage >= lastPage"
+                    @click="goToPage(currentPage + 1)"
+                >
+                    Kitas
+                </button>
+            </div>
+        </div>
 
-    <div class="list-navigation">
-        <template v-if="canSeeProblemAdminButtons">
-            <AppButton
-                text="Priskirti problemą"
-                as-button
-                class="list-nav-btn"
-                :disabled="selectedProblems.length === 0 || selectedIncludesResolvedProblem"
-                @click="handleAssignProblems"
-            />
-            <AppButton
-                text="Atvaizduoti/keisti būseną"
-                as-button
-                class="list-nav-btn"
-                :disabled="selectedProblems.length === 0"
-                @click="openStatusModal()"
-            />
-            <div v-if="canExport" ref="exportWrapper" class="export-wrapper">
+        <div class="list-navigation">
+            <template v-if="canSeeProblemAdminButtons">
                 <AppButton
-                    text="Eksportuoti į .xlsx"
+                    text="Priskirti problemą"
+                    as-button
+                    class="list-nav-btn"
+                    :disabled="selectedProblems.length === 0 || selectedIncludesResolvedProblem"
+                    @click="handleAssignProblems"
+                />
+                <AppButton
+                    text="Atvaizduoti/keisti būseną"
+                    as-button
+                    class="list-nav-btn"
+                    :disabled="selectedProblems.length === 0"
+                    @click="openStatusModal()"
+                />
+                <div v-if="canExport" ref="exportWrapper" class="export-wrapper">
+                    <AppButton
+                        text="Eksportuoti į .xlsx"
+                        variant="secondary"
+                        as-button
+                        class="list-nav-btn"
+                        @click="showExportDropdown = !showExportDropdown"
+                    />
+                    <div v-if="showExportDropdown" ref="exportDropdown" class="export-dropdown">
+                        <button type="button" class="export-option" @click="handleExport('all')">
+                            Eksportuoti visus rezultatus
+                        </button>
+                        <button type="button" class="export-option" @click="handleExport('current_page')">
+                            Eksportuoti tik esamą puslapį
+                        </button>
+                    </div>
+                </div>
+                <AppButton
+                    v-if="canPublish"
+                    :text="bulkPublishButtonLabel"
                     variant="secondary"
                     as-button
                     class="list-nav-btn"
-                    @click="showExportDropdown = !showExportDropdown"
+                    :disabled="selectedProblems.length === 0 || bulkPublishSubmitting"
+                    :loading="bulkPublishSubmitting"
+                    @click="handleBulkPublishToggle"
                 />
-                <div v-if="showExportDropdown" ref="exportDropdown" class="export-dropdown">
-                    <button type="button" class="export-option" @click="handleExport('all')">
-                        Eksportuoti visus rezultatus
-                    </button>
-                    <button type="button" class="export-option" @click="handleExport('current_page')">
-                        Eksportuoti tik esamą puslapį
-                    </button>
-                </div>
-            </div>
-            <AppButton
-                v-if="canPublish"
-                :text="bulkPublishButtonLabel"
-                variant="secondary"
-                as-button
-                class="list-nav-btn"
-                :disabled="selectedProblems.length === 0 || bulkPublishSubmitting"
-                :loading="bulkPublishSubmitting"
-                @click="handleBulkPublishToggle"
-            />
-            <AppButton
-                v-if="canDeleteProblem"
-                text="Šalinti"
-                variant="secondary"
-                as-button
-                class="list-nav-btn"
-                :disabled="selectedProblems.length === 0"
-                @click="handleDeleteProblems"
-            />
-        </template>
+                <AppButton
+                    v-if="canDeleteProblem"
+                    text="Šalinti"
+                    variant="secondary"
+                    as-button
+                    class="list-nav-btn"
+                    :disabled="selectedProblems.length === 0"
+                    @click="handleDeleteProblems"
+                />
+            </template>
 
-        <template v-else-if="canSeeInstitutionAdminButtons">
-            <AppButton
-                text="Priskirti/Peradresuoti problemą"
-                variant="primary"
-                as-button
-                class="list-nav-btn"
-                :disabled="selectedProblems.length !== 1 || selectedIncludesResolvedProblem"
-                @click="handleAssignInstitution"
-            />
-            <AppButton
-                text="Atvaizduoti/keisti būseną"
-                as-button
-                class="list-nav-btn"
-                :disabled="selectedProblems.length === 0"
-                @click="openStatusModal()"
-            />
-            <AppButton
-                text="Nagrinėti"
-                variant="secondary"
-                as-button
-                class="list-nav-btn"
-                :disabled="!selectedProblemIdForReview"
-                @click="handleStebeti"
-            />
-        </template>
+            <template v-else-if="canSeeInstitutionAdminButtons">
+                <AppButton
+                    text="Priskirti/Peradresuoti problemą"
+                    variant="primary"
+                    as-button
+                    class="list-nav-btn"
+                    :disabled="selectedProblems.length !== 1 || selectedIncludesResolvedProblem"
+                    @click="handleAssignInstitution"
+                />
+                <AppButton
+                    text="Atvaizduoti/keisti būseną"
+                    as-button
+                    class="list-nav-btn"
+                    :disabled="selectedProblems.length === 0"
+                    @click="openStatusModal()"
+                />
+                <AppButton
+                    text="Nagrinėti"
+                    variant="secondary"
+                    as-button
+                    class="list-nav-btn"
+                    :disabled="!selectedProblemIdForReview"
+                    @click="handleStebeti"
+                />
+            </template>
 
-        <template v-else-if="isEmployee">
-            <AppButton
-                text="Atvaizduoti/keisti būseną"
-                as-button
-                class="list-nav-btn"
-                :disabled="selectedProblems.length === 0"
-                @click="openStatusModal()"
-            />
-            <AppButton
-                text="Nagrinėti"
-                variant="secondary"
-                as-button
-                class="list-nav-btn"
-                :disabled="!selectedProblemIdForReview"
-                @click="handleStebeti"
-            />
-        </template>
+            <template v-else-if="isEmployee">
+                <AppButton
+                    text="Atvaizduoti/keisti būseną"
+                    as-button
+                    class="list-nav-btn"
+                    :disabled="selectedProblems.length === 0"
+                    @click="openStatusModal()"
+                />
+                <AppButton
+                    text="Nagrinėti"
+                    variant="secondary"
+                    as-button
+                    class="list-nav-btn"
+                    :disabled="!selectedProblemIdForReview"
+                    @click="handleStebeti"
+                />
+            </template>
 
-        <template v-else>
-            <AppButton
-                text="Nagrinėti"
-                as-button
-                class="list-nav-btn"
-                :disabled="!selectedProblemIdForReview"
-                @click="handleStebeti"
-            />
-        </template>
-    </div>
+            <template v-else>
+                <AppButton
+                    text="Nagrinėti"
+                    as-button
+                    class="list-nav-btn"
+                    :disabled="!selectedProblemIdForReview"
+                    @click="handleStebeti"
+                />
+            </template>
+        </div>
 
-    <ConfirmModal
-        :open="showDeleteModal"
-        :message="deleteConfirmMessage"
-        confirm-text="Patvirtinti"
-        cancel-text="Atšaukti"
-        footer-layout="column"
-        confirm-variant="primary"
-        width="369px"
-        :loading="deleteSubmitting"
-        @close="showDeleteModal = false"
-        @confirm="handleConfirmDelete"
-    />
+        <ConfirmModal
+            :open="showDeleteModal"
+            :message="deleteConfirmMessage"
+            confirm-text="Patvirtinti"
+            cancel-text="Atšaukti"
+            footer-layout="column"
+            confirm-variant="primary"
+            width="369px"
+            :loading="deleteSubmitting"
+            @close="showDeleteModal = false"
+            @confirm="handleConfirmDelete"
+        />
 
-    <StatusChangeModal
-        :show="showStatusModal"
-        :problem="selectedProblem"
-        :selected-problem-ids="selectedProblems"
-        :saving="statusChangeSubmitting"
-        @close="handleModalClose"
-        @save="handleStatusChange"
-    />
+        <StatusChangeModal
+            :show="showStatusModal"
+            :problem="selectedProblem"
+            :selected-problem-ids="selectedProblems"
+            :saving="statusChangeSubmitting"
+            @close="handleModalClose"
+            @save="handleStatusChange"
+        />
 
-    <InactiveReasonModal
-        v-model:comment="inactiveComment"
-        :open="showInactiveReasonModal"
-        :submitting="inactiveSubmitting"
-        :active-submit-channel="inactiveSubmitChannel"
-        @close="closeInactiveReasonModal"
-        @submit="submitInactiveReason"
-    />
+        <InactiveReasonModal
+            v-model:comment="inactiveComment"
+            :open="showInactiveReasonModal"
+            :submitting="inactiveSubmitting"
+            :active-submit-channel="inactiveSubmitChannel"
+            @close="closeInactiveReasonModal"
+            @submit="submitInactiveReason"
+        />
 
-    <FilterModal
-        :show="showFilterModal"
-        :filters="{
-            reportNumber: reportNumberFilter,
-            problemType: categoryFilter,
-            dateFrom: dateFromFilter,
-            dateTo: dateToFilter,
-            status: statusFilter,
-        }"
-        :categories="props.categories"
-        :all-status-options="allStatusOptions"
-        @close="handleFilterClose"
-        @apply="handleFilterApply"
-        @clear="handleFilterClear"
-    />
+        <FilterModal
+            :show="showFilterModal"
+            :filters="{
+                reportNumber: reportNumberFilter,
+                problemType: categoryFilter,
+                dateFrom: dateFromFilter,
+                dateTo: dateToFilter,
+                status: statusFilter,
+            }"
+            :categories="props.categories"
+            :all-status-options="allStatusOptions"
+            @close="handleFilterClose"
+            @apply="handleFilterApply"
+            @clear="handleFilterClear"
+        />
     </div>
 </template>
 
@@ -312,36 +337,50 @@ const {
     min-width: 0;
 }
 
-.table-footer-wrp {
+.table-pagination {
     margin-top: 20px;
     display: flex;
-    flex-wrap: wrap;
-    gap: 20px;
-    font-size: 16px;
+    justify-content: space-between;
     align-items: center;
+    gap: 16px;
+    flex-wrap: wrap;
 }
 
-.view-more-link {
+.per-page-control,
+.pagination-controls {
     display: flex;
     align-items: center;
-    gap: 8px;
-    text-decoration: none;
+    gap: 10px;
     color: #333;
-    font-size: 16px;
+    font-size: 14px;
+}
+
+.per-page-select {
+    min-width: 76px;
+    padding: 7px 10px;
+    border: 1px solid #cfd4dc;
+    border-radius: 6px;
+    background: #fff;
+    font-size: 14px;
+}
+
+.pagination-button {
+    padding: 7px 14px;
+    border: 1px solid var(--color-primary);
+    border-radius: 999px;
+    background: #fff;
+    color: var(--color-primary);
     cursor: pointer;
-    transition: opacity 0.2s;
+    font-size: 14px;
 }
 
-.view-more-link:hover {
-    opacity: 0.8;
+.pagination-button:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
 }
 
-.view-more-arrow {
-    display: block;
-    width: 20px;
-    height: 20px;
-    flex-shrink: 0;
-    transform: rotate(-90deg);
+.page-info {
+    white-space: nowrap;
 }
 
 .list-navigation {
@@ -452,10 +491,17 @@ const {
 }
 
 @media (min-width: 768px) {
-    .search-wrp { max-width: 400px; }
+    .search-wrp {
+        max-width: 400px;
+    }
 }
 
 @media (max-width: 767px) {
+    .table-pagination {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
     .list-navigation {
         grid-template-columns: 1fr;
         margin: 24px 0;

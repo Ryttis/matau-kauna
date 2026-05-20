@@ -61,12 +61,14 @@ class ProblemController extends Controller
 
         $sortBy = $request->get('sort_by', 'created_at');
         $sortDirection = $request->get('sort_direction', 'desc');
+        $perPage = (int) $request->get('per_page', 10);
 
         return Inertia::render('Dashboard', $this->dashboardQuery->staffDashboardProps(
             $user,
             $filters,
             $sortBy,
-            $sortDirection
+            $sortDirection,
+            $perPage
         ));
     }
 
@@ -348,7 +350,8 @@ class ProblemController extends Controller
             $sortBy,
             $sortDirection,
             $scope,
-            (int) $request->get('page', 1)
+            (int) $request->get('page', 1),
+            (int) $request->get('per_page', 10)
         );
 
         $filename = 'problemos_'.date('Y-m-d_His').'.xlsx';

@@ -8,18 +8,20 @@ import {
     allProblemsFlatFromList,
     buildDashboardListRouterParams,
     computeProblemsListAfterPropsChange,
-    removeDashboardPageFromUrl,
 } from '@/utils/dashboardProblemListHelpers'
+
+const DEFAULT_PAGE_SIZE_OPTIONS = [10, 20, 50, 100]
 
 export function useDashboardProblemList(props) {
     const search = ref(props.filters?.search || '')
     const statusFilter = ref(props.filters?.status || '')
     const categoryFilter = ref(props.filters?.category || '')
-    const reportNumberFilter = ref(props.filters?.reportNumber || '')
-    const dateFromFilter = ref(props.filters?.dateFrom || '')
-    const dateToFilter = ref(props.filters?.dateTo || '')
+    const reportNumberFilter = ref(props.filters?.report_number || props.filters?.reportNumber || '')
+    const dateFromFilter = ref(props.filters?.date_from || props.filters?.dateFrom || '')
+    const dateToFilter = ref(props.filters?.date_to || props.filters?.dateTo || '')
     const sortBy = ref(props.sortBy || 'created_at')
     const sortDirection = ref(props.sortDirection || 'desc')
+    const perPage = ref(Number(props.problems?.per_page) || DEFAULT_PAGE_SIZE_OPTIONS[0])
     const selectedProblems = ref([])
     const showStatusModal = ref(false)
     const selectedProblem = ref(null)
@@ -39,6 +41,15 @@ export function useDashboardProblemList(props) {
     const bulkPublishSubmitting = ref(false)
 
     const { displayRows } = useProblemDisplayRows(problemsList)
+
+    const pageSizeOptions = computed(() => {
+        const raw = props.pageSizeOptions
+        return Array.isArray(raw) && raw.length ? raw : DEFAULT_PAGE_SIZE_OPTIONS
+    })
+
+    const currentPage = computed(() => Number(props.problems?.current_page) || 1)
+    const lastPage = computed(() => Number(props.problems?.last_page) || 1)
+    const totalProblems = computed(() => Number(props.problems?.total) || problemsList.value.length)
 
     const statusByProblemId = computed(() => {
         const map = new Map()
@@ -92,6 +103,9 @@ export function useDashboardProblemList(props) {
     })
 
     const loadProblems = (resetPage = true) => {
+        if (resetPage) {
+            selectedProblems.value = []
+        }
         const params = buildDashboardListRouterParams({
             search: search.value,
             status: statusFilter.value,
@@ -101,22 +115,20 @@ export function useDashboardProblemList(props) {
             date_to: dateToFilter.value,
             sort_by: sortBy.value,
             sort_direction: sortDirection.value,
-            page: resetPage ? 1 : undefined,
+            page: resetPage ? 1 : currentPage.value,
+            per_page: perPage.value,
         })
         router.get(route('dashboard'), params, {
             preserveState: true,
             preserveScroll: true,
             replace: resetPage,
-            onFinish: () => {
-                removeDashboardPageFromUrl()
-            },
         })
     }
 
-    const loadMoreProblems = () => {
-        if (!props.problems?.next_page_url) return
-        const url = new URL(props.problems.next_page_url, window.location.origin)
-        const page = url.searchParams.get('page')
+    const goToPage = (page) => {
+        const normalizedPage = Math.min(Math.max(Number(page) || 1, 1), lastPage.value)
+        if (normalizedPage === currentPage.value) return
+        selectedProblems.value = []
         router.get(route('dashboard'), buildDashboardListRouterParams({
             search: search.value,
             status: statusFilter.value,
@@ -126,33 +138,27 @@ export function useDashboardProblemList(props) {
             date_to: dateToFilter.value,
             sort_by: sortBy.value,
             sort_direction: sortDirection.value,
-            page,
+            page: normalizedPage,
+            per_page: perPage.value,
         }), {
             preserveState: true,
             preserveScroll: true,
-            only: ['problems', 'flash'],
-            onSuccess: (inertiaPage) => {
-                if (inertiaPage.props.problems?.data) {
-                    const newItems = inertiaPage.props.problems.data.slice(0, 6)
-                    const existingIds = new Set(problemsList.value.map((p) => p.id))
-                    const uniqueNewItems = newItems.filter((item) => !existingIds.has(item.id))
-                    problemsList.value = [...problemsList.value, ...uniqueNewItems]
-                }
-                setTimeout(() => {
-                    const currentUrl = new URL(window.location.href)
-                    currentUrl.searchParams.delete('page')
-                    window.history.replaceState({}, '', currentUrl.toString())
-                }, 0)
-            },
         })
     }
 
-    watch(() => props.problems, (newProblems, oldProblems) => {
-        problemsList.value = computeProblemsListAfterPropsChange(
-            newProblems,
-            oldProblems,
-            problemsList.value,
-        )
+    const handlePerPageChange = () => {
+        const allowed = pageSizeOptions.value
+        if (!allowed.includes(Number(perPage.value))) {
+            perPage.value = allowed[0] || DEFAULT_PAGE_SIZE_OPTIONS[0]
+        }
+        loadProblems(true)
+    }
+
+    watch(() => props.problems, (newProblems) => {
+        problemsList.value = computeProblemsListAfterPropsChange(newProblems)
+        if (newProblems?.per_page) {
+            perPage.value = Number(newProblems.per_page)
+        }
     }, { immediate: true, deep: true })
 
     const handleSearch = debounce(() => {
@@ -167,6 +173,7 @@ export function useDashboardProblemList(props) {
             sortDirection.value = 'desc'
         }
         problemsList.value = []
+        selectedProblems.value = []
         loadProblems(true)
     }
 
@@ -292,6 +299,7 @@ export function useDashboardProblemList(props) {
             sort_direction: sortDirection.value,
             scope,
             page: props.problems?.current_page || 1,
+            per_page: perPage.value,
         })
         window.location.href = `${route('problems.export')}?${params.toString()}`
         showExportDropdown.value = false
@@ -310,6 +318,7 @@ export function useDashboardProblemList(props) {
         dateToFilter.value = filters.dateTo || ''
         showFilterModal.value = false
         problemsList.value = []
+        selectedProblems.value = []
         loadProblems(true)
     }
 
@@ -320,6 +329,7 @@ export function useDashboardProblemList(props) {
         dateFromFilter.value = ''
         dateToFilter.value = ''
         problemsList.value = []
+        selectedProblems.value = []
         loadProblems(true)
     }
 
@@ -459,7 +469,6 @@ export function useDashboardProblemList(props) {
     }
 
     onMounted(() => {
-        removeDashboardPageFromUrl()
         document.addEventListener('click', handleClickOutside)
     })
 
@@ -477,6 +486,11 @@ export function useDashboardProblemList(props) {
         dateToFilter,
         sortBy,
         sortDirection,
+        perPage,
+        pageSizeOptions,
+        currentPage,
+        lastPage,
+        totalProblems,
         selectedProblems,
         showStatusModal,
         selectedProblem,
@@ -501,7 +515,8 @@ export function useDashboardProblemList(props) {
         selectedProblemIdForReview,
         allStatusOptions,
         bulkPublishButtonLabel,
-        loadMoreProblems,
+        goToPage,
+        handlePerPageChange,
         handleSearch,
         handleSort,
         handleStatusChange,
