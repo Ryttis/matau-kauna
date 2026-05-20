@@ -52,18 +52,15 @@ class SettingsController extends Controller
 
         $isViispFirstPassword = $user->viisp_personal_code_hash !== null
             && $user->viisp_local_password_set_at === null;
+        $requiresCurrentPassword = ! $isViispFirstPassword && ! $user->isReporterOnly();
 
-        if ($isViispFirstPassword) {
-            $rules = [
-                'password' => array_merge(['required'], $policy->rules()),
-                'password_confirmation' => ['required', 'same:password'],
-            ];
-        } else {
-            $rules = [
-                'current_password' => ['required', 'current_password'],
-                'password' => array_merge(['required'], $policy->rules()),
-                'password_confirmation' => ['required', 'same:password'],
-            ];
+        $rules = [
+            'password' => array_merge(['required'], $policy->rules()),
+            'password_confirmation' => ['required', 'same:password'],
+        ];
+
+        if ($requiresCurrentPassword) {
+            $rules['current_password'] = ['required', 'current_password'];
         }
 
         $messages = array_merge(

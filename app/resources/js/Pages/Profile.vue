@@ -7,7 +7,7 @@ import SuccessModal from '@/Components/App/SuccessModal.vue'
 import { Head, router, useForm, usePage } from '@inertiajs/vue3'
 import { ref, computed, watch } from 'vue'
 import { useSuccessModal } from '@/composables/useSuccessModal'
-import { STAFF_ROLE_VALUES } from '@/constants/domain/roles'
+import { ROLE_REPORTER, STAFF_ROLE_VALUES } from '@/constants/domain/roles'
 import { SETTINGS_PAGE_STYLE } from '@/constants/ui/theme'
 import '@/Components/App/settings-profile-page.css'
 
@@ -21,9 +21,15 @@ const canSwitchActiveRole = computed(
         authRoles.value.every((r) => STAFF_ROLE_VALUES.includes(r.role)),
 )
 const isViispUser = computed(() => !!user.value?.viisp_personal_code_hash)
+const isReporterOnly = computed(
+    () =>
+        authRoles.value.some((r) => r.role === ROLE_REPORTER) &&
+        !authRoles.value.some((r) => STAFF_ROLE_VALUES.includes(r.role)),
+)
 const viispNeedsFirstPassword = computed(
     () => isViispUser.value && !user.value?.viisp_local_password_set_at,
 )
+const showCurrentPasswordField = computed(() => !viispNeedsFirstPassword.value && !isReporterOnly.value)
 const passwordSectionTitle = computed(() =>
     viispNeedsFirstPassword.value ? 'Nustatyti slaptažodį' : 'Keisti slaptažodį',
 )
@@ -169,7 +175,7 @@ const patchActiveRole = (roleId) => {
                                 prisijungti galėsite ir toliau.
                             </p>
                             <AppInput
-                                v-if="!viispNeedsFirstPassword"
+                                v-if="showCurrentPasswordField"
                                 v-model="passwordForm.current_password"
                                 type="password"
                                 placeholder="Esamas slaptažodis"
@@ -205,4 +211,3 @@ const patchActiveRole = (roleId) => {
         </div>
     </AuthenticatedLayout>
 </template>
-

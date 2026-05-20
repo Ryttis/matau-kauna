@@ -122,12 +122,13 @@ class SettingsApiController extends Controller
         $policy = PasswordPolicy::get();
         $isViispFirstPassword = $user->viisp_personal_code_hash !== null
             && $user->viisp_local_password_set_at === null;
+        $requiresCurrentPassword = ! $isViispFirstPassword && ! $user->isReporterOnly();
 
         $rules = [
             'password' => array_merge(['required'], $policy->rules()),
             'password_confirmation' => ['required', 'same:password'],
         ];
-        if (! $isViispFirstPassword) {
+        if ($requiresCurrentPassword) {
             $rules['current_password'] = ['required', 'current_password'];
         }
 

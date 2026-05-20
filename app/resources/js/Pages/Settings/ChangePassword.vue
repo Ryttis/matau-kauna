@@ -6,13 +6,21 @@ import SuccessModal from '@/Components/App/SuccessModal.vue'
 import { Head, useForm, usePage } from '@inertiajs/vue3'
 import { computed } from 'vue'
 import { useSuccessModal } from '@/composables/useSuccessModal'
+import { ROLE_REPORTER, STAFF_ROLE_VALUES } from '@/constants/domain/roles'
 
 const page = usePage()
 const user = computed(() => page.props.auth?.user ?? null)
+const authRoles = computed(() => page.props.auth?.roles ?? [])
 const passwordManagerUsername = computed(() => user.value?.email ?? '')
+const isReporterOnly = computed(
+    () =>
+        authRoles.value.some((r) => r.role === ROLE_REPORTER) &&
+        !authRoles.value.some((r) => STAFF_ROLE_VALUES.includes(r.role)),
+)
 const viispNeedsFirstPassword = computed(
     () => !!user.value?.viisp_personal_code_hash && !user.value?.viisp_local_password_set_at,
 )
+const showCurrentPasswordField = computed(() => !viispNeedsFirstPassword.value && !isReporterOnly.value)
 const pageTitle = computed(() => (viispNeedsFirstPassword.value ? 'Nustatyti slaptažodį' : 'Keisti slaptažodį'))
 const submitLabel = computed(() => (viispNeedsFirstPassword.value ? 'Sukurti slaptažodį' : 'Patvirtinti'))
 
@@ -60,7 +68,7 @@ const updatePassword = () => {
                     Kad galėtumėte prisijungti el. paštu ir slaptažodžiu, sukurkite slaptažodį.
                 </p>
                 <AppInput
-                    v-if="!viispNeedsFirstPassword"
+                    v-if="showCurrentPasswordField"
                     v-model="passwordForm.current_password"
                     type="password"
                     placeholder="Esamas slaptažodis"

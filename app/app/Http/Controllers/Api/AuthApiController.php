@@ -511,6 +511,17 @@ class AuthApiController extends Controller
             'email.email' => 'Neteisingas el. pašto formatas.',
         ]);
 
+        $user = User::query()
+            ->with('roles:id,role')
+            ->where('email', $validated['email'])
+            ->first();
+
+        if (! $user?->canRequestPasswordResetLink()) {
+            throw ValidationException::withMessages([
+                'email' => ['Su tokiu el. paÅ¡tu naudotojo nÄ—ra.'],
+            ]);
+        }
+
         $status = PasswordBroker::sendResetLink($validated);
 
         if ($status === PasswordBroker::RESET_LINK_SENT) {

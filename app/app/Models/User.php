@@ -286,6 +286,19 @@ class User extends Authenticatable implements MustVerifyEmail
         return $this->viisp_local_password_set_at !== null;
     }
 
+    public function canRequestPasswordResetLink(): bool
+    {
+        if ($this->relationLoaded('roles')) {
+            return $this->roles->contains(
+                fn (UserRole $role) => in_array($role->role, UserRole::staffRoles(), true)
+            );
+        }
+
+        return $this->roles()
+            ->whereIn('role', UserRole::staffRoles())
+            ->exists();
+    }
+
     public static function queryAssignableInstitutionEmployeeUsers(int $institutionId, ?string $exceptEmail = null): Builder
     {
         return self::query()
