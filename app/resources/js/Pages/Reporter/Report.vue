@@ -332,7 +332,7 @@ watch(step, (s) => {
                                 @click="handlePateikti"
                             />
                             <AppButton
-                                text="Peržiūrėti"
+                                text="Grįžti"
                                 variant="outline-light"
                                 as-button
                                 :disabled="isSubmitting"

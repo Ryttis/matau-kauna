@@ -20,7 +20,46 @@ class ReporterFileUploadService
         private VideoUploadDurationValidator $videoDurationValidator,
     ) {}
 
+    public function validateForChannel(array $files, string $channel, bool $photosOnly = false): void
+    {
+        $config = $this->uploadConfig($channel, $photosOnly);
+        $this->validateFilesForConfig($files, $config, 0, 0);
+    }
+
     public function validateAndStore(Problem $problem, array $files, string $channel, bool $appendToExisting = false, bool $photosOnly = false): array
+    {
+        $config = $this->uploadConfig($channel, $photosOnly);
+
+        $photoBase = 0;
+        $videoBase = 0;
+        if ($appendToExisting) {
+            $photoBase = (int) $problem->attachments()->where('kind', 'photo')->count();
+            $videoBase = (int) $problem->attachments()->where('kind', 'video')->count();
+        }
+
+        $items = $this->validateFilesForConfig($files, $config, $photoBase, $videoBase);
+
+        $created = [];
+
+        foreach ($items as $item) {
+            $created[] = $this->storeOne($problem, $item['file'], $item['mime'], $item['kind']);
+        }
+
+        return $created;
+    }
+
+    private function uploadConfig(string $channel, bool $photosOnly): array
+    {
+        $config = FileUploadSettings::getChannel($channel);
+        if ($photosOnly) {
+            $config['allow_video'] = false;
+            $config['max_video_files_per_problem'] = 0;
+        }
+
+        return $config;
+    }
+
+    private function validateFilesForConfig(array $files, array $config, int $photoBase, int $videoBase): array
     {
         $files = array_values(array_filter($files, fn ($f) => $f instanceof UploadedFile && $f->isValid()));
 
@@ -28,23 +67,10 @@ class ReporterFileUploadService
             return [];
         }
 
-        $config = FileUploadSettings::getChannel($channel);
-        if ($photosOnly) {
-            $config['allow_video'] = false;
-            $config['max_video_files_per_problem'] = 0;
-        }
-
         if (empty($config['allow_photo']) && empty($config['allow_video'])) {
             throw ValidationException::withMessages([
                 'files' => 'Įkėlimas išjungtas.',
             ]);
-        }
-
-        $photoBase = 0;
-        $videoBase = 0;
-        if ($appendToExisting) {
-            $photoBase = (int) $problem->attachments()->where('kind', 'photo')->count();
-            $videoBase = (int) $problem->attachments()->where('kind', 'video')->count();
         }
 
         $items = [];
@@ -124,11 +150,9 @@ class ReporterFileUploadService
                 $maxVideoSec = (int) ($config['max_video_duration_seconds'] ?? VideoUploadDurationValidator::ABSOLUTE_MAX_SECONDS);
                 $this->videoDurationValidator->assertWithinLimit($file, $maxVideoSec);
             }
-
-            $created[] = $this->storeOne($problem, $file, $mime, $kind);
         }
 
-        return $created;
+        return $items;
     }
 
     private function mimeToKind(string $mime): ?string

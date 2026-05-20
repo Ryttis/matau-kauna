@@ -290,7 +290,13 @@ class ProblemInstitutionAssignmentController extends Controller
         }
 
         if ($result['status_changed']) {
-            return redirect()->back()->with('success', 'Atnaujinta iš DVS: būsena pakeista į „Išspręsta".');
+            if ((string) ($result['new_status'] ?? '') === ProblemStatus::RESOLVED->value) {
+                return redirect()
+                    ->route('problems.show', $problem)
+                    ->with('success', 'Atnaujinta iš DVS: būsena pakeista į „Išspręsta“, problema uždaryta.');
+            }
+
+            return redirect()->back()->with('success', 'Atnaujinta iš DVS: būsena pakeista į „Išspręsta“.');
         }
 
         if ($result['answer_found']) {
@@ -322,6 +328,12 @@ class ProblemInstitutionAssignmentController extends Controller
         $parts = [];
 
         if ($result['status_changed']) {
+            if ((string) ($result['new_status'] ?? '') === ProblemStatus::RESOLVED->value) {
+                return redirect()
+                    ->route('problems.show', $problem)
+                    ->with('success', 'Atnaujinta iš GIS: būsena pakeista į „Išspręsta“, problema uždaryta.');
+            }
+
             $newLabel = ProblemStatus::tryFrom((string) $result['new_status'])?->label() ?? (string) $result['new_status'];
             $parts[] = 'būsena pakeista į „'.$newLabel.'"';
         }

@@ -254,6 +254,8 @@ class ReporterProblemController extends Controller
             ]
         )->validate();
 
+        $this->reporterFileUploadService->validateForChannel($normalizedFiles, $channel);
+
         $typeValue = ClassifierValue::query()->findOrFail($validated['problem_type_id']);
         [$lat, $lng] = $this->resolveCoordinates(
             (string) ($validated['address'] ?? ''),

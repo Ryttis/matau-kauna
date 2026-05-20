@@ -16,21 +16,71 @@ export function defaultFileUploadSettings() {
 export function useFileUploadQueue(uploadRulesRef, options = {}) {
     const { appendBaseline } = options
 
+    const photoMimes = ['image/jpeg', 'image/png']
+    const videoMimes = ['video/mp4', 'video/webm', 'video/quicktime']
+    const photoExtensions = ['jpg', 'jpeg', 'png']
+    const videoExtensions = ['mp4', 'webm', 'mov']
+
     const selectedFiles = ref([])
     const fileHint = ref('')
     const fileInputRef = ref(null)
 
-    function mimeAllowed(mimeType) {
+    function extensionFor(file) {
+        const name = String(file?.name ?? '')
+        const dotIndex = name.lastIndexOf('.')
+        return dotIndex === -1 ? '' : name.slice(dotIndex + 1).toLowerCase()
+    }
+
+    function fileKind(file) {
         const rules = unref(uploadRulesRef)
-        const photo = ['image/jpeg', 'image/png']
-        const video = ['video/mp4', 'video/webm', 'video/quicktime']
-        if (photo.includes(mimeType) && rules.allow_photo) return 'photo'
-        if (video.includes(mimeType) && rules.allow_video) return 'video'
+        const mimeType = String(file?.type ?? '').toLowerCase()
+        const extension = extensionFor(file)
+
+        if ((photoMimes.includes(mimeType) || (!mimeType && photoExtensions.includes(extension))) && rules.allow_photo) {
+            return 'photo'
+        }
+        if ((videoMimes.includes(mimeType) || (!mimeType && videoExtensions.includes(extension))) && rules.allow_video) {
+            return 'video'
+        }
         return null
     }
 
+    function extensionAllowedForKind(file, kind) {
+        const extension = extensionFor(file)
+        if (kind === 'photo') return photoExtensions.includes(extension)
+        if (kind === 'video') return videoExtensions.includes(extension)
+        return false
+    }
+
+    function formatKb(kb) {
+        return `${kb} KB`
+    }
+
     function countByKind(files, kind) {
-        return files.filter((file) => mimeAllowed(file.type) === kind).length
+        return files.filter((file) => fileKind(file) === kind).length
+    }
+
+    function probeImageFile(file) {
+        if (typeof window !== 'undefined' && typeof window.createImageBitmap === 'function') {
+            return window.createImageBitmap(file).then((bitmap) => {
+                bitmap.close?.()
+            })
+        }
+
+        return new Promise((resolve, reject) => {
+            const url = URL.createObjectURL(file)
+            const image = new Image()
+            const cleanup = () => URL.revokeObjectURL(url)
+            image.onload = () => {
+                cleanup()
+                resolve()
+            }
+            image.onerror = () => {
+                cleanup()
+                reject(new Error('image'))
+            }
+            image.src = url
+        })
     }
 
     function probeVideoDurationSeconds(file) {
@@ -82,25 +132,40 @@ export function useFileUploadQueue(uploadRulesRef, options = {}) {
         const next = [...existing]
 
         for (const file of picked) {
-            const kind = mimeAllowed(file.type)
+            const kind = fileKind(file)
             if (!kind) {
-                fileHint.value = 'Netinkamas tipas.'
+                fileHint.value = rules.allow_video
+                    ? 'Leidžiami tik JPEG, PNG arba vaizdo failai.'
+                    : 'Leidžiamos tik JPEG arba PNG nuotraukos.'
+                break
+            }
+            if (!extensionAllowedForKind(file, kind)) {
+                fileHint.value =
+                    kind === 'photo'
+                        ? 'Leidžiamos tik JPEG arba PNG nuotraukos.'
+                        : 'Netinkamas vaizdo failo formatas.'
                 break
             }
             const photos = countByKind(next, 'photo')
             const videos = countByKind(next, 'video')
             if (kind === 'photo' && base.photos + photos >= maxPhoto) {
-                fileHint.value = `Nuotraukų ne daugiau kaip ${maxPhoto}.`
+                fileHint.value = `Galima pridėti ne daugiau kaip ${maxPhoto} nuotraukų.`
                 break
             }
             if (kind === 'video' && base.videos + videos >= maxVideo) {
-                fileHint.value = 'Per daug vaizdų.'
+                fileHint.value = 'Per daug vaizdo failų.'
                 break
             }
             if (kind === 'photo') {
                 const maxPhotoKb = Number(rules.max_photo_size_kb) || 5120
                 if (file.size / 1024 > maxPhotoKb) {
-                    fileHint.value = 'Failas per didelis.'
+                    fileHint.value = `Failas per didelis. Didžiausias dydis - ${formatKb(maxPhotoKb)}.`
+                    break
+                }
+                try {
+                    await probeImageFile(file)
+                } catch {
+                    fileHint.value = 'Nuotraukos nepavyko atidaryti. Pasirinkite JPEG arba PNG failą.'
                     break
                 }
             }
