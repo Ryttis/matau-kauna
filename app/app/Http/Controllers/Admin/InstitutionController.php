@@ -2,12 +2,14 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Enums\AuditLogResult;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\StoreInstitutionRequest;
 use App\Http\Requests\Admin\UpdateInstitutionRequest;
 use App\Models\Institution;
 use App\Services\InstitutionDvsConfigService;
 use App\Services\InstitutionGisConfigService;
+use App\Services\IntegrationAuditService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Arr;
@@ -20,6 +22,7 @@ class InstitutionController extends Controller
     public function __construct(
         private InstitutionGisConfigService $gisConfigService,
         private InstitutionDvsConfigService $dvsConfigService,
+        private IntegrationAuditService $integrationAuditService,
     ) {}
 
     public function index(): LengthAwarePaginator
@@ -102,8 +105,53 @@ class InstitutionController extends Controller
         }
 
         try {
-            return response()->json($this->gisConfigService->metadataPayload($institution->gisConfig));
+            $payload = $this->gisConfigService->metadataPayload($institution->gisConfig);
+            $this->integrationAuditService->log(
+                'integration.gis.fetch_metadata',
+                'GIS',
+                'inbound',
+                'admin_config',
+                'ArcGIS metadata',
+                AuditLogResult::Success,
+                null,
+                [
+                    'request' => [
+                        'method' => 'GET',
+                        'url' => $institution->gisConfig->metadata_url ?: $institution->gisConfig->feature_server_url,
+                        'params' => [
+                            'institution_id' => $institution->id,
+                            'layer_id' => $payload['layer_id'] ?? null,
+                        ],
+                    ],
+                    'response' => [
+                        'fields_count' => count($payload['fields'] ?? []),
+                        'domains_count' => count($payload['domains'] ?? []),
+                    ],
+                ],
+                request()->user(),
+            );
+
+            return response()->json($payload);
         } catch (RuntimeException $e) {
+            $this->integrationAuditService->log(
+                'integration.gis.fetch_metadata',
+                'GIS',
+                'inbound',
+                'admin_config',
+                'ArcGIS metadata',
+                AuditLogResult::Error,
+                $e->getMessage(),
+                [
+                    'request' => [
+                        'method' => 'GET',
+                        'url' => $institution->gisConfig->metadata_url ?: $institution->gisConfig->feature_server_url,
+                        'params' => ['institution_id' => $institution->id],
+                    ],
+                    'error' => ['type' => $e::class, 'message' => $e->getMessage()],
+                ],
+                request()->user(),
+            );
+
             return response()->json(['message' => $e->getMessage()], 422);
         }
     }
@@ -111,11 +159,72 @@ class InstitutionController extends Controller
     public function dvsRusys(Institution $institution): JsonResponse
     {
         try {
-            return response()->json($this->dvsConfigService->fetchRusysForInstitution($institution));
+            $payload = $this->dvsConfigService->fetchRusysForInstitution($institution);
+            $this->integrationAuditService->log(
+                'integration.dvs.fetch_rusys',
+                'DVS',
+                'inbound',
+                'admin_config',
+                'DVS Rūšis',
+                AuditLogResult::Success,
+                null,
+                [
+                    'request' => [
+                        'method' => 'GET',
+                        'url' => $institution->dvsConfig?->rusis_url,
+                        'params' => ['institution_id' => $institution->id],
+                    ],
+                    'response' => [
+                        'options_count' => count($payload['rusys_options'] ?? []),
+                    ],
+                ],
+                request()->user(),
+            );
+
+            return response()->json($payload);
         } catch (RuntimeException $e) {
+            $this->integrationAuditService->log(
+                'integration.dvs.fetch_rusys',
+                'DVS',
+                'inbound',
+                'admin_config',
+                'DVS Rūšis',
+                AuditLogResult::Error,
+                $e->getMessage(),
+                [
+                    'request' => [
+                        'method' => 'GET',
+                        'url' => $institution->dvsConfig?->rusis_url,
+                        'params' => ['institution_id' => $institution->id],
+                    ],
+                    'error' => ['type' => $e::class, 'message' => $e->getMessage()],
+                ],
+                request()->user(),
+            );
+
             return response()->json(['message' => $e->getMessage()], 422);
         } catch (Throwable $e) {
-            return response()->json(['message' => 'Nepavyko gauti DVS rūšių.'], 422);
+            $message = 'Nepavyko gauti DVS rūšių.';
+            $this->integrationAuditService->log(
+                'integration.dvs.fetch_rusys',
+                'DVS',
+                'inbound',
+                'admin_config',
+                'DVS Rūšis',
+                AuditLogResult::Error,
+                $message,
+                [
+                    'request' => [
+                        'method' => 'GET',
+                        'url' => $institution->dvsConfig?->rusis_url,
+                        'params' => ['institution_id' => $institution->id],
+                    ],
+                    'error' => ['type' => $e::class, 'message' => $e->getMessage()],
+                ],
+                request()->user(),
+            );
+
+            return response()->json(['message' => $message], 422);
         }
     }
 

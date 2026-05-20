@@ -119,7 +119,12 @@ class AuditService
             $query->eventType($filters['event_type']);
         }
         if (! empty($filters['result'])) {
-            $query->result($filters['result']);
+            $result = (string) $filters['result'];
+            if (in_array($result, [AuditLogResult::Error->value, 'failure'], true)) {
+                $query->whereIn('result', [AuditLogResult::Error->value, 'failure']);
+            } else {
+                $query->result($result);
+            }
         }
         $query->search($filters['search'] ?? null);
     }

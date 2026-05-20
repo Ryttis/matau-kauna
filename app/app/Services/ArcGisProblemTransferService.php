@@ -2,12 +2,14 @@
 
 namespace App\Services;
 
+use App\Enums\AuditLogResult;
 use App\Enums\ProblemStatus;
 use App\Models\InstitutionGisConfig;
 use App\Models\Problem;
 use App\Models\ProblemAttachment;
 use App\Models\ProblemGisTransfer;
 use App\Models\ProblemGisTransferAttachment;
+use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Http\Client\Response;
 use Illuminate\Support\Arr;
@@ -25,9 +27,10 @@ class ArcGisProblemTransferService
         private ProblemReporterStatusNotifier $reporterStatusNotifier,
         private ProblemAutoAssignmentService $autoAssignmentService,
         private ProblemAutoPublishService $autoPublishService,
+        private IntegrationAuditService $integrationAuditService,
     ) {}
 
-    public function transferProblem(Problem $problem): array
+    public function transferProblem(Problem $problem, array $auditContext = []): array
     {
         $problem->loadMissing([
             'institution.gisConfig',
@@ -63,11 +66,13 @@ class ArcGisProblemTransferService
         $transfer->institution_gis_config_id = $config->id;
         $transfer->save();
 
+        $featureAudit = null;
+
         try {
             $featureCreated = false;
 
             if (! filled($transfer->external_object_id)) {
-                [$externalObjectId, $externalGlobalId] = $this->createFeature($config, $problem);
+                [$externalObjectId, $externalGlobalId, $featureAudit] = $this->createFeature($config, $problem);
 
                 $transfer->forceFill([
                     'external_object_id' => (string) $externalObjectId,
@@ -95,8 +100,43 @@ class ArcGisProblemTransferService
                 ])->save();
             }
 
+            $freshTransfer = $transfer->fresh();
+            $this->auditGis(
+                'integration.gis.send',
+                'outbound',
+                $this->auditTrigger($auditContext),
+                'ArcGIS applyEdits/addAttachment',
+                $attachmentSummary['failed'] > 0 ? AuditLogResult::Error : AuditLogResult::Success,
+                $attachmentSummary['message'],
+                [
+                    'request' => [
+                        'operations' => array_filter([
+                            $featureAudit['request'] ?? null,
+                            [
+                                'method' => $problem->attachments->isEmpty() ? null : 'POST',
+                                'url' => filled($freshTransfer->external_object_id) ? $this->attachmentEndpoint($config, $freshTransfer, 'addAttachment') : null,
+                                'params' => ['f' => 'json'],
+                            ],
+                        ]),
+                    ],
+                    'response' => [
+                        'feature_created' => $featureCreated,
+                        'http_status' => $featureAudit['response']['http_status'] ?? null,
+                        'external_object_id' => $freshTransfer->external_object_id,
+                        'external_global_id' => $freshTransfer->external_global_id,
+                        'send_status' => $freshTransfer->send_status,
+                        'attachments_uploaded' => $attachmentSummary['uploaded'],
+                        'attachments_failed' => $attachmentSummary['failed'],
+                    ],
+                    'files' => $this->problemFiles($problem, 'outbound'),
+                ],
+                $auditContext,
+                $problem,
+                $freshTransfer->id,
+            );
+
             return [
-                'transfer' => $transfer->fresh(),
+                'transfer' => $freshTransfer,
                 'feature_created' => $featureCreated,
                 'attachments_uploaded' => $attachmentSummary['uploaded'],
                 'attachments_failed' => $attachmentSummary['failed'],
@@ -110,11 +150,32 @@ class ArcGisProblemTransferService
                 'last_error' => $e->getMessage(),
             ])->save();
 
+            $this->auditGis(
+                'integration.gis.send',
+                'outbound',
+                $this->auditTrigger($auditContext),
+                'ArcGIS applyEdits/addAttachment',
+                AuditLogResult::Error,
+                $e->getMessage(),
+                [
+                    'request' => ['operations' => array_filter([$featureAudit['request'] ?? null])],
+                    'response' => [
+                        'http_status' => $featureAudit['response']['http_status'] ?? null,
+                        'send_status' => $transfer->fresh()->send_status,
+                    ],
+                    'files' => $this->problemFiles($problem, 'outbound'),
+                    'error' => $this->errorPayload($e),
+                ],
+                $auditContext,
+                $problem,
+                $transfer->id,
+            );
+
             throw $e;
         }
     }
 
-    public function syncFromGis(ProblemGisTransfer $transfer): array
+    public function syncFromGis(ProblemGisTransfer $transfer, array $auditContext = []): array
     {
         $transfer->loadMissing(['config', 'problem']);
 
@@ -130,30 +191,76 @@ class ArcGisProblemTransferService
             ];
         }
 
-        $attributes = $this->queryFeatureAttributes($config, $transfer);
+        $queryAudit = null;
+        $result = null;
 
-        $statusChange = ['changed' => false, 'old' => null, 'new' => null];
-        $deadlineChanged = false;
+        try {
+            $attributes = $this->queryFeatureAttributes($config, $transfer, $queryAudit);
 
-        if ($attributes !== []) {
-            $mapping = $this->gisConfigService->effectiveFieldMapping($config);
-            $statusChange = $this->applyStatusFromGis($transfer->problem, $attributes, $mapping);
-            $deadlineChanged = $this->applyDeadlineFromGis($transfer->problem, $attributes, $mapping['completion_deadline']);
+            $statusChange = ['changed' => false, 'old' => null, 'new' => null];
+            $deadlineChanged = false;
+
+            if ($attributes !== []) {
+                $mapping = $this->gisConfigService->effectiveFieldMapping($config);
+                $statusChange = $this->applyStatusFromGis($transfer->problem, $attributes, $mapping);
+                $deadlineChanged = $this->applyDeadlineFromGis($transfer->problem, $attributes, $mapping['completion_deadline']);
+            }
+
+            $attachmentResult = $this->pullAttachments($transfer, $auditContext);
+
+            $result = [
+                'attachments_downloaded' => $attachmentResult['downloaded'],
+                'attachments_skipped' => $attachmentResult['skipped'],
+                'status_changed' => $statusChange['changed'],
+                'deadline_changed' => $deadlineChanged,
+                'old_status' => $statusChange['old'],
+                'new_status' => $statusChange['new'],
+            ];
+
+            $this->auditGis(
+                'integration.gis.pull_status',
+                'inbound',
+                $this->auditTrigger($auditContext),
+                'ArcGIS query',
+                ($queryAudit['error'] ?? null) ? AuditLogResult::Error : AuditLogResult::Success,
+                $queryAudit['error']['message'] ?? null,
+                [
+                    'request' => $queryAudit['request'] ?? null,
+                    'response' => array_merge($result, [
+                        'http_status' => $queryAudit['response']['http_status'] ?? null,
+                        'attributes_received' => $attributes !== [],
+                    ]),
+                    'error' => $queryAudit['error'] ?? null,
+                ],
+                $auditContext,
+                $transfer->problem,
+                $transfer->id,
+            );
+
+            return $result;
+        } catch (\Throwable $e) {
+            $this->auditGis(
+                'integration.gis.pull_status',
+                'inbound',
+                $this->auditTrigger($auditContext),
+                'ArcGIS query',
+                AuditLogResult::Error,
+                $e->getMessage(),
+                [
+                    'request' => $queryAudit['request'] ?? null,
+                    'response' => ['http_status' => $queryAudit['response']['http_status'] ?? null],
+                    'error' => $this->errorPayload($e),
+                ],
+                $auditContext,
+                $transfer->problem,
+                $transfer->id,
+            );
+
+            throw $e;
         }
-
-        $attachmentResult = $this->pullAttachments($transfer);
-
-        return [
-            'attachments_downloaded' => $attachmentResult['downloaded'],
-            'attachments_skipped' => $attachmentResult['skipped'],
-            'status_changed' => $statusChange['changed'],
-            'deadline_changed' => $deadlineChanged,
-            'old_status' => $statusChange['old'],
-            'new_status' => $statusChange['new'],
-        ];
     }
 
-    public function pullAttachments(ProblemGisTransfer $transfer): array
+    public function pullAttachments(ProblemGisTransfer $transfer, array $auditContext = []): array
     {
         $transfer->loadMissing(['config', 'problem', 'attachmentTransfers']);
 
@@ -165,9 +272,20 @@ class ArcGisProblemTransferService
             return ['downloaded' => 0, 'skipped' => 0];
         }
 
-        $listing = $this->queryAttachmentMetadata($config, $transfer);
+        $listingAudit = null;
+        try {
+            $listing = $this->queryAttachmentMetadata($config, $transfer, $listingAudit);
+        } catch (\Throwable $e) {
+            $listingAudit['error'] = $this->errorPayload($e);
+            $this->auditPullAttachments($transfer, $auditContext, ['downloaded' => 0, 'skipped' => 0], $listingAudit, $e->getMessage());
+
+            throw $e;
+        }
         if ($listing === []) {
-            return ['downloaded' => 0, 'skipped' => 0];
+            $result = ['downloaded' => 0, 'skipped' => 0];
+            $this->auditPullAttachments($transfer, $auditContext, $result, $listingAudit);
+
+            return $result;
         }
 
         $knownExternalIds = $transfer->attachmentTransfers
@@ -200,19 +318,26 @@ class ArcGisProblemTransferService
             }
         }
 
-        return ['downloaded' => $downloaded, 'skipped' => $skipped];
+        $result = ['downloaded' => $downloaded, 'skipped' => $skipped];
+        $this->auditPullAttachments($transfer, $auditContext, $result, $listingAudit);
+
+        return $result;
     }
 
     private function createFeature(InstitutionGisConfig $config, Problem $problem): array
     {
-        [, $json] = $this->postWithTokenRetry(
+        $featurePayload = $this->buildFeaturePayload($config, $problem);
+        $url = $this->applyEditsUrl($config->feature_server_url);
+        $payload = [
+            'f' => 'json',
+            'inSR' => 4326,
+            'adds' => json_encode([$featurePayload], JSON_UNESCAPED_UNICODE),
+        ];
+
+        [$response, $json] = $this->postWithTokenRetry(
             $config,
-            $this->applyEditsUrl($config->feature_server_url),
-            [
-                'f' => 'json',
-                'inSR' => 4326,
-                'adds' => json_encode([$this->buildFeaturePayload($config, $problem)], JSON_UNESCAPED_UNICODE),
-            ]
+            $url,
+            $payload
         );
 
         $addResult = Arr::first($json['addResults'] ?? []);
@@ -227,7 +352,22 @@ class ArcGisProblemTransferService
             ]);
         }
 
-        return [(string) $addResult['objectId'], filled($globalId) ? trim((string) $globalId, '{}') : null];
+        return [
+            (string) $addResult['objectId'],
+            filled($globalId) ? trim((string) $globalId, '{}') : null,
+            [
+                'request' => [
+                    'method' => 'POST',
+                    'url' => $url,
+                    'params' => array_merge($payload, ['adds' => [$featurePayload]]),
+                ],
+                'response' => [
+                    'http_status' => $response->status(),
+                    'object_id' => $addResult['objectId'] ?? null,
+                    'global_id' => $globalId,
+                ],
+            ],
+        ];
     }
 
     private function syncAttachments(InstitutionGisConfig $config, ProblemGisTransfer $transfer, Problem $problem): array
@@ -324,24 +464,36 @@ class ArcGisProblemTransferService
         return [$externalId, filled($globalId) ? $globalId : null];
     }
 
-    private function queryFeatureAttributes(InstitutionGisConfig $config, ProblemGisTransfer $transfer): array
+    private function queryFeatureAttributes(InstitutionGisConfig $config, ProblemGisTransfer $transfer, ?array &$audit = null): array
     {
         if (! filled($transfer->external_object_id)) {
             return [];
         }
 
+        $url = $this->queryUrl($config);
+        $payload = [
+            'f' => 'json',
+            'objectIds' => $transfer->external_object_id,
+            'outFields' => $this->queryOutFields($config),
+            'returnGeometry' => 'false',
+        ];
+        $audit = [
+            'request' => [
+                'method' => 'POST',
+                'url' => $url,
+                'params' => $payload,
+            ],
+        ];
+
         try {
-            [, $json] = $this->postWithTokenRetry(
+            [$response, $json] = $this->postWithTokenRetry(
                 $config,
-                $this->queryUrl($config),
-                [
-                    'f' => 'json',
-                    'objectIds' => $transfer->external_object_id,
-                    'outFields' => $this->queryOutFields($config),
-                    'returnGeometry' => 'false',
-                ]
+                $url,
+                $payload
             );
+            $audit['response'] = ['http_status' => $response->status()];
         } catch (\Throwable $e) {
+            $audit['error'] = $this->errorPayload($e);
             Log::warning('ArcGIS query attributes failed', [
                 'transfer_id' => $transfer->id,
                 'error' => $e->getMessage(),
@@ -528,18 +680,28 @@ class ArcGisProblemTransferService
         return $this->layerBaseUrl($config).'/query';
     }
 
-    private function queryAttachmentMetadata(InstitutionGisConfig $config, ProblemGisTransfer $transfer): array
+    private function queryAttachmentMetadata(InstitutionGisConfig $config, ProblemGisTransfer $transfer, ?array &$audit = null): array
     {
         $payload = [
             'f' => 'json',
             'objectIds' => $transfer->external_object_id,
         ];
+        $url = $this->queryAttachmentsUrl($config);
 
-        [, $json] = $this->postWithTokenRetry(
+        $audit = [
+            'request' => [
+                'method' => 'POST',
+                'url' => $url,
+                'params' => $payload,
+            ],
+        ];
+
+        [$response, $json] = $this->postWithTokenRetry(
             $config,
-            $this->queryAttachmentsUrl($config),
+            $url,
             $payload
         );
+        $audit['response'] = ['http_status' => $response->status()];
 
         $groups = $json['attachmentGroups'] ?? [];
         $items = [];
@@ -802,6 +964,93 @@ class ArcGisProblemTransferService
         $segment = (string) $transfer->external_object_id;
 
         return $layerUrl.'/'.$segment.'/attachments/'.$externalId;
+    }
+
+    private function auditPullAttachments(
+        ProblemGisTransfer $transfer,
+        array $context,
+        array $result,
+        ?array $listingAudit,
+        ?string $message = null,
+    ): void {
+        $transfer->loadMissing('problem');
+        $this->auditGis(
+            'integration.gis.pull_attachments',
+            'inbound',
+            $this->auditTrigger($context),
+            'ArcGIS queryAttachments',
+            ($listingAudit['error'] ?? null) ? AuditLogResult::Error : AuditLogResult::Success,
+            $message,
+            [
+                'request' => $listingAudit['request'] ?? null,
+                'response' => array_merge($result, [
+                    'http_status' => $listingAudit['response']['http_status'] ?? null,
+                ]),
+                'error' => $listingAudit['error'] ?? null,
+            ],
+            $context,
+            $transfer->problem,
+            $transfer->id,
+        );
+    }
+
+    private function auditGis(
+        string $action,
+        string $direction,
+        string $trigger,
+        string $service,
+        AuditLogResult $result,
+        ?string $message,
+        array $metadata,
+        array $context,
+        ?Problem $problem,
+        int|string|null $transferId,
+    ): void {
+        $this->integrationAuditService->log(
+            $action,
+            'GIS',
+            $direction,
+            $trigger,
+            $service,
+            $result,
+            $message,
+            $metadata,
+            $this->auditActor($context),
+            $problem,
+            $transferId,
+        );
+    }
+
+    private function auditActor(array $context): ?User
+    {
+        return ($context['actor'] ?? null) instanceof User ? $context['actor'] : null;
+    }
+
+    private function auditTrigger(array $context): string
+    {
+        return (string) ($context['trigger'] ?? 'command');
+    }
+
+    private function problemFiles(Problem $problem, string $direction): array
+    {
+        return $problem->attachments
+            ->values()
+            ->map(fn (ProblemAttachment $attachment) => [
+                'name' => $attachment->original_name,
+                'mime_type' => $attachment->mime_type,
+                'size_bytes' => $attachment->size_bytes,
+                'direction' => $direction,
+                'content' => '[pašalinta]',
+            ])
+            ->all();
+    }
+
+    private function errorPayload(\Throwable $e): array
+    {
+        return [
+            'type' => $e::class,
+            'message' => $e->getMessage(),
+        ];
     }
 
     private function layerBaseUrl(InstitutionGisConfig $config): string

@@ -8,6 +8,13 @@ enum AuditAction: string
     case AUTH_LOGOUT = 'auth.logout';
     case INTEGRATION_VIISP_LOGIN_INIT = 'integration.viisp.login_init';
     case INTEGRATION_VIISP_IDENTITY_EXCHANGE = 'integration.viisp.identity_exchange';
+    case INTEGRATION_DVS_SEND = 'integration.dvs.send';
+    case INTEGRATION_DVS_PULL_STATUS = 'integration.dvs.pull_status';
+    case INTEGRATION_DVS_FETCH_RUSYS = 'integration.dvs.fetch_rusys';
+    case INTEGRATION_GIS_SEND = 'integration.gis.send';
+    case INTEGRATION_GIS_PULL_STATUS = 'integration.gis.pull_status';
+    case INTEGRATION_GIS_PULL_ATTACHMENTS = 'integration.gis.pull_attachments';
+    case INTEGRATION_GIS_FETCH_METADATA = 'integration.gis.fetch_metadata';
     case AUDIT_CONFIG_TOGGLE = 'audit_config.toggle';
     case AUDIT_CONFIG_UPDATE = 'audit_config.update';
 
@@ -38,6 +45,13 @@ enum AuditAction: string
             self::AUTH_LOGOUT => 'Atsijungimas',
             self::INTEGRATION_VIISP_LOGIN_INIT => 'VIISP prisijungimo inicijavimas',
             self::INTEGRATION_VIISP_IDENTITY_EXCHANGE => 'VIISP tapatybės duomenų gavimas',
+            self::INTEGRATION_DVS_SEND => 'DVS duomenų siuntimas',
+            self::INTEGRATION_DVS_PULL_STATUS => 'DVS duomenų gavimas',
+            self::INTEGRATION_DVS_FETCH_RUSYS => 'DVS rūšių gavimas',
+            self::INTEGRATION_GIS_SEND => 'GIS duomenų siuntimas',
+            self::INTEGRATION_GIS_PULL_STATUS => 'GIS būsenos gavimas',
+            self::INTEGRATION_GIS_PULL_ATTACHMENTS => 'GIS priedų gavimas',
+            self::INTEGRATION_GIS_FETCH_METADATA => 'GIS laukų gavimas',
             self::AUDIT_CONFIG_TOGGLE => 'Audito įjungimas / išjungimas',
             self::AUDIT_CONFIG_UPDATE => 'Audito nustatymų atnaujinimas',
         };

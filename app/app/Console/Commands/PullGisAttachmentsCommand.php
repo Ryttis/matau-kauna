@@ -40,7 +40,7 @@ class PullGisAttachmentsCommand extends Command
                 }
 
                 try {
-                    $result = $service->syncFromGis($transfer);
+                    $result = $service->syncFromGis($transfer, ['trigger' => 'command']);
                     $totalDownloaded += $result['attachments_downloaded'];
                     $totalSkipped += $result['attachments_skipped'];
                     if ($result['status_changed']) {

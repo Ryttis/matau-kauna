@@ -36,7 +36,7 @@ class PullDvsStatusesCommand extends Command
                 }
 
                 try {
-                    $result = $service->syncFromDvs($transfer);
+                    $result = $service->syncFromDvs($transfer, ['trigger' => 'command']);
                     if ($result['answer_found']) {
                         $resolved++;
                     }

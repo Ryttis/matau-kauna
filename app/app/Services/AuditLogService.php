@@ -96,6 +96,34 @@ class AuditLogService
         ]);
     }
 
+    public function logIntegrationEvent(
+        string $action,
+        string $systemName,
+        array $metadata,
+        AuditLogResult|string $result,
+        ?string $message = null,
+        ?User $actor = null,
+        ?string $subjectType = null,
+        int|string|null $subjectId = null,
+    ): void {
+        if (! $this->shouldLog(AuditLog::EVENT_INTEGRATION)) {
+            return;
+        }
+
+        $this->write([
+            'actor_type' => $actor ? AuditLog::ACTOR_USER : AuditLog::ACTOR_SYSTEM,
+            'actor_id' => $actor?->id,
+            'actor_identifier' => $actor ? $actor->email : 'integration',
+            'event_type' => AuditLog::EVENT_INTEGRATION,
+            'action' => $action,
+            'subject_type' => $subjectType,
+            'subject_id' => $subjectId,
+            'result' => $this->normalizeResult($result),
+            'message' => $message,
+            'metadata' => array_merge(['system' => $systemName], $metadata),
+        ]);
+    }
+
     public function logSystem(string $action, AuditLogResult|string $result, ?string $message = null, array $metadata = []): void
     {
         if (! $this->shouldLog(AuditLog::EVENT_SYSTEM)) {

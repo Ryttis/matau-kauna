@@ -5,6 +5,7 @@ namespace Tests\Feature\Problems;
 use App\Models\ClassifierValue;
 use App\Models\Institution;
 use App\Models\InstitutionGisConfig;
+use App\Models\AuditLog;
 use App\Models\Problem;
 use App\Models\ProblemAttachment;
 use App\Models\ProblemGisTransfer;
@@ -106,6 +107,22 @@ class ProblemGisTransferTest extends TestCase
         $this->assertSame('outbound', $transfer->attachmentTransfers->first()->direction);
         $this->assertSame('ATT-GLOBAL-111', $transfer->attachmentTransfers->first()->external_global_id);
         $this->assertSame($config->id, $transfer->institution_gis_config_id);
+
+        $audit = AuditLog::where('action', 'integration.gis.send')->first();
+        $this->assertNotNull($audit);
+        $this->assertSame('integration', $audit->event_type);
+        $this->assertSame('success', $audit->result);
+        $this->assertSame($user->email, $audit->actor_identifier);
+        $this->assertSame('manual', $audit->metadata['trigger']);
+        $this->assertSame('GIS', $audit->metadata['system']);
+        $this->assertSame('outbound', $audit->metadata['direction']);
+        $this->assertSame($problem->id, $audit->metadata['problem']['id']);
+        $this->assertSame('321', $audit->metadata['response']['external_object_id']);
+        $this->assertSame(1, $audit->metadata['response']['attachments_uploaded']);
+        $auditJson = json_encode($audit->metadata, JSON_UNESCAPED_UNICODE);
+        $this->assertStringNotContainsString('cached-token', $auditJson);
+        $this->assertStringNotContainsString('secret', $auditJson);
+        $this->assertStringNotContainsString('test attachment', $auditJson);
 
         Http::assertSentCount(2);
         Http::assertSent(fn ($request) => $request->url() === 'https://example.test/FeatureServer/1/applyEdits'

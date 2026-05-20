@@ -237,7 +237,10 @@ class ProblemInstitutionAssignmentController extends Controller
         }
 
         try {
-            $result = $this->arcGisProblemTransferService->transferProblem($problem);
+            $result = $this->arcGisProblemTransferService->transferProblem($problem, [
+                'trigger' => 'manual',
+                'actor' => $user,
+            ]);
         } catch (\Throwable $e) {
             return redirect()->back()->with('error', $e->getMessage());
         }
@@ -262,7 +265,10 @@ class ProblemInstitutionAssignmentController extends Controller
         }
 
         try {
-            $this->dvsProblemTransferService->transferProblem($problem);
+            $this->dvsProblemTransferService->transferProblem($problem, [
+                'trigger' => 'manual',
+                'actor' => $user,
+            ]);
         } catch (\Throwable $e) {
             return redirect()->back()->with('error', $e->getMessage());
         }
@@ -284,7 +290,10 @@ class ProblemInstitutionAssignmentController extends Controller
         }
 
         try {
-            $result = $this->dvsProblemTransferService->syncFromDvs($problem->dvsTransfer);
+            $result = $this->dvsProblemTransferService->syncFromDvs($problem->dvsTransfer, [
+                'trigger' => 'manual',
+                'actor' => $user,
+            ]);
         } catch (\Throwable $e) {
             return redirect()->back()->with('error', $e->getMessage());
         }
@@ -320,7 +329,10 @@ class ProblemInstitutionAssignmentController extends Controller
         }
 
         try {
-            $result = $this->arcGisProblemTransferService->syncFromGis($problem->gisTransfer);
+            $result = $this->arcGisProblemTransferService->syncFromGis($problem->gisTransfer, [
+                'trigger' => 'manual',
+                'actor' => $user,
+            ]);
         } catch (\Throwable $e) {
             return redirect()->back()->with('error', $e->getMessage());
         }

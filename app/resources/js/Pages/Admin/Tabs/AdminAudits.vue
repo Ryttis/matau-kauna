@@ -23,6 +23,7 @@ const errorMessage = ref('')
 const successMessage = ref('')
 const showSuccessModal = ref(false)
 const data = ref([])
+const expandedRows = ref(new Set())
 const currentPage = ref(1)
 const lastPage = ref(1)
 const total = ref(0)
@@ -76,6 +77,7 @@ async function load() {
         if (filters.value.search?.trim()) params.set('search', filters.value.search.trim())
         const { data: res } = await axios.get(`${adminApi.auditLogs}?${params.toString()}`)
         data.value = res.data ?? []
+        expandedRows.value = new Set()
         currentPage.value = res.current_page ?? 1
         lastPage.value = res.last_page ?? 1
         total.value = res.total ?? 0
@@ -124,6 +126,30 @@ function formatDate(str) {
 
 function eventTypeLabel(type) {
     return EVENT_TYPE_LABELS[type] ?? type ?? '-'
+}
+
+function resultLabel(result) {
+    if (result === 'success') return 'Sėkmė'
+    if (result === 'error' || result === 'failure') return 'Klaida'
+    return result ?? '-'
+}
+
+function toggleDetails(id) {
+    const next = new Set(expandedRows.value)
+    if (next.has(id)) {
+        next.delete(id)
+    } else {
+        next.add(id)
+    }
+    expandedRows.value = next
+}
+
+function hasMetadata(row) {
+    return row?.metadata && Object.keys(row.metadata).length > 0
+}
+
+function formatMetadata(metadata) {
+    return JSON.stringify(metadata ?? {}, null, 2)
 }
 
 function hasPendingSettingsChanges() {
@@ -230,6 +256,7 @@ loadSettings()
                     <select v-model="filters.result" class="filter-select">
                         <option value="">Visi</option>
                         <option value="success">Sėkmė</option>
+                        <option value="error">Klaida</option>
                         <option value="failure">Klaida</option>
                     </select>
                 </div>
@@ -252,19 +279,38 @@ loadSettings()
                         <th>Veiksmas</th>
                         <th>Rezultatas</th>
                         <th>Žinutė</th>
+                        <th>Detalės</th>
                     </tr>
                 </thead>
                 <tbody>
-                    <tr v-for="row in data" :key="row.id">
-                        <td>{{ formatDate(row.occurred_at) }}</td>
-                        <td>{{ row.actor_identifier ?? '-' }}</td>
-                        <td>{{ eventTypeLabel(row.event_type) }}</td>
-                        <td>{{ row.action_label || row.action || '-' }}</td>
-                        <td>{{ row.result === 'success' ? 'Sėkmė' : 'Klaida' }}</td>
-                        <td>{{ row.message ?? '-' }}</td>
-                    </tr>
+                    <template v-for="row in data" :key="row.id">
+                        <tr>
+                            <td>{{ formatDate(row.occurred_at) }}</td>
+                            <td>{{ row.actor_identifier ?? '-' }}</td>
+                            <td>{{ eventTypeLabel(row.event_type) }}</td>
+                            <td>{{ row.action_label || row.action || '-' }}</td>
+                            <td>{{ resultLabel(row.result) }}</td>
+                            <td>{{ row.message ?? '-' }}</td>
+                            <td>
+                                <button
+                                    v-if="hasMetadata(row)"
+                                    type="button"
+                                    class="details-btn"
+                                    @click="toggleDetails(row.id)"
+                                >
+                                    {{ expandedRows.has(row.id) ? 'Slėpti' : 'Rodyti' }}
+                                </button>
+                                <span v-else>-</span>
+                            </td>
+                        </tr>
+                        <tr v-if="expandedRows.has(row.id)" class="details-row">
+                            <td colspan="7">
+                                <pre class="metadata-pre">{{ formatMetadata(row.metadata) }}</pre>
+                            </td>
+                        </tr>
+                    </template>
                     <tr v-if="!data.length">
-                        <td colspan="6" class="empty-cell">Nėra įrašų pagal pasirinktus filtrus.</td>
+                        <td colspan="7" class="empty-cell">Nėra įrašų pagal pasirinktus filtrus.</td>
                     </tr>
                 </tbody>
             </table>
@@ -419,5 +465,28 @@ loadSettings()
 .page-info {
     font-size: 14px;
     color: var(--color-text-muted);
+}
+.details-btn {
+    border: 1px solid var(--color-primary);
+    background: var(--color-white);
+    color: var(--color-primary);
+    border-radius: 6px;
+    padding: 5px 10px;
+    font-size: 13px;
+    cursor: pointer;
+}
+.details-row td {
+    background: #f8fafc;
+    padding: 0;
+}
+.metadata-pre {
+    margin: 0;
+    padding: 14px;
+    max-height: 360px;
+    overflow: auto;
+    white-space: pre-wrap;
+    word-break: break-word;
+    font-size: 12px;
+    line-height: 1.45;
 }
 </style>
