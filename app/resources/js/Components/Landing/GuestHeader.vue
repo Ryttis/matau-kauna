@@ -37,7 +37,13 @@
                     >
                         Statistika
                     </Link>
-                    <a :href="route('login')" class="guest-link guest-link--btn" @click="navOpen = false">Prisijungti</a>
+                    <Link
+                        :href="user ? route('dashboard') : route('login')"
+                        class="guest-link guest-link--btn"
+                        @click="navOpen = false"
+                    >
+                        {{ user ? 'Skydelis' : 'Prisijungti' }}
+                    </Link>
                 </nav>
             </div>
         </div>
@@ -49,9 +55,11 @@
 <script setup>
 import { ref } from 'vue'
 import { Link } from '@inertiajs/vue3'
+import { useAuth } from '@/composables/useAuth'
 import { useBrandHomeHref } from '@/composables/useBrandHomeHref'
 
 const brandHomeHref = useBrandHomeHref()
+const { user } = useAuth()
 
 defineProps({
     activeLink: { type: String, default: '' },
