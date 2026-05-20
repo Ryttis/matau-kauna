@@ -15,21 +15,9 @@ class ProblemAssignmentNotifier
 {
     public function buildInstitutionProblemShareEmail(Problem $problem): array
     {
-        $url = route('problems.show', $problem->id);
-        $excerpt = Problem::descriptionPreview($problem->description, 500) ?: '-';
-        $deadlineLine = $problem->completion_deadline
-            ? 'Atlikimo terminas: '.$problem->completion_deadline->format('Y-m-d')
-            : '';
-
         $template = EmailNotificationTemplate::getByKey(EmailNotificationTemplate::KEY_INSTITUTION_PROBLEM_SHARE);
-        $map = [
-            'internal_number' => $problem->internal_number ?? '-',
-            'description_excerpt' => $excerpt,
-            'address' => $problem->address ?? '-',
-            'created_at' => $problem->created_at?->format('Y-m-d') ?? '-',
-            'deadline_line' => $deadlineLine,
-            'url' => $url,
-        ];
+        $map = $this->problemPlaceholderMap($problem, 500);
+        $url = $map['url'];
 
         if ($template && $template->is_enabled) {
             return [
@@ -42,17 +30,24 @@ class ProblemAssignmentNotifier
 
         $lines = [
             'Problemos informacija:',
-            'Nr: '.($problem->internal_number ?? '-'),
-            'Aprašymas: '.$excerpt,
-            'Adresas: '.($problem->address ?? '-'),
-            'Sukūrimo data: '.($problem->created_at?->format('Y-m-d') ?? '-'),
+            'Nr: '.$map['internal_number'],
+            'Pareiškėjas: '.$map['reporter_name'],
+            'Pareiškėjo el. paštas: '.$map['reporter_email'],
+            'Pareiškėjo tel. nr.: '.$map['reporter_phone'],
+            'Kategorija: '.$map['category'],
+            'Pobūdis: '.$map['nature'],
+            'Adresas: '.$map['address'],
+            'Aprašymas: '.$map['description'],
+            'Sukūrimo data: '.$map['created_at'],
         ];
-        if ($deadlineLine !== '') {
-            $lines[] = $deadlineLine;
+        if ($map['deadline_line'] !== '') {
+            $lines[] = $map['deadline_line'];
         }
+        $lines[] = 'Nuotraukos:';
+        $lines[] = $map['photo_links'];
 
         return [
-            'subject' => 'Problemos priskyrimo informacija – '.($problem->internal_number ?? 'problema'),
+            'subject' => 'Problemos priskyrimo informacija – '.$map['internal_number'],
             'body' => implode("\n", $lines),
             'action_url' => $url,
             'action_label' => 'Atidaryti problemą',
@@ -62,34 +57,23 @@ class ProblemAssignmentNotifier
     public function buildManualAssignToInstitutionEmail(Institution $institution, Collection $problems): array
     {
         $first = $problems->first();
-        $excerptFirst = $first ? Problem::descriptionPreview($first->description, 200) : '';
-        $urlFirst = $first ? route('problems.show', $first->id) : '';
-        $deadlineFirst = $first?->completion_deadline?->format('Y-m-d') ?? '-';
-
-        $problemLines = [];
-        foreach ($problems as $problem) {
-            $deadline = $problem->completion_deadline?->format('Y-m-d') ?? '-';
-            $problemLines[] = sprintf(
-                '- %s | %s | %s | Terminas: %s',
-                $problem->internal_number,
-                Problem::descriptionPreview($problem->description, 120),
-                route('problems.show', $problem->id),
-                $deadline,
-            );
-        }
-        $problemList = implode("\n", $problemLines);
+        $firstMap = $first ? $this->problemPlaceholderMap($first, 200) : [];
+        $urlFirst = $firstMap['url'] ?? '';
+        $problemList = $problems
+            ->map(fn (Problem $problem) => $this->problemDetailsBlock($problem))
+            ->implode("\n\n---\n\n");
 
         $template = EmailNotificationTemplate::getByKey(EmailNotificationTemplate::KEY_MANUAL_ASSIGN_TO_INSTITUTION_EMAIL);
         if ($template && $template->is_enabled) {
-            $map = [
+            $map = array_merge($firstMap, [
                 'institution_name' => $institution->name,
                 'problem_list' => $problemList,
                 'internal_number' => $first?->internal_number ?? '',
-                'description_excerpt' => $excerptFirst,
+                'description_excerpt' => $firstMap['description_excerpt'] ?? '',
                 'url' => $urlFirst,
-                'deadline_date' => $deadlineFirst,
-                'title' => $excerptFirst,
-            ];
+                'deadline_date' => $firstMap['deadline_date'] ?? '-',
+                'title' => $firstMap['description_excerpt'] ?? '',
+            ]);
 
             return [
                 'subject' => EmailBody::replacePlaceholders($template->subject, $map),
@@ -99,18 +83,13 @@ class ProblemAssignmentNotifier
             ];
         }
 
-        $lines = [];
-        $lines[] = 'Priskirtų problemų sąrašas:';
-        foreach ($problems as $problem) {
-            $lines[] = sprintf(
-                '- %s | %s | %s',
-                $problem->internal_number,
-                Problem::descriptionPreview($problem->description, 120),
-                $problem->created_at?->format('Y-m-d')
-            );
-        }
-        $lines[] = '';
-        $lines[] = 'Priskirta įstaiga: '.$institution->name;
+        $lines = [
+            'Priskirtų problemų sąrašas:',
+            '',
+            $problemList,
+            '',
+            'Priskirta įstaiga: '.$institution->name,
+        ];
 
         return [
             'subject' => 'Problemų priskyrimo informacija',
@@ -304,5 +283,97 @@ class ProblemAssignmentNotifier
         if ($user) {
             $recipients[] = $user->email;
         }
+    }
+
+    private function problemPlaceholderMap(Problem $problem, int $excerptLimit): array
+    {
+        $problem->loadMissing([
+            'reportedByUser:id,name,surname,email,phone',
+            'problemType:id,name',
+            'problemNature:id,name',
+            'attachments:id,problem_id,path,original_name,mime_type,kind',
+        ]);
+
+        $deadlineDate = $problem->completion_deadline?->format('Y-m-d') ?? '-';
+        $deadlineLine = $problem->completion_deadline
+            ? 'Atlikimo terminas: '.$deadlineDate
+            : '';
+        $photoLinks = $this->photoLinks($problem);
+
+        return [
+            'internal_number' => $problem->internal_number ?? '-',
+            'description_excerpt' => Problem::descriptionPreview($problem->description, $excerptLimit) ?: '-',
+            'description' => $this->plainDescription($problem),
+            'address' => $problem->address ?? '-',
+            'created_at' => $problem->created_at?->format('Y-m-d') ?? '-',
+            'deadline_line' => $deadlineLine,
+            'deadline_date' => $deadlineDate,
+            'url' => route('problems.show', $problem->id),
+            'reporter_name' => $this->reporterName($problem),
+            'reporter_email' => $problem->reportedByUser?->email ?: '-',
+            'reporter_phone' => $problem->reportedByUser?->phone ?: '-',
+            'category' => $problem->problemType?->name ?: ($problem->category ?: '-'),
+            'nature' => $problem->problemNature?->name ?: '-',
+            'photo_links' => $photoLinks,
+            'photos' => $photoLinks,
+        ];
+    }
+
+    private function problemDetailsBlock(Problem $problem): string
+    {
+        $map = $this->problemPlaceholderMap($problem, 500);
+        $lines = [
+            'Nr: '.$map['internal_number'],
+            'Pareiškėjas: '.$map['reporter_name'],
+            'Pareiškėjo el. paštas: '.$map['reporter_email'],
+            'Pareiškėjo tel. nr.: '.$map['reporter_phone'],
+            'Kategorija: '.$map['category'],
+            'Pobūdis: '.$map['nature'],
+            'Adresas: '.$map['address'],
+            'Aprašymas: '.$map['description'],
+            'Sukūrimo data: '.$map['created_at'],
+        ];
+
+        if ($map['deadline_line'] !== '') {
+            $lines[] = $map['deadline_line'];
+        }
+
+        $lines[] = 'Nuotraukos:';
+        $lines[] = $map['photo_links'];
+        $lines[] = 'Nuoroda: '.$map['url'];
+
+        return implode("\n", $lines);
+    }
+
+    private function reporterName(Problem $problem): string
+    {
+        $user = $problem->reportedByUser;
+        if (! $user) {
+            return '-';
+        }
+
+        $name = trim(implode(' ', array_filter([
+            $user->name,
+            $user->surname,
+        ])));
+
+        return $name !== '' ? $name : '-';
+    }
+
+    private function plainDescription(Problem $problem): string
+    {
+        $description = trim(strip_tags((string) $problem->description));
+
+        return $description !== '' ? $description : '-';
+    }
+
+    private function photoLinks(Problem $problem): string
+    {
+        $links = $problem->attachments
+            ->filter(fn ($attachment) => $attachment->kind === 'photo' || str_starts_with((string) $attachment->mime_type, 'image/'))
+            ->values()
+            ->map(fn ($attachment, int $index) => sprintf('[Nuotrauka %d](%s)', $index + 1, url($attachment->publicUrl())));
+
+        return $links->isEmpty() ? '-' : $links->implode("\n");
     }
 }

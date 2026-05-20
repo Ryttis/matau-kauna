@@ -98,7 +98,7 @@ class InternalProblemApiController extends Controller
 
         $problems = Problem::whereIn('id', $validated['problem_ids'])
             ->orderBy('created_at', 'desc')
-            ->get(['id', 'internal_number', 'description', 'status', 'created_at', 'completion_deadline']);
+            ->get();
 
         if ($problems->contains(fn (Problem $p) => $p->status === ProblemStatus::RESOLVED->value)) {
             return response()->json([
@@ -112,9 +112,19 @@ class InternalProblemApiController extends Controller
             'assigned_institution_team_id' => null,
         ]);
 
+        $problems = Problem::query()
+            ->whereIn('id', $validated['problem_ids'])
+            ->orderBy('created_at', 'desc')
+            ->get();
+
         foreach ($problems as $p) {
             $this->resolutionTermService->applyRules($p);
         }
+
+        $problems = Problem::query()
+            ->whereIn('id', $validated['problem_ids'])
+            ->orderBy('created_at', 'desc')
+            ->get();
 
         $mail = $this->assignmentNotifier->buildManualAssignToInstitutionEmail($institution, $problems);
         \App\Services\TransactionalMail::send(

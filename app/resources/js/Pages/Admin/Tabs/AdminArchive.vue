@@ -296,7 +296,7 @@ onMounted(load)
                     />
                 </div>
                 <div class="settings-card__switch-row">
-                    <span class="settings-card__switch-label">Taisyklė įjungta</span>
+                    <span class="settings-card__switch-label">Taisyklė aktyvi</span>
                     <AppSwitch
                         :model-value="settingsForm.is_active"
                         :disabled="savingSettings"

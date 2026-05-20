@@ -106,12 +106,35 @@ class EmailPreviewSender
     {
         $key = EmailNotificationTemplate::KEY_MANUAL_ASSIGN_TO_INSTITUTION_EMAIL;
         $u = $this->sampleProblemUrl();
-        $list = '- KP-2026-000099 | Duobė gatvėje | '.$u.' | Terminas: 2026-04-15';
+        $list = implode("\n", [
+            'Nr: KP-2026-000099',
+            'Pareiškėjas: Jonas Jonaitis',
+            'Pareiškėjo el. paštas: jonas@example.test',
+            'Pareiškėjo tel. nr.: +37060000000',
+            'Kategorija: Keliai',
+            'Pobūdis: Duobė',
+            'Adresas: Vilniaus g. 1, Kaunas',
+            'Aprašymas: Duobė gatvėje, reikia užtaisyti.',
+            'Sukūrimo data: 2026-03-20',
+            'Atlikimo terminas: 2026-04-15',
+            'Nuotraukos:',
+            '[Nuotrauka 1]('.url('/files/demo-problem-photo.jpg').')',
+            'Nuoroda: '.$u,
+        ]);
         $map = [
             'institution_name' => 'Demo savivaldybės įstaiga',
             'problem_list' => $list,
             'internal_number' => 'KP-2026-000099',
             'description_excerpt' => 'Duobė gatvėje, reikia užtaisyti.',
+            'description' => 'Duobė gatvėje, reikia užtaisyti.',
+            'reporter_name' => 'Jonas Jonaitis',
+            'reporter_email' => 'jonas@example.test',
+            'reporter_phone' => '+37060000000',
+            'category' => 'Keliai',
+            'nature' => 'Duobė',
+            'address' => 'Vilniaus g. 1, Kaunas',
+            'photo_links' => '[Nuotrauka 1]('.url('/files/demo-problem-photo.jpg').')',
+            'photos' => '[Nuotrauka 1]('.url('/files/demo-problem-photo.jpg').')',
             'url' => $u,
             'deadline_date' => '2026-04-15',
             'title' => 'Duobė gatvėje, reikia užtaisyti.',
@@ -230,13 +253,21 @@ class EmailPreviewSender
         $map = [
             'internal_number' => 'KP-2026-000055',
             'description_excerpt' => 'Informacija apie problemą, trumpai.',
+            'description' => 'Informacija apie problemą, pilnas aprašymas.',
+            'reporter_name' => 'Jonas Jonaitis',
+            'reporter_email' => 'jonas@example.test',
+            'reporter_phone' => '+37060000000',
+            'category' => 'Keliai',
+            'nature' => 'Duobė',
             'address' => 'Vilniaus g. 1, Kaunas',
+            'photo_links' => '[Nuotrauka 1]('.url('/files/demo-problem-photo.jpg').')',
+            'photos' => '[Nuotrauka 1]('.url('/files/demo-problem-photo.jpg').')',
             'created_at' => '2026-03-20',
             'deadline_line' => 'Atlikimo terminas: 2026-04-01',
             'url' => $u,
         ];
         $fbSubject = 'Problemos priskyrimo informacija – {internal_number}';
-        $fbBody = "Nr: {internal_number}\nAprašymas: {description_excerpt}\nAdresas: {address}\nSukūrimo data: {created_at}\n{deadline_line}";
+        $fbBody = "Nr: {internal_number}\nPareiškėjas: {reporter_name}\nPareiškėjo el. paštas: {reporter_email}\nPareiškėjo tel. nr.: {reporter_phone}\nKategorija: {category}\nPobūdis: {nature}\nAdresas: {address}\nAprašymas: {description}\nNuotraukos:\n{photo_links}\nSukūrimo data: {created_at}\n{deadline_line}";
         $r = $this->renderFromTemplateOrFallback($key, $map, $fbSubject, $fbBody);
         TransactionalMail::send($recipient, $r['subject'], $r['body'], $u, 'Atidaryti problemą');
     }

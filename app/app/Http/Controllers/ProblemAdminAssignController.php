@@ -157,7 +157,7 @@ class ProblemAdminAssignController extends Controller
 
         $problems = Problem::whereIn('id', $validated['problem_ids'])
             ->orderBy('created_at', 'desc')
-            ->get(['id', 'internal_number', 'description', 'status', 'created_at', 'completion_deadline']);
+            ->get();
 
         if ($problems->contains(fn (Problem $problem) => $problem->status === ProblemStatus::RESOLVED->value)) {
             return redirect()->back()->with('error', 'Išspręstų problemų negalima priskirti.');
@@ -169,9 +169,19 @@ class ProblemAdminAssignController extends Controller
             'assigned_institution_team_id' => null,
         ]);
 
+        $problems = Problem::query()
+            ->whereIn('id', $validated['problem_ids'])
+            ->orderBy('created_at', 'desc')
+            ->get();
+
         foreach ($problems as $p) {
             $this->resolutionTermService->applyRules($p);
         }
+
+        $problems = Problem::query()
+            ->whereIn('id', $validated['problem_ids'])
+            ->orderBy('created_at', 'desc')
+            ->get();
 
         $mail = $this->assignmentNotifier->buildManualAssignToInstitutionEmail($institution, $problems);
 
