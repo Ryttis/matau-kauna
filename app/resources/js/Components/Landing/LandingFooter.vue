@@ -5,6 +5,7 @@
             <div class="landing-footer-right">
                 <nav class="landing-footer-nav">
                     <Link :href="route('faq')" class="landing-footer-link">DUK</Link>
+                    <Link :href="route('taisykles')" class="landing-footer-link">Taisyklės</Link>
                     <Link :href="route('privacy')" class="landing-footer-link">Privatumo taisyklės</Link>
                     <Link :href="route('cookies')" class="landing-footer-link">Slapukai</Link>
                     <Link :href="route('contacts')" class="landing-footer-link">Kontaktai</Link>

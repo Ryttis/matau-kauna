@@ -120,6 +120,9 @@ function onSecondSwitchChange(v) {
             <Link :href="route('privacy')" class="privacy-text-link"
                 >Privatumo taisyklės</Link
             >
+            <Link :href="route('taisykles')" class="privacy-text-link"
+                >Taisyklės</Link
+            >
             <AppButton
                 text="Šalinti paskyrą"
                 variant="link"
@@ -164,6 +167,9 @@ function onSecondSwitchChange(v) {
             <Link :href="route('privacy')" class="privacy-text-link"
                 >Privatumo taisyklės</Link
             >
+            <Link :href="route('taisykles')" class="privacy-text-link"
+                >Taisyklės</Link
+            >
             <AppButton
                 text="Šalinti paskyrą"
                 variant="link"
@@ -204,6 +210,9 @@ function onSecondSwitchChange(v) {
             </div>
             <Link :href="route('privacy')" class="privacy-text-link"
                 >Privatumo taisyklės</Link
+            >
+            <Link :href="route('taisykles')" class="privacy-text-link"
+                >Taisyklės</Link
             >
             <AppButton
                 text="Šalinti paskyrą"
