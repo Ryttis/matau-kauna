@@ -82,8 +82,7 @@ export function useMergePage(props) {
     })
 
     const allProblems = computed(() => {
-        const problems = [props.problem, ...props.similarProblems]
-        return problems.filter((p) => p.status !== PROBLEM_STATUS.UNREGISTERED)
+        return [props.problem, ...props.similarProblems]
     })
 
     const filteredProblems = computed(() => {

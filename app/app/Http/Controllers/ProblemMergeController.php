@@ -48,7 +48,6 @@ class ProblemMergeController extends Controller
         $categories = ClassifierValue::getActiveTypeNames()->values();
 
         $query = Problem::where('id', '!=', $problem->id)
-            ->where('status', '!=', 'neuzregistruota')
             ->whereNull('merged_into_problem_id')
             ->notArchived();
         if ($this->scopeService->isInstitutionScoped($user)) {
