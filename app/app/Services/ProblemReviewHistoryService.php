@@ -67,7 +67,7 @@ class ProblemReviewHistoryService
     ): ProblemReviewHistory {
         $this->scopeService->authorizeProblemAccess($user, $problem);
 
-        if (! $user->hasPermission('issues.view')) {
+        if (! $this->userCanWriteReviewProgress($user)) {
             abort(403);
         }
 
@@ -136,7 +136,7 @@ class ProblemReviewHistoryService
     ): void {
         $this->scopeService->authorizeProblemAccess($user, $problem);
 
-        if (! $user->hasPermission('issues.view')) {
+        if (! $this->userCanWriteReviewProgress($user)) {
             abort(403);
         }
 
@@ -221,6 +221,11 @@ class ProblemReviewHistoryService
         $trimmed = $comment !== null ? trim($comment) : null;
 
         return ($trimmed === null || $trimmed === '') ? null : $trimmed;
+    }
+
+    private function userCanWriteReviewProgress(User $user): bool
+    {
+        return $user->canAccessAdmin() || $user->hasPermission('issues.edit');
     }
 
     private function responsibleLabel(User $user): string

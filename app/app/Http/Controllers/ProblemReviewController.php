@@ -63,6 +63,8 @@ class ProblemReviewController extends Controller
         }
 
         if ($request->expectsJson()) {
+            $canWriteReviewProgress = ! $reporterBackToDashboard
+                && ($user->canAccessAdmin() || $user->hasPermission('issues.edit'));
             $reviewEntries = $this->reviewHistoryService->visibleEntriesForProblem(
                 $problem,
                 $user,
@@ -72,8 +74,10 @@ class ProblemReviewController extends Controller
             return response()->json([
                 'problem_id' => $problem->id,
                 'reviewEntries' => $reviewEntries,
-                'canAddEntry' => ! $reporterBackToDashboard,
-                'canDeleteReviewAttachments' => $this->httpSupport->userCanDeleteReviewAttachment($user, $problem),
+                'canAddEntry' => $canWriteReviewProgress,
+                'canEditReviewProgress' => $canWriteReviewProgress,
+                'canDeleteReviewAttachments' => $canWriteReviewProgress
+                    && $this->httpSupport->userCanDeleteReviewAttachment($user, $problem),
                 'fileUpload' => FileUploadSettings::getReviewProgressChannelForClient(),
             ]);
         }

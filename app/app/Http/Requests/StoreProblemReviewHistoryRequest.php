@@ -31,8 +31,24 @@ class StoreProblemReviewHistoryRequest extends FormRequest
     public function authorize(): bool
     {
         $user = $this->user();
+        if ($user === null) {
+            return false;
+        }
 
-        return $user !== null && $user->hasPermission('issues.view');
+        if ($user->canAccessAdmin()) {
+            return true;
+        }
+
+        if (! $user->hasPermission('issues.edit')) {
+            return false;
+        }
+
+        $entry = $this->route('entry');
+        if (! $entry instanceof ProblemReviewHistory) {
+            return true;
+        }
+
+        return $entry->user_id !== null && (int) $entry->user_id === (int) $user->id;
     }
 
     public function rules(): array

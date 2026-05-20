@@ -64,7 +64,9 @@ class ProblemHttpSupport
             $reporterBackToDashboard
         );
 
-        $canAddEntry = ! $reporterBackToDashboard;
+        $canWriteReviewProgress = $user !== null
+            && ($user->canAccessAdmin() || $user->hasPermission('issues.edit'));
+        $canAddEntry = ! $reporterBackToDashboard && $canWriteReviewProgress;
 
         $showWatchToggle = false;
         $isWatched = false;
@@ -91,6 +93,7 @@ class ProblemHttpSupport
             'fileUpload' => FileUploadSettings::getReviewProgressChannelForClient(),
             'authUserId' => $user?->id,
             'isSystemAdmin' => $user ? $user->canAccessAdmin() : false,
+            'canEditReviewProgress' => $canWriteReviewProgress,
         ]);
     }
 

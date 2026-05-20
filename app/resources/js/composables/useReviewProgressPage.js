@@ -23,6 +23,7 @@ export function useReviewProgressPage(props) {
 
     const currentUserMayEditEntry = (entry) => {
         if (props.isSystemAdmin) return true
+        if (!props.canEditReviewProgress) return false
         if (entry.user_id && props.authUserId) return entry.user_id === props.authUserId
         return false
     }

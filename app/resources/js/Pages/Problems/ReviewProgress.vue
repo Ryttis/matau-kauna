@@ -27,6 +27,7 @@ const props = defineProps({
     },
     authUserId: { type: Number, default: null },
     isSystemAdmin: { type: Boolean, default: false },
+    canEditReviewProgress: { type: Boolean, default: false },
 })
 
 const {
