@@ -909,8 +909,14 @@ class InternalProblemApiController extends Controller
             'institution_id' => null,
             'assigned_employee_id' => null,
             'assigned_institution_team_id' => null,
+            'status' => ProblemStatus::RETURNED_FOR_REVIEW->value,
         ]);
 
-        return response()->json(['ok' => true, 'message' => 'Problema grąžinta administratoriui.', 'problem_id' => $problem->id]);
+        return response()->json([
+            'ok' => true,
+            'message' => 'Problema grąžinta administratoriui.',
+            'problem_id' => $problem->id,
+            'status' => ProblemStatus::RETURNED_FOR_REVIEW->value,
+        ]);
     }
 }

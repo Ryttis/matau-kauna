@@ -374,6 +374,7 @@ class ProblemInstitutionAssignmentController extends Controller
             'institution_id' => null,
             'assigned_employee_id' => null,
             'assigned_institution_team_id' => null,
+            'status' => ProblemStatus::RETURNED_FOR_REVIEW->value,
         ]);
 
         return redirect()->route('dashboard')->with('success', 'Problema grąžinta problemų administratoriui.');
