@@ -995,6 +995,10 @@ paths:
     get:
       tags: [Info]
       summary: "[AUTH] File upload limits and settings JSON"
+      description: >
+        Returns independent file/text upload settings for web and mobile clients.
+        `photo_formats` and `video_formats` describe the allowed MIME types and filename extensions;
+        `accept_attr` is a ready-to-use HTML file input `accept` value generated from those formats.
       security:
         - bearerAuth: []
       responses:
@@ -1004,6 +1008,59 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/FileUploadSettingsResponse"
+              example:
+                web:
+                  allow_photo: true
+                  allow_video: true
+                  max_photo_size_kb: 5120
+                  max_photo_files_per_problem: 5
+                  max_video_files_per_problem: 1
+                  max_video_duration_seconds: 60
+                  description_max_chars: 65535
+                  photo_formats:
+                    - label: JPEG
+                      mime: image/jpeg
+                      extensions: [jpg, jpeg]
+                    - label: PNG
+                      mime: image/png
+                      extensions: [png]
+                  video_formats:
+                    - label: MP4
+                      mime: video/mp4
+                      extensions: [mp4]
+                    - label: WebM
+                      mime: video/webm
+                      extensions: [webm]
+                    - label: MOV
+                      mime: video/quicktime
+                      extensions: [mov]
+                  accept_attr: image/jpeg,image/png,video/mp4,video/webm,video/quicktime
+                mobile:
+                  allow_photo: true
+                  allow_video: true
+                  max_photo_size_kb: 5120
+                  max_photo_files_per_problem: 5
+                  max_video_files_per_problem: 1
+                  max_video_duration_seconds: 60
+                  description_max_chars: 65535
+                  photo_formats:
+                    - label: JPEG
+                      mime: image/jpeg
+                      extensions: [jpg, jpeg]
+                    - label: PNG
+                      mime: image/png
+                      extensions: [png]
+                  video_formats:
+                    - label: MP4
+                      mime: video/mp4
+                      extensions: [mp4]
+                    - label: WebM
+                      mime: video/webm
+                      extensions: [webm]
+                    - label: MOV
+                      mime: video/quicktime
+                      extensions: [mov]
+                  accept_attr: image/jpeg,image/png,video/mp4,video/webm,video/quicktime
         "401":
           description: Unauthorized
 
@@ -2898,6 +2955,7 @@ components:
 
     FileUploadSettingsResponse:
       type: object
+      description: Upload settings grouped by client channel.
       properties:
         web:
           $ref: "#/components/schemas/FileUploadChannel"
@@ -2907,21 +2965,58 @@ components:
 
     FileUploadChannel:
       type: object
+      description: File and text limits for one upload channel.
       properties:
         allow_photo:
           type: boolean
+          description: Whether photo uploads are enabled.
         allow_video:
           type: boolean
+          description: Whether video uploads are enabled.
+        photo_formats:
+          type: array
+          description: Allowed photo MIME types and file extensions.
+          items:
+            $ref: "#/components/schemas/FileUploadFormat"
+        video_formats:
+          type: array
+          description: Allowed video MIME types and file extensions.
+          items:
+            $ref: "#/components/schemas/FileUploadFormat"
         max_photo_size_kb:
           type: integer
+          description: Maximum size of a single photo in KB.
         max_photo_files_per_problem:
           type: integer
+          description: Maximum number of photos allowed for one problem.
         max_video_files_per_problem:
           type: integer
+          description: Maximum number of videos allowed for one problem.
         max_video_duration_seconds:
           type: integer
+          description: Maximum allowed video duration in seconds.
         description_max_chars:
           type: integer
+          description: Maximum problem description length in characters.
+        accept_attr:
+          type: string
+          description: Comma-separated MIME list for an HTML file input accept attribute.
+
+    FileUploadFormat:
+      type: object
+      required: [label, mime, extensions]
+      properties:
+        label:
+          type: string
+          example: JPEG
+        mime:
+          type: string
+          example: image/jpeg
+        extensions:
+          type: array
+          items:
+            type: string
+          example: [jpg, jpeg]
 
     ReporterProblemListItem:
       type: object

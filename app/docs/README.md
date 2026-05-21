@@ -122,9 +122,53 @@
 
 ### `GET /api/info/file-upload-settings`
 
-- **Ką daro**: grąžina failų įkėlimo apribojimus (max dydis, MIME tipai, aprašymo ilgis).
+- **Ką daro**: grąžina failų įkėlimo apribojimus naršyklei ir mobiliajai programėlei (max dydis, kiekiai, leidžiami formatai, `accept_attr`, aprašymo ilgis).
 - **Web puslapis**: `GET /file-upload-settings`
 - **Endpoint**: `GET /api/info/file-upload-settings`
+- **Atsakymo struktūra**:
+
+```json
+{
+  "web": {
+    "allow_photo": true,
+    "allow_video": true,
+    "max_photo_size_kb": 5120,
+    "max_photo_files_per_problem": 5,
+    "max_video_files_per_problem": 1,
+    "max_video_duration_seconds": 60,
+    "description_max_chars": 65535,
+    "photo_formats": [
+      { "label": "JPEG", "mime": "image/jpeg", "extensions": ["jpg", "jpeg"] },
+      { "label": "PNG", "mime": "image/png", "extensions": ["png"] }
+    ],
+    "video_formats": [
+      { "label": "MP4", "mime": "video/mp4", "extensions": ["mp4"] },
+      { "label": "WebM", "mime": "video/webm", "extensions": ["webm"] },
+      { "label": "MOV", "mime": "video/quicktime", "extensions": ["mov"] }
+    ],
+    "accept_attr": "image/jpeg,image/png,video/mp4,video/webm,video/quicktime"
+  },
+  "mobile": {
+    "allow_photo": true,
+    "allow_video": true,
+    "max_photo_size_kb": 5120,
+    "max_photo_files_per_problem": 5,
+    "max_video_files_per_problem": 1,
+    "max_video_duration_seconds": 60,
+    "description_max_chars": 65535,
+    "photo_formats": [
+      { "label": "JPEG", "mime": "image/jpeg", "extensions": ["jpg", "jpeg"] },
+      { "label": "PNG", "mime": "image/png", "extensions": ["png"] }
+    ],
+    "video_formats": [
+      { "label": "MP4", "mime": "video/mp4", "extensions": ["mp4"] },
+      { "label": "WebM", "mime": "video/webm", "extensions": ["webm"] },
+      { "label": "MOV", "mime": "video/quicktime", "extensions": ["mov"] }
+    ],
+    "accept_attr": "image/jpeg,image/png,video/mp4,video/webm,video/quicktime"
+  }
+}
+```
 
 ---
 
