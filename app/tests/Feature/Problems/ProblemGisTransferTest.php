@@ -177,6 +177,13 @@ class ProblemGisTransferTest extends TestCase
                 'reporter' => 'gis_reporter',
                 'internal_number' => 'gis_internal_number',
                 'description' => 'gis_description',
+                'problem_url' => 'gis_problem_url',
+                'additional_fields' => [
+                    ['field' => 'gis_source', 'value' => 'Matau Kaune'],
+                    ['field' => 'gis_description', 'value' => 'Should not override'],
+                    ['field' => '', 'value' => 'Blank ignored'],
+                    ['field' => 'gis_blank', 'value' => ''],
+                ],
             ],
             'active_token' => 'cached-token',
             'active_token_expires_at' => now()->addHour(),
@@ -209,9 +216,13 @@ class ProblemGisTransferTest extends TestCase
                 'gis_reporter',
                 'gis_internal_number',
                 'gis_description',
+                'gis_problem_url',
+                'gis_source',
             ]
             && ($this->requestAttributes($request)['gis_internal_number'] ?? null) === $problem->internal_number
-            && ($this->requestAttributes($request)['gis_description'] ?? null) === $problem->description);
+            && ($this->requestAttributes($request)['gis_description'] ?? null) === $problem->description
+            && ($this->requestAttributes($request)['gis_problem_url'] ?? null) === route('problems.show', $problem->id)
+            && ($this->requestAttributes($request)['gis_source'] ?? null) === 'Matau Kaune');
     }
 
     public function test_status_value_mapping_sends_mapped_gis_code(): void

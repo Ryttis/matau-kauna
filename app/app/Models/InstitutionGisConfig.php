@@ -17,6 +17,7 @@ class InstitutionGisConfig extends Model
         'reporter',
         'internal_number',
         'description',
+        'problem_url',
     ];
 
     public const DEFAULT_FIELD_MAPPING = [
@@ -28,6 +29,7 @@ class InstitutionGisConfig extends Model
         'reporter' => 'pranese',
         'internal_number' => '',
         'description' => '',
+        'problem_url' => '',
     ];
 
     protected $fillable = [

@@ -178,6 +178,13 @@ class AdminInstitutionGisTest extends TestCase
                         'reporter_default_value' => 'Dispečeris',
                         'internal_number' => 'gis_number',
                         'description' => 'gis_description',
+                        'problem_url' => 'gis_problem_url',
+                        'additional_fields' => [
+                            ['field' => 'gis_source', 'value' => 'Matau Kaune'],
+                            ['field' => 'gis_source', 'value' => 'Duplicate ignored'],
+                            ['field' => '', 'value' => 'Blank field ignored'],
+                            ['field' => 'gis_blank', 'value' => ''],
+                        ],
                         'status_value_mapping' => [
                             'nauja' => [
                                 'code' => 'Registruojama',
@@ -201,6 +208,10 @@ class AdminInstitutionGisTest extends TestCase
         $this->assertSame('gis_status', $config->field_mapping['status']);
         $this->assertSame('gis_deadline', $config->field_mapping['completion_deadline']);
         $this->assertSame('gis_description', $config->field_mapping['description']);
+        $this->assertSame('gis_problem_url', $config->field_mapping['problem_url']);
+        $this->assertSame([
+            ['field' => 'gis_source', 'value' => 'Matau Kaune'],
+        ], $config->field_mapping['additional_fields']);
         $this->assertSame('https://example.test/FeatureServer/0', $config->feature_server_url);
         $this->assertSame('https://example.test/FeatureServer/0', $config->attachment_url);
         $this->assertSame('custom', $config->field_mapping['reporter_value_mode']);
@@ -217,6 +228,9 @@ class AdminInstitutionGisTest extends TestCase
             'Neveikia šviestuvas'
         );
         $response->assertJsonPath('gis.field_mapping.status_value_mapping.nauja.code', 'Registruojama');
+        $response->assertJsonPath('gis.field_mapping.problem_url', 'gis_problem_url');
+        $response->assertJsonPath('gis.field_mapping.additional_fields.0.field', 'gis_source');
+        $response->assertJsonPath('gis.field_mapping.additional_fields.0.value', 'Matau Kaune');
         $response->assertJsonPath('gis.service_base_url', 'https://example.test');
         $response->assertJsonPath('gis.service_layer_id', '0');
     }

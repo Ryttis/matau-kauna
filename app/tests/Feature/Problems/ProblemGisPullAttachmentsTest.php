@@ -155,6 +155,25 @@ class ProblemGisPullAttachmentsTest extends TestCase
         $this->assertSame('nauja', $problem->fresh()->status);
     }
 
+    public function test_pull_accepts_arcgis_alias_atlikti_darbai_as_resolved(): void
+    {
+        [$user, $problem, $transfer] = $this->setupTransferReadyForPull();
+        $problem->update(['status' => 'nagrinejama']);
+
+        Http::fake([
+            'https://example.test/FeatureServer/1/query' => Http::response([
+                'features' => [['attributes' => ['busena' => 'Atlikti darbai']]],
+            ]),
+            'https://example.test/FeatureServer/1/queryAttachments' => Http::response([
+                'attachmentGroups' => [],
+            ]),
+        ]);
+
+        $this->actingAs($user)->post(route('problems.assignInstitution.pullGis', $problem));
+
+        $this->assertSame('isspresta', $problem->fresh()->status);
+    }
+
     public function test_pull_syncs_status_and_deadline_from_mapped_gis_fields(): void
     {
         [$user, $problem, $transfer] = $this->setupTransferReadyForPull();
@@ -216,8 +235,8 @@ class ProblemGisPullAttachmentsTest extends TestCase
                 'reporter' => 'gis_reporter',
                 'status_value_mapping' => [
                     'isspresta' => [
-                        'code' => 'Atlikta',
-                        'name' => 'Atlikta',
+                        'code' => 'Atlikti darbai',
+                        'name' => 'Atlikti darbai',
                     ],
                 ],
             ],
@@ -227,7 +246,7 @@ class ProblemGisPullAttachmentsTest extends TestCase
             'https://example.test/FeatureServer/1/query' => Http::response([
                 'features' => [[
                     'attributes' => [
-                        'gis_status' => 'Atlikta',
+                        'gis_status' => 'Atlikti darbai',
                     ],
                 ]],
             ]),

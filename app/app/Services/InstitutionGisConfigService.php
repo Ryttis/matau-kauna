@@ -18,6 +18,8 @@ class InstitutionGisConfigService
 
     public const STATUS_VALUE_MAPPING_KEY = 'status_value_mapping';
 
+    public const ADDITIONAL_FIELDS_KEY = 'additional_fields';
+
     public const REPORTER_VALUE_MODE_KEY = 'reporter_value_mode';
 
     public const REPORTER_DEFAULT_VALUE_KEY = 'reporter_default_value';
@@ -301,6 +303,41 @@ class InstitutionGisConfigService
         $normalized[self::REPORTER_DEFAULT_VALUE_KEY] = trim(
             (string) ($mapping[self::REPORTER_DEFAULT_VALUE_KEY] ?? '')
         );
+        $normalized[self::ADDITIONAL_FIELDS_KEY] = $this->normalizeAdditionalFields(
+            is_array($mapping[self::ADDITIONAL_FIELDS_KEY] ?? null)
+                ? $mapping[self::ADDITIONAL_FIELDS_KEY]
+                : []
+        );
+
+        return $normalized;
+    }
+
+    private function normalizeAdditionalFields(array $fields): array
+    {
+        $normalized = [];
+        $seen = [];
+
+        foreach ($fields as $field) {
+            if (! is_array($field)) {
+                continue;
+            }
+
+            $fieldName = trim((string) ($field['field'] ?? ''));
+            $value = trim((string) ($field['value'] ?? ''));
+            if ($fieldName === '' || $value === '' || isset($seen[$fieldName])) {
+                continue;
+            }
+
+            $normalized[] = [
+                'field' => Str::limit($fieldName, 128, ''),
+                'value' => Str::limit($value, 1000, ''),
+            ];
+            $seen[$fieldName] = true;
+
+            if (count($normalized) >= 20) {
+                break;
+            }
+        }
 
         return $normalized;
     }

@@ -21,6 +21,8 @@ const GIS_FIELD_MAPPING_DEFAULTS = {
     reporter: 'pranese',
     internal_number: '',
     description: '',
+    problem_url: '',
+    additional_fields: [],
     reporter_value_mode: 'full_name',
     reporter_default_value: '',
     category_value_mapping: {},
@@ -36,6 +38,7 @@ const GIS_FIELD_MAPPING_ROWS = [
     { key: 'reporter', label: 'Pranešėjas', placeholder: 'pranese' },
     { key: 'internal_number', label: 'Vidinis numeris', placeholder: 'Pvz. vidinis_nr' },
     { key: 'description', label: 'Aprašymas', placeholder: 'Pvz. aprasymas' },
+    { key: 'problem_url', label: 'Problemos URL', placeholder: 'Pvz. problemos_url' },
 ]
 
 const GIS_STATUS_OPTIONS = [
@@ -53,7 +56,12 @@ const DVS_COMPLAINT_API_OPTIONS = [
 ]
 
 function defaultFieldMapping() {
-    return { ...GIS_FIELD_MAPPING_DEFAULTS, category_value_mapping: {}, status_value_mapping: {} }
+    return {
+        ...GIS_FIELD_MAPPING_DEFAULTS,
+        additional_fields: [],
+        category_value_mapping: {},
+        status_value_mapping: {},
+    }
 }
 
 function emptyGisForm() {
@@ -177,6 +185,9 @@ function derivedGisUrls(gis) {
 function gisFromPayload(source) {
     const base = emptyGisForm()
     if (!source) return base
+    const fieldMapping = { ...defaultFieldMapping(), ...(source.field_mapping ?? {}) }
+    fieldMapping.additional_fields = normalizeAdditionalFields(fieldMapping.additional_fields)
+
     return {
         ...base,
         enabled: Boolean(source.enabled),
@@ -194,10 +205,39 @@ function gisFromPayload(source) {
         metadata_layer_id: source.metadata_layer_id ?? '',
         wkid: source.wkid ?? 3346,
         use_field_mapping: Boolean(source.use_field_mapping),
-        field_mapping: { ...defaultFieldMapping(), ...(source.field_mapping ?? {}) },
+        field_mapping: fieldMapping,
         has_active_token: Boolean(source.has_active_token),
         active_token_expires_at: source.active_token_expires_at ?? null,
     }
+}
+
+function normalizeAdditionalFields(fields) {
+    if (!Array.isArray(fields)) return []
+
+    return fields
+        .filter((field) => field && typeof field === 'object')
+        .map((field) => ({
+            field: String(field.field ?? ''),
+            value: String(field.value ?? ''),
+        }))
+}
+
+function sanitizedFieldMapping(mapping) {
+    const fieldMapping = { ...defaultFieldMapping(), ...(mapping ?? {}) }
+    fieldMapping.additional_fields = normalizeAdditionalFields(fieldMapping.additional_fields)
+    return fieldMapping
+}
+
+function addGisAdditionalField(gis) {
+    if (!Array.isArray(gis.field_mapping.additional_fields)) {
+        gis.field_mapping.additional_fields = []
+    }
+    gis.field_mapping.additional_fields.push({ field: '', value: '' })
+}
+
+function removeGisAdditionalField(gis, index) {
+    if (!Array.isArray(gis.field_mapping.additional_fields)) return
+    gis.field_mapping.additional_fields.splice(index, 1)
 }
 
 function gisSubmitPayload(gis) {
@@ -217,7 +257,7 @@ function gisSubmitPayload(gis) {
         use_field_mapping: Boolean(gis?.use_field_mapping),
     }
     if (payload.use_field_mapping) {
-        payload.field_mapping = { ...defaultFieldMapping(), ...(gis?.field_mapping ?? {}) }
+        payload.field_mapping = sanitizedFieldMapping(gis?.field_mapping)
     }
     const password = (gis?.technical_password ?? '').trim()
     if (password !== '') {
@@ -849,6 +889,38 @@ onMounted(async () => {
                                     />
                                 </div>
                             </div>
+                            <div class="gis-additional-fields">
+                                <div class="gis-additional-header">
+                                    <span>Papildomai</span>
+                                    <button type="button" class="link-btn" @click="addGisAdditionalField(createForm.gis)">
+                                        + Pridėti
+                                    </button>
+                                </div>
+                                <p class="gis-hint">Pastovios reikšmės, siunčiamos į pasirinktus GIS laukus.</p>
+                                <div
+                                    v-for="(field, index) in createForm.gis.field_mapping.additional_fields"
+                                    :key="'create-additional-' + index"
+                                    class="gis-additional-row"
+                                >
+                                    <input
+                                        v-model="field.field"
+                                        class="input"
+                                        placeholder="GIS laukas"
+                                    />
+                                    <input
+                                        v-model="field.value"
+                                        class="input"
+                                        placeholder="Siunčiama reikšmė"
+                                    />
+                                    <button
+                                        type="button"
+                                        class="link-btn link-btn--danger"
+                                        @click="removeGisAdditionalField(createForm.gis, index)"
+                                    >
+                                        Pašalinti
+                                    </button>
+                                </div>
+                            </div>
                         </div>
                     </template>
                 </div>
@@ -1057,6 +1129,38 @@ onMounted(async () => {
                                         class="input"
                                         placeholder="Numatytoji Pranešėjo reikšmė"
                                     />
+                                </div>
+                            </div>
+                            <div class="gis-additional-fields">
+                                <div class="gis-additional-header">
+                                    <span>Papildomai</span>
+                                    <button type="button" class="link-btn" @click="addGisAdditionalField(editForm.gis)">
+                                        + Pridėti
+                                    </button>
+                                </div>
+                                <p class="gis-hint">Pastovios reikšmės, siunčiamos į pasirinktus GIS laukus.</p>
+                                <div
+                                    v-for="(field, index) in editForm.gis.field_mapping.additional_fields"
+                                    :key="'edit-additional-' + index"
+                                    class="gis-additional-row"
+                                >
+                                    <input
+                                        v-model="field.field"
+                                        class="input"
+                                        placeholder="GIS laukas"
+                                    />
+                                    <input
+                                        v-model="field.value"
+                                        class="input"
+                                        placeholder="Siunčiama reikšmė"
+                                    />
+                                    <button
+                                        type="button"
+                                        class="link-btn link-btn--danger"
+                                        @click="removeGisAdditionalField(editForm.gis, index)"
+                                    >
+                                        Pašalinti
+                                    </button>
                                 </div>
                             </div>
                         </div>
@@ -1522,6 +1626,32 @@ td {
     gap: 6px;
 }
 
+.gis-additional-fields {
+    grid-column: 1 / -1;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding-top: 4px;
+}
+
+.gis-additional-header,
+.gis-additional-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.gis-additional-header {
+    justify-content: space-between;
+    font-size: 13px;
+    font-weight: 700;
+}
+
+.gis-additional-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto;
+}
+
 .gis-metadata {
     display: flex;
     flex-direction: column;
@@ -1671,7 +1801,8 @@ td {
 
 @media (max-width: 640px) {
     .dvs-grid,
-    .dvs-rusis-row {
+    .dvs-rusis-row,
+    .gis-additional-row {
         grid-template-columns: 1fr;
     }
 }

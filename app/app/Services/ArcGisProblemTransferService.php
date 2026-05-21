@@ -660,7 +660,12 @@ class ArcGisProblemTransferService
             'registruojama' => ProblemStatus::NEW,
             'priimta' => ProblemStatus::NEW,
             'vykdoma' => ProblemStatus::IN_REVIEW,
+            'atlikti darbai' => ProblemStatus::RESOLVED,
+            'atliktas darbas' => ProblemStatus::RESOLVED,
             'atlikta' => ProblemStatus::RESOLVED,
+            'ivykdyta' => ProblemStatus::RESOLVED,
+            'uzdaryta' => ProblemStatus::RESOLVED,
+            'baigta' => ProblemStatus::RESOLVED,
             'uzbaigta' => ProblemStatus::RESOLVED,
             'atmesta' => ProblemStatus::INACTIVE,
         ];
@@ -672,7 +677,7 @@ class ArcGisProblemTransferService
     {
         $ascii = Str::ascii($value);
 
-        return Str::lower(trim((string) $ascii));
+        return preg_replace('/\s+/', ' ', Str::lower(trim((string) $ascii))) ?? '';
     }
 
     private function queryUrl(InstitutionGisConfig $config): string
@@ -795,6 +800,7 @@ class ArcGisProblemTransferService
             'reporter' => $this->resolveReporterValue($config, $reporterName),
             'internal_number' => $problem->internal_number,
             'description' => $problem->description,
+            'problem_url' => route('problems.show', $problem->id),
         ];
         $mapping = $this->gisConfigService->effectiveFieldMapping($config);
         $attributes = [];
@@ -804,6 +810,23 @@ class ArcGisProblemTransferService
                 continue;
             }
             $attributes[$fieldName] = $values[$source] ?? null;
+        }
+
+        $additionalFields = $mapping[InstitutionGisConfigService::ADDITIONAL_FIELDS_KEY] ?? [];
+        if (is_array($additionalFields)) {
+            foreach ($additionalFields as $field) {
+                if (! is_array($field)) {
+                    continue;
+                }
+
+                $fieldName = trim((string) ($field['field'] ?? ''));
+                $value = trim((string) ($field['value'] ?? ''));
+                if ($fieldName === '' || $value === '' || array_key_exists($fieldName, $attributes)) {
+                    continue;
+                }
+
+                $attributes[$fieldName] = $value;
+            }
         }
 
         return [
