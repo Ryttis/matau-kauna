@@ -2,17 +2,23 @@
 import { ref, watch } from 'vue'
 import axios from 'axios'
 import AppDataTable from '@/Components/App/AppDataTable.vue'
+import AppDatePicker from '@/Components/App/AppDatePicker.vue'
 import AppInput from '@/Components/App/AppInput.vue'
 import { adminApi } from '@/constants/api/adminApi'
 
 const activeType = ref('internal')
-const search = ref('')
 const loading = ref(false)
 const errorMessage = ref('')
 const data = ref([])
 const currentPage = ref(1)
 const lastPage = ref(1)
 const total = ref(0)
+const filters = ref({
+    date_from: '',
+    date_to: '',
+    search: '',
+    ip: '',
+})
 
 async function load() {
     loading.value = true
@@ -20,7 +26,10 @@ async function load() {
     try {
         const params = new URLSearchParams()
         params.set('type', activeType.value)
-        if (search.value.trim()) params.set('search', search.value.trim())
+        if (filters.value.date_from) params.set('date_from', filters.value.date_from)
+        if (filters.value.date_to) params.set('date_to', filters.value.date_to)
+        if (filters.value.search.trim()) params.set('search', filters.value.search.trim())
+        if (filters.value.ip.trim()) params.set('ip', filters.value.ip.trim())
         params.set('page', String(currentPage.value))
         const { data: res } = await axios.get(`${adminApi.loginHistory}?${params.toString()}`)
         data.value = res.data ?? []
@@ -40,11 +49,13 @@ function formatDate(str) {
     return new Date(str).toLocaleString('lt-LT')
 }
 
-watch([activeType], () => {
-    currentPage.value = 1
-    load()
-})
-watch(search, () => {
+watch([
+    activeType,
+    () => filters.value.date_from,
+    () => filters.value.date_to,
+    () => filters.value.search,
+    () => filters.value.ip,
+], () => {
     currentPage.value = 1
     load()
 })
@@ -61,24 +72,49 @@ load()
                 <button
                     type="button"
                     :class="['type-btn', { active: activeType === 'internal' }]"
-                    @click="activeType = 'internal'; load()"
+                    @click="activeType = 'internal'"
                 >
                     Vidiniai
                 </button>
                 <button
                     type="button"
                     :class="['type-btn', { active: activeType === 'reporters' }]"
-                    @click="activeType = 'reporters'; load()"
+                    @click="activeType = 'reporters'"
                 >
                     Pareiškėjai
                 </button>
             </div>
-            <AppInput
-                v-model="search"
-                type="text"
-                placeholder="Ieškoti (vardas, el. paštas)"
-                class="search-input"
-            />
+        </div>
+
+        <div class="filters-block">
+            <h3 class="block-title">Filtrai ir paieška</h3>
+            <div class="filters-row">
+                <AppDatePicker
+                    v-model="filters.date_from"
+                    label="Data nuo"
+                    placeholder="Pasirinkite datą"
+                    class="filter-date"
+                />
+                <AppDatePicker
+                    v-model="filters.date_to"
+                    label="Data iki"
+                    placeholder="Pasirinkite datą"
+                    :min-date="filters.date_from || undefined"
+                    class="filter-date"
+                />
+                <AppInput
+                    v-model="filters.search"
+                    type="text"
+                    placeholder="Ieškoti (vardas, pavardė, el. paštas)"
+                    class="filter-search"
+                />
+                <AppInput
+                    v-model="filters.ip"
+                    type="text"
+                    placeholder="IP adresas"
+                    class="filter-ip"
+                />
+            </div>
         </div>
 
         <p v-if="errorMessage" class="error">{{ errorMessage }}</p>
@@ -167,8 +203,31 @@ load()
     color: var(--color-white);
     border-color: var(--color-primary);
 }
-.search-input {
-    min-width: 220px;
+.filters-block {
+    margin-bottom: 24px;
+}
+.block-title {
+    font-size: 15px;
+    font-weight: 700;
+    line-height: 1.35;
+    margin: 0 0 12px 0;
+    padding: 0;
+    color: #1a1a1a;
+}
+.filters-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    gap: 16px;
+}
+.filter-date {
+    min-width: 160px;
+}
+.filter-search {
+    min-width: 260px;
+}
+.filter-ip {
+    min-width: 180px;
 }
 .error {
     color: var(--color-error);

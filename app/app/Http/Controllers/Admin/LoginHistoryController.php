@@ -3,9 +3,9 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Admin\LoginHistoryIndexRequest;
 use App\Services\LoginHistoryService;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Throwable;
 
@@ -15,13 +15,10 @@ class LoginHistoryController extends Controller
         private LoginHistoryService $loginHistoryService
     ) {}
 
-    public function index(Request $request): JsonResponse
+    public function index(LoginHistoryIndexRequest $request): JsonResponse
     {
         try {
-            $type = $request->input('type', 'internal');
-            $search = trim((string) ($request->input('search') ?? ''));
-
-            $logs = $this->loginHistoryService->getPaginatedLogs($type, $search, 50);
+            $logs = $this->loginHistoryService->getPaginatedLogs($request->validated(), 50);
             $items = $this->loginHistoryService->mapLogsToArray($logs->getCollection());
 
             return response()->json([
