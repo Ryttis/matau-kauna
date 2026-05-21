@@ -20,6 +20,7 @@ const props = defineProps({
         default: () => ({
             reportNumber: '',
             problemType: '',
+            problemNatureId: '',
             dateFrom: '',
             dateTo: '',
             status: '',
@@ -27,6 +28,7 @@ const props = defineProps({
         }),
     },
     categories: Array,
+    natures: Array,
     allStatusOptions: Array,
     onlyMine: { type: Boolean, default: undefined },
     onlyWatched: { type: Boolean, default: undefined },
@@ -56,6 +58,7 @@ function getInitialFilters() {
     return {
         reportNumber: props.filters?.reportNumber || '',
         problemType: props.filters?.problemType ?? (isPublicMap() ? 'all' : ''),
+        problemNatureId: props.filters?.problemNatureId || '',
         dateFrom: props.filters?.dateFrom || '',
         dateTo: props.filters?.dateTo || '',
         status: props.filters?.status || '',
@@ -112,6 +115,7 @@ const handleApply = () => {
         payload.statuses = [...(f.statuses || [])]
     } else {
         payload.status = f.status
+        payload.problemNatureId = f.problemNatureId
     }
     emit('apply', payload)
 }
@@ -119,7 +123,7 @@ const handleApply = () => {
 const handleClear = () => {
     localFilters.value = isPublicMap()
         ? { reportNumber: '', problemType: 'all', dateFrom: '', dateTo: '', statuses: [] }
-        : { reportNumber: '', problemType: '', dateFrom: '', dateTo: '', status: '' }
+        : { reportNumber: '', problemType: '', problemNatureId: '', dateFrom: '', dateTo: '', status: '' }
     emit('clear')
 }
 
@@ -202,6 +206,21 @@ const handleClose = () => {
                     <option v-if="isPublicMap()" value="all">Pasirinkti kategoriją</option>
                     <option v-for="category in (categories || [])" :key="category" :value="category">
                         {{ category }}
+                    </option>
+                </AppSelect>
+            </div>
+
+            <div v-if="!isPublicMap()" class="filter-section">
+                <AppSelect
+                    v-model="localFilters.problemNatureId"
+                    label="Pobūdis"
+                    placeholder="Pasirinkti pobūdį"
+                    variant="white"
+                    :rounded="true"
+                >
+                    <option value="">Visi pobūdžiai</option>
+                    <option v-for="nature in (natures || [])" :key="nature.id" :value="String(nature.id)">
+                        {{ nature.category ? `${nature.category} - ${nature.name}` : nature.name }}
                     </option>
                 </AppSelect>
             </div>

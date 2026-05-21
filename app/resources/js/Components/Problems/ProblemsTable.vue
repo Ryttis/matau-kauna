@@ -113,7 +113,7 @@ const columns = computed(() => {
         {
             key: 'category',
             label: 'Kategorija',
-            sortable: false,
+            sortable: true,
             headerClass: 'problem-col-category',
             class: 'problem-col-category',
             value: (row) => truncate(getRowData(row).category, 18)
@@ -121,7 +121,7 @@ const columns = computed(() => {
         {
             key: 'nature',
             label: 'Pobūdis',
-            sortable: false,
+            sortable: true,
             headerClass: 'problem-col-nature',
             class: 'problem-col-nature',
             value: (row) => truncate(getRowData(row).problem_nature?.name, 18)
@@ -129,7 +129,7 @@ const columns = computed(() => {
         {
             key: 'address',
             label: 'Adresas',
-            sortable: false,
+            sortable: true,
             headerClass: 'problem-col-address',
             class: 'problem-col-address',
             value: (row) => truncate(getRowData(row).address, 28)

@@ -156,6 +156,7 @@ class InternalProblemApiController extends Controller
             'search' => $request->query('search'),
             'status' => $request->query('status'),
             'category' => $request->query('category'),
+            'problem_nature_id' => $request->query('problem_nature_id'),
             'report_number' => $request->query('report_number'),
             'date_from' => $request->query('date_from'),
             'date_to' => $request->query('date_to'),

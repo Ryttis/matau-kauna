@@ -16,6 +16,7 @@ export function useDashboardProblemList(props) {
     const search = ref(props.filters?.search || '')
     const statusFilter = ref(props.filters?.status || '')
     const categoryFilter = ref(props.filters?.category || '')
+    const natureFilter = ref(props.filters?.problem_nature_id || props.filters?.problemNatureId || '')
     const reportNumberFilter = ref(props.filters?.report_number || props.filters?.reportNumber || '')
     const dateFromFilter = ref(props.filters?.date_from || props.filters?.dateFrom || '')
     const dateToFilter = ref(props.filters?.date_to || props.filters?.dateTo || '')
@@ -90,6 +91,9 @@ export function useDashboardProblemList(props) {
         if ((categoryFilter.value || '').trim() !== '') {
             return true
         }
+        if ((natureFilter.value || '').trim() !== '') {
+            return true
+        }
         if ((statusFilter.value || '').trim() !== '') {
             return true
         }
@@ -110,6 +114,7 @@ export function useDashboardProblemList(props) {
             search: search.value,
             status: statusFilter.value,
             category: categoryFilter.value,
+            problem_nature_id: natureFilter.value,
             report_number: reportNumberFilter.value,
             date_from: dateFromFilter.value,
             date_to: dateToFilter.value,
@@ -133,6 +138,7 @@ export function useDashboardProblemList(props) {
             search: search.value,
             status: statusFilter.value,
             category: categoryFilter.value,
+            problem_nature_id: natureFilter.value,
             report_number: reportNumberFilter.value,
             date_from: dateFromFilter.value,
             date_to: dateToFilter.value,
@@ -292,6 +298,7 @@ export function useDashboardProblemList(props) {
             search: search.value || '',
             status: statusFilter.value || '',
             category: categoryFilter.value || '',
+            problem_nature_id: natureFilter.value || '',
             report_number: reportNumberFilter.value || '',
             date_from: dateFromFilter.value || '',
             date_to: dateToFilter.value || '',
@@ -305,7 +312,7 @@ export function useDashboardProblemList(props) {
         showExportDropdown.value = false
     }
 
-    watch([statusFilter, categoryFilter, reportNumberFilter, dateFromFilter, dateToFilter], () => {
+    watch([statusFilter, categoryFilter, natureFilter, reportNumberFilter, dateFromFilter, dateToFilter], () => {
         problemsList.value = []
         loadProblems(true)
     })
@@ -313,6 +320,7 @@ export function useDashboardProblemList(props) {
     const handleFilterApply = (filters) => {
         statusFilter.value = filters.status || ''
         categoryFilter.value = filters.problemType || ''
+        natureFilter.value = filters.problemNatureId || ''
         reportNumberFilter.value = filters.reportNumber || ''
         dateFromFilter.value = filters.dateFrom || ''
         dateToFilter.value = filters.dateTo || ''
@@ -325,6 +333,7 @@ export function useDashboardProblemList(props) {
     const handleFilterClear = () => {
         statusFilter.value = ''
         categoryFilter.value = ''
+        natureFilter.value = ''
         reportNumberFilter.value = ''
         dateFromFilter.value = ''
         dateToFilter.value = ''
@@ -481,6 +490,7 @@ export function useDashboardProblemList(props) {
         search,
         statusFilter,
         categoryFilter,
+        natureFilter,
         reportNumberFilter,
         dateFromFilter,
         dateToFilter,

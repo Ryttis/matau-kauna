@@ -38,6 +38,7 @@ const props = defineProps({
     sortBy: String,
     sortDirection: String,
     categories: Array,
+    natures: Array,
     statusOptions: Array,
 })
 
@@ -200,6 +201,7 @@ const reporterDateMax = `${currentYear}-12-31`
             :sort-by="sortBy"
             :sort-direction="sortDirection"
             :categories="categories"
+            :natures="natures"
             :status-options="statusOptions"
         />
     </AuthenticatedLayout>

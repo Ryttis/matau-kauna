@@ -92,6 +92,7 @@ class ProblemDashboardQueryService
             'sortBy' => $sortBy,
             'sortDirection' => $sortDirection,
             'categories' => ClassifierValue::getActiveTypeNames()->values(),
+            'natures' => $this->activeNatureOptions(),
             'statusOptions' => ProblemStatus::selectableOptions(),
             'pageSizeOptions' => self::STAFF_PAGE_SIZES,
         ];
@@ -120,5 +121,25 @@ class ProblemDashboardQueryService
     public function normalizeStaffPerPage(?int $perPage): int
     {
         return in_array($perPage, self::STAFF_PAGE_SIZES, true) ? $perPage : self::STAFF_PAGE_SIZES[0];
+    }
+
+    private function activeNatureOptions(): array
+    {
+        return ClassifierValue::query()
+            ->notArchived()
+            ->where('is_active', true)
+            ->whereNotNull('parent_id')
+            ->whereHas('parent', fn ($query) => $query->notArchived()->where('is_active', true))
+            ->with('parent:id,name')
+            ->orderBy('sort_order')
+            ->orderBy('name')
+            ->get(['id', 'parent_id', 'name'])
+            ->map(fn (ClassifierValue $nature) => [
+                'id' => $nature->id,
+                'name' => $nature->name,
+                'category' => $nature->parent?->name,
+            ])
+            ->values()
+            ->all();
     }
 }

@@ -23,6 +23,7 @@ class Problem extends Model
         'category',
         'address',
         'description',
+        'nature',
         'updated_at',
     ];
 
@@ -167,6 +168,9 @@ class Problem extends Model
         if (isset($filters['category']) && $filters['category']) {
             $query->where('category', $filters['category']);
         }
+        if (isset($filters['problem_nature_id']) && $filters['problem_nature_id']) {
+            $query->where('problem_nature_id', (int) $filters['problem_nature_id']);
+        }
         if (isset($filters['date_from']) && $filters['date_from']) {
             $query->whereDate('created_at', '>=', $filters['date_from']);
         }
@@ -179,7 +183,10 @@ class Problem extends Model
     {
         $reportNumber = isset($filters['report_number']) ? trim((string) $filters['report_number']) : '';
         $search = isset($filters['search']) ? trim((string) $filters['search']) : '';
-        if ($reportNumber === '' && $search === '') {
+        $hasFacetFilters = collect(['status', 'category', 'problem_nature_id', 'date_from', 'date_to'])
+            ->contains(fn ($key) => filled($filters[$key] ?? null));
+
+        if ($reportNumber === '' && $search === '' && ! $hasFacetFilters) {
             return [];
         }
 
@@ -215,10 +222,22 @@ class Problem extends Model
 
     public function scopeSorted($query, $sortBy = 'created_at', $sortDirection = 'desc')
     {
-        $dir = strtolower((string) $sortDirection) === 'asc' ? 'asc' : 'desc';
         $column = in_array($sortBy, self::SORTABLE_COLUMNS, true) ? $sortBy : 'created_at';
+        $dir = $column === 'created_at' && $sortBy !== 'created_at'
+            ? 'desc'
+            : (strtolower((string) $sortDirection) === 'asc' ? 'asc' : 'desc');
+        $table = $query->getModel()->getTable();
 
-        return $query->orderBy($column, $dir);
+        if ($column === 'nature') {
+            return $query
+                ->select("{$table}.*")
+                ->leftJoin('classifier_values as sort_natures', "{$table}.problem_nature_id", '=', 'sort_natures.id')
+                ->orderByRaw('CASE WHEN sort_natures.name IS NULL THEN 1 ELSE 0 END ASC')
+                ->orderBy('sort_natures.name', $dir)
+                ->orderBy("{$table}.id");
+        }
+
+        return $query->orderBy("{$table}.{$column}", $dir);
     }
 
     public function scopeNotArchived($query)

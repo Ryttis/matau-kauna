@@ -15,6 +15,7 @@ const props = defineProps({
     sortBy: String,
     sortDirection: String,
     categories: Array,
+    natures: Array,
     statusOptions: Array,
     pageSizeOptions: Array,
 })
@@ -32,6 +33,7 @@ const {
     search,
     reportNumberFilter,
     categoryFilter,
+    natureFilter,
     dateFromFilter,
     dateToFilter,
     statusFilter,
@@ -297,11 +299,13 @@ const {
             :filters="{
                 reportNumber: reportNumberFilter,
                 problemType: categoryFilter,
+                problemNatureId: natureFilter,
                 dateFrom: dateFromFilter,
                 dateTo: dateToFilter,
                 status: statusFilter,
             }"
             :categories="props.categories"
+            :natures="props.natures"
             :all-status-options="allStatusOptions"
             @close="handleFilterClose"
             @apply="handleFilterApply"
