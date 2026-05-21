@@ -114,15 +114,15 @@ class Problem extends Model
         });
     }
 
-    public function scopeFiltered($query, $filters)
+    public function scopeFiltered($query, $filters, bool $includeReporterSearch = false)
     {
         if (isset($filters['search']) && $filters['search']) {
-            $search = $filters['search'];
-            $query->where(function ($q) use ($search) {
-                $q->where('address', 'like', "%{$search}%")
-                    ->orWhere('description', 'like', "%{$search}%")
-                    ->orWhere('internal_number', 'like', "%{$search}%");
-            });
+            $search = trim((string) $filters['search']);
+            if ($search !== '') {
+                $query->where(function (Builder $q) use ($search, $includeReporterSearch) {
+                    static::applyDashboardKeywordSearch($q, $search, $includeReporterSearch);
+                });
+            }
         }
 
         if (isset($filters['report_number']) && $filters['report_number']) {
@@ -132,6 +132,31 @@ class Problem extends Model
         static::applyDashboardFacetFilters($query, $filters);
 
         return $query;
+    }
+
+    private static function applyDashboardKeywordSearch(Builder $query, string $search, bool $includeReporterSearch = false): void
+    {
+        $like = "%{$search}%";
+        $query->where('address', 'like', $like)
+            ->orWhere('description', 'like', $like)
+            ->orWhere('internal_number', 'like', $like);
+
+        if ($includeReporterSearch) {
+            $query->orWhereHas('reportedByUser', function (Builder $userQuery) use ($search) {
+                static::applyReporterKeywordSearch($userQuery, $search);
+            });
+        }
+    }
+
+    private static function applyReporterKeywordSearch(Builder $query, string $search): void
+    {
+        $lowerLike = '%'.strtolower($search).'%';
+
+        $query->where(function (Builder $userQuery) use ($lowerLike) {
+            $userQuery->whereRaw("LOWER(COALESCE(name, '')) LIKE ?", [$lowerLike])
+                ->orWhereRaw("LOWER(COALESCE(surname, '')) LIKE ?", [$lowerLike])
+                ->orWhereRaw("LOWER(TRIM(COALESCE(name, '') || ' ' || COALESCE(surname, ''))) LIKE ?", [$lowerLike]);
+        });
     }
 
     private static function applyDashboardFacetFilters(Builder $query, array $filters): void
@@ -150,7 +175,7 @@ class Problem extends Model
         }
     }
 
-    public static function mergeGroupRootIdsFromMatchingMergedChildren(array $filters): array
+    public static function mergeGroupRootIdsFromMatchingMergedChildren(array $filters, bool $includeReporterSearch = false): array
     {
         $reportNumber = isset($filters['report_number']) ? trim((string) $filters['report_number']) : '';
         $search = isset($filters['search']) ? trim((string) $filters['search']) : '';
@@ -166,10 +191,8 @@ class Problem extends Model
             $query->where('internal_number', 'like', '%'.$reportNumber.'%');
         }
         if ($search !== '') {
-            $query->where(function ($sub) use ($search) {
-                $sub->where('address', 'like', "%{$search}%")
-                    ->orWhere('description', 'like', "%{$search}%")
-                    ->orWhere('internal_number', 'like', "%{$search}%");
+            $query->where(function (Builder $sub) use ($search, $includeReporterSearch) {
+                static::applyDashboardKeywordSearch($sub, $search, $includeReporterSearch);
             });
         }
 

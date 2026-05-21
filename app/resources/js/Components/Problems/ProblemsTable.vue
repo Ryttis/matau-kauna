@@ -61,6 +61,17 @@ const truncate = (str, maxLen = 28) => {
     return s.length <= maxLen ? s : s.slice(0, maxLen) + '…'
 }
 
+const reporterName = (row) => {
+    const problem = getRowData(row)
+    const reporter = problem.reported_by_user || problem.reportedByUser
+    if (!reporter) return '-'
+    const fullName = [reporter.name, reporter.surname]
+        .filter(Boolean)
+        .join(' ')
+        .trim()
+    return truncate(fullName || reporter.email || '-', 24)
+}
+
 const columns = computed(() => {
     const base = [
         {
@@ -90,6 +101,14 @@ const columns = computed(() => {
             headerClass: 'problem-col-date',
             class: 'problem-col-date',
             value: (row) => new Date(getRowData(row).created_at).toLocaleDateString('lt-LT')
+        },
+        {
+            key: 'reporter',
+            label: 'Pareiškėjas',
+            sortable: false,
+            headerClass: 'problem-col-reporter',
+            class: 'problem-col-reporter',
+            value: reporterName
         },
         {
             key: 'category',
@@ -217,6 +236,12 @@ function problemTableRowClass(row) {
 :deep(.problem-col-date) {
     white-space: nowrap;
     min-width: 5.5rem;
+}
+
+:deep(.problem-col-reporter) {
+    min-width: 8rem;
+    max-width: 11rem;
+    word-break: break-word;
 }
 
 :deep(.problem-col-category) {

@@ -36,7 +36,7 @@ class ProblemDashboardQueryService
     {
         $pageSize = $this->normalizeStaffPerPage($perPage);
         $employeeId = $this->scopeService->employeeIdForUser($user);
-        $mergeRootIdsFromChildMatch = Problem::mergeGroupRootIdsFromMatchingMergedChildren($filters);
+        $mergeRootIdsFromChildMatch = Problem::mergeGroupRootIdsFromMatchingMergedChildren($filters, true);
 
         return Problem::query()
             ->whereNull('merged_into_problem_id')
@@ -63,14 +63,22 @@ class ProblemDashboardQueryService
             )
             ->where(function ($query) use ($filters, $mergeRootIdsFromChildMatch) {
                 $query->where(function ($inner) use ($filters) {
-                    $inner->filtered($filters);
+                    $inner->filtered($filters, true);
                 });
                 if ($mergeRootIdsFromChildMatch !== []) {
                     $query->orWhereIn('id', $mergeRootIdsFromChildMatch);
                 }
             })
             ->sorted($sortBy, $sortDirection)
-            ->with(['mergedProblems', 'problemNature:id,name', 'institution:id,name'])
+            ->with([
+                'mergedProblems' => fn ($query) => $query->with([
+                    'problemNature:id,name',
+                    'reportedByUser:id,name,surname,email',
+                ]),
+                'problemNature:id,name',
+                'institution:id,name',
+                'reportedByUser:id,name,surname,email',
+            ])
             ->paginate($pageSize)
             ->withQueryString();
     }
@@ -97,7 +105,7 @@ class ProblemDashboardQueryService
                 $this->scopeService->isInstitutionScoped($user),
                 fn ($q) => $q->where('institution_id', $user->institution_id)
             )
-            ->filtered($filters)
+            ->filtered($filters, true)
             ->sorted($sortBy, $sortDirection);
 
         if ($scope === 'current_page') {
