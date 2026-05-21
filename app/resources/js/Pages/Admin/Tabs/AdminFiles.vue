@@ -8,13 +8,27 @@ import { adminApi } from '@/constants/api/adminApi'
 
 const CHANNEL = {
     web: 'Naršyklė',
+    mobile: 'Mobilioji programėlė',
 }
 
 const VIDEO_DURATION_OPTIONS_SEC = [10, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60]
 
+const defaultPhotoFormats = () => [
+    { label: 'JPEG', mime: 'image/jpeg', extensions: ['jpg', 'jpeg'] },
+    { label: 'PNG', mime: 'image/png', extensions: ['png'] },
+]
+
+const defaultVideoFormats = () => [
+    { label: 'MP4', mime: 'video/mp4', extensions: ['mp4'] },
+    { label: 'WebM', mime: 'video/webm', extensions: ['webm'] },
+    { label: 'MOV', mime: 'video/quicktime', extensions: ['mov'] },
+]
+
 const defaultChannel = () => ({
     allow_photo: true,
     allow_video: false,
+    photo_formats: defaultPhotoFormats(),
+    video_formats: defaultVideoFormats(),
     max_photo_size_kb: 5120,
     max_photo_files_per_problem: 5,
     max_video_files_per_problem: 1,
@@ -33,9 +47,30 @@ const config = ref({
     mobile: defaultChannel(),
 })
 
+function normalizeFormats(formats, fallback) {
+    const normalized = Array.isArray(formats)
+        ? formats
+            .map((format) => ({
+                label: String(format?.label ?? '').trim(),
+                mime: String(format?.mime ?? '').trim().toLowerCase(),
+                extensions: Array.isArray(format?.extensions)
+                    ? format.extensions.map((ext) => String(ext).trim().toLowerCase().replace(/^\./, '')).filter(Boolean)
+                    : [],
+            }))
+            .filter((format) => format.label && format.mime && format.extensions.length)
+        : []
+
+    return normalized.length ? normalized : fallback()
+}
+
 function mergeChannel(base, incoming) {
     if (!incoming || typeof incoming !== 'object') return { ...base }
-    return { ...base, ...incoming }
+    return {
+        ...base,
+        ...incoming,
+        photo_formats: normalizeFormats(incoming.photo_formats, defaultPhotoFormats),
+        video_formats: normalizeFormats(incoming.video_formats, defaultVideoFormats),
+    }
 }
 
 function formatVideoCount(count) {
@@ -43,15 +78,41 @@ function formatVideoCount(count) {
     return normalized === 1 ? '1 vaizdo įrašas' : `${normalized} vaizdo įrašai`
 }
 
+function formatLabels(formats) {
+    return formats.map((format) => format.label).filter(Boolean).join(', ')
+}
+
+function emptyFormat() {
+    return { label: '', mime: '', extensions: [] }
+}
+
+function addFormat(channel, key) {
+    config.value[channel][key].push(emptyFormat())
+}
+
+function removeFormat(channel, key, index) {
+    config.value[channel][key].splice(index, 1)
+}
+
+function extensionsInput(format) {
+    return Array.isArray(format.extensions) ? format.extensions.join(', ') : ''
+}
+
+function updateExtensions(format, value) {
+    format.extensions = String(value ?? '')
+        .split(/[,\s]+/)
+        .map((ext) => ext.trim().toLowerCase().replace(/^\./, ''))
+        .filter(Boolean)
+}
+
 async function load() {
     loading.value = true
     errorMessage.value = ''
     try {
         const { data } = await axios.get(adminApi.fileUploadSettings)
-        const b = defaultChannel()
         config.value = {
-            web: mergeChannel(b, data.config?.web),
-            mobile: mergeChannel(b, data.config?.mobile),
+            web: mergeChannel(defaultChannel(), data.config?.web),
+            mobile: mergeChannel(defaultChannel(), data.config?.mobile),
         }
     } catch (e) {
         errorMessage.value = e.response?.data?.message ?? 'Nepavyko užkrauti.'
@@ -65,12 +126,12 @@ async function save() {
     errorMessage.value = ''
     successMessage.value = ''
     try {
-        const sharedChannel = { ...config.value.web }
-        const payload = {
-            web: { ...sharedChannel },
-            mobile: { ...sharedChannel },
-        }
-        await axios.put(adminApi.fileUploadSettings, { config: payload })
+        await axios.put(adminApi.fileUploadSettings, {
+            config: {
+                web: { ...config.value.web },
+                mobile: { ...config.value.mobile },
+            },
+        })
         successMessage.value = 'Nustatymai išsaugoti.'
         showSuccessModal.value = true
         await load()
@@ -96,7 +157,7 @@ onMounted(load)
         <h2 class="title">Failai ir Tekstas</h2>
         <p class="page-desc">
             Nustatykite, kokius failus pareiškėjas gali įkelti ir kiek teksto gali pateikti prie problemos.
-            Tie patys nustatymai taikomi naršyklei ir mobiliajai programėlei.
+            Naršyklės ir mobiliosios programėlės nustatymai valdomi atskirai.
         </p>
 
         <p v-if="errorMessage" class="error">{{ errorMessage }}</p>
@@ -109,7 +170,7 @@ onMounted(load)
         <div v-if="loading" class="loading">Kraunama...</div>
 
         <template v-else>
-            <div class="channels-row channels-row--single">
+            <div class="channels-row">
                 <section v-for="(label, ch) in CHANNEL" :key="ch" class="card">
                     <h3 class="card-title">{{ label }}</h3>
 
@@ -119,7 +180,9 @@ onMounted(load)
                                 :model-value="config[ch].allow_photo"
                                 @update:model-value="(v) => (config[ch].allow_photo = v)"
                             />
-                            <span>Nuotraukos (JPEG, PNG)</span>
+                            <span class="toggle-label-wrap">
+                                Nuotraukos ({{ formatLabels(config[ch].photo_formats) }})
+                            </span>
                         </label>
                         <label class="toggle">
                             <AppCheckbox
@@ -127,7 +190,7 @@ onMounted(load)
                                 @update:model-value="(v) => (config[ch].allow_video = v)"
                             />
                             <span class="toggle-label-wrap">
-                                Vaizdai (MP4, WebM, MOV)
+                                Vaizdai ({{ formatLabels(config[ch].video_formats) }})
                                 <span class="toggle-hint">
                                     {{ formatVideoCount(config[ch].max_video_files_per_problem) }},
                                     {{
@@ -191,6 +254,42 @@ onMounted(load)
                             />
                         </div>
                     </div>
+
+                    <div v-if="config[ch].allow_photo" class="formats-block">
+                        <div class="formats-title-row">
+                            <h4 class="formats-title">Nuotraukų formatai</h4>
+                            <button type="button" class="link-btn" @click="addFormat(ch, 'photo_formats')">+ Pridėti</button>
+                        </div>
+                        <div v-for="(format, index) in config[ch].photo_formats" :key="`photo-${index}`" class="format-row">
+                            <input v-model="format.label" class="format-input format-input--label" placeholder="Pavadinimas" />
+                            <input v-model="format.mime" class="format-input" placeholder="MIME, pvz. image/jpeg" />
+                            <input
+                                :value="extensionsInput(format)"
+                                class="format-input"
+                                placeholder="Plėtiniai, pvz. jpg,jpeg"
+                                @input="updateExtensions(format, $event.target.value)"
+                            />
+                            <button type="button" class="remove-btn" @click="removeFormat(ch, 'photo_formats', index)">Šalinti</button>
+                        </div>
+                    </div>
+
+                    <div v-if="config[ch].allow_video" class="formats-block">
+                        <div class="formats-title-row">
+                            <h4 class="formats-title">Vaizdo formatai</h4>
+                            <button type="button" class="link-btn" @click="addFormat(ch, 'video_formats')">+ Pridėti</button>
+                        </div>
+                        <div v-for="(format, index) in config[ch].video_formats" :key="`video-${index}`" class="format-row">
+                            <input v-model="format.label" class="format-input format-input--label" placeholder="Pavadinimas" />
+                            <input v-model="format.mime" class="format-input" placeholder="MIME, pvz. video/mp4" />
+                            <input
+                                :value="extensionsInput(format)"
+                                class="format-input"
+                                placeholder="Plėtiniai, pvz. mp4"
+                                @input="updateExtensions(format, $event.target.value)"
+                            />
+                            <button type="button" class="remove-btn" @click="removeFormat(ch, 'video_formats', index)">Šalinti</button>
+                        </div>
+                    </div>
                 </section>
             </div>
 
@@ -210,6 +309,7 @@ onMounted(load)
 
 .admin-files > .page-desc {
     margin-bottom: 18px;
+    max-width: 920px;
 }
 
 .title {
@@ -235,16 +335,11 @@ onMounted(load)
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 20px;
-    align-items: stretch;
+    align-items: start;
     width: 100%;
 }
 
-.channels-row--single {
-    grid-template-columns: minmax(0, 1fr);
-    max-width: 790px;
-}
-
-@media (max-width: 960px) {
+@media (max-width: 1100px) {
     .channels-row {
         grid-template-columns: 1fr;
     }
@@ -313,10 +408,6 @@ onMounted(load)
     font-size: 14px;
 }
 
-.field-row:last-child {
-    border-bottom: none;
-}
-
 .field-lbl {
     color: #444;
     flex: 1;
@@ -340,10 +431,65 @@ onMounted(load)
     font-variant-numeric: tabular-nums;
 }
 
-.inp:focus {
+.inp:focus,
+.format-input:focus {
     outline: none;
     border-color: var(--color-primary, #2563eb);
     box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.2);
+}
+
+.formats-block {
+    padding: 14px 18px 16px;
+    border-top: 1px solid #eef0f3;
+}
+
+.formats-title-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 10px;
+}
+
+.formats-title {
+    margin: 0;
+    font-size: 14px;
+    font-weight: 700;
+}
+
+.link-btn {
+    border: 0;
+    background: transparent;
+    color: var(--color-primary, #1946a0);
+    font-size: 13px;
+    cursor: pointer;
+    padding: 0;
+}
+
+.format-row {
+    display: grid;
+    grid-template-columns: minmax(90px, 0.8fr) minmax(150px, 1.2fr) minmax(130px, 1fr) auto;
+    gap: 8px;
+    align-items: center;
+    margin-bottom: 8px;
+}
+
+.format-input {
+    min-width: 0;
+    padding: 7px 9px;
+    border: 1px solid #cfd4dc;
+    border-radius: 6px;
+    font-size: 13px;
+}
+
+.remove-btn {
+    border: 1px solid #f2b8b8;
+    background: #fff;
+    color: #c62828;
+    border-radius: 6px;
+    padding: 7px 9px;
+    cursor: pointer;
+    font-size: 13px;
 }
 
 .actions {

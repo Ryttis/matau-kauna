@@ -12,10 +12,6 @@ use Illuminate\Validation\ValidationException;
 
 class ReporterFileUploadService
 {
-    private const PHOTO_MIMES = ['image/jpeg', 'image/png'];
-
-    private const VIDEO_MIMES = ['video/mp4', 'video/webm', 'video/quicktime'];
-
     public function __construct(
         private VideoUploadDurationValidator $videoDurationValidator,
     ) {}
@@ -76,7 +72,7 @@ class ReporterFileUploadService
         $items = [];
         foreach ($files as $file) {
             $mime = strtolower((string) $file->getMimeType());
-            $kind = $this->mimeToKind($mime);
+            $kind = FileUploadSettings::kindForMime($config, $mime);
 
             if ($kind === null) {
                 throw ValidationException::withMessages([
@@ -140,7 +136,7 @@ class ReporterFileUploadService
                 }
             }
 
-            if (! $this->extensionMatchesKind($file, $kind)) {
+            if (! $this->extensionMatchesKind($file, $kind, $config)) {
                 throw ValidationException::withMessages([
                     'files' => 'Netinkamas failo formatas.',
                 ]);
@@ -155,27 +151,11 @@ class ReporterFileUploadService
         return $items;
     }
 
-    private function mimeToKind(string $mime): ?string
-    {
-        if (in_array($mime, self::PHOTO_MIMES, true)) {
-            return 'photo';
-        }
-        if (in_array($mime, self::VIDEO_MIMES, true)) {
-            return 'video';
-        }
-
-        return null;
-    }
-
-    private function extensionMatchesKind(UploadedFile $file, string $kind): bool
+    private function extensionMatchesKind(UploadedFile $file, string $kind, array $config): bool
     {
         $ext = strtolower($file->getClientOriginalExtension());
 
-        if ($kind === 'photo') {
-            return in_array($ext, ['jpg', 'jpeg', 'png'], true);
-        }
-
-        return in_array($ext, ['mp4', 'webm', 'mov'], true);
+        return FileUploadSettings::extensionAllowedForKind($config, $kind, $ext);
     }
 
     private function storeOne(Problem $problem, UploadedFile $file, string $mime, string $kind): ProblemAttachment

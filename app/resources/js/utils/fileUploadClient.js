@@ -18,21 +18,32 @@ export function fileUploadPickerLabel(uploadRules) {
     return 'Pridėkite failą'
 }
 
+function formatLabels(formats, fallback) {
+    const labels = Array.isArray(formats)
+        ? formats.map((format) => String(format?.label ?? '').trim()).filter(Boolean)
+        : []
+
+    return labels.length ? labels.join(', ') : fallback
+}
+
 export function formatDetailedFileUploadHint(uploadRules) {
     const hintParts = []
     const maxPhotoFiles = Number(uploadRules.max_photo_files_per_problem) || 0
     const maxVideoFiles = Number(uploadRules.max_video_files_per_problem) || 0
 
     if (uploadRules.allow_photo && maxPhotoFiles > 0) {
-        hintParts.push(`nuotr.: iki ${maxPhotoFiles} vnt., po ${uploadRules.max_photo_size_kb} KB (JPEG, PNG)`)
+        hintParts.push(
+            `nuotr.: iki ${maxPhotoFiles} vnt., po ${uploadRules.max_photo_size_kb} KB (${formatLabels(uploadRules.photo_formats, 'JPEG, PNG')})`,
+        )
     }
     if (uploadRules.allow_video && maxVideoFiles > 0) {
         const maxSec = Math.min(60, Math.max(1, Number(uploadRules.max_video_duration_seconds) || 60))
         const durLabel = maxSec >= 60 ? '1 min. trukmės' : `${maxSec} s trukmės`
+        const formats = formatLabels(uploadRules.video_formats, 'MP4, WebM, MOV')
         hintParts.push(
             maxVideoFiles === 1
-                ? `1 vaizdas iki ${durLabel}`
-                : `vaizdai: iki ${maxVideoFiles} vnt., iki ${durLabel}`,
+                ? `1 vaizdas iki ${durLabel} (${formats})`
+                : `vaizdai: iki ${maxVideoFiles} vnt., iki ${durLabel} (${formats})`,
         )
     }
     if (!hintParts.length) {

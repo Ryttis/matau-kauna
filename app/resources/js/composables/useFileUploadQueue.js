@@ -4,6 +4,15 @@ export function defaultFileUploadSettings() {
     return {
         allow_photo: true,
         allow_video: false,
+        photo_formats: [
+            { label: 'JPEG', mime: 'image/jpeg', extensions: ['jpg', 'jpeg'] },
+            { label: 'PNG', mime: 'image/png', extensions: ['png'] },
+        ],
+        video_formats: [
+            { label: 'MP4', mime: 'video/mp4', extensions: ['mp4'] },
+            { label: 'WebM', mime: 'video/webm', extensions: ['webm'] },
+            { label: 'MOV', mime: 'video/quicktime', extensions: ['mov'] },
+        ],
         max_photo_size_kb: 5120,
         max_photo_files_per_problem: 5,
         max_video_files_per_problem: 1,
@@ -13,13 +22,38 @@ export function defaultFileUploadSettings() {
     }
 }
 
+function normalizeFormats(formats) {
+    return Array.isArray(formats)
+        ? formats
+            .map((format) => ({
+                label: String(format?.label ?? '').trim(),
+                mime: String(format?.mime ?? '').trim().toLowerCase(),
+                extensions: Array.isArray(format?.extensions)
+                    ? format.extensions.map((ext) => String(ext).trim().toLowerCase().replace(/^\./, '')).filter(Boolean)
+                    : [],
+            }))
+            .filter((format) => format.label && format.mime && format.extensions.length)
+        : []
+}
+
+function formatsForKind(rules, kind) {
+    return normalizeFormats(kind === 'photo' ? rules.photo_formats : rules.video_formats)
+}
+
+function mimesForKind(rules, kind) {
+    return formatsForKind(rules, kind).map((format) => format.mime)
+}
+
+function extensionsForKind(rules, kind) {
+    return [...new Set(formatsForKind(rules, kind).flatMap((format) => format.extensions))]
+}
+
+function labelsForKind(rules, kind) {
+    return formatsForKind(rules, kind).map((format) => format.label).join(', ')
+}
+
 export function useFileUploadQueue(uploadRulesRef, options = {}) {
     const { appendBaseline } = options
-
-    const photoMimes = ['image/jpeg', 'image/png']
-    const videoMimes = ['video/mp4', 'video/webm', 'video/quicktime']
-    const photoExtensions = ['jpg', 'jpeg', 'png']
-    const videoExtensions = ['mp4', 'webm', 'mov']
 
     const selectedFiles = ref([])
     const fileHint = ref('')
@@ -36,20 +70,35 @@ export function useFileUploadQueue(uploadRulesRef, options = {}) {
         const mimeType = String(file?.type ?? '').toLowerCase()
         const extension = extensionFor(file)
 
-        if ((photoMimes.includes(mimeType) || (!mimeType && photoExtensions.includes(extension))) && rules.allow_photo) {
+        if ((mimesForKind(rules, 'photo').includes(mimeType) || (!mimeType && extensionsForKind(rules, 'photo').includes(extension))) && rules.allow_photo) {
             return 'photo'
         }
-        if ((videoMimes.includes(mimeType) || (!mimeType && videoExtensions.includes(extension))) && rules.allow_video) {
+        if ((mimesForKind(rules, 'video').includes(mimeType) || (!mimeType && extensionsForKind(rules, 'video').includes(extension))) && rules.allow_video) {
             return 'video'
         }
         return null
     }
 
     function extensionAllowedForKind(file, kind) {
+        const rules = unref(uploadRulesRef)
         const extension = extensionFor(file)
-        if (kind === 'photo') return photoExtensions.includes(extension)
-        if (kind === 'video') return videoExtensions.includes(extension)
+        if (kind === 'photo') return extensionsForKind(rules, 'photo').includes(extension)
+        if (kind === 'video') return extensionsForKind(rules, 'video').includes(extension)
         return false
+    }
+
+    function allowedTypesMessage(rules) {
+        const parts = []
+        if (rules.allow_photo) {
+            parts.push(labelsForKind(rules, 'photo') || 'nuotraukos')
+        }
+        if (rules.allow_video) {
+            parts.push(labelsForKind(rules, 'video') || 'vaizdo failai')
+        }
+
+        return parts.length
+            ? `Leidžiami tik šie formatai: ${parts.join(', ')}.`
+            : 'Failų įkėlimas išjungtas.'
     }
 
     function formatKb(kb) {
@@ -134,16 +183,14 @@ export function useFileUploadQueue(uploadRulesRef, options = {}) {
         for (const file of picked) {
             const kind = fileKind(file)
             if (!kind) {
-                fileHint.value = rules.allow_video
-                    ? 'Leidžiami tik JPEG, PNG arba vaizdo failai.'
-                    : 'Leidžiamos tik JPEG arba PNG nuotraukos.'
+                fileHint.value = allowedTypesMessage(rules)
                 break
             }
             if (!extensionAllowedForKind(file, kind)) {
                 fileHint.value =
                     kind === 'photo'
-                        ? 'Leidžiamos tik JPEG arba PNG nuotraukos.'
-                        : 'Netinkamas vaizdo failo formatas.'
+                        ? `Leidžiami nuotraukų formatai: ${labelsForKind(rules, 'photo')}.`
+                        : `Leidžiami vaizdo formatai: ${labelsForKind(rules, 'video')}.`
                 break
             }
             const photos = countByKind(next, 'photo')
@@ -165,7 +212,7 @@ export function useFileUploadQueue(uploadRulesRef, options = {}) {
                 try {
                     await probeImageFile(file)
                 } catch {
-                    fileHint.value = 'Nuotraukos nepavyko atidaryti. Pasirinkite JPEG arba PNG failą.'
+                    fileHint.value = `Nuotraukos nepavyko atidaryti. Pasirinkite ${labelsForKind(rules, 'photo')} failą.`
                     break
                 }
             }
