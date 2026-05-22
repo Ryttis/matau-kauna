@@ -3,7 +3,7 @@ import { router } from '@inertiajs/vue3'
 import { useReporterApi } from '@/composables/useReporterApi'
 import { KAUNAS_CENTER } from '@/utils/leafletKaunas'
 import { REPORTER_WIZARD_STEPS } from '@/constants/domain/reporterWizardSteps'
-import { useFileUploadQueue, defaultFileUploadSettings } from '@/composables/useFileUploadQueue'
+import { useFileUploadQueue, defaultFileUploadSettings, isBrowserPreviewableFile } from '@/composables/useFileUploadQueue'
 import { messageFromAxiosError } from '@/utils/laravelApiErrors'
 import {
     fileUploadPickerLabel,
@@ -76,7 +76,7 @@ export function useReporterReportPage(props) {
                 kind = 'video'
             }
 
-            if (isPhoto || isVideo) {
+            if ((isPhoto || isVideo) && isBrowserPreviewableFile(file)) {
                 if (!previewUrls.value.has(key)) {
                     previewUrls.value.set(key, URL.createObjectURL(file))
                 }

@@ -6,7 +6,7 @@ import ConfirmModal from '@/Components/App/ConfirmModal.vue'
 import AppButton from '@/Components/App/AppButton.vue'
 import AppInput from '@/Components/App/AppInput.vue'
 import AppSelect from '@/Components/App/AppSelect.vue'
-import { useFileUploadQueue, defaultFileUploadSettings } from '@/composables/useFileUploadQueue'
+import { useFileUploadQueue, defaultFileUploadSettings, isBrowserPreviewableFile } from '@/composables/useFileUploadQueue'
 import { useReporterApi } from '@/composables/useReporterApi'
 import { messageFromAxiosError } from '@/utils/laravelApiErrors'
 import {
@@ -60,10 +60,10 @@ function revokeFilePreviews() {
 
 function buildPreviewEntries(files) {
     return files.map((f) => {
-        if (f.type?.startsWith('image/')) {
+        if (f.type?.startsWith('image/') && isBrowserPreviewableFile(f)) {
             return { url: URL.createObjectURL(f), kind: 'image' }
         }
-        if (f.type?.startsWith('video/')) {
+        if (f.type?.startsWith('video/') && isBrowserPreviewableFile(f)) {
             return { url: URL.createObjectURL(f), kind: 'video' }
         }
         return { url: '', kind: 'none' }

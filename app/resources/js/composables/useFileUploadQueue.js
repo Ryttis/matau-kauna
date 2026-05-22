@@ -22,6 +22,20 @@ export function defaultFileUploadSettings() {
     }
 }
 
+const BROWSER_PREVIEWABLE_IMAGE_MIMES = new Set([
+    'image/jpeg',
+    'image/png',
+    'image/gif',
+    'image/webp',
+    'image/avif',
+    'image/svg+xml',
+])
+
+export function isBrowserPreviewableFile(file) {
+    const mime = String(file?.type ?? '').toLowerCase()
+    return BROWSER_PREVIEWABLE_IMAGE_MIMES.has(mime) || mime.startsWith('video/')
+}
+
 function normalizeFormats(formats) {
     return Array.isArray(formats)
         ? formats
@@ -209,11 +223,13 @@ export function useFileUploadQueue(uploadRulesRef, options = {}) {
                     fileHint.value = `Failas per didelis. Didžiausias dydis - ${formatKb(maxPhotoKb)}.`
                     break
                 }
-                try {
-                    await probeImageFile(file)
-                } catch {
-                    fileHint.value = `Nuotraukos nepavyko atidaryti. Pasirinkite ${labelsForKind(rules, 'photo')} failą.`
-                    break
+                if (isBrowserPreviewableFile(file)) {
+                    try {
+                        await probeImageFile(file)
+                    } catch {
+                        fileHint.value = `Nuotraukos nepavyko atidaryti. Pasirinkite ${labelsForKind(rules, 'photo')} failą.`
+                        break
+                    }
                 }
             }
             if (kind === 'video') {

@@ -12,7 +12,7 @@ import {
 } from '@/constants/domain/reviewProgressEntry'
 import { PROBLEM_STATUS } from '@/constants/domain/problemStatus'
 import { useReviewProgressEntryForm } from '@/composables/useReviewProgressEntryForm'
-import { useFileUploadQueue, defaultFileUploadSettings } from '@/composables/useFileUploadQueue'
+import { useFileUploadQueue, defaultFileUploadSettings, isBrowserPreviewableFile } from '@/composables/useFileUploadQueue'
 import { firstInertiaErrorForPrefix, humanizeTechnicalUploadError } from '@/utils/laravelApiErrors'
 import {
     attachmentsToUploadBaseline,
@@ -82,10 +82,10 @@ function revokeFilePreviews() {
 
 function buildPreviewEntries(files) {
     return files.map((f) => {
-        if (f.type?.startsWith('image/')) {
+        if (f.type?.startsWith('image/') && isBrowserPreviewableFile(f)) {
             return { url: URL.createObjectURL(f), kind: 'image' }
         }
-        if (f.type?.startsWith('video/')) {
+        if (f.type?.startsWith('video/') && isBrowserPreviewableFile(f)) {
             return { url: URL.createObjectURL(f), kind: 'video' }
         }
         return { url: '', kind: 'none' }
