@@ -31,17 +31,18 @@ const {
     selectedCategory,
     selectedProblems,
     showCategoryDropdown,
+    showStatusDropdown,
     numberSearchQuery,
-    selectedAddressProblemId,
-    selectedStatus,
+    addressSearchQuery,
+    selectedStatuses,
+    statusSearchQuery,
     mergeSubmitting,
     unmergeSubmitting,
     mainProblemId,
     mergeProblemLabel,
-    addressSelectOptions,
-    numberSelectOptions,
     categorySelectOptions,
-    statusSelectOptions,
+    filteredStatusSelectOptions,
+    selectedStatusSummary,
     problemsToShowOnMap,
     mergedProblemIdsForMap,
     markableProblemIdsForMap,
@@ -52,6 +53,9 @@ const {
     handleSelectAll,
     handleSelectItem,
     openProblemView,
+    toggleStatusDropdown,
+    toggleStatusFilter,
+    clearStatusFilter,
     handleUnmerge,
     handleMerge,
     handleMarkFromMap,
@@ -166,33 +170,85 @@ function mergeProblemStatusStyle(problem) {
                             :options="categorySelectOptions"
                             @update:model-value="handleCategoryChange"
                         />
-                        <SearchableSelect
-                            v-model="selectedStatus"
-                            class="merge-status-select"
-                            label="Būsena"
-                            label-position="left"
-                            empty-option-label="Visos būsenos"
-                            search-placeholder="Ieškoti būsenos…"
-                            :options="statusSelectOptions"
-                        />
-                        <SearchableSelect
-                            v-model="numberSearchQuery"
-                            class="merge-number-select"
-                            label="Problemos Nr."
-                            label-position="left"
-                            empty-option-label="Visi numeriai"
-                            search-placeholder="Ieškoti pagal numerį ar aprašymą…"
-                            :options="numberSelectOptions"
-                        />
-                        <SearchableSelect
-                            v-model="selectedAddressProblemId"
-                            class="merge-address-select"
-                            label="Adresas"
-                            label-position="left"
-                            empty-option-label="Visi adresai"
-                            :max-display-length="56"
-                            :options="addressSelectOptions"
-                        />
+                        <div class="merge-status-multi" :ref="mergePage.statusDropdownRef">
+                            <label class="merge-status-multi__label" for="merge-status-search">Būsena</label>
+                            <div class="merge-status-multi__control">
+                                <input
+                                    id="merge-status-search"
+                                    v-model="statusSearchQuery"
+                                    class="merge-status-multi__input"
+                                    type="text"
+                                    :placeholder="selectedStatusSummary"
+                                    autocomplete="off"
+                                    @focus="showStatusDropdown = true"
+                                    @click.stop="showStatusDropdown = true"
+                                />
+                                <button
+                                    v-if="selectedStatuses.length > 0"
+                                    type="button"
+                                    class="merge-status-multi__clear"
+                                    aria-label="Išvalyti būsenas"
+                                    @click.stop="clearStatusFilter"
+                                >
+                                    ×
+                                </button>
+                                <button
+                                    type="button"
+                                    class="merge-status-multi__chevron"
+                                    aria-label="Rodyti būsenas"
+                                    @click.stop="toggleStatusDropdown"
+                                >
+                                    <img :src="ICON_ARROW" alt="" class="merge-status-multi__chevron-img" />
+                                </button>
+                                <div v-if="showStatusDropdown" class="merge-status-multi__dropdown">
+                                    <button
+                                        type="button"
+                                        class="merge-status-multi__option merge-status-multi__option--all"
+                                        @click.stop="clearStatusFilter"
+                                    >
+                                        Visos būsenos
+                                    </button>
+                                    <div
+                                        v-for="option in filteredStatusSelectOptions"
+                                        :key="option.value"
+                                        class="merge-status-multi__option"
+                                        :class="{ 'merge-status-multi__option--active': selectedStatuses.includes(option.value) }"
+                                    >
+                                        <input
+                                            class="merge-status-multi__checkbox"
+                                            type="checkbox"
+                                            :checked="selectedStatuses.includes(option.value)"
+                                            :value="option.value"
+                                            @change="toggleStatusFilter(option.value)"
+                                        />
+                                        <span>{{ option.label }}</span>
+                                    </div>
+                                    <div v-if="filteredStatusSelectOptions.length === 0" class="merge-status-multi__empty">
+                                        Nieko nerasta.
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <label class="merge-text-filter merge-number-filter">
+                            <span class="merge-text-filter__label">Problemos Nr.</span>
+                            <input
+                                v-model="numberSearchQuery"
+                                class="merge-text-filter__input"
+                                type="text"
+                                placeholder="Visi numeriai"
+                                autocomplete="off"
+                            />
+                        </label>
+                        <label class="merge-text-filter merge-address-filter">
+                            <span class="merge-text-filter__label">Adresas</span>
+                            <input
+                                v-model="addressSearchQuery"
+                                class="merge-text-filter__input"
+                                type="text"
+                                placeholder="Visi adresai"
+                                autocomplete="off"
+                            />
+                        </label>
                     </div>
 
                     <div :ref="mergePage.mergeListScrollRef" class="merge-problems-list-scroll">

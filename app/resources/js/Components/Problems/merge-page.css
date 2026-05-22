@@ -158,6 +158,196 @@
     min-width: 220px;
 }
 
+.merge-text-filter {
+    display: flex;
+    flex: 1;
+    align-items: center;
+    gap: 12px;
+    min-width: 220px;
+}
+
+.merge-text-filter__label {
+    color: #333333;
+    font-family: var(--font-family-base, 'Open Sans', sans-serif);
+    font-size: 16px;
+    font-weight: 600;
+    line-height: 1.5;
+    white-space: nowrap;
+}
+
+.merge-text-filter__input {
+    width: 100%;
+    min-height: 44px;
+    min-width: 0;
+    box-sizing: border-box;
+    padding: 10px 14px;
+    border: 1px solid var(--color-border, #e0e0e0);
+    border-radius: 5px;
+    background: #fff;
+    color: var(--color-text, #333);
+    font-family: var(--font-family-base, 'Open Sans', sans-serif);
+    font-size: 14px;
+}
+
+.merge-text-filter__input:focus {
+    outline: none;
+    border-color: var(--color-primary, #1946a0);
+    box-shadow: 0 0 0 1px var(--color-primary, #1946a0);
+}
+
+.merge-text-filter__input::placeholder {
+    color: #888;
+}
+
+.merge-status-multi {
+    display: flex;
+    flex: 1;
+    align-items: center;
+    gap: 12px;
+    min-width: 260px;
+}
+
+.merge-status-multi__label {
+    color: #333333;
+    font-family: var(--font-family-base, 'Open Sans', sans-serif);
+    font-size: 16px;
+    font-weight: 600;
+    line-height: 1.5;
+    white-space: nowrap;
+}
+
+.merge-status-multi__control {
+    position: relative;
+    flex: 1;
+    min-width: 0;
+}
+
+.merge-status-multi__input {
+    width: 100%;
+    min-height: 44px;
+    box-sizing: border-box;
+    padding: 10px 78px 10px 14px;
+    border: 1px solid var(--color-border, #e0e0e0);
+    border-radius: 5px;
+    background: #fff;
+    color: var(--color-text, #333);
+    font-family: var(--font-family-base, 'Open Sans', sans-serif);
+    font-size: 14px;
+}
+
+.merge-status-multi__input:focus {
+    outline: none;
+    border-color: var(--color-primary, #1946a0);
+    box-shadow: 0 0 0 1px var(--color-primary, #1946a0);
+}
+
+.merge-status-multi__input::placeholder {
+    color: var(--color-text, #333);
+    opacity: 1;
+}
+
+.merge-status-multi__clear,
+.merge-status-multi__chevron {
+    position: absolute;
+    top: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    padding: 0;
+    transform: translateY(-50%);
+    border: none;
+    border-radius: 4px;
+    background: transparent;
+    color: #666;
+    cursor: pointer;
+}
+
+.merge-status-multi__clear {
+    right: 38px;
+    font-size: 22px;
+    line-height: 1;
+}
+
+.merge-status-multi__chevron {
+    right: 8px;
+}
+
+.merge-status-multi__clear:hover,
+.merge-status-multi__chevron:hover {
+    background: #f0f0f0;
+}
+
+.merge-status-multi__chevron-img {
+    display: block;
+    width: 18px;
+    height: 18px;
+    opacity: 0.75;
+}
+
+.merge-status-multi__dropdown {
+    position: absolute;
+    top: calc(100% + 4px);
+    left: 0;
+    right: 0;
+    z-index: 1200;
+    max-height: 280px;
+    overflow-y: auto;
+    border: 1px solid var(--color-border, #e0e0e0);
+    border-radius: 5px;
+    background: #fff;
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.12);
+}
+
+.merge-status-multi__option {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    box-sizing: border-box;
+    padding: 10px 14px;
+    border-bottom: 1px solid #f0f0f0;
+    color: var(--color-text, #333);
+    font-family: var(--font-family-base, 'Open Sans', sans-serif);
+    font-size: 14px;
+    line-height: 1.4;
+}
+
+.merge-status-multi__option:last-child {
+    border-bottom: none;
+}
+
+.merge-status-multi__option:hover,
+.merge-status-multi__option--active {
+    background: #e8eef7;
+}
+
+.merge-status-multi__option--all {
+    display: block;
+    text-align: left;
+    border: none;
+    border-bottom: 1px solid #f0f0f0;
+    background: #fff;
+    cursor: pointer;
+    font-weight: 500;
+}
+
+.merge-status-multi__checkbox {
+    width: 18px;
+    height: 18px;
+    flex: 0 0 auto;
+    margin: 0;
+    cursor: pointer;
+}
+
+.merge-status-multi__empty {
+    padding: 12px 14px;
+    color: #666;
+    font-family: var(--font-family-base, 'Open Sans', sans-serif);
+    font-size: 14px;
+}
+
 .merge-list-empty {
     padding: 20px 16px;
     text-align: center;
