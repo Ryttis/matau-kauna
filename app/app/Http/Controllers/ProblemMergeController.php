@@ -68,7 +68,7 @@ class ProblemMergeController extends Controller
 
         $similarProblems = $query->with([
             'mergedProblems' => fn ($q) => $q->notArchived()
-                ->select(['id', 'internal_number', 'description', 'merged_into_problem_id', 'lat', 'lng', 'address']),
+                ->select(['id', 'internal_number', 'description', 'merged_into_problem_id', 'lat', 'lng', 'address', 'category', 'status', 'created_at']),
         ])
             ->orderBy('created_at', 'desc')
             ->get();

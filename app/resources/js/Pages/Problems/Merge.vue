@@ -9,6 +9,7 @@ import SuccessModal from '@/Components/App/SuccessModal.vue'
 import KaunasProblemsMap from '@/Components/Map/KaunasProblemsMap.vue'
 import ProblemMapStatusLegend from '@/Components/Map/ProblemMapStatusLegend.vue'
 import { useMergePage } from '@/composables/useMergePage'
+import { PROBLEM_STATUS, PROBLEM_STATUS_LABELS, getStatusBadgeStyle } from '@/constants/domain/problemStatus'
 import '@/Components/Problems/merge-page.css'
 
 const props = defineProps({
@@ -32,17 +33,20 @@ const {
     showCategoryDropdown,
     numberSearchQuery,
     selectedAddressProblemId,
+    selectedStatus,
     mergeSubmitting,
     unmergeSubmitting,
     mainProblemId,
     mergeProblemLabel,
     addressSelectOptions,
     numberSelectOptions,
+    categorySelectOptions,
+    statusSelectOptions,
     problemsToShowOnMap,
     mergedProblemIdsForMap,
     markableProblemIdsForMap,
     filteredSingleListRows,
-    similarOnly,
+    visibleSelectableProblemIds,
     handleBack,
     handleCategoryChange,
     handleSelectAll,
@@ -52,6 +56,33 @@ const {
     handleMerge,
     handleMarkFromMap,
 } = mergePage
+
+function mergeProblemAddress(problem) {
+    const address = String(problem?.address || '').trim()
+    return address || '-'
+}
+
+function mergeProblemCategory(problem) {
+    const category = String(problem?.category || '').trim()
+    return category || '-'
+}
+
+function mergeProblemCreatedDate(problem) {
+    if (!problem?.created_at) return '-'
+    const date = new Date(problem.created_at)
+    if (Number.isNaN(date.getTime())) return '-'
+    return date.toLocaleDateString('lt-LT')
+}
+
+function mergeProblemStatusLetter(problem) {
+    const status = problem?.status || PROBLEM_STATUS.UNREGISTERED
+    const label = PROBLEM_STATUS_LABELS[status] || status || '-'
+    return String(label).trim().slice(0, 1).toUpperCase()
+}
+
+function mergeProblemStatusStyle(problem) {
+    return getStatusBadgeStyle(problem?.status || PROBLEM_STATUS.UNREGISTERED)
+}
 </script>
 
 <template>
@@ -126,6 +157,25 @@ const {
                 <div class="merge-problems-section">
                     <div class="merge-filters">
                         <SearchableSelect
+                            :model-value="selectedCategory"
+                            class="merge-category-select"
+                            label="Kategorija"
+                            label-position="left"
+                            empty-option-label="Visos kategorijos"
+                            search-placeholder="Ieškoti kategorijos…"
+                            :options="categorySelectOptions"
+                            @update:model-value="handleCategoryChange"
+                        />
+                        <SearchableSelect
+                            v-model="selectedStatus"
+                            class="merge-status-select"
+                            label="Būsena"
+                            label-position="left"
+                            empty-option-label="Visos būsenos"
+                            search-placeholder="Ieškoti būsenos…"
+                            :options="statusSelectOptions"
+                        />
+                        <SearchableSelect
                             v-model="numberSearchQuery"
                             class="merge-number-select"
                             label="Problemos Nr."
@@ -169,14 +219,36 @@ const {
                                 }"
                             >
                                 <template v-if="row.type === 'main'">
-                                    <span class="merge-problem-text">
-                                        {{ mergeProblemLabel(row.problem) }} - ši problema
-                                    </span>
+                                    <div class="merge-problem-content">
+                                        <span class="merge-problem-title-row">
+                                            <span class="merge-problem-status-initial" :style="mergeProblemStatusStyle(row.problem)">
+                                                {{ mergeProblemStatusLetter(row.problem) }}
+                                            </span>
+                                            <span class="merge-problem-text">
+                                                {{ mergeProblemLabel(row.problem) }} - ši problema
+                                            </span>
+                                        </span>
+                                        <span class="merge-problem-meta">
+                                            <span class="merge-problem-category-chip">{{ mergeProblemCategory(row.problem) }}</span>
+                                            <span>Adresas: {{ mergeProblemAddress(row.problem) }} · Sukurta: {{ mergeProblemCreatedDate(row.problem) }}</span>
+                                        </span>
+                                    </div>
                                 </template>
                                 <template v-else-if="row.type === 'merged' || row.type === 'similar_merged'">
-                                    <span class="merge-problem-text merge-problem-text-merged">
-                                        {{ mergeProblemLabel(row.problem) }}
-                                    </span>
+                                    <div class="merge-problem-content">
+                                        <span class="merge-problem-title-row">
+                                            <span class="merge-problem-status-initial" :style="mergeProblemStatusStyle(row.problem)">
+                                                {{ mergeProblemStatusLetter(row.problem) }}
+                                            </span>
+                                            <span class="merge-problem-text merge-problem-text-merged">
+                                                {{ mergeProblemLabel(row.problem) }}
+                                            </span>
+                                        </span>
+                                        <span class="merge-problem-meta">
+                                            <span class="merge-problem-category-chip">{{ mergeProblemCategory(row.problem) }}</span>
+                                            <span>Adresas: {{ mergeProblemAddress(row.problem) }} · Sukurta: {{ mergeProblemCreatedDate(row.problem) }}</span>
+                                        </span>
+                                    </div>
                                     <button
                                         type="button"
                                         class="merge-unmerge-btn"
@@ -196,8 +268,19 @@ const {
                                             :value="row.problem.id"
                                             @change="handleSelectItem(row.problem.id)"
                                         />
-                                        <span class="merge-problem-text">
-                                            {{ mergeProblemLabel(row.problem) }}
+                                        <span class="merge-problem-content">
+                                            <span class="merge-problem-title-row">
+                                                <span class="merge-problem-status-initial" :style="mergeProblemStatusStyle(row.problem)">
+                                                    {{ mergeProblemStatusLetter(row.problem) }}
+                                                </span>
+                                                <span class="merge-problem-text">
+                                                    {{ mergeProblemLabel(row.problem) }}
+                                                </span>
+                                            </span>
+                                            <span class="merge-problem-meta">
+                                                <span class="merge-problem-category-chip">{{ mergeProblemCategory(row.problem) }}</span>
+                                                <span>Adresas: {{ mergeProblemAddress(row.problem) }} · Sukurta: {{ mergeProblemCreatedDate(row.problem) }}</span>
+                                            </span>
                                         </span>
                                     </label>
                                 </template>
@@ -208,7 +291,7 @@ const {
                     <div class="merge-actions">
                         <label class="merge-select-all-label">
                             <AppCheckbox
-                                :model-value="similarOnly.length > 0 && selectedProblems.length === similarOnly.length"
+                                :model-value="visibleSelectableProblemIds.length > 0 && visibleSelectableProblemIds.every((id) => selectedProblems.includes(id))"
                                 @change="handleSelectAll"
                             />
                             <span class="merge-select-all-text">Pasirinkti viską</span>

@@ -2,7 +2,7 @@ import { ref, computed, watch, nextTick, onMounted, onUnmounted } from 'vue'
 import { router } from '@inertiajs/vue3'
 import { useSuccessModal } from '@/composables/useSuccessModal'
 import { KAUNAS_CENTER } from '@/utils/leafletKaunas'
-import { MAP_LEGEND_STATUS_ORDER, PROBLEM_STATUS } from '@/constants/domain/problemStatus'
+import { MAP_LEGEND_STATUS_ORDER, PROBLEM_STATUS, PROBLEM_STATUS_LABELS } from '@/constants/domain/problemStatus'
 import { ICON_ARROW } from '@/constants/ui/icons'
 import { truncateDisplay, DEFAULT_DISPLAY_MAX_LENGTH } from '@/utils/textDisplay'
 import { buildMergeAddressSelectOptions, listMergePageProblems } from '@/utils/mergeAddressOptions'
@@ -16,6 +16,7 @@ export function useMergePage(props) {
     const categoryDropdownRef = ref(null)
     const numberSearchQuery = ref('')
     const selectedAddressProblemId = ref('')
+    const selectedStatus = ref('')
     const mergeListScrollRef = ref(null)
     const mergeSubmitting = ref(false)
     const unmergeSubmitting = ref(false)
@@ -41,6 +42,20 @@ export function useMergePage(props) {
                 label: mergeProblemLabel(p),
             }))
             .sort((a, b) => a.value.localeCompare(b.value, 'lt', { numeric: true })),
+    )
+
+    const categorySelectOptions = computed(() =>
+        (props.categories || []).map((category) => ({
+            value: category,
+            label: category,
+        })),
+    )
+
+    const statusSelectOptions = computed(() =>
+        MAP_LEGEND_STATUS_ORDER.map((status) => ({
+            value: status,
+            label: PROBLEM_STATUS_LABELS[status] || status,
+        })),
     )
 
     const problemsForMap = computed(() => {
@@ -168,13 +183,24 @@ export function useMergePage(props) {
             rows = rows.filter((row) => group.has(Number(row.problem.id)))
         }
 
+        if (selectedStatus.value) {
+            rows = rows.filter((row) => (row.problem?.status || PROBLEM_STATUS.UNREGISTERED) === selectedStatus.value)
+        }
+
         return rows
     })
+
+    const visibleSelectableProblemIds = computed(() =>
+        filteredSingleListRows.value
+            .filter((row) => row.type === 'similar')
+            .map((row) => row.problem.id),
+    )
 
     const listFilterMapIds = computed(() => {
         const hasNumber = numberSearchQuery.value.trim() !== ''
         const hasAddress = Boolean(selectedAddressProblemId.value)
-        if (!hasNumber && !hasAddress) return null
+        const hasStatus = Boolean(selectedStatus.value)
+        if (!hasNumber && !hasAddress && !hasStatus) return null
         return new Set(filteredSingleListRows.value.map((row) => Number(row.problem.id)))
     })
 
@@ -185,12 +211,16 @@ export function useMergePage(props) {
         return list.filter((p) => filterIds.has(Number(p.id)))
     })
 
-    watch([numberSearchQuery, selectedAddressProblemId], () => {
+    watch([numberSearchQuery, selectedAddressProblemId, selectedStatus], () => {
         nextTick(() => {
             if (mergeListScrollRef.value) {
                 mergeListScrollRef.value.scrollTop = 0
             }
         })
+    })
+
+    watch(selectedStatus, () => {
+        selectedProblems.value = []
     })
 
     const mergedProblemIdsForMap = computed(() =>
@@ -236,6 +266,7 @@ export function useMergePage(props) {
         selectedProblems.value = []
         numberSearchQuery.value = ''
         selectedAddressProblemId.value = ''
+        selectedStatus.value = ''
 
         router.get(route('problems.merge', props.problem.id), {
             category: category || '',
@@ -247,7 +278,7 @@ export function useMergePage(props) {
 
     const handleSelectAll = (checked) => {
         if (checked) {
-            selectedProblems.value = similarOnly.value.map((p) => p.id)
+            selectedProblems.value = visibleSelectableProblemIds.value
         } else {
             selectedProblems.value = []
         }
@@ -332,6 +363,7 @@ export function useMergePage(props) {
         categoryDropdownRef,
         numberSearchQuery,
         selectedAddressProblemId,
+        selectedStatus,
         mergeListScrollRef,
         mergeSubmitting,
         unmergeSubmitting,
@@ -339,11 +371,14 @@ export function useMergePage(props) {
         mergeProblemLabel,
         addressSelectOptions,
         numberSelectOptions,
+        categorySelectOptions,
+        statusSelectOptions,
         problemsToShowOnMap,
         mergedProblemIdsForMap,
         markableProblemIdsForMap,
         filteredSingleListRows,
         similarOnly,
+        visibleSelectableProblemIds,
         handleBack,
         handleCategoryChange,
         handleSelectAll,
