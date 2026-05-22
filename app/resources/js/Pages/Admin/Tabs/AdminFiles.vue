@@ -30,6 +30,7 @@ const defaultChannel = () => ({
     photo_formats: defaultPhotoFormats(),
     video_formats: defaultVideoFormats(),
     max_photo_size_kb: 5120,
+    max_video_size_kb: 51200,
     max_photo_files_per_problem: 5,
     max_video_files_per_problem: 1,
     max_video_duration_seconds: 60,
@@ -209,6 +210,16 @@ onMounted(load)
                             <span class="field-lbl">Nuotrauka, KB</span>
                             <input
                                 v-model.number="config[ch].max_photo_size_kb"
+                                type="number"
+                                min="64"
+                                max="102400"
+                                class="inp"
+                            />
+                        </div>
+                        <div v-if="config[ch].allow_video" class="field-row">
+                            <span class="field-lbl">Vaizdas, KB</span>
+                            <input
+                                v-model.number="config[ch].max_video_size_kb"
                                 type="number"
                                 min="64"
                                 max="102400"

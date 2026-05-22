@@ -14,6 +14,7 @@ export function defaultFileUploadSettings() {
             { label: 'MOV', mime: 'video/quicktime', extensions: ['mov'] },
         ],
         max_photo_size_kb: 5120,
+        max_video_size_kb: 51200,
         max_photo_files_per_problem: 5,
         max_video_files_per_problem: 1,
         max_video_duration_seconds: 60,
@@ -233,6 +234,11 @@ export function useFileUploadQueue(uploadRulesRef, options = {}) {
                 }
             }
             if (kind === 'video') {
+                const maxVideoKb = Number(rules.max_video_size_kb) || 51200
+                if (file.size / 1024 > maxVideoKb) {
+                    fileHint.value = `Vaizdo failas per didelis. Didžiausias dydis - ${formatKb(maxVideoKb)}.`
+                    break
+                }
                 const maxVideoSec = Math.min(
                     60,
                     Math.max(1, Number(rules.max_video_duration_seconds) || 60),

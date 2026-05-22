@@ -49,6 +49,7 @@ class FileUploadSettings extends Model
             'photo_formats' => self::defaultPhotoFormats(),
             'video_formats' => self::defaultVideoFormats(),
             'max_photo_size_kb' => 5120,
+            'max_video_size_kb' => 51200,
             'max_photo_files_per_problem' => 5,
             'max_video_files_per_problem' => 1,
             'max_video_duration_seconds' => 60,
@@ -104,9 +105,10 @@ class FileUploadSettings extends Model
         $v = (int) ($c['max_video_duration_seconds'] ?? 60);
         $c['max_video_duration_seconds'] = in_array($v, $allowed, true) ? $v : 60;
         $c['max_photo_size_kb'] = max(64, (int) ($c['max_photo_size_kb'] ?? 5120));
+        $c['max_video_size_kb'] = max(64, (int) ($c['max_video_size_kb'] ?? 51200));
         $c['photo_formats'] = self::normalizeFormats($c['photo_formats'] ?? null, self::defaultPhotoFormats());
         $c['video_formats'] = self::normalizeFormats($c['video_formats'] ?? null, self::defaultVideoFormats());
-        unset($c['max_video_size_kb'], $c['max_total_upload_kb'], $c['max_files_per_problem']);
+        unset($c['max_total_upload_kb'], $c['max_files_per_problem']);
 
         return $c;
     }

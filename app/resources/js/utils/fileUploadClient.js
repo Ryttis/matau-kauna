@@ -40,10 +40,11 @@ export function formatDetailedFileUploadHint(uploadRules) {
         const maxSec = Math.min(60, Math.max(1, Number(uploadRules.max_video_duration_seconds) || 60))
         const durLabel = maxSec >= 60 ? '1 min. trukmės' : `${maxSec} s trukmės`
         const formats = formatLabels(uploadRules.video_formats, 'MP4, WebM, MOV')
+        const sizeKb = Number(uploadRules.max_video_size_kb) || 51200
         hintParts.push(
             maxVideoFiles === 1
-                ? `1 vaizdas iki ${durLabel} (${formats})`
-                : `vaizdai: iki ${maxVideoFiles} vnt., iki ${durLabel} (${formats})`,
+                ? `1 vaizdas iki ${durLabel}, po ${sizeKb} KB (${formats})`
+                : `vaizdai: iki ${maxVideoFiles} vnt., iki ${durLabel}, po ${sizeKb} KB (${formats})`,
         )
     }
     if (!hintParts.length) {

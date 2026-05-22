@@ -20,6 +20,7 @@ class UpdateFileUploadSettingsRequest extends FormRequest
                 $prefix.'.allow_photo' => ['boolean'],
                 $prefix.'.allow_video' => ['boolean'],
                 $prefix.'.max_photo_size_kb' => ['integer', 'min:64', 'max:102400'],
+                $prefix.'.max_video_size_kb' => ['integer', 'min:64', 'max:102400'],
                 $prefix.'.max_photo_files_per_problem' => ['integer', 'min:0', 'max:50'],
                 $prefix.'.max_video_files_per_problem' => ['integer', 'min:0', 'max:20'],
                 $prefix.'.max_video_duration_seconds' => ['integer', 'in:'.implode(',', FileUploadSettings::allowedMaxVideoDurationSeconds())],

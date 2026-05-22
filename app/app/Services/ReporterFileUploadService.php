@@ -136,6 +136,16 @@ class ReporterFileUploadService
                 }
             }
 
+            if ($kind === 'video') {
+                $maxVideoKb = (int) ($config['max_video_size_kb'] ?? 51200);
+                $sizeKb = (int) ceil($file->getSize() / 1024);
+                if ($sizeKb > $maxVideoKb) {
+                    throw ValidationException::withMessages([
+                        'files' => 'Vaizdo failas per didelis.',
+                    ]);
+                }
+            }
+
             if (! $this->extensionMatchesKind($file, $kind, $config)) {
                 throw ValidationException::withMessages([
                     'files' => 'Netinkamas failo formatas.',

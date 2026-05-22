@@ -1013,6 +1013,7 @@ paths:
                   allow_photo: true
                   allow_video: true
                   max_photo_size_kb: 5120
+                  max_video_size_kb: 51200
                   max_photo_files_per_problem: 5
                   max_video_files_per_problem: 1
                   max_video_duration_seconds: 60
@@ -1039,6 +1040,7 @@ paths:
                   allow_photo: true
                   allow_video: true
                   max_photo_size_kb: 5120
+                  max_video_size_kb: 51200
                   max_photo_files_per_problem: 5
                   max_video_files_per_problem: 1
                   max_video_duration_seconds: 60
@@ -2986,6 +2988,9 @@ components:
         max_photo_size_kb:
           type: integer
           description: Maximum size of a single photo in KB.
+        max_video_size_kb:
+          type: integer
+          description: Maximum size of a single video in KB.
         max_photo_files_per_problem:
           type: integer
           description: Maximum number of photos allowed for one problem.
