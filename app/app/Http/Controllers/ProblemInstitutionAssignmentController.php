@@ -436,6 +436,6 @@ class ProblemInstitutionAssignmentController extends Controller
 
         $this->assignmentNotifier->notifyInstitutionOfAssignment([$problem->id], $validated['institution_id']);
 
-        return redirect()->back()->with('success', 'Problema perduota kitai įstaigai.');
+        return redirect()->route('dashboard')->with('success', 'Problema perduota kitai įstaigai.');
     }
 }
