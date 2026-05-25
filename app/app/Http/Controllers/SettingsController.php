@@ -139,6 +139,7 @@ class SettingsController extends Controller
             ]);
         }
 
+        $user->forceFill(['active_role_id' => $validated['role_id']])->save();
         $request->session()->put('active_role_id', $validated['role_id']);
 
         return back();

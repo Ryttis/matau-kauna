@@ -78,9 +78,9 @@ class TwoFactorChallengeController extends Controller
             'user_agent' => $request->userAgent(),
         ]);
         $this->auditLogService->logLogin($user, $request);
-        $personalRoleId = $this->activeRoleService->personalDefaultRoleIdForUser($user);
-        if ($personalRoleId !== null) {
-            $request->session()->put('active_role_id', $personalRoleId);
+        $activeRoleId = $this->activeRoleService->preferredActiveRoleIdForUser($user);
+        if ($activeRoleId !== null) {
+            $request->session()->put('active_role_id', $activeRoleId);
         }
 
         return redirect()->intended(route('dashboard', absolute: false));

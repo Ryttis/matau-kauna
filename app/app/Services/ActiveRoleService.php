@@ -41,13 +41,7 @@ final class ActiveRoleService
         if ($sessionId !== null && in_array($sessionId, $roleIds, true)) {
             $activeId = $sessionId;
         } else {
-            $persisted = $user->active_role_id !== null ? (string) $user->active_role_id : null;
-            if ($persisted !== null && in_array($persisted, $roleIds, true)) {
-                $activeId = $persisted;
-            }
-        }
-        if ($activeId === null) {
-            $activeId = $this->defaultPersonalActiveRoleId($rolesCollection);
+            $activeId = $this->preferredActiveRoleId($user, $rolesCollection);
         }
 
         if ($hasSession && $sessionId !== $activeId) {
@@ -70,6 +64,28 @@ final class ActiveRoleService
         $roles = $user->roles()->get(['id', 'role']);
         if ($roles->isEmpty()) {
             return null;
+        }
+
+        return $this->defaultPersonalActiveRoleId($roles);
+    }
+
+    public function preferredActiveRoleIdForUser(User $user): ?string
+    {
+        $roles = $user->roles()->get(['id', 'role']);
+        if ($roles->isEmpty()) {
+            return null;
+        }
+
+        return $this->preferredActiveRoleId($user, $roles);
+    }
+
+    private function preferredActiveRoleId(User $user, Collection $roles): string
+    {
+        $roleIds = $roles->pluck('id')->map(fn ($id) => (string) $id)->all();
+        $persisted = $user->active_role_id !== null ? (string) $user->active_role_id : null;
+
+        if ($persisted !== null && in_array($persisted, $roleIds, true)) {
+            return $persisted;
         }
 
         return $this->defaultPersonalActiveRoleId($roles);

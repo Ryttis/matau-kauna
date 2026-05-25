@@ -4,8 +4,11 @@ namespace Tests\Feature\Auth;
 
 use App\Models\User;
 use App\Models\UserRole;
+use App\Services\TwoFactorService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Http;
+use Mockery;
 use Tests\TestCase;
 
 class AuthenticationTest extends TestCase
@@ -96,5 +99,146 @@ class AuthenticationTest extends TestCase
 
         $this->assertGuest();
         $response->assertRedirect('/');
+    }
+
+    public function test_profile_active_role_switch_is_persisted_for_next_login(): void
+    {
+        [$employeeRole, $systemAdminRole] = $this->staffRolesForActiveRoleTests();
+        $user = User::factory()->create();
+        $user->roles()->sync([$employeeRole->id, $systemAdminRole->id]);
+
+        $this
+            ->actingAs($user)
+            ->patch(route('settings.active-role'), [
+                'role_id' => $systemAdminRole->id,
+            ])
+            ->assertRedirect();
+
+        $this->assertSame((string) $systemAdminRole->id, (string) $user->refresh()->active_role_id);
+    }
+
+    public function test_login_restores_saved_active_role(): void
+    {
+        [$employeeRole, $systemAdminRole] = $this->staffRolesForActiveRoleTests();
+        $user = User::factory()->create([
+            'email' => 'staff-active-role@example.com',
+            'password' => Hash::make('password'),
+            'active_role_id' => $systemAdminRole->id,
+        ]);
+        $user->roles()->sync([$employeeRole->id, $systemAdminRole->id]);
+
+        $this
+            ->post('/login', [
+                'email' => 'staff-active-role@example.com',
+                'password' => 'password',
+                'login_type' => 'darbuotojas',
+            ])
+            ->assertRedirect(route('dashboard', absolute: false))
+            ->assertSessionHas('active_role_id', (string) $systemAdminRole->id);
+
+        $this->assertAuthenticatedAs($user);
+    }
+
+    public function test_login_falls_back_when_saved_active_role_is_no_longer_assigned(): void
+    {
+        [$employeeRole, $systemAdminRole] = $this->staffRolesForActiveRoleTests();
+        $user = User::factory()->create([
+            'email' => 'staff-active-role-fallback@example.com',
+            'password' => Hash::make('password'),
+            'active_role_id' => $systemAdminRole->id,
+        ]);
+        $user->roles()->sync([$employeeRole->id]);
+
+        $this
+            ->post('/login', [
+                'email' => 'staff-active-role-fallback@example.com',
+                'password' => 'password',
+                'login_type' => 'darbuotojas',
+            ])
+            ->assertRedirect(route('dashboard', absolute: false))
+            ->assertSessionHas('active_role_id', (string) $employeeRole->id);
+
+        $this->assertAuthenticatedAs($user);
+    }
+
+    public function test_two_factor_login_restores_saved_active_role(): void
+    {
+        [$employeeRole, $systemAdminRole] = $this->staffRolesForActiveRoleTests();
+        $user = User::factory()->create([
+            'active_role_id' => $systemAdminRole->id,
+            'two_factor_enabled' => true,
+            'two_factor_secret' => 'test-secret',
+            'two_factor_confirmed_at' => now(),
+        ]);
+        $user->roles()->sync([$employeeRole->id, $systemAdminRole->id]);
+
+        $this->mock(TwoFactorService::class, function ($mock): void {
+            $mock->shouldReceive('requiresChallenge')->andReturn(true);
+            $mock
+                ->shouldReceive('verifyCode')
+                ->once()
+                ->with(Mockery::type(User::class), '123456')
+                ->andReturn(true);
+        });
+
+        $this
+            ->withSession(['two_factor_pending_user_id' => $user->id])
+            ->post(route('two-factor.challenge.store'), [
+                'code' => '123456',
+            ])
+            ->assertRedirect(route('dashboard', absolute: false))
+            ->assertSessionHas('active_role_id', (string) $systemAdminRole->id);
+
+        $this->assertAuthenticatedAs($user);
+    }
+
+    public function test_viisp_login_restores_saved_active_role(): void
+    {
+        [$employeeRole, $systemAdminRole] = $this->staffRolesForActiveRoleTests();
+        $personalCodeHash = bin2hex(random_bytes(16));
+        $user = User::factory()->create([
+            'email' => 'viisp-staff@example.com',
+            'name' => 'Viisp',
+            'surname' => 'Staff',
+            'viisp_personal_code_hash' => $personalCodeHash,
+            'active_role_id' => $systemAdminRole->id,
+        ]);
+        $user->roles()->sync([$employeeRole->id, $systemAdminRole->id]);
+
+        config([
+            'services.viisp.exchange_secret' => 'test-secret',
+            'services.viisp.gateway_url' => 'https://viisp.test',
+        ]);
+        Http::fake([
+            'https://viisp.test/gateway/viisp/exchange/test-token' => Http::response([
+                'identity' => [
+                    'hashedCode' => $personalCodeHash,
+                    'firstName' => 'Viisp',
+                    'lastName' => 'Staff',
+                    'email' => 'viisp-staff@example.com',
+                ],
+            ]),
+        ]);
+
+        $this
+            ->get(route('viisp.callback', ['token' => 'test-token']))
+            ->assertRedirect(route('dashboard', absolute: false))
+            ->assertSessionHas('active_role_id', (string) $systemAdminRole->id);
+
+        $this->assertAuthenticatedAs($user);
+    }
+
+    private function staffRolesForActiveRoleTests(): array
+    {
+        return [
+            UserRole::firstOrCreate(
+                ['role' => UserRole::ROLE_EMPLOYEE],
+                ['name' => 'Įstaigos darbuotojas'],
+            ),
+            UserRole::firstOrCreate(
+                ['role' => UserRole::ROLE_SYSTEM_ADMIN],
+                ['name' => 'Sistemos administratorius'],
+            ),
+        ];
     }
 }
