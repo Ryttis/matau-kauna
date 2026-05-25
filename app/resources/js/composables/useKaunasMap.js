@@ -38,6 +38,7 @@ export function useKaunasMap(containerRef, problemsToShowRef, options = {}) {
         highlightedProblemId = null,
         mergedProblemIds = null,
         markableProblemIds = null,
+        selectedProblemIds = null,
         autoFitView = true,
         focusHighlightedMarker = true,
     } = options
@@ -61,6 +62,10 @@ export function useKaunasMap(containerRef, problemsToShowRef, options = {}) {
     }
     const getMarkableSet = () => {
         const raw = unref(markableProblemIds)
+        return new Set((Array.isArray(raw) ? raw : []).map(Number))
+    }
+    const getSelectedSet = () => {
+        const raw = unref(selectedProblemIds)
         return new Set((Array.isArray(raw) ? raw : []).map(Number))
     }
     const getHighlightedId = () => unref(highlightedProblemId)
@@ -117,8 +122,11 @@ export function useKaunasMap(containerRef, problemsToShowRef, options = {}) {
         )
         const id = Number(problem.id)
         const canMark = typeof onProblemMark === 'function' && id && getMarkableSet().has(id)
+        const isSelected = canMark && getSelectedSet().has(id)
+        const markBtnClass = `kaunas-map-popup-mark-problem kaunas-map-popup-view-btn${isSelected ? ' is-selected' : ''}`
+        const markBtnLabel = isSelected ? 'Pažymėta' : 'Pažymėti'
         const markBtn = canMark
-            ? `<button type="button" class="kaunas-map-popup-mark-problem kaunas-map-popup-view-btn" data-mark-problem-id="${id}">Pažymėti</button>`
+            ? `<button type="button" class="${markBtnClass}" data-mark-problem-id="${id}">${markBtnLabel}</button>`
             : ''
         const viewBtn = onProblemOpen && id
             ? `<p class="kaunas-map-popup-actions"><button type="button" class="kaunas-map-popup-open-problem kaunas-map-popup-view-btn" data-open-problem-id="${id}">Peržiūrėti</button>${markBtn}</p>`
@@ -136,16 +144,29 @@ export function useKaunasMap(containerRef, problemsToShowRef, options = {}) {
     }
 
     function buildClusterPopupContent(problems) {
-        const lines = (problems || []).slice(0, 15).map((problem) => {
+        const markableSet = getMarkableSet()
+        const selectedSet = getSelectedSet()
+        const canMarkAny = typeof onProblemMark === 'function'
+        const items = (problems || []).slice(0, 15).map((problem) => {
             const num = escapeHtml(problem.internal_number)
             const catRaw = (problem.category || '').trim()
-            const cat = catRaw ? `${escapeHtml(catRaw)} · ` : ''
-            const preview = escapeHtml((problem.description_preview || problem.description || '').slice(0, 36))
-            return `<a href="#" class="kaunas-map-popup-open-problem" data-open-problem-id="${Number(problem.id)}"><span class="kaunas-map-popup-cluster-line-num">${num}</span> <span class="kaunas-map-popup-cluster-line-rest">${cat}${preview}</span></a>`
+            const cat = catRaw ? escapeHtml(catRaw) : ''
+            const previewRaw = (problem.description_preview || problem.description || '').trim()
+            const preview = escapeHtml(previewRaw)
+            const id = Number(problem.id)
+            const restBits = [cat, preview].filter(Boolean).join(' · ')
+            const canMark = canMarkAny && id && markableSet.has(id)
+            const isSelected = canMark && selectedSet.has(id)
+            const markBtnClass = `kaunas-map-popup-mark-problem kaunas-map-popup-view-btn kaunas-map-popup-view-btn--sm${isSelected ? ' is-selected' : ''}`
+            const markBtnLabel = isSelected ? 'Pažymėta' : 'Pažymėti'
+            const markBtn = canMark
+                ? `<button type="button" class="${markBtnClass}" data-mark-problem-id="${id}">${markBtnLabel}</button>`
+                : ''
+            return `<div class="kaunas-map-popup-cluster-item"><a href="#" class="kaunas-map-popup-open-problem" data-open-problem-id="${id}"><span class="kaunas-map-popup-cluster-line-num">${num}</span><span class="kaunas-map-popup-cluster-line-rest">${restBits}</span></a>${markBtn}</div>`
         })
         const rest = problems.length > 15 ? problems.length - 15 : 0
-        const restLine = rest > 0 ? `<span class="kaunas-map-popup-more">+${rest}</span>` : ''
-        return `<div class="kaunas-map-popup-cluster">${lines.join('<br>')}${restLine}</div>`
+        const restLine = rest > 0 ? `<div class="kaunas-map-popup-more-wrap"><span class="kaunas-map-popup-more">+${rest}</span></div>` : ''
+        return `<div class="kaunas-map-popup-cluster">${items.join('')}${restLine}</div>`
     }
 
     function setupPopupNavListener() {
@@ -159,7 +180,9 @@ export function useKaunasMap(containerRef, problemsToShowRef, options = {}) {
                 if (typeof onProblemMark === 'function' && id) {
                     onProblemMark(id)
                 }
-                map.closePopup()
+                const willBeSelected = !markBtn.classList.contains('is-selected')
+                markBtn.classList.toggle('is-selected', willBeSelected)
+                markBtn.textContent = willBeSelected ? 'Pažymėta' : 'Pažymėti'
                 return
             }
             const openBtn = event.target.closest('.kaunas-map-popup-open-problem[data-open-problem-id]')
@@ -214,7 +237,7 @@ export function useKaunasMap(containerRef, problemsToShowRef, options = {}) {
                     iconAnchor: [CLUSTER_MARKER_SIZE / 2, CLUSTER_MARKER_SIZE / 2],
                 })
                 L.marker([lat, lng], { icon })
-                    .bindPopup(buildClusterPopupContent(problems), { maxWidth: 320, className: 'kaunas-map-popup-root' })
+                    .bindPopup(buildClusterPopupContent(problems), { maxWidth: 380, className: 'kaunas-map-popup-root' })
                     .addTo(markersLayer)
             }
         })
@@ -294,6 +317,24 @@ export function useKaunasMap(containerRef, problemsToShowRef, options = {}) {
     watchOption(focusHighlightedMarker)
     watchOption(mergedProblemIds, true)
     watchOption(markableProblemIds, true)
+
+    function syncOpenPopupSelection() {
+        if (!map) return
+        const selectedSet = getSelectedSet()
+        const buttons = map.getContainer().querySelectorAll('[data-mark-problem-id]')
+        buttons.forEach((btn) => {
+            const id = Number(btn.getAttribute('data-mark-problem-id'))
+            const shouldBeSelected = selectedSet.has(id)
+            const isSelected = btn.classList.contains('is-selected')
+            if (shouldBeSelected === isSelected) return
+            btn.classList.toggle('is-selected', shouldBeSelected)
+            btn.textContent = shouldBeSelected ? 'Pažymėta' : 'Pažymėti'
+        })
+    }
+
+    if (isRef(selectedProblemIds)) {
+        watch(selectedProblemIds, syncOpenPopupSelection, { deep: true })
+    }
 
     onUnmounted(cleanup)
 }

@@ -151,6 +151,7 @@ function mergeProblemStatusStyle(problem) {
                             :focus-highlighted-marker="false"
                             :merged-problem-ids="mergedProblemIdsForMap"
                             :markable-problem-ids="markableProblemIdsForMap"
+                            :selected-problem-ids="selectedProblems"
                             marker-class="merge-map-marker"
                             @open-problem="openProblemView"
                             @mark-problem="handleMarkFromMap"

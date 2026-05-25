@@ -226,9 +226,12 @@ export function useMergePage(props) {
         if (!similarOnly.value.some((p) => Number(p.id) === id)) {
             return
         }
-        if (!selectedProblems.value.includes(id)) {
-            selectedProblems.value = [...selectedProblems.value, id]
+        const idx = selectedProblems.value.indexOf(id)
+        if (idx > -1) {
+            selectedProblems.value = selectedProblems.value.filter((x) => x !== id)
+            return
         }
+        selectedProblems.value = [...selectedProblems.value, id]
         nextTick(() => {
             const root = mergeListScrollRef.value
             const el = root?.querySelector(`[data-merge-selectable-id="${id}"]`)
