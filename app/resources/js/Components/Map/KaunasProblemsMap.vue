@@ -8,6 +8,7 @@ const props = defineProps({
     highlightedProblemId: { type: [Number, null], default: null },
     mergedProblemIds: { type: Array, default: () => [] },
     markableProblemIds: { type: Array, default: () => [] },
+    selectedProblemIds: { type: Array, default: () => [] },
     autoFitView: { type: Boolean, default: true },
     focusHighlightedMarker: { type: Boolean, default: true },
 })
@@ -18,6 +19,7 @@ const mapContainer = ref(null)
 const problemsToShow = computed(() => props.problems || [])
 const mergedIds = computed(() => props.mergedProblemIds || [])
 const markableIds = computed(() => props.markableProblemIds || [])
+const selectedIds = computed(() => props.selectedProblemIds || [])
 
 useKaunasMap(mapContainer, problemsToShow, {
     onProblemOpen: (id) => emit('openProblem', id),
@@ -26,6 +28,7 @@ useKaunasMap(mapContainer, problemsToShow, {
     highlightedProblemId: computed(() => props.highlightedProblemId),
     mergedProblemIds: mergedIds,
     markableProblemIds: markableIds,
+    selectedProblemIds: selectedIds,
     autoFitView: computed(() => props.autoFitView),
     focusHighlightedMarker: computed(() => props.focusHighlightedMarker),
 })
@@ -72,9 +75,26 @@ useKaunasMap(mapContainer, problemsToShow, {
 .kaunas-map-container :deep(.kaunas-map-popup-cluster) {
     display: flex;
     flex-direction: column;
-    gap: 0.25rem;
-    max-height: 220px;
+    max-height: 260px;
     overflow-y: auto;
+    min-width: 280px;
+}
+
+.kaunas-map-container :deep(.kaunas-map-popup-cluster-item) {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 7px 2px;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+    min-width: 0;
+}
+
+.kaunas-map-container :deep(.kaunas-map-popup-cluster-item:last-of-type) {
+    border-bottom: none;
+}
+
+.kaunas-map-container :deep(.kaunas-map-popup-cluster-item:hover) {
+    background: rgba(25, 70, 160, 0.04);
 }
 
 .kaunas-map-container :deep(.kaunas-map-popup-body) {
@@ -113,24 +133,33 @@ useKaunasMap(mapContainer, problemsToShow, {
 }
 
 .kaunas-map-container :deep(.kaunas-map-popup-cluster .kaunas-map-popup-open-problem) {
-    display: block;
-    padding: 5px 0;
-    border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
     line-height: 1.35;
-}
-
-.kaunas-map-container :deep(.kaunas-map-popup-cluster .kaunas-map-popup-open-problem:last-of-type) {
-    border-bottom: none;
-    padding-bottom: 0;
+    padding: 2px 0;
 }
 
 .kaunas-map-container :deep(.kaunas-map-popup-cluster-line-num) {
     font-weight: 600;
+    font-size: 13px;
 }
 
 .kaunas-map-container :deep(.kaunas-map-popup-cluster-line-rest) {
     font-size: 12px;
     color: #555;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    display: block;
+    min-width: 0;
+}
+
+.kaunas-map-container :deep(.kaunas-map-popup-more-wrap) {
+    text-align: center;
+    padding: 6px 0 2px;
 }
 
 .kaunas-map-container :deep(.leaflet-popup-content .kaunas-map-popup-open-problem),
@@ -168,6 +197,22 @@ useKaunasMap(mapContainer, problemsToShow, {
 
 .kaunas-map-container :deep(.kaunas-map-popup-view-btn:hover) {
     opacity: 0.9;
+}
+
+.kaunas-map-container :deep(.kaunas-map-popup-view-btn--sm) {
+    padding: 3px 9px;
+    font-size: 12px;
+    flex-shrink: 0;
+    white-space: nowrap;
+}
+
+.kaunas-map-container :deep(.kaunas-map-popup-view-btn.is-selected) {
+    background: var(--color-primary, #1946a0);
+    color: #fff;
+}
+
+.kaunas-map-container :deep(.kaunas-map-popup-view-btn.is-selected:hover) {
+    opacity: 0.92;
 }
 
 .kaunas-map-container :deep(.kaunas-map-popup-more) {
