@@ -41,10 +41,12 @@ export function useMergePage(props) {
     )
 
     const statusSelectOptions = computed(() =>
-        MAP_LEGEND_STATUS_ORDER.map((status) => ({
-            value: status,
-            label: PROBLEM_STATUS_LABELS[status] || status,
-        })),
+        MAP_LEGEND_STATUS_ORDER
+            .filter((status) => status !== PROBLEM_STATUS.RESOLVED)
+            .map((status) => ({
+                value: status,
+                label: PROBLEM_STATUS_LABELS[status] || status,
+            })),
     )
 
     const filteredStatusSelectOptions = computed(() =>

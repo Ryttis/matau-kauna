@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\ProblemStatus;
 use App\Models\ClassifierValue;
 use App\Models\Problem;
 use App\Services\ProblemMapService;
@@ -49,6 +50,8 @@ class ProblemMergeController extends Controller
 
         $query = Problem::where('id', '!=', $problem->id)
             ->whereNull('merged_into_problem_id')
+            ->where('status', '!=', ProblemStatus::RESOLVED->value)
+            ->whereDoesntHave('mergedProblems', fn ($q) => $q->where('status', ProblemStatus::RESOLVED->value))
             ->notArchived();
         if ($this->scopeService->isInstitutionScoped($user)) {
             $query->where('institution_id', $user->institution_id);
@@ -68,6 +71,7 @@ class ProblemMergeController extends Controller
 
         $similarProblems = $query->with([
             'mergedProblems' => fn ($q) => $q->notArchived()
+                ->where('status', '!=', ProblemStatus::RESOLVED->value)
                 ->select(['id', 'internal_number', 'description', 'merged_into_problem_id', 'lat', 'lng', 'address', 'category', 'status', 'created_at']),
         ])
             ->orderBy('created_at', 'desc')
@@ -128,6 +132,10 @@ class ProblemMergeController extends Controller
 
         if (Problem::query()->whereIn('id', $idsToMerge)->where('is_archived', true)->exists()) {
             return redirect()->back()->with('error', 'Negalima apjungti archyvuotų problemų.');
+        }
+
+        if (Problem::query()->whereIn('id', $idsToMerge)->where('status', ProblemStatus::RESOLVED->value)->exists()) {
+            return redirect()->back()->with('error', 'Negalima apjungti išspręstų problemų.');
         }
 
         $query = Problem::whereIn('id', $idsToMerge);
