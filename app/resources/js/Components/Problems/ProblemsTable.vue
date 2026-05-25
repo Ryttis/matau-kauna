@@ -72,6 +72,14 @@ const reporterName = (row) => {
     return truncate(fullName || reporter.email || '-', 24)
 }
 
+const formatDateTime = (value) => {
+    if (!value) return '-'
+    const date = new Date(value)
+    if (Number.isNaN(date.getTime())) return '-'
+    const pad = (part) => String(part).padStart(2, '0')
+    return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}`
+}
+
 const columns = computed(() => {
     const base = [
         {
@@ -96,11 +104,19 @@ const columns = computed(() => {
         },
         {
             key: 'created_at',
-            label: 'Data',
+            label: 'Užregistruota',
             sortable: true,
             headerClass: 'problem-col-date',
             class: 'problem-col-date',
             value: (row) => new Date(getRowData(row).created_at).toLocaleDateString('lt-LT')
+        },
+        {
+            key: 'status_updated_at',
+            label: 'Atnaujinta',
+            sortable: true,
+            headerClass: 'problem-col-status-date',
+            class: 'problem-col-status-date',
+            value: (row) => formatDateTime(getRowData(row).status_updated_at)
         },
         {
             key: 'reporter',
@@ -231,6 +247,11 @@ function problemTableRowClass(row) {
 :deep(.problem-col-status) {
     white-space: nowrap;
     min-width: 8.5rem;
+}
+
+:deep(.problem-col-status-date) {
+    white-space: nowrap;
+    min-width: 8.25rem;
 }
 
 :deep(.problem-col-date) {

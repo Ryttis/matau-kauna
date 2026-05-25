@@ -20,6 +20,7 @@ class Problem extends Model
         'created_at',
         'internal_number',
         'status',
+        'status_updated_at',
         'category',
         'address',
         'description',
@@ -137,10 +138,10 @@ class Problem extends Model
 
     private static function applyDashboardKeywordSearch(Builder $query, string $search, bool $includeReporterSearch = false): void
     {
-        $like = "%{$search}%";
-        $query->where('address', 'like', $like)
-            ->orWhere('description', 'like', $like)
-            ->orWhere('internal_number', 'like', $like);
+        $lowerLike = '%'.mb_strtolower($search).'%';
+        $query->whereRaw("LOWER(COALESCE(address, '')) LIKE ?", [$lowerLike])
+            ->orWhereRaw("LOWER(COALESCE(description, '')) LIKE ?", [$lowerLike])
+            ->orWhereRaw("LOWER(COALESCE(internal_number, '')) LIKE ?", [$lowerLike]);
 
         if ($includeReporterSearch) {
             $query->orWhereHas('reportedByUser', function (Builder $userQuery) use ($search) {
