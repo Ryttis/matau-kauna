@@ -20,6 +20,7 @@ class ProblemMapController extends Controller
 
         return Inertia::render('Map', [
             'problems' => $this->mapService->getProblemsForMapForUser($user),
+            ...$this->mapService->getMapFilterMeta(),
         ]);
     }
 

@@ -3,18 +3,24 @@ import { ref, computed } from 'vue'
 import { Head, router } from '@inertiajs/vue3'
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue'
 import AppButton from '@/Components/App/AppButton.vue'
+import FilterModal from '@/Components/App/Modals/FilterModal.vue'
 import InactiveReasonModal from '@/Components/App/Modals/InactiveReasonModal.vue'
 import StatusChangeModal from '@/Components/App/Modals/StatusChangeModal.vue'
 import KaunasProblemsMap from '@/Components/Map/KaunasProblemsMap.vue'
 import ProblemMapStatusLegend from '@/Components/Map/ProblemMapStatusLegend.vue'
 import MapAddressAutocomplete from '@/Components/Map/MapAddressAutocomplete.vue'
+import { ICON_FILTER } from '@/constants/ui/icons'
 import { useAuth } from '@/composables/useAuth'
 import { PROBLEM_STATUS } from '@/constants/domain/problemStatus'
 import { buildInactiveReviewPostBody } from '@/constants/domain/reviewProgressEntry'
+import { parseDateFilterInput } from '@/utils/parseDateFilterInput'
 import '@/Components/Map/map-page.css'
 
 const props = defineProps({
     problems: { type: Array, default: () => [] },
+    categories: { type: Array, default: () => [] },
+    natures: { type: Array, default: () => [] },
+    statusOptions: { type: Array, default: () => [] },
 })
 
 const { canSeeProblemAdminButtons, canSeeInstitutionAdminButtons, isMunicipalityRep } = useAuth()
@@ -41,11 +47,73 @@ function onAddressSearchClear() {
     selectedProblemFromAddress.value = null
 }
 
+const DEFAULT_FILTER_STATE = {
+    reportNumber: '',
+    problemType: '',
+    problemNatureId: '',
+    dateFrom: '',
+    dateTo: '',
+    status: '',
+}
+
+const filterState = ref({ ...DEFAULT_FILTER_STATE })
+const showFilterModal = ref(false)
+
+const hasActiveFilters = computed(() => {
+    const f = filterState.value
+    return Boolean(
+        (f.reportNumber || '').trim()
+        || (f.problemType || '').trim()
+        || (f.problemNatureId || '').trim()
+        || (f.status || '').trim()
+        || (f.dateFrom || '').trim()
+        || (f.dateTo || '').trim()
+    )
+})
+
+const filteredProblems = computed(() => {
+    const list = Array.isArray(props.problems) ? props.problems : []
+    const f = filterState.value
+    const reportNum = (f.reportNumber || '').trim().toLowerCase()
+    const natureId = (f.problemNatureId || '').toString().trim()
+    const from = parseDateFilterInput(f.dateFrom)
+    const to = parseDateFilterInput(f.dateTo)
+    return list.filter((problem) => {
+        if (reportNum && !(problem.internal_number || '').toLowerCase().includes(reportNum)) return false
+        if (f.status && problem.status !== f.status) return false
+        if (f.problemType && problem.category !== f.problemType) return false
+        if (natureId && String(problem.problem_nature_id ?? '') !== natureId) return false
+        if (from || to) {
+            const created = problem.created_at ? new Date(problem.created_at) : null
+            if (!created) return false
+            if (from && created < from) return false
+            if (to && created > to) return false
+        }
+        return true
+    })
+})
+
 const problemsForMap = computed(() => {
     const sel = selectedProblemFromAddress.value
     if (sel) return [sel]
-    return props.problems || []
+    return filteredProblems.value
 })
+
+function handleFilterApply(filters) {
+    filterState.value = {
+        reportNumber: filters.reportNumber || '',
+        problemType: filters.problemType || '',
+        problemNatureId: filters.problemNatureId || '',
+        dateFrom: filters.dateFrom || '',
+        dateTo: filters.dateTo || '',
+        status: filters.status || '',
+    }
+    showFilterModal.value = false
+}
+
+function handleFilterClear() {
+    filterState.value = { ...DEFAULT_FILTER_STATE }
+}
 
 function openProblemView(problemId) {
     router.visit(route('problems.show', problemId))
@@ -156,6 +224,17 @@ const handleStatusModalClose = () => {
                         @clear="onMapNumberSearchClear"
                     />
                 </div>
+                <button
+                    type="button"
+                    class="map-page-filter-btn"
+                    :aria-label="hasActiveFilters ? 'Filtruoti (yra aktyvių filtrų)' : 'Filtruoti'"
+                    @click="showFilterModal = true"
+                >
+                    <span class="map-page-filter-btn__icon-wrap">
+                        <img :src="ICON_FILTER" class="map-page-filter-btn__icon" alt="" />
+                        <span v-if="hasActiveFilters" class="map-page-filter-btn__badge" aria-hidden="true" />
+                    </span>
+                </button>
             </div>
 
             <ProblemMapStatusLegend />
@@ -236,6 +315,24 @@ const handleStatusModalClose = () => {
                 :active-submit-channel="inactiveSubmitChannel"
                 @close="closeInactiveReasonModal"
                 @submit="submitInactiveReason"
+            />
+
+            <FilterModal
+                :show="showFilterModal"
+                :filters="{
+                    reportNumber: filterState.reportNumber,
+                    problemType: filterState.problemType,
+                    problemNatureId: filterState.problemNatureId,
+                    dateFrom: filterState.dateFrom,
+                    dateTo: filterState.dateTo,
+                    status: filterState.status,
+                }"
+                :categories="props.categories"
+                :natures="props.natures"
+                :all-status-options="props.statusOptions"
+                @close="showFilterModal = false"
+                @apply="handleFilterApply"
+                @clear="handleFilterClear"
             />
 
         </div>

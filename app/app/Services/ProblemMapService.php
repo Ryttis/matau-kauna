@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Enums\ProblemStatus;
+use App\Models\ClassifierValue;
 use App\Models\Problem;
 use App\Models\ProblemWatch;
 use App\Models\User;
@@ -20,10 +21,40 @@ class ProblemMapService
         return $this->getMapQueryForUser($user)
             ->orderBy('address')
             ->orderBy('created_at', 'desc')
-            ->get(['id', 'internal_number', 'description', 'status', 'category', 'address', 'lat', 'lng', 'created_at'])
+            ->with('problemNature:id,name')
+            ->get(['id', 'internal_number', 'description', 'status', 'category', 'problem_nature_id', 'address', 'lat', 'lng', 'created_at'])
             ->map(function ($problem, $index) {
                 return $this->mapProblemToMapItem($problem, $this->getCenterLat(), $this->getCenterLng(), $index);
             })
+            ->values()
+            ->all();
+    }
+
+    public function getMapFilterMeta(): array
+    {
+        return [
+            'categories' => ClassifierValue::getActiveTypeNames()->values(),
+            'natures' => $this->activeNatureOptions(),
+            'statusOptions' => ProblemStatus::options(),
+        ];
+    }
+
+    private function activeNatureOptions(): array
+    {
+        return ClassifierValue::query()
+            ->notArchived()
+            ->where('is_active', true)
+            ->whereNotNull('parent_id')
+            ->whereHas('parent', fn ($query) => $query->notArchived()->where('is_active', true))
+            ->with('parent:id,name')
+            ->orderBy('sort_order')
+            ->orderBy('name')
+            ->get(['id', 'parent_id', 'name'])
+            ->map(fn (ClassifierValue $nature) => [
+                'id' => $nature->id,
+                'name' => $nature->name,
+                'category' => $nature->parent?->name,
+            ])
             ->values()
             ->all();
     }
@@ -222,6 +253,7 @@ class ProblemMapService
             'description' => $description,
             'status' => $problem->status ?? ProblemStatus::NEW->value,
             'category' => $problem->category,
+            'problem_nature_id' => $problem->problem_nature_id,
             'nature' => $problem->problemNature?->name,
             'address' => $problem->address,
             'created_at' => $problem->created_at?->toIso8601String(),
