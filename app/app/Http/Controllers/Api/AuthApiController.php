@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Enums\AuditLogResult;
 use App\Enums\UserRoleEnum;
 use App\Http\Controllers\Controller;
+use App\Models\ContentVersion;
 use App\Models\LoginLog;
 use App\Models\User;
 use App\Notifications\PushNotification;
@@ -193,6 +194,8 @@ class AuthApiController extends Controller
             'device_name' => ['nullable', 'string', 'max:255'],
         ]);
 
+        $termsVersion = ContentVersion::getLatestPublished(ContentVersion::TYPE_TERMS);
+
         $user = User::query()->create([
             'name' => $validated['name'],
             'surname' => $validated['surname'] ?? null,
@@ -200,6 +203,7 @@ class AuthApiController extends Controller
             'phone' => $validated['phone'] ?? null,
             'password' => $validated['password'],
             'terms_accepted_at' => now(),
+            'terms_accepted_version_id' => $termsVersion?->id,
         ]);
 
         $reporterRole = \App\Models\UserRole::firstOrCreate(
@@ -277,6 +281,8 @@ class AuthApiController extends Controller
         $phone = $validated['phone'] ?? ($payload['phone'] ?? null);
         $phone = is_string($phone) && $phone !== '' ? $phone : null;
 
+        $termsVersion = ContentVersion::getLatestPublished(ContentVersion::TYPE_TERMS);
+
         $user = User::query()->create([
             'name' => $firstName,
             'surname' => $lastName,
@@ -285,11 +291,12 @@ class AuthApiController extends Controller
             'password' => Hash::make(Str::random(64)),
             'viisp_personal_code_hash' => $payload['hashedCode'],
             'terms_accepted_at' => now(),
+            'terms_accepted_version_id' => $termsVersion?->id,
         ]);
 
         $reporterRole = \App\Models\UserRole::firstOrCreate(
             ['role' => UserRoleEnum::Reporter->value],
-            ['name' => 'PareiÅ¡kÄ—jas']
+            ['name' => 'Pareiškėjas']
         );
         $user->roles()->sync([$reporterRole->id]);
         $user->sendEmailVerificationNotification();
@@ -359,7 +366,9 @@ class AuthApiController extends Controller
         }
 
         if ($user->terms_accepted_at === null) {
+            $termsVersion = ContentVersion::getLatestPublished(ContentVersion::TYPE_TERMS);
             $updates['terms_accepted_at'] = now();
+            $updates['terms_accepted_version_id'] = $termsVersion?->id;
         }
 
         if ($updates !== []) {
@@ -404,6 +413,10 @@ class AuthApiController extends Controller
 
     private function buildMePayload(User $user, array $context): array
     {
+        $acceptedVersion = $user->terms_accepted_version_id
+            ? $user->acceptedTermsVersion
+            : null;
+
         return [
             'id' => $user->id,
             'name' => $user->name,
@@ -427,6 +440,13 @@ class AuthApiController extends Controller
             'push_app_version' => $user->push_app_version,
             'push_registered_at' => $user->push_registered_at?->toIso8601String(),
             'terms_accepted_at' => $user->terms_accepted_at?->toIso8601String(),
+            'terms_accepted_version' => $acceptedVersion ? [
+                'id' => $acceptedVersion->id,
+                'version' => $acceptedVersion->version,
+                'title' => $acceptedVersion->title,
+                'body' => $acceptedVersion->body,
+                'published_at' => $acceptedVersion->published_at?->toIso8601String(),
+            ] : null,
             'reporter_report_terms_accepted_at' => $user->reporter_report_terms_accepted_at?->toIso8601String(),
             'reporter_wizard_completed_at' => $user->reporter_wizard_completed_at?->toIso8601String(),
             'last_login_at' => $user->last_login_at?->toIso8601String(),

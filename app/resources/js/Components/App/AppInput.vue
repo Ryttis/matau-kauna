@@ -71,6 +71,15 @@ const value = computed({
     set: (val) => emit('update:modelValue', val)
 })
 
+const isPassword = computed(() => props.type === 'password')
+const isPasswordVisible = ref(false)
+const effectiveType = computed(() =>
+    isPassword.value ? (isPasswordVisible.value ? 'text' : 'password') : props.type
+)
+const togglePasswordVisibility = () => {
+    isPasswordVisible.value = !isPasswordVisible.value
+}
+
 const inputClass = computed(() => {
     return props.variant === 'filter' ? 'app-input-filter' : 'app-input-edit'
 })
@@ -118,7 +127,7 @@ const wrapperClass = computed(() => {
             <template v-else>
                 <input
                     v-model="value"
-                    :type="type"
+                    :type="effectiveType"
                     :placeholder="placeholder"
                     :class="inputClass"
                     :list="options.length > 0 ? datalistId : undefined"
@@ -128,7 +137,47 @@ const wrapperClass = computed(() => {
                 <datalist v-if="options.length > 0" :id="datalistId">
                     <option v-for="option in options" :key="option" :value="option" />
                 </datalist>
-                <img v-if="showIcon" :src="iconSrc" :alt="iconAlt" class="app-input-icon" />
+                <button
+                    v-if="isPassword"
+                    type="button"
+                    class="app-input-eye-button"
+                    :aria-label="isPasswordVisible ? 'Slėpti slaptažodį' : 'Rodyti slaptažodį'"
+                    @click="togglePasswordVisibility"
+                >
+                    <svg
+                        v-if="!isPasswordVisible"
+                        xmlns="http://www.w3.org/2000/svg"
+                        width="18"
+                        height="18"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                    >
+                        <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z" />
+                        <circle cx="12" cy="12" r="3" />
+                    </svg>
+                    <svg
+                        v-else
+                        xmlns="http://www.w3.org/2000/svg"
+                        width="18"
+                        height="18"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                    >
+                        <path d="M9.88 9.88a3 3 0 1 0 4.24 4.24" />
+                        <path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68" />
+                        <path d="M6.61 6.61A13.526 13.526 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61" />
+                        <line x1="2" y1="2" x2="22" y2="22" />
+                    </svg>
+                </button>
+                <img v-else-if="showIcon" :src="iconSrc" :alt="iconAlt" class="app-input-icon" />
             </template>
         </div>
 
@@ -321,6 +370,32 @@ input[list] {
     height: 15px;
     display: block;
     object-fit: contain;
+}
+
+.app-input-eye-button {
+    position: absolute;
+    right: 6px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: transparent;
+    border: none;
+    padding: 6px;
+    cursor: pointer;
+    color: #888;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 8px;
+}
+
+.app-input-eye-button:hover {
+    color: #333;
+    background: rgba(0, 0, 0, 0.04);
+}
+
+.app-input-eye-button:focus {
+    outline: 2px solid var(--color-primary, #1946A0);
+    outline-offset: 1px;
 }
 
 .app-input-wrapper-edit .app-input-icon {

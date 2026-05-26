@@ -57,7 +57,28 @@ const passwordForm = useForm({
     password_confirmation: '',
 })
 
-const sections = ref({ profile: true, password: true })
+const sections = ref({ profile: true, password: true, terms: true })
+const showTermsModal = ref(false)
+
+const termsAcceptedAt = computed(() => user.value?.terms_accepted_at ?? null)
+const termsVersion = computed(() => user.value?.accepted_terms_version ?? null)
+const termsAcceptedAtFormatted = computed(() => {
+    if (!termsAcceptedAt.value) return null
+    const date = new Date(termsAcceptedAt.value)
+    if (Number.isNaN(date.getTime())) return null
+    return date.toLocaleString('lt-LT', {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+    })
+})
+const termsBodyPlain = computed(() => {
+    const body = termsVersion.value?.body
+    if (!body) return null
+    return body.replace(/<[^>]*>/g, '').trim()
+})
 
 function initProfileForm() {
     const u = user.value
@@ -206,8 +227,137 @@ const patchActiveRole = (roleId) => {
                             />
                         </form>
                     </SettingsSection>
+
+                    <SettingsSection
+                        v-if="termsAcceptedAt"
+                        title="Taisyklių sutikimas"
+                        :open="sections.terms"
+                        @toggle="toggleSection('terms')"
+                    >
+                        <div class="terms-card">
+                            <div v-if="termsAcceptedAtFormatted" class="terms-row">
+                                <span class="terms-label">Sutikimo data</span>
+                                <span class="terms-value">{{ termsAcceptedAtFormatted }}</span>
+                            </div>
+                            <div v-if="termsVersion" class="terms-row">
+                                <span class="terms-label">Versija</span>
+                                <span class="terms-value">{{ termsVersion.version }}</span>
+                            </div>
+                            <button
+                                v-if="termsBodyPlain"
+                                type="button"
+                                class="terms-view-btn"
+                                @click="showTermsModal = true"
+                            >
+                                Peržiūrėti taisykles
+                            </button>
+                        </div>
+                    </SettingsSection>
                 </div>
+            </div>
+        </div>
+
+        <div v-if="showTermsModal" class="terms-modal-backdrop" @click.self="showTermsModal = false">
+            <div class="terms-modal">
+                <div class="terms-modal__header">
+                    <h3>{{ termsVersion?.title || 'Taisyklės' }}</h3>
+                    <button type="button" class="terms-modal__close" @click="showTermsModal = false">×</button>
+                </div>
+                <div v-if="termsVersion" class="terms-modal__meta">
+                    Versija {{ termsVersion.version }}<span v-if="termsAcceptedAtFormatted"> · sutikta {{ termsAcceptedAtFormatted }}</span>
+                </div>
+                <div class="terms-modal__body">{{ termsBodyPlain }}</div>
             </div>
         </div>
     </AuthenticatedLayout>
 </template>
+
+<style scoped>
+.terms-card {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+.terms-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 6px 0;
+}
+.terms-label {
+    color: #666;
+    font-size: 14px;
+}
+.terms-value {
+    color: #1a1a1a;
+    font-weight: 600;
+    font-size: 14px;
+}
+.terms-view-btn {
+    margin-top: 8px;
+    padding: 10px 0;
+    background: transparent;
+    border: none;
+    border-top: 1px solid #e5e5e5;
+    color: var(--color-primary, #1946A0);
+    font-weight: 600;
+    font-size: 14px;
+    cursor: pointer;
+    text-align: left;
+}
+.terms-view-btn:hover {
+    text-decoration: underline;
+}
+.terms-modal-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    padding: 20px;
+}
+.terms-modal {
+    background: #fff;
+    border-radius: 16px;
+    padding: 20px;
+    width: 100%;
+    max-width: 600px;
+    max-height: 85vh;
+    display: flex;
+    flex-direction: column;
+}
+.terms-modal__header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 4px;
+}
+.terms-modal__header h3 {
+    margin: 0;
+    font-size: 18px;
+    color: #1a1a1a;
+}
+.terms-modal__close {
+    background: none;
+    border: none;
+    font-size: 28px;
+    line-height: 1;
+    cursor: pointer;
+    color: #666;
+    padding: 4px 8px;
+}
+.terms-modal__meta {
+    color: #666;
+    font-size: 12px;
+    margin-bottom: 12px;
+}
+.terms-modal__body {
+    overflow-y: auto;
+    color: #333;
+    font-size: 14px;
+    line-height: 1.5;
+    white-space: pre-wrap;
+}
+</style>

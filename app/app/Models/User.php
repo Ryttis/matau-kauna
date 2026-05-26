@@ -41,6 +41,7 @@ class User extends Authenticatable implements MustVerifyEmail
         'institution_id',
         'active_role_id',
         'terms_accepted_at',
+        'terms_accepted_version_id',
         'reporter_wizard_completed_at',
         'reporter_report_terms_accepted_at',
         'archived_at',
@@ -123,6 +124,11 @@ class User extends Authenticatable implements MustVerifyEmail
     public function institution(): BelongsTo
     {
         return $this->belongsTo(Institution::class);
+    }
+
+    public function acceptedTermsVersion(): BelongsTo
+    {
+        return $this->belongsTo(ContentVersion::class, 'terms_accepted_version_id');
     }
 
     public function watchedProblems(): BelongsToMany

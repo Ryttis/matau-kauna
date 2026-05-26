@@ -235,6 +235,8 @@ class ViispAuthController extends Controller
             return $this->viispLoginError('VIISP: gauti nepilni tapatybės duomenys (trūksta vardo ar pavardės).');
         }
 
+        $termsVersion = ContentVersion::getLatestPublished(ContentVersion::TYPE_TERMS);
+
         $user = User::create([
             'name' => $firstName,
             'surname' => $lastName,
@@ -243,6 +245,7 @@ class ViispAuthController extends Controller
             'password' => Hash::make(Str::random(64)),
             'viisp_personal_code_hash' => $hashedCode,
             'terms_accepted_at' => now(),
+            'terms_accepted_version_id' => $termsVersion?->id,
         ]);
         $user->roles()->sync([$reporterRole->id]);
         $user->sendEmailVerificationNotification();
