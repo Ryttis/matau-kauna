@@ -78,7 +78,12 @@ class ProblemInstitutionAssignmentPickerService
             }
         }
 
-        $institutionsQuery = Institution::query()->notArchived()->orderBy('name');
+        $institutionsQuery = Institution::query()
+            ->notArchived()
+            ->where(function ($q) {
+                $q->where('is_email_only', false)->orWhereNull('is_email_only');
+            })
+            ->orderBy('name');
         if ($this->scopeService->isInstitutionScoped($user)) {
             $institutionsQuery->where('id', '!=', $user->institution_id);
         }
