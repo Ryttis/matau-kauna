@@ -64,7 +64,15 @@ class PasswordPolicy extends Model
 
     public function rules(): array
     {
-        $r = ['required', 'string', 'min:'.$this->min_length, 'confirmed'];
+        return $this->passwordRules(required: true, confirmed: true);
+    }
+
+    public function passwordRules(bool $required = true, bool $confirmed = true): array
+    {
+        $r = [$required ? 'required' : 'nullable', 'string', 'min:'.$this->min_length];
+        if ($confirmed) {
+            $r[] = 'confirmed';
+        }
         $r[] = 'regex:/^[A-Za-z0-9'.self::ALLOWED_SPECIAL_CHARS.']+$/';
         if ($this->require_lowercase) {
             $r[] = 'regex:/[a-z]/';
@@ -102,18 +110,23 @@ class PasswordPolicy extends Model
 
     public function validationMessagesForPasswordField(): array
     {
-        $summary = $this->requirementSummaryLt();
+        $rulesMessage = $this->rulesMessageLt();
 
         return [
             'password.required' => 'Įveskite slaptažodį.',
             'password.string' => 'Slaptažodis turi būti tekstas.',
-            'password.min' => "Slaptažodis per trumpas. Reikalaujama: {$summary}.",
-            'password.regex' => "Slaptažodis neatitinka taisyklių. Tarpai, taškai, kableliai ir kiti simboliai neleidžiami.\nReikalaujama: {$summary}.",
+            'password.min' => $rulesMessage,
+            'password.regex' => $rulesMessage,
             'password.confirmed' => 'Slaptažodžio pakartojimas nesutampa.',
             'password_confirmation.required' => 'Patvirtinkite slaptažodį.',
             'password_confirmation.required_with' => 'Patvirtinkite slaptažodį.',
             'password_confirmation.same' => 'Slaptažodžio pakartojimas nesutampa.',
         ];
+    }
+
+    public function rulesMessageLt(): string
+    {
+        return "Slaptažodis neatitinka taisyklių. Tarpai, taškai, kableliai ir kiti simboliai neleidžiami.\nReikalaujama: ".$this->requirementSummaryLt().'.';
     }
 
     public function validateProhibitNameEmail(?string $password, ?string $name, ?string $email): bool

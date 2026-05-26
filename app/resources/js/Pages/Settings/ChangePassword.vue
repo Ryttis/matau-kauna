@@ -147,6 +147,7 @@ const updatePassword = () => {
 .error-message {
     color: var(--color-error);
     margin-bottom: 12px;
+    white-space: pre-line;
 }
 
 .form-hint {

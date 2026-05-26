@@ -17,7 +17,8 @@ const PASSWORD_RULES = {
     minLength: { check: (v) => (v || '').length >= 8, label: 'Bent 8 simboliai' },
     uppercase: { check: (v) => /[A-Z]/.test(v || ''), label: 'Bent viena didžioji raidė' },
     lowercase: { check: (v) => /[a-z]/.test(v || ''), label: 'Bent viena mažoji raidė' },
-    symbol: { check: (v) => /[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?]/.test(v || ''), label: 'Bent vienas simbolis' },
+    symbol: { check: (v) => /[!@#$%^&*()_+\-=]/.test(v || ''), label: 'Bent vienas leistinas specialus simbolis' },
+    allowedCharacters: { check: (v) => /^[A-Za-z0-9!@#$%^&*()_+\-=]+$/.test(v || ''), label: 'Tik lotyniškos raidės, skaičiai ir ! @ # $ % ^ & * ( ) _ + - =' },
 };
 
 const passwordErrors = computed(() => {

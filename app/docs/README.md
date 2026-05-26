@@ -200,9 +200,9 @@
 
 ### `GET /api/reporter/problems`
 
-- **Ką daro**: grąžina pareiškėjo savo problemų sąrašą su filtrais (paieška, kategorija, datos).
+- **Ką daro**: grąžina pareiškėjo sąrašą: pagal nutylėjimą viešos problemos + pareiškėjo savos problemos, o `only_mine=1` grąžina tik savas. Atsakyme lieka raw `status`, papildomai siunčiama `reporter_status` ir `reporter_status_label` (pvz. `grazinta_nagrinejimui` rodoma kaip `Nauja`).
 - **Web puslapis**: `/reporter/sarasas`
-- **Endpoint**: `GET /api/reporter/problems`
+- **Endpoint**: `GET /api/reporter/problems` (`only_mine=1` neprivalomas filtras)
 
 ### `GET /api/reporter/statistics`
 

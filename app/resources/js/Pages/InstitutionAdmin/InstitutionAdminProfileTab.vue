@@ -516,6 +516,7 @@ async function submitAdmin() {
     color: #b91c1c;
     font-size: 13px;
     margin: -6px 0 0;
+    white-space: pre-line;
 }
 .gis-toggle-row {
     display: flex;

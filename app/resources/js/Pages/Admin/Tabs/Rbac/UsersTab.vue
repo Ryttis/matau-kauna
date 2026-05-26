@@ -557,4 +557,8 @@ const saveUserRoles = async () => {
     flex: 0 1 200px;
     min-width: 160px;
 }
+
+.error {
+    white-space: pre-line;
+}
 </style>

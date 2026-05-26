@@ -90,6 +90,7 @@
     font-size: 14px;
     color: var(--color-error, #c62828);
     margin-bottom: 0;
+    white-space: pre-line;
 }
 
 .settings-page .form-hint {
