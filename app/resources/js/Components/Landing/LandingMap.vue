@@ -1,12 +1,17 @@
 <template>
     <section class="landing-map">
         <div ref="mapContainer" class="landing-map-container" />
+        <ProblemMapStatusLegend
+            class="landing-map-legend-wrap"
+            :status-order="PUBLIC_MAP_LEGEND_STATUS_ORDER"
+        />
     </section>
 </template>
 
 <script setup>
 import { ref, watch, onMounted, onUnmounted, nextTick } from 'vue'
 import { loadLeaflet, createBaseMap, KAUNAS_CENTER, MAP_MAX_ZOOM } from '@/utils/leafletKaunas'
+import ProblemMapStatusLegend from '@/Components/Map/ProblemMapStatusLegend.vue'
 import {
     getMarkerColorForStatus,
     MARKER_COLOR_BY_STATUS,
@@ -35,12 +40,21 @@ function landingMapStatusLabel(status) {
     return PROBLEM_STATUS_LABELS[status] || String(status)
 }
 
+function landingMapDisplayStatus(p) {
+    return p?.reporter_status || p?.status
+}
+
+function landingMapDisplayLabel(p) {
+    if (p?.reporter_status_label) return p.reporter_status_label
+    return landingMapStatusLabel(p?.status)
+}
+
 function singleProblemPopupHtml(p) {
     const id = Number(p.id)
     const num = escapeHtml(p.internal_number || '')
     const cat = escapeHtml((p.category || '').trim() || '-')
     const addr = escapeHtml(truncateMapPopupText(p.address) || '-')
-    const statusText = escapeHtml(landingMapStatusLabel(p.status))
+    const statusText = escapeHtml(landingMapDisplayLabel(p))
     const dateText = escapeHtml(landingMapDateLabel(p.created_at))
     const desc = escapeHtml(
         truncateMapPopupText(p.description_preview || p.description) || '-',
@@ -94,7 +108,7 @@ function updateMarkers(skipFitView = false) {
             const lat = Number(p.lat)
             const lng = Number(p.lng)
             if (Number.isNaN(lat) || Number.isNaN(lng)) return
-            const color = getMarkerColorForStatus(p.status)
+            const color = getMarkerColorForStatus(landingMapDisplayStatus(p))
             const icon = L.divIcon({
                 className: 'landing-map-marker',
                 html: `<span style="background-color:${color};width:14px;height:14px;border-radius:50%;border:2px solid #fff;box-shadow:0 1px 3px rgba(0,0,0,0.3);display:block;"></span>`,
@@ -165,7 +179,7 @@ onUnmounted(() => {
 
 <style scoped>
 .landing-map {
-    background: var(--lp-steps-bg);
+    background: #ffffff;
 }
 
 .landing-map-container {
@@ -307,6 +321,10 @@ onUnmounted(() => {
     margin-top: 6px;
     font-size: 0.875rem;
     color: #666;
+}
+
+.landing-map-legend-wrap {
+    padding: 1rem 1.5rem 2rem;
 }
 
 .landing-map-legend {

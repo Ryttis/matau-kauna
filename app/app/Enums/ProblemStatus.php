@@ -77,8 +77,12 @@ enum ProblemStatus: string
     public static function publicMapStatusValues(): array
     {
         return [
+            self::UNREGISTERED->value,
+            self::NEW->value,
             self::IN_REVIEW->value,
+            self::RETURNED_FOR_REVIEW->value,
             self::RESOLVED->value,
+            self::INACTIVE->value,
         ];
     }
 
@@ -121,7 +125,7 @@ enum ProblemStatus: string
         return match (self::reporterStatusValue($status)) {
             self::NEW->value => 'Nauja',
             self::IN_REVIEW->value => 'Nagrinėjama',
-            self::RESOLVED->value => 'Išnagrinėta',
+            self::RESOLVED->value => 'Išspręsta',
             default => self::tryFrom($status)?->label() ?? $status,
         };
     }

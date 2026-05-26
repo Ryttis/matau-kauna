@@ -22,6 +22,15 @@ class ProblemApiController extends Controller
             ->latest('created_at')
             ->paginate($perPage);
 
+        $problems->getCollection()->transform(function (Problem $problem) {
+            $arr = $problem->toArray();
+            $statusValue = (string) $problem->status;
+            $arr['reporter_status'] = ProblemStatus::reporterStatusValue($statusValue);
+            $arr['reporter_status_label'] = ProblemStatus::reporterStatusLabel($statusValue);
+
+            return $arr;
+        });
+
         return response()->json($problems);
     }
 
