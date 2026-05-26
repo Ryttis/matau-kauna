@@ -50,9 +50,10 @@ class ReporterProblemController extends Controller
             'category' => $request->get('category'),
             'date_from' => $request->get('date_from'),
             'date_to' => $request->get('date_to'),
+            'only_mine' => $request->boolean('only_mine'),
         ];
 
-        $problems = $this->httpSupport->reporterProblemsFlatOrderedForList($user, $filters, true)
+        $problems = $this->httpSupport->reporterProblemsFlatOrderedForList($user, $filters, true, $filters['only_mine'])
             ->map(fn ($problem) => [
                 'id' => $problem->id,
                 'internal_number' => $problem->internal_number,

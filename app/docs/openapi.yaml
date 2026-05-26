@@ -1069,15 +1069,25 @@ paths:
   /api/reporter/problems:
     get:
       tags: [Reporter]
-      summary: "[AUTH] Reporter own problems list (all statuses)"
+      summary: "[AUTH] Reporter problems list (own + public, all statuses)"
       description: >
-        Returns ALL problems reported by the authenticated reporter - every status,
-        including archived/merged children - matching the Reporter page 'Sąrašas' in
-        the web app. Optional query parameters narrow the result by free text, report
-        number, category, and date range.
+        Returns the Reporter page 'Sąrašas' list. Default: all publicly published
+        problems (any reporter) + the authenticated reporter's own problems
+        regardless of publish state. With ?only_mine=1 only the authenticated
+        reporter's own problems are returned. Raw `status` is kept, and
+        `reporter_status` / `reporter_status_label` provide reporter-facing grouped
+        status labels, for example `grazinta_nagrinejimui` is shown as `Nauja`.
+        Optional query parameters narrow the result by free text, report number,
+        category, and date range.
       security:
         - bearerAuth: []
       parameters:
+        - in: query
+          name: only_mine
+          required: false
+          description: When true/1, returns only problems raised by the authenticated reporter.
+          schema:
+            type: boolean
         - in: query
           name: search
           required: false
@@ -1125,9 +1135,9 @@ paths:
         Returns problems for the authenticated reporter's dashboard map.
         Default: all publicly published problems (any reporter) + the authenticated
         reporter's own problems regardless of publish state. With ?only_mine=1 only
-        the authenticated reporter's own problems are returned. The reporter's own
-        problems with status "neuzregistruota" are returned as "nauja" (display-only
-        normalization for the map).
+        the authenticated reporter's own problems are returned. Items keep raw
+        `status` and include reporter-facing `reporter_status` and
+        `reporter_status_label` grouped labels.
       security:
         - bearerAuth: []
       parameters:
@@ -2865,6 +2875,13 @@ components:
           type: string
         status:
           type: string
+          description: Raw database status value.
+        reporter_status:
+          type: string
+          description: Reporter-facing grouped status value when returned by reporter endpoints.
+        reporter_status_label:
+          type: string
+          description: Reporter-facing grouped status label when returned by reporter endpoints.
         category:
           type: string
         nature:
@@ -3032,6 +3049,13 @@ components:
           type: string
         status:
           type: string
+          description: Raw database status value.
+        reporter_status:
+          type: string
+          description: Reporter-facing grouped status value, e.g. grazinta_nagrinejimui -> nauja.
+        reporter_status_label:
+          type: string
+          description: Reporter-facing grouped status label, e.g. Nauja.
         created_at:
           type: string
           format: date-time

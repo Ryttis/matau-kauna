@@ -46,6 +46,7 @@ class ReporterProblemApiController extends Controller
     {
         $reporter = $this->authenticatedReporterOrAbort($request);
         $category = $this->normalizeCategoryFilter($request->query('category'));
+        $onlyMine = $request->boolean('only_mine');
 
         $filters = [
             'search' => $request->query('search'),
@@ -53,9 +54,10 @@ class ReporterProblemApiController extends Controller
             'category' => $category,
             'date_from' => $request->query('date_from'),
             'date_to' => $request->query('date_to'),
+            'only_mine' => $onlyMine,
         ];
 
-        $problems = $this->problemHttpSupport->reporterProblemsFlatOrderedForList($reporter, $filters, includeAllStatuses: true)
+        $problems = $this->problemHttpSupport->reporterProblemsFlatOrderedForList($reporter, $filters, includeAllStatuses: true, onlyMine: $onlyMine)
             ->map(fn ($problem) => [
                 'id' => $problem->id,
                 'internal_number' => $problem->internal_number,

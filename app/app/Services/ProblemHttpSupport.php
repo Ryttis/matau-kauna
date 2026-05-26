@@ -143,15 +143,12 @@ class ProblemHttpSupport
             ->exists();
     }
 
-    public function reporterMergeRootIdsForFilters(User $user, array $filters, bool $includeAllStatuses = false): Collection
+    public function reporterMergeRootIdsForFilters(User $user, array $filters, bool $includeAllStatuses = false, bool $onlyMine = true): Collection
     {
         $fromMainFilter = Problem::query()
             ->notArchived()
             ->whereNull('merged_into_problem_id')
-            ->where(function ($q) use ($user) {
-                $q->where('reported_by_user_id', $user->id)
-                    ->orWhereHas('mergedProblems', fn ($q2) => $q2->where('reported_by_user_id', $user->id));
-            })
+            ->where(fn ($q) => $this->applyReporterListVisibility($q, $user, $onlyMine, includeMergedChildren: true))
             ->when(
                 ! $includeAllStatuses,
                 fn ($query) => $query->whereIn('status', ProblemStatus::reporterOwnedProblemsQueryStatusValues())
@@ -159,16 +156,13 @@ class ProblemHttpSupport
             ->filtered($filters)
             ->pluck('id');
 
-        $childMatchRootIds = collect(Problem::mergeGroupRootIdsFromMatchingMergedChildren($filters));
+        $childMatchRootIds = $this->reporterMergeRootIdsFromMatchingVisibleChildren($user, $filters, $includeAllStatuses, $onlyMine);
 
         $fromChildFilter = $childMatchRootIds->filter(fn ($id) => Problem::query()
             ->notArchived()
             ->whereNull('merged_into_problem_id')
             ->whereKey((int) $id)
-            ->where(function ($q) use ($user) {
-                $q->where('reported_by_user_id', $user->id)
-                    ->orWhereHas('mergedProblems', fn ($q2) => $q2->where('reported_by_user_id', $user->id));
-            })
+            ->where(fn ($q) => $this->applyReporterListVisibility($q, $user, $onlyMine, includeMergedChildren: true))
             ->when(
                 ! $includeAllStatuses,
                 fn ($query) => $query->whereIn('status', ProblemStatus::reporterOwnedProblemsQueryStatusValues())
@@ -179,9 +173,36 @@ class ProblemHttpSupport
         return $fromMainFilter->merge($fromChildFilter)->unique()->values();
     }
 
-    public function reporterProblemsFlatOrderedForList(User $user, array $filters, bool $includeAllStatuses = false): Collection
+    private function reporterMergeRootIdsFromMatchingVisibleChildren(User $user, array $filters, bool $includeAllStatuses, bool $onlyMine): Collection
     {
-        $rootIds = $this->reporterMergeRootIdsForFilters($user, $filters, $includeAllStatuses);
+        $reportNumber = isset($filters['report_number']) ? trim((string) $filters['report_number']) : '';
+        $search = isset($filters['search']) ? trim((string) $filters['search']) : '';
+        $hasFacetFilters = collect(['status', 'category', 'problem_nature_id', 'date_from', 'date_to'])
+            ->contains(fn ($key) => filled($filters[$key] ?? null));
+
+        if ($reportNumber === '' && $search === '' && ! $hasFacetFilters) {
+            return collect();
+        }
+
+        return Problem::query()
+            ->whereNotNull('merged_into_problem_id')
+            ->notArchived()
+            ->where(fn ($query) => $this->applyReporterListVisibility($query, $user, $onlyMine))
+            ->when(
+                ! $includeAllStatuses,
+                fn ($query) => $query->whereIn('status', ProblemStatus::reporterOwnedProblemsQueryStatusValues())
+            )
+            ->filtered($filters)
+            ->pluck('merged_into_problem_id')
+            ->map(fn ($id) => (int) $id)
+            ->unique()
+            ->filter()
+            ->values();
+    }
+
+    public function reporterProblemsFlatOrderedForList(User $user, array $filters, bool $includeAllStatuses = false, bool $onlyMine = true): Collection
+    {
+        $rootIds = $this->reporterMergeRootIdsForFilters($user, $filters, $includeAllStatuses, $onlyMine);
         if ($rootIds->isEmpty()) {
             return collect();
         }
@@ -194,6 +215,7 @@ class ProblemHttpSupport
                     ->orWhereIn('merged_into_problem_id', $rootIdArr);
             })
             ->notArchived()
+            ->where(fn ($query) => $this->applyReporterListVisibility($query, $user, $onlyMine))
             ->when(
                 ! $includeAllStatuses,
                 fn ($query) => $query->whereIn('status', ProblemStatus::reporterOwnedProblemsQueryStatusValues())
@@ -204,18 +226,41 @@ class ProblemHttpSupport
         $rootsOrdered = Problem::query()
             ->whereIn('id', $rootIdArr)
             ->orderByDesc('created_at')
-            ->with(['problemNature:id,name'])
             ->get(self::REPORTER_LIST_COLUMNS);
 
         $ordered = collect();
+        $membersById = $members->keyBy('id');
         foreach ($rootsOrdered as $main) {
-            $ordered->push($main);
+            if ($membersById->has($main->id)) {
+                $ordered->push($membersById->get($main->id));
+            }
             foreach ($members->where('merged_into_problem_id', $main->id)->sortByDesc('created_at') as $child) {
                 $ordered->push($child);
             }
         }
 
         return $ordered;
+    }
+
+    private function applyReporterListVisibility($query, User $user, bool $onlyMine, bool $includeMergedChildren = false): void
+    {
+        $query->where(function ($q) use ($user, $onlyMine, $includeMergedChildren) {
+            $q->where('reported_by_user_id', $user->id);
+
+            if (! $onlyMine) {
+                $q->orWhere('is_published_publicly', true);
+            }
+
+            if ($includeMergedChildren) {
+                $q->orWhereHas('mergedProblems', function ($mergedQuery) use ($user, $onlyMine) {
+                    $mergedQuery->where('reported_by_user_id', $user->id);
+
+                    if (! $onlyMine) {
+                        $mergedQuery->orWhere('is_published_publicly', true);
+                    }
+                });
+            }
+        });
     }
 
     public function mapProblemToStatisticsListItem(Problem $problem): array

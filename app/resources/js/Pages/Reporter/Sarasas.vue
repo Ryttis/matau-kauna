@@ -26,6 +26,7 @@ const reportNumberFilter = ref(props.filters?.report_number ?? '')
 const categoryFilter = ref(props.filters?.category ?? '')
 const dateFromFilter = ref(props.filters?.date_from ?? '')
 const dateToFilter = ref(props.filters?.date_to ?? '')
+const onlyMineFilter = ref(props.filters?.only_mine === true || props.filters?.only_mine === '1')
 
 watch(() => props.filters, (f) => {
     if (!f) return
@@ -34,6 +35,7 @@ watch(() => props.filters, (f) => {
     categoryFilter.value = f.category ?? ''
     dateFromFilter.value = f.date_from ?? ''
     dateToFilter.value = f.date_to ?? ''
+    onlyMineFilter.value = f.only_mine === true || f.only_mine === '1'
 }, { immediate: true })
 
 const applyFilters = (params = {}) => {
@@ -43,6 +45,7 @@ const applyFilters = (params = {}) => {
         category: (params.problemType ?? categoryFilter.value) || undefined,
         date_from: (params.dateFrom ?? dateFromFilter.value) || undefined,
         date_to: (params.dateTo ?? dateToFilter.value) || undefined,
+        only_mine: (params.onlyMine ?? onlyMineFilter.value) ? 1 : undefined,
     }, {
         preserveState: true,
         preserveScroll: true,
@@ -52,6 +55,11 @@ const applyFilters = (params = {}) => {
 }
 
 const debouncedSearch = debounce(() => applyFilters(), 300)
+
+function handleOnlyMineChange(event) {
+    onlyMineFilter.value = event.target.checked
+    applyFilters({ onlyMine: onlyMineFilter.value })
+}
 
 function openFilterModal() {
     showFilterModal.value = true
@@ -81,7 +89,10 @@ function handleFilterClear() {
     categoryFilter.value = ''
     dateFromFilter.value = ''
     dateToFilter.value = ''
-    router.get(route('reporter.sarasas'), { search: searchQuery.value || undefined }, {
+    router.get(route('reporter.sarasas'), {
+        search: searchQuery.value || undefined,
+        only_mine: onlyMineFilter.value ? 1 : undefined,
+    }, {
         preserveState: true,
         preserveScroll: true,
         replace: true,
@@ -103,6 +114,9 @@ const filtersActive = computed(() => {
         return true
     }
     if ((dateToFilter.value || '').trim() !== '') {
+        return true
+    }
+    if (onlyMineFilter.value) {
         return true
     }
     return false
@@ -189,7 +203,7 @@ function sarasasRowClass(row) {
     <AuthenticatedLayout>
         <div class="reporter-sarasas-page admin-tab">
             <h1 class="reporter-sarasas-title">Sąrašas</h1>
-            <p class="reporter-sarasas-desc">Mano iškeltos problemos</p>
+            <p class="reporter-sarasas-desc">Mano ir viešai skelbiamos problemos</p>
             <div class="reporter-sarasas-toolbar">
                 <SearchFilterBar
                     v-model="searchQuery"
@@ -198,6 +212,15 @@ function sarasasRowClass(row) {
                     @input="debouncedSearch"
                     @filter-click="openFilterModal"
                 />
+                <label class="reporter-sarasas-checkbox-label">
+                    <input
+                        :checked="onlyMineFilter"
+                        type="checkbox"
+                        class="reporter-sarasas-checkbox"
+                        @change="handleOnlyMineChange"
+                    />
+                    <span>Rodyti tik mano iškeltas problemas</span>
+                </label>
             </div>
             <div class="reporter-sarasas-table-wrap table">
                 <EntityTable
@@ -249,6 +272,21 @@ function sarasasRowClass(row) {
 .reporter-sarasas-toolbar {
     margin-bottom: 24px;
     max-width: 400px;
+}
+
+.reporter-sarasas-checkbox-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 12px;
+    font-size: 14px;
+    color: #333;
+    cursor: pointer;
+}
+
+.reporter-sarasas-checkbox {
+    width: 16px;
+    height: 16px;
 }
 
 .reporter-sarasas-table-wrap {
