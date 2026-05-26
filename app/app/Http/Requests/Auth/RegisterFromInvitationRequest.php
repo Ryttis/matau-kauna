@@ -2,8 +2,8 @@
 
 namespace App\Http\Requests\Auth;
 
+use App\Models\PasswordPolicy;
 use Illuminate\Foundation\Http\FormRequest;
-use Illuminate\Validation\Rules\Password;
 
 class RegisterFromInvitationRequest extends FormRequest
 {
@@ -14,10 +14,17 @@ class RegisterFromInvitationRequest extends FormRequest
 
     public function rules(): array
     {
+        $policy = PasswordPolicy::get();
+
         return [
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'string', 'email', 'max:255'],
-            'password' => ['required', 'confirmed', Password::defaults()],
+            'password' => $policy->passwordRules(),
         ];
+    }
+
+    public function messages(): array
+    {
+        return PasswordPolicy::get()->validationMessagesForPasswordField();
     }
 }

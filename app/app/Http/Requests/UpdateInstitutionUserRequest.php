@@ -27,7 +27,7 @@ class UpdateInstitutionUserRequest extends FormRequest
                 'max:255',
                 Rule::unique('users', 'email')->ignore($user->id),
             ],
-            'password' => array_merge(['nullable'], array_diff($policy->rules(), ['required'])),
+            'password' => $policy->passwordRules(required: false),
             'password_confirmation' => ['nullable', 'same:password'],
         ];
     }

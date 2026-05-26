@@ -7,6 +7,7 @@ use App\Enums\UserRoleEnum;
 use App\Http\Controllers\Controller;
 use App\Models\ContentVersion;
 use App\Models\LoginLog;
+use App\Models\PasswordPolicy;
 use App\Models\User;
 use App\Notifications\PushNotification;
 use App\Services\ActiveRoleService;
@@ -18,7 +19,6 @@ use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Password as PasswordBroker;
 use Illuminate\Support\Str;
-use Illuminate\Validation\Rules\Password;
 use Illuminate\Validation\ValidationException;
 
 class AuthApiController extends Controller
@@ -181,18 +181,16 @@ class AuthApiController extends Controller
             return $this->registerViisp($request);
         }
 
+        $policy = PasswordPolicy::get();
+
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'surname' => ['nullable', 'string', 'max:255'],
             'email' => ['required', 'string', 'email', 'max:255', 'unique:users,email'],
             'phone' => ['nullable', 'string', 'max:32', 'regex:/^[0-9+\s\-]+$/'],
-            'password' => [
-                'required',
-                'confirmed',
-                Password::min(8)->letters()->mixedCase()->symbols(),
-            ],
+            'password' => $policy->passwordRules(),
             'device_name' => ['nullable', 'string', 'max:255'],
-        ]);
+        ], $policy->validationMessagesForPasswordField());
 
         $termsVersion = ContentVersion::getLatestPublished(ContentVersion::TYPE_TERMS);
 

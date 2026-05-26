@@ -2,8 +2,8 @@
 
 namespace App\Http\Requests\Auth;
 
+use App\Models\PasswordPolicy;
 use Illuminate\Foundation\Http\FormRequest;
-use Illuminate\Validation\Rules\Password;
 
 class ResetPasswordRequest extends FormRequest
 {
@@ -14,10 +14,17 @@ class ResetPasswordRequest extends FormRequest
 
     public function rules(): array
     {
+        $policy = PasswordPolicy::get();
+
         return [
             'token' => ['required'],
             'email' => ['required', 'email'],
-            'password' => ['required', 'confirmed', Password::defaults()],
+            'password' => $policy->passwordRules(),
         ];
+    }
+
+    public function messages(): array
+    {
+        return PasswordPolicy::get()->validationMessagesForPasswordField();
     }
 }

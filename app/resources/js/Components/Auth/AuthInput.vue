@@ -73,5 +73,6 @@ defineEmits(['update:modelValue']);
     color: #c00;
     font-size: 14px;
     margin: 0 0 10px 0;
+    white-space: pre-line;
 }
 </style>

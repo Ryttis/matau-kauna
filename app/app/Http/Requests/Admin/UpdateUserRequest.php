@@ -28,7 +28,7 @@ class UpdateUserRequest extends FormRequest
                 Rule::unique('users', 'email')->ignore($user->id),
             ],
             'institution_id' => ['nullable', 'integer', 'exists:institutions,id'],
-            'password' => array_merge(['nullable'], array_diff($policy->rules(), ['required'])),
+            'password' => $policy->passwordRules(required: false),
             'password_confirmation' => ['nullable', 'same:password'],
         ];
 

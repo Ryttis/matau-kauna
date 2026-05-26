@@ -125,7 +125,7 @@ class SettingsApiController extends Controller
         $requiresCurrentPassword = ! $isViispFirstPassword && ! $user->isReporterOnly();
 
         $rules = [
-            'password' => array_merge(['required'], $policy->rules()),
+            'password' => $policy->passwordRules(),
             'password_confirmation' => ['required', 'same:password'],
         ];
         if ($requiresCurrentPassword) {
