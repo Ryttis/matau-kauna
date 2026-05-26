@@ -9,7 +9,7 @@ export const REVIEW_PROGRESS_MODAL_STATUS_TAGS = [
     { key: 'in_review', label: 'Nagrinėjama', value: PROBLEM_STATUS.IN_REVIEW, borderClass: 'add-entry-status--yellow' },
     {
         key: 'returned',
-        label: 'Grąžinta nagrinėjimui',
+        label: 'Grąžinta',
         value: PROBLEM_STATUS.RETURNED_FOR_REVIEW,
         borderClass: 'add-entry-status--violet',
     },

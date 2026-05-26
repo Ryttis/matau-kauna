@@ -17,7 +17,7 @@ enum ProblemStatus: string
             self::UNREGISTERED => 'Pateikta',
             self::NEW => 'Nauja',
             self::IN_REVIEW => 'Nagrinėjama',
-            self::RETURNED_FOR_REVIEW => 'Grąžinta nagrinėjimui',
+            self::RETURNED_FOR_REVIEW => 'Grąžinta',
             self::RESOLVED => 'Išspręsta',
             self::INACTIVE => 'Neaktuali',
         };
@@ -109,8 +109,8 @@ enum ProblemStatus: string
     public static function reporterStatusValue(string $status): string
     {
         return match ($status) {
-            self::UNREGISTERED->value, self::NEW->value => self::NEW->value,
-            self::IN_REVIEW->value, self::RETURNED_FOR_REVIEW->value => self::IN_REVIEW->value,
+            self::UNREGISTERED->value, self::NEW->value, self::RETURNED_FOR_REVIEW->value => self::NEW->value,
+            self::IN_REVIEW->value => self::IN_REVIEW->value,
             self::RESOLVED->value, self::INACTIVE->value => self::RESOLVED->value,
             default => $status,
         };

@@ -45,7 +45,7 @@ const GIS_STATUS_OPTIONS = [
     { value: 'neuzregistruota', label: 'Pateikta' },
     { value: 'nauja', label: 'Nauja' },
     { value: 'nagrinejama', label: 'Nagrinėjama' },
-    { value: 'grazinta_nagrinejimui', label: 'Grąžinta nagrinėjimui' },
+    { value: 'grazinta_nagrinejimui', label: 'Grąžinta' },
     { value: 'isspresta', label: 'Išspręsta' },
     { value: 'neaktuali', label: 'Neaktuali' },
 ]

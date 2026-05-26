@@ -149,7 +149,7 @@ const {
                                 }"
                                 @click="handleStatusSelect(PROBLEM_STATUS.RETURNED_FOR_REVIEW)"
                             >
-                                Grąžinta nagrinėjimui
+                                Grąžinta
                             </button>
                         </div>
                         <div class="assign-send-btn-wrap">

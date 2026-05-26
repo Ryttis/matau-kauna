@@ -14,7 +14,7 @@ export const PROBLEM_STATUS_LABELS = {
     [PROBLEM_STATUS.UNREGISTERED]: 'Pateikta',
     [PROBLEM_STATUS.NEW]: 'Nauja',
     [PROBLEM_STATUS.IN_REVIEW]: 'Nagrinėjama',
-    [PROBLEM_STATUS.RETURNED_FOR_REVIEW]: 'Grąžinta nagrinėjimui',
+    [PROBLEM_STATUS.RETURNED_FOR_REVIEW]: 'Grąžinta',
     [PROBLEM_STATUS.RESOLVED]: 'Išspręsta',
     [PROBLEM_STATUS.INACTIVE]: 'Neaktuali',
 }
@@ -26,10 +26,10 @@ export const REPORTER_STATUS_LABELS = {
 }
 
 export function getReporterStatusKey(status) {
-    if (status === PROBLEM_STATUS.UNREGISTERED || status === PROBLEM_STATUS.NEW) {
+    if (status === PROBLEM_STATUS.UNREGISTERED || status === PROBLEM_STATUS.NEW || status === PROBLEM_STATUS.RETURNED_FOR_REVIEW) {
         return PROBLEM_STATUS.NEW
     }
-    if (status === PROBLEM_STATUS.IN_REVIEW || status === PROBLEM_STATUS.RETURNED_FOR_REVIEW) {
+    if (status === PROBLEM_STATUS.IN_REVIEW) {
         return PROBLEM_STATUS.IN_REVIEW
     }
     if (status === PROBLEM_STATUS.RESOLVED || status === PROBLEM_STATUS.INACTIVE) {
