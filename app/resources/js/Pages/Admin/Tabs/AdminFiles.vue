@@ -217,7 +217,7 @@ onMounted(load)
                             />
                         </div>
                         <div v-if="config[ch].allow_video" class="field-row">
-                            <span class="field-lbl">Vaizdas, KB</span>
+                            <span class="field-lbl">Vaizdo įrašas, KB</span>
                             <input
                                 v-model.number="config[ch].max_video_size_kb"
                                 type="number"

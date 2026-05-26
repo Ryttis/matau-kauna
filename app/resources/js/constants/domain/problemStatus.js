@@ -11,12 +11,36 @@ export const PROBLEM_STATUS = {
 }
 
 export const PROBLEM_STATUS_LABELS = {
-    [PROBLEM_STATUS.UNREGISTERED]: 'Neužregistruota',
+    [PROBLEM_STATUS.UNREGISTERED]: 'Pateikta',
     [PROBLEM_STATUS.NEW]: 'Nauja',
     [PROBLEM_STATUS.IN_REVIEW]: 'Nagrinėjama',
     [PROBLEM_STATUS.RETURNED_FOR_REVIEW]: 'Grąžinta nagrinėjimui',
     [PROBLEM_STATUS.RESOLVED]: 'Išspręsta',
     [PROBLEM_STATUS.INACTIVE]: 'Neaktuali',
+}
+
+export const REPORTER_STATUS_LABELS = {
+    [PROBLEM_STATUS.NEW]: 'Nauja',
+    [PROBLEM_STATUS.IN_REVIEW]: 'Nagrinėjama',
+    [PROBLEM_STATUS.RESOLVED]: 'Išnagrinėta',
+}
+
+export function getReporterStatusKey(status) {
+    if (status === PROBLEM_STATUS.UNREGISTERED || status === PROBLEM_STATUS.NEW) {
+        return PROBLEM_STATUS.NEW
+    }
+    if (status === PROBLEM_STATUS.IN_REVIEW || status === PROBLEM_STATUS.RETURNED_FOR_REVIEW) {
+        return PROBLEM_STATUS.IN_REVIEW
+    }
+    if (status === PROBLEM_STATUS.RESOLVED || status === PROBLEM_STATUS.INACTIVE) {
+        return PROBLEM_STATUS.RESOLVED
+    }
+    return status || PROBLEM_STATUS.NEW
+}
+
+export function getReporterStatusLabel(status) {
+    const key = getReporterStatusKey(status)
+    return REPORTER_STATUS_LABELS[key] || PROBLEM_STATUS_LABELS[status] || PROBLEM_STATUS_LABELS[PROBLEM_STATUS.UNREGISTERED]
 }
 
 export const PROBLEM_STATUS_OPTIONS = [
@@ -37,9 +61,9 @@ export const PUBLIC_PROBLEM_STATUS_OPTIONS = [
 ]
 
 export const REPORTER_MAP_FILTER_STATUS_OPTIONS = [
-    { value: PROBLEM_STATUS.NEW, label: PROBLEM_STATUS_LABELS[PROBLEM_STATUS.NEW] },
-    { value: PROBLEM_STATUS.IN_REVIEW, label: PROBLEM_STATUS_LABELS[PROBLEM_STATUS.IN_REVIEW] },
-    { value: PROBLEM_STATUS.RESOLVED, label: PROBLEM_STATUS_LABELS[PROBLEM_STATUS.RESOLVED] },
+    { value: PROBLEM_STATUS.NEW, label: REPORTER_STATUS_LABELS[PROBLEM_STATUS.NEW] },
+    { value: PROBLEM_STATUS.IN_REVIEW, label: REPORTER_STATUS_LABELS[PROBLEM_STATUS.IN_REVIEW] },
+    { value: PROBLEM_STATUS.RESOLVED, label: REPORTER_STATUS_LABELS[PROBLEM_STATUS.RESOLVED] },
 ]
 
 export const MARKER_COLOR_BY_STATUS = {

@@ -4,6 +4,8 @@ import { PROBLEM_STATUS, PROBLEM_STATUS_LABELS, getStatusBadgeStyle } from '@/co
 
 const props = defineProps({
     status: { type: String, default: '' },
+    displayStatus: { type: String, default: '' },
+    label: { type: String, default: '' },
     size: {
         type: String,
         default: 'large',
@@ -11,8 +13,9 @@ const props = defineProps({
     },
 })
 
-const label = computed(() => PROBLEM_STATUS_LABELS[props.status] || 'Neužregistruota')
-const badgeStyle = computed(() => getStatusBadgeStyle(props.status || PROBLEM_STATUS.UNREGISTERED))
+const effectiveStatus = computed(() => props.displayStatus || props.status || PROBLEM_STATUS.UNREGISTERED)
+const label = computed(() => props.label || PROBLEM_STATUS_LABELS[effectiveStatus.value] || PROBLEM_STATUS_LABELS[PROBLEM_STATUS.UNREGISTERED])
+const badgeStyle = computed(() => getStatusBadgeStyle(effectiveStatus.value))
 </script>
 
 <template>

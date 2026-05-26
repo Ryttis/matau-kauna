@@ -19,9 +19,7 @@ class ProblemReporterStatusNotifier
 
     public function statusLabel(string $status): string
     {
-        $enum = ProblemStatus::tryFrom($status);
-
-        return $enum ? $enum->label() : $status;
+        return ProblemStatus::reporterStatusLabel($status);
     }
 
     public function notifyRootsAfterStatusChange(array $oldStatusByRootId, string $newStatus): void

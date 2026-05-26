@@ -12,7 +12,7 @@ defineProps({
             <p class="reporter-statistics-card-value">{{ total }}</p>
         </div>
         <div class="reporter-statistics-card">
-            <h3 class="reporter-statistics-card-title">Išspręsta</h3>
+            <h3 class="reporter-statistics-card-title">Išnagrinėta</h3>
             <p class="reporter-statistics-card-value">{{ solvedCount ?? 0 }}</p>
         </div>
     </div>

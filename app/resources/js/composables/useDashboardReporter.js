@@ -3,6 +3,7 @@ import { router } from '@inertiajs/vue3'
 import axios from 'axios'
 import { useProblemsMapFilter } from '@/composables/useProblemsMapFilter'
 import { buildReporterProblemDisplayRows } from '@/utils/reporterProblemRows'
+import { getReporterStatusKey } from '@/constants/domain/problemStatus'
 
 function watchRootId(problem) {
     return problem?.merged_into_problem_id ?? problem?.id
@@ -70,6 +71,7 @@ export function useDashboardReporter(props) {
         reporterOnlyMine: showOnlyMyReports,
         reporterOnlyWatched: showOnlyWatched,
         isWatched: isReporterProblemWatched,
+        statusForFilter: (problem) => problem?.reporter_status || getReporterStatusKey(problem?.status),
     })
 
     const reporterDisplayRows = computed(() => buildReporterProblemDisplayRows(reporterFilteredProblems.value))

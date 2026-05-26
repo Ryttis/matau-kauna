@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\ProblemStatus;
 use App\Models\FileUploadSettings;
 use App\Models\Problem;
 use App\Services\ProblemHttpSupport;
@@ -54,6 +55,8 @@ class GuestProblemController extends Controller
             'id' => $problem->id,
             'internal_number' => $problem->internal_number,
             'status' => $problem->status,
+            'reporter_status' => ProblemStatus::reporterStatusValue((string) $problem->status),
+            'reporter_status_label' => ProblemStatus::reporterStatusLabel((string) $problem->status),
             'category' => $problem->category,
             'nature' => $problem->problemNature?->name,
             'address' => $problem->address,

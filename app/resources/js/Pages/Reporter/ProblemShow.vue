@@ -17,6 +17,7 @@ import {
     attachmentsToUploadBaseline,
     formatShortFileUploadLimitsLine,
 } from '@/utils/fileUploadClient'
+import { getReporterStatusKey, getReporterStatusLabel } from '@/constants/domain/problemStatus'
 
 const props = defineProps({
     problem: Object,
@@ -147,7 +148,11 @@ async function onAttachInputChange(e) {
                 </div>
 
                 <div v-if="problem?.status" class="reporter-problem-status-section">
-                    <StatusBadge :status="problem.status" />
+                    <StatusBadge
+                        :status="problem.status"
+                        :display-status="problem.reporter_status || getReporterStatusKey(problem.status)"
+                        :label="problem.reporter_status_label || getReporterStatusLabel(problem.status)"
+                    />
                     <button
                         v-if="canWatch"
                         type="button"

@@ -57,6 +57,8 @@ class ReporterProblemController extends Controller
                 'id' => $problem->id,
                 'internal_number' => $problem->internal_number,
                 'status' => $problem->status,
+                'reporter_status' => ProblemStatus::reporterStatusValue((string) $problem->status),
+                'reporter_status_label' => ProblemStatus::reporterStatusLabel((string) $problem->status),
                 'created_at' => $problem->created_at?->toIso8601String(),
                 'category' => $problem->category,
                 'nature' => $problem->problemNature?->name,
@@ -94,7 +96,9 @@ class ReporterProblemController extends Controller
         $problems = $this->httpSupport->reporterProblemsFlatOrderedForList($user, $filters);
 
         $total = $problems->count();
-        $solvedCount = $problems->where('status', ProblemStatus::RESOLVED->value)->count();
+        $solvedCount = $problems
+            ->filter(fn ($problem) => ProblemStatus::reporterStatusValue((string) $problem->status) === ProblemStatus::RESOLVED->value)
+            ->count();
 
         $byCategory = $problems->groupBy('category')
             ->map(fn ($group) => $group->count())
@@ -110,13 +114,15 @@ class ReporterProblemController extends Controller
 
         $categories = ClassifierValue::getActiveTypeNames()->values()->all();
 
-        $nagrinejamosProblemos = $problems->where('status', ProblemStatus::IN_REVIEW->value)
+        $nagrinejamosProblemos = $problems
+            ->filter(fn ($problem) => ProblemStatus::reporterStatusValue((string) $problem->status) === ProblemStatus::IN_REVIEW->value)
             ->sortByDesc('created_at')
             ->values()
             ->map(fn ($problem) => $this->httpSupport->mapProblemToStatisticsListItem($problem))
             ->all();
 
-        $issprestosProblemos = $problems->where('status', ProblemStatus::RESOLVED->value)
+        $issprestosProblemos = $problems
+            ->filter(fn ($problem) => ProblemStatus::reporterStatusValue((string) $problem->status) === ProblemStatus::RESOLVED->value)
             ->sortByDesc('created_at')
             ->values()
             ->map(fn ($problem) => $this->httpSupport->mapProblemToStatisticsListItem($problem))

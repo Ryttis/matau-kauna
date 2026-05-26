@@ -79,7 +79,7 @@ function cardCategoryLine(problem) {
 }
 
 function statusDotColor(problem) {
-    return MARKER_COLOR_BY_STATUS[problem?.status] || '#95a5a6'
+    return MARKER_COLOR_BY_STATUS[problem?.reporter_status || problem?.status] || '#95a5a6'
 }
 
 function formatDate(iso) {

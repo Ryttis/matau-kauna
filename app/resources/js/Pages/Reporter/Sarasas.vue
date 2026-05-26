@@ -9,6 +9,7 @@ import FilterModal from '@/Components/App/Modals/FilterModal.vue'
 import SearchFilterBar from '@/Components/App/SearchFilterBar.vue'
 import StatusBadge from '@/Components/Problems/StatusBadge.vue'
 import { buildReporterProblemDisplayRows } from '@/utils/reporterProblemRows'
+import { getReporterStatusKey, getReporterStatusLabel } from '@/constants/domain/problemStatus'
 
 const props = defineProps({
     problems: { type: Array, default: () => [] },
@@ -127,7 +128,12 @@ const columns = [
         label: 'Būsena',
         sortable: false,
         cellComponent: StatusBadge,
-        cellProps: (row) => ({ status: rowProblem(row).status, size: 'small' }),
+        cellProps: (row) => ({
+            status: rowProblem(row).status,
+            displayStatus: rowProblem(row).reporter_status || getReporterStatusKey(rowProblem(row).status),
+            label: rowProblem(row).reporter_status_label || getReporterStatusLabel(rowProblem(row).status),
+            size: 'small',
+        }),
     },
     {
         key: 'created_at',

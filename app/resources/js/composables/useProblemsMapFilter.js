@@ -23,6 +23,7 @@ export function useProblemsMapFilter(problemsSource, options = {}) {
     const reporterOnlyMine = options.reporterOnlyMine
     const reporterOnlyWatched = options.reporterOnlyWatched
     const isWatchedPredicate = typeof options.isWatched === 'function' ? options.isWatched : null
+    const statusForFilter = typeof options.statusForFilter === 'function' ? options.statusForFilter : (problem) => problem?.status
     const searchQuery = ref('')
     const filterState = ref({ ...DEFAULT_FILTER_STATE })
     const selectedIds = ref(new Set())
@@ -61,7 +62,7 @@ export function useProblemsMapFilter(problemsSource, options = {}) {
         }
         if ((filterState.value.statuses || []).length > 0) {
             const selected = filterState.value.statuses
-            result = result.filter((problem) => selected.includes(problem.status))
+            result = result.filter((problem) => selected.includes(statusForFilter(problem)))
         }
         if (filterState.value.problemType && filterState.value.problemType !== 'all') {
             result = result.filter((problem) => problem.category === filterState.value.problemType)
