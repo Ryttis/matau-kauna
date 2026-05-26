@@ -45,7 +45,12 @@ class ReporterTermsController extends Controller
             'accepted.accepted' => 'Turite sutikti su taisyklėmis.',
         ]);
 
-        $user->update(['terms_accepted_at' => now()]);
+        $termsVersion = ContentVersion::getLatestPublished(ContentVersion::TYPE_TERMS);
+
+        $user->update([
+            'terms_accepted_at' => now(),
+            'terms_accepted_version_id' => $termsVersion?->id,
+        ]);
 
         return redirect()->route('dashboard');
     }

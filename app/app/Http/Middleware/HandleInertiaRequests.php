@@ -22,10 +22,23 @@ class HandleInertiaRequests extends Middleware
         $model = $user instanceof User ? $user : null;
         $authContext = app(ActiveRoleService::class)->resolveAndBind($request, $model);
 
+        $userPayload = null;
+        if ($model) {
+            $model->loadMissing('acceptedTermsVersion:id,version,title,body,published_at');
+            $userPayload = $model->toArray();
+            $userPayload['accepted_terms_version'] = $model->acceptedTermsVersion ? [
+                'id' => $model->acceptedTermsVersion->id,
+                'version' => $model->acceptedTermsVersion->version,
+                'title' => $model->acceptedTermsVersion->title,
+                'body' => $model->acceptedTermsVersion->body,
+                'published_at' => $model->acceptedTermsVersion->published_at?->toIso8601String(),
+            ] : null;
+        }
+
         return [
             ...parent::share($request),
             'auth' => [
-                'user' => $user,
+                'user' => $userPayload ?? $user,
                 'roles' => $authContext['roles'],
                 'permissions' => $authContext['permissions'],
                 'activeRoleId' => $authContext['activeRoleId'],

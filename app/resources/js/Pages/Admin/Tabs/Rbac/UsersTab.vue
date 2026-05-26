@@ -61,6 +61,21 @@ const selectedRoleIds = ref([])
 
 const displayUserName = (user) => [user?.name, user?.surname].filter(Boolean).join(' ').trim()
 
+const formatTermsAcceptance = (user) => {
+    if (!user?.terms_accepted_at) return '-'
+    const date = new Date(user.terms_accepted_at)
+    if (Number.isNaN(date.getTime())) return '-'
+    const formatted = date.toLocaleString('lt-LT', {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+    })
+    const version = user.accepted_terms_version?.version
+    return version ? `${formatted} (v${version})` : formatted
+}
+
 const openCreate = () => {
     createForm.value = { name: '', surname: '', email: '', password: '', password_confirmation: '', institution_id: '', role_id: '' }
     createError.value = ''
@@ -315,6 +330,7 @@ const saveUserRoles = async () => {
                     <th>Paštas</th>
                     <th>Įstaiga</th>
                     <th>Rolės</th>
+                    <th>Taisyklių sutikimas</th>
                     <th>Veiksmai</th>
                 </tr>
             </thead>
@@ -330,6 +346,7 @@ const saveUserRoles = async () => {
                             {{ r.name }}
                         </span>
                     </td>
+                    <td>{{ formatTermsAcceptance(u) }}</td>
                     <td class="actions"><span class="actions-row"><button type="button" class="link-btn" @click="openAssignRoles(u)">Rolės</button><button type="button" class="link-btn" @click="openEdit(u)">Redaguoti</button><button type="button" class="link-btn danger" @click="openDelete(u)">Trinti</button></span></td>
                 </tr>
             </tbody>

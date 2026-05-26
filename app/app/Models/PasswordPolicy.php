@@ -7,6 +7,8 @@ use Illuminate\Support\Facades\Cache;
 
 class PasswordPolicy extends Model
 {
+    public const ALLOWED_SPECIAL_CHARS = '!@#$%^&*()_+\-=';
+
     protected $table = 'password_policy';
 
     protected $fillable = [
@@ -63,6 +65,7 @@ class PasswordPolicy extends Model
     public function rules(): array
     {
         $r = ['required', 'string', 'min:'.$this->min_length, 'confirmed'];
+        $r[] = 'regex:/^[A-Za-z0-9'.self::ALLOWED_SPECIAL_CHARS.']+$/';
         if ($this->require_lowercase) {
             $r[] = 'regex:/[a-z]/';
         }
@@ -70,10 +73,15 @@ class PasswordPolicy extends Model
             $r[] = 'regex:/[A-Z]/';
         }
         if ($this->require_special) {
-            $r[] = 'regex:/[^A-Za-z0-9]/';
+            $r[] = 'regex:/['.self::ALLOWED_SPECIAL_CHARS.']/';
         }
 
         return $r;
+    }
+
+    public static function displayAllowedSpecialChars(): string
+    {
+        return '! @ # $ % ^ & * ( ) _ + - =';
     }
 
     public function requirementSummaryLt(): string
@@ -86,8 +94,9 @@ class PasswordPolicy extends Model
             $parts[] = 'bent viena didžioji raidė';
         }
         if ($this->require_special) {
-            $parts[] = 'bent vienas simbolis (pvz. !@#$%), ne tik raidės ir skaičiai';
+            $parts[] = 'bent vienas iš leistinų specialiųjų simbolių ('.self::displayAllowedSpecialChars().')';
         }
+        $parts[] = 'tik raidės (A–Z, a–z), skaičiai ir leistini simboliai ('.self::displayAllowedSpecialChars().'). Tarpai, taškai, kableliai ir kiti simboliai neleidžiami';
 
         return implode(', ', $parts);
     }

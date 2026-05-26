@@ -26,8 +26,12 @@ class RbacUserController extends Controller
     {
         $query = User::query()
             ->notArchived()
-            ->select(['id', 'name', 'surname', 'email', 'institution_id', 'two_factor_enabled'])
-            ->with(['roles:id,role,name', 'institution:id,name']);
+            ->select(['id', 'name', 'surname', 'email', 'institution_id', 'two_factor_enabled', 'terms_accepted_at', 'terms_accepted_version_id'])
+            ->with([
+                'roles:id,role,name',
+                'institution:id,name',
+                'acceptedTermsVersion:id,version',
+            ]);
 
         $search = trim((string) $request->query('search', ''));
         if ($search !== '') {
