@@ -517,8 +517,9 @@ class AuthApiController extends Controller
             ->first();
 
         if (! $user?->canRequestPasswordResetLink()) {
-            throw ValidationException::withMessages([
-                'email' => ['Su tokiu el. paÅ¡tu naudotojo nÄ—ra.'],
+            return response()->json([
+                'ok' => true,
+                'message' => 'Nuoroda išsiųsta į nurodytą el. paštą. Patikrinkite paštą.',
             ]);
         }
 
@@ -537,8 +538,9 @@ class AuthApiController extends Controller
             ]);
         }
 
-        throw ValidationException::withMessages([
-            'email' => ['Su tokiu el. paštu naudotojo nėra.'],
+        return response()->json([
+            'ok' => true,
+            'message' => 'Nuoroda išsiųsta į nurodytą el. paštą. Patikrinkite paštą.',
         ]);
     }
 
