@@ -15,6 +15,7 @@ import { useDashboardReporter } from '@/composables/useDashboardReporter'
 import {
     REPORTER_MAP_FILTER_STATUS_OPTIONS,
     REPORTER_MAP_LEGEND_STATUS_ORDER,
+    REPORTER_STATUS_LABELS,
 } from '@/constants/domain/problemStatus'
 import '@/Components/Dashboard/dashboard-page.css'
 
@@ -140,7 +141,10 @@ const reporterDateMax = `${currentYear}-12-31`
                         marker-class="reporter-dashboard-marker"
                         @open-problem="reporterOpenProblemView"
                     />
-                    <ProblemMapStatusLegend :status-order="REPORTER_MAP_LEGEND_STATUS_ORDER" />
+                    <ProblemMapStatusLegend
+                        :status-order="REPORTER_MAP_LEGEND_STATUS_ORDER"
+                        :label-map="REPORTER_STATUS_LABELS"
+                    />
                 </div>
                 <aside class="reporter-dashboard-list">
                     <h3 class="reporter-dashboard-list-title">Sąrašas</h3>

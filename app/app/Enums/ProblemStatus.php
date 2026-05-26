@@ -14,7 +14,7 @@ enum ProblemStatus: string
     public function label(): string
     {
         return match ($this) {
-            self::UNREGISTERED => 'Neužregistruota',
+            self::UNREGISTERED => 'Pateikta',
             self::NEW => 'Nauja',
             self::IN_REVIEW => 'Nagrinėjama',
             self::RETURNED_FOR_REVIEW => 'Grąžinta nagrinėjimui',
@@ -88,7 +88,9 @@ enum ProblemStatus: string
             self::UNREGISTERED->value,
             self::NEW->value,
             self::IN_REVIEW->value,
+            self::RETURNED_FOR_REVIEW->value,
             self::RESOLVED->value,
+            self::INACTIVE->value,
         ];
     }
 
@@ -99,6 +101,28 @@ enum ProblemStatus: string
             self::IN_REVIEW->value,
             self::RETURNED_FOR_REVIEW->value,
             self::RESOLVED->value,
+            self::UNREGISTERED->value,
+            self::INACTIVE->value,
         ];
+    }
+
+    public static function reporterStatusValue(string $status): string
+    {
+        return match ($status) {
+            self::UNREGISTERED->value, self::NEW->value => self::NEW->value,
+            self::IN_REVIEW->value, self::RETURNED_FOR_REVIEW->value => self::IN_REVIEW->value,
+            self::RESOLVED->value, self::INACTIVE->value => self::RESOLVED->value,
+            default => $status,
+        };
+    }
+
+    public static function reporterStatusLabel(string $status): string
+    {
+        return match (self::reporterStatusValue($status)) {
+            self::NEW->value => 'Nauja',
+            self::IN_REVIEW->value => 'Nagrinėjama',
+            self::RESOLVED->value => 'Išnagrinėta',
+            default => self::tryFrom($status)?->label() ?? $status,
+        };
     }
 }

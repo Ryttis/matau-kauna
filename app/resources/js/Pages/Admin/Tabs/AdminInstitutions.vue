@@ -42,7 +42,7 @@ const GIS_FIELD_MAPPING_ROWS = [
 ]
 
 const GIS_STATUS_OPTIONS = [
-    { value: 'neuzregistruota', label: 'Neužregistruota' },
+    { value: 'neuzregistruota', label: 'Pateikta' },
     { value: 'nauja', label: 'Nauja' },
     { value: 'nagrinejama', label: 'Nagrinėjama' },
     { value: 'grazinta_nagrinejimui', label: 'Grąžinta nagrinėjimui' },

@@ -24,7 +24,9 @@ function mapPopupDateLabel(iso) {
     return d.toLocaleDateString('lt-LT')
 }
 
-function mapPopupStatusLabel(status) {
+function mapPopupStatusLabel(problem) {
+    if (problem?.reporter_status_label) return problem.reporter_status_label
+    const status = problem?.reporter_status || problem?.status
     if (!status) return '-'
     return PROBLEM_STATUS_LABELS[status] || String(status)
 }
@@ -115,7 +117,7 @@ export function useKaunasMap(containerRef, problemsToShowRef, options = {}) {
         const num = escapeHtml(problem.internal_number)
         const cat = escapeHtml((problem.category || '').trim() || '-')
         const addr = escapeHtml(truncateMapPopupText(problem.address) || '-')
-        const statusText = escapeHtml(mapPopupStatusLabel(problem.status))
+        const statusText = escapeHtml(mapPopupStatusLabel(problem))
         const dateText = escapeHtml(mapPopupDateLabel(problem.created_at))
         const desc = escapeHtml(
             truncateMapPopupText(problem.description_preview || problem.description) || '-',
@@ -214,7 +216,7 @@ export function useKaunasMap(containerRef, problemsToShowRef, options = {}) {
                 const isMerged = merged.has(Number(problem.id))
                 const color = (isMain || isMerged)
                     ? (isMain ? MAP_HIGHLIGHT_COLOR : MAP_MERGED_MARKER_COLOR)
-                    : getMarkerColorForStatus(problem.status)
+                    : getMarkerColorForStatus(problem.reporter_status || problem.status)
                 const size = isMain ? HIGHLIGHTED_MARKER_SIZE : (isMerged ? MERGED_MARKER_SIZE : DEFAULT_MARKER_SIZE)
                 const icon = L.divIcon({
                     className: markerClassName,

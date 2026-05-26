@@ -11,6 +11,10 @@ const props = defineProps({
         type: Array,
         default: null,
     },
+    labelMap: {
+        type: Object,
+        default: null,
+    },
 })
 
 const statuses = computed(() => {
@@ -19,6 +23,8 @@ const statuses = computed(() => {
     }
     return MAP_LEGEND_STATUS_ORDER
 })
+
+const labels = computed(() => props.labelMap || PROBLEM_STATUS_LABELS)
 </script>
 
 <template>
@@ -32,7 +38,7 @@ const statuses = computed(() => {
                 class="problem-map-status-legend__dot"
                 :style="{ backgroundColor: MARKER_COLOR_BY_STATUS[st] || '#95a5a6' }"
             />
-            <span class="problem-map-status-legend__text">{{ PROBLEM_STATUS_LABELS[st] }}</span>
+            <span class="problem-map-status-legend__text">{{ labels[st] || PROBLEM_STATUS_LABELS[st] }}</span>
         </div>
     </div>
 </template>

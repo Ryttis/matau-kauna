@@ -99,9 +99,9 @@ const categoryOptions = computed(() => {
                     empty-message="Nėra nagrinėjamų problemų"
                 />
                 <ReporterStatisticsProblemTable
-                    title="Išspręstos problemos"
+                    title="Išnagrinėtos problemos"
                     :problems="issprestosProblemos"
-                    empty-message="Nėra išspręstų problemų"
+                    empty-message="Nėra išnagrinėtų problemų"
                 />
             </div>
         </div>

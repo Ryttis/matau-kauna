@@ -223,6 +223,8 @@ class ProblemHttpSupport
         return [
             'id' => $problem->id,
             'internal_number' => $problem->internal_number,
+            'reporter_status' => ProblemStatus::reporterStatusValue((string) $problem->status),
+            'reporter_status_label' => ProblemStatus::reporterStatusLabel((string) $problem->status),
             'created_at' => $problem->created_at?->toIso8601String(),
             'description_preview' => Problem::descriptionPreview($problem->description, 120),
         ];
