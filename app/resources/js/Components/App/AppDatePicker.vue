@@ -43,7 +43,7 @@ const displayValue = computed(() => {
     if (!props.modelValue) return ''
     const d = parseDate(props.modelValue)
     if (!d) return props.modelValue
-    return toYmd(d)
+    return toDisplay(d)
 })
 
 function parseDate(str) {
@@ -60,6 +60,14 @@ function toYmd(d) {
     const m = String(d.getMonth() + 1).padStart(2, '0')
     const day = String(d.getDate()).padStart(2, '0')
     return `${y}-${m}-${day}`
+}
+
+function toDisplay(d) {
+    if (!d) return ''
+    const y = d.getFullYear()
+    const m = String(d.getMonth() + 1).padStart(2, '0')
+    const day = String(d.getDate()).padStart(2, '0')
+    return `${y}/${m}/${day}`
 }
 
 const calendarDays = computed(() => {

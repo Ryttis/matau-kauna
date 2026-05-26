@@ -230,13 +230,13 @@ const handleClose = () => {
                 <div class="date-inputs">
                     <AppDatePicker
                         v-model="localFilters.dateFrom"
-                        placeholder="dd/mm/yyyy"
+                        placeholder="YYYY/MM/DD"
                         :min-date="props.dateMin || null"
                         :max-date="props.dateMax || null"
                     />
                     <AppDatePicker
                         v-model="localFilters.dateTo"
-                        placeholder="dd/mm/yyyy"
+                        placeholder="YYYY/MM/DD"
                         :min-date="localFilters.dateFrom || props.dateMin || null"
                         :max-date="props.dateMax || null"
                     />

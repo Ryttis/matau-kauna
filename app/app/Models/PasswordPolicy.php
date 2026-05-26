@@ -96,7 +96,6 @@ class PasswordPolicy extends Model
         if ($this->require_special) {
             $parts[] = 'bent vienas iš leistinų specialiųjų simbolių ('.self::displayAllowedSpecialChars().')';
         }
-        $parts[] = 'tik raidės (A–Z, a–z), skaičiai ir leistini simboliai ('.self::displayAllowedSpecialChars().'). Tarpai, taškai, kableliai ir kiti simboliai neleidžiami';
 
         return implode(', ', $parts);
     }
@@ -109,7 +108,7 @@ class PasswordPolicy extends Model
             'password.required' => 'Įveskite slaptažodį.',
             'password.string' => 'Slaptažodis turi būti tekstas.',
             'password.min' => "Slaptažodis per trumpas. Reikalaujama: {$summary}.",
-            'password.regex' => "Slaptažodis neatitinka taisyklių. Reikalaujama: {$summary}.",
+            'password.regex' => "Slaptažodis neatitinka taisyklių. Tarpai, taškai, kableliai ir kiti simboliai neleidžiami.\nReikalaujama: {$summary}.",
             'password.confirmed' => 'Slaptažodžio pakartojimas nesutampa.',
             'password_confirmation.required' => 'Patvirtinkite slaptažodį.',
             'password_confirmation.required_with' => 'Patvirtinkite slaptažodį.',
