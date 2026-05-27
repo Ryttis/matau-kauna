@@ -44,10 +44,11 @@ class ProblemHttpSupport
             ->notArchived()
             ->where('is_active', true)
             ->orderBy('name')
-            ->get(['id', 'name', 'contact_email', 'integration_email'])
+            ->get(['id', 'name', 'contact_email', 'integration_email', 'is_email_only'])
             ->map(fn (Institution $institution) => [
                 'id' => $institution->id,
                 'name' => $institution->name,
+                'is_email_only' => (bool) $institution->is_email_only,
                 'emails' => array_values(array_unique(array_filter([
                     $institution->contact_email,
                     $institution->integration_email,

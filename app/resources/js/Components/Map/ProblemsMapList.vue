@@ -1,5 +1,6 @@
 <script setup>
 import { MARKER_COLOR_BY_STATUS } from '@/constants/domain/problemStatus'
+import { formatDateLt } from '@/utils/dateFormat'
 
 const props = defineProps({
     problems: { type: Array, default: () => [] },
@@ -83,10 +84,7 @@ function statusDotColor(problem) {
 }
 
 function formatDate(iso) {
-    if (!iso) return ''
-    const d = new Date(iso)
-    if (Number.isNaN(d.getTime())) return ''
-    return d.toLocaleDateString('lt-LT')
+    return formatDateLt(iso)
 }
 
 function shortAddress(addr) {

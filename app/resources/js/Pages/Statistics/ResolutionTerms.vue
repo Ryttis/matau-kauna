@@ -4,6 +4,7 @@ import { Head, router } from "@inertiajs/vue3";
 import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout.vue";
 import AppSelect from "@/Components/App/AppSelect.vue";
 import "@/Components/Statistics/statistics-page.css";
+import { formatDateLt } from "@/utils/dateFormat";
 import { PROBLEM_STATUS_LABELS } from "@/constants/domain/problemStatus";
 
 const props = defineProps({
@@ -126,8 +127,7 @@ function statusLabel(status) {
 
 function formatTermDate(isoDate) {
     if (!isoDate) return "-";
-    const d = new Date(`${isoDate}T12:00:00`);
-    return Number.isNaN(d.getTime()) ? isoDate : d.toLocaleDateString("lt-LT");
+    return formatDateLt(`${isoDate}T12:00:00`, isoDate);
 }
 </script>
 

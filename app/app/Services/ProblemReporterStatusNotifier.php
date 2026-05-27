@@ -86,7 +86,7 @@ class ProblemReporterStatusNotifier
             'comment_excerpt' => $entry->comment
                 ? Problem::descriptionPreview($entry->comment, 400)
                 : '(nėra)',
-            'entry_date' => $entry->created_at?->format('Y-m-d H:i') ?? '',
+            'entry_date' => $entry->created_at?->timezone('Europe/Vilnius')->format('Y-m-d H:i') ?? '',
         ];
 
         $this->dispatchToReportersAndWatchers(

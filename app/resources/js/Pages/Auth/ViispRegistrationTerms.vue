@@ -3,7 +3,7 @@ import AppButton from '@/Components/App/AppButton.vue'
 import GuestHeader from '@/Components/Landing/GuestHeader.vue'
 import LandingFooter from '@/Components/Landing/LandingFooter.vue'
 import { Head, Link, useForm } from '@inertiajs/vue3'
-import { computed } from 'vue'
+import { computed, nextTick, onMounted, ref } from 'vue'
 
 defineProps({
     terms_title: { type: String, default: 'Sistemos taisyklės ir asmens duomenų tvarkymas' },
@@ -14,7 +14,29 @@ const form = useForm({
     accepted: false,
 })
 
-const canSubmit = computed(() => form.accepted)
+const termsContentRef = ref(null)
+const scrolledToBottom = ref(false)
+const contentFits = ref(false)
+const canAccept = computed(() => scrolledToBottom.value || contentFits.value)
+const canSubmit = computed(() => form.accepted && canAccept.value)
+
+const onTermsScroll = (e) => {
+    const el = e.target
+    if (!el) return
+    const distance = el.scrollHeight - el.clientHeight - el.scrollTop
+    if (distance < 8) scrolledToBottom.value = true
+}
+
+const evaluateContentFits = () => {
+    const el = termsContentRef.value
+    if (!el) return
+    contentFits.value = el.scrollHeight <= el.clientHeight + 4
+}
+
+onMounted(async () => {
+    await nextTick()
+    evaluateContentFits()
+})
 
 const submit = () => {
     if (!canSubmit.value) return
@@ -40,21 +62,35 @@ const submit = () => {
                     Prieš pildant registracijos anketą, susipažinkite su taisyklėmis ir patvirtinkite sutikimą.
                 </p>
 
-                <div v-if="terms_body" class="viisp-reg-terms-content content-html" v-html="terms_body"></div>
+                <div
+                    v-if="terms_body"
+                    ref="termsContentRef"
+                    class="viisp-reg-terms-content content-html"
+                    v-html="terms_body"
+                    @scroll="onTermsScroll"
+                ></div>
 
                 <div class="viisp-reg-terms-links">
                     <Link :href="route('privacy')" class="viisp-reg-terms-link">Privatumo politika</Link>
                     <Link :href="route('cookies')" class="viisp-reg-terms-link">Slapukų politika</Link>
                 </div>
 
+                <p v-if="!canAccept" class="viisp-reg-terms-scroll-hint">
+                    Perskaitykite iki galo, kad galėtumėte patvirtinti.
+                </p>
+
                 <form class="viisp-reg-terms-form" @submit.prevent="submit">
-                    <label class="viisp-reg-terms-checkbox-label">
+                    <label
+                        class="viisp-reg-terms-checkbox-label"
+                        :class="{ 'is-disabled': !canAccept }"
+                    >
                         <input
                             v-model="form.accepted"
                             type="checkbox"
                             name="accepted"
                             value="1"
                             class="viisp-reg-terms-checkbox"
+                            :disabled="!canAccept"
                         />
                         <span class="viisp-reg-terms-checkbox-text">Sutinku su taisyklėmis</span>
                     </label>
@@ -179,6 +215,14 @@ const submit = () => {
     gap: 1rem;
 }
 
+.viisp-reg-terms-scroll-hint {
+    margin: 0 0 0.85rem 0;
+    font-size: 0.8125rem;
+    color: #888;
+    font-style: italic;
+    text-align: center;
+}
+
 .viisp-reg-terms-checkbox-label {
     display: flex;
     align-items: flex-start;
@@ -187,6 +231,11 @@ const submit = () => {
     font-size: 0.95rem;
     line-height: 1.45;
     color: #333;
+}
+
+.viisp-reg-terms-checkbox-label.is-disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
 }
 
 .viisp-reg-terms-checkbox {

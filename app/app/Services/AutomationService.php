@@ -177,7 +177,7 @@ class AutomationService
                 'id' => $user->id,
                 'name' => trim($user->name.' '.($user->surname ?? '')) ?: $user->email,
                 'email' => $user->email,
-                'last_login_at' => $lastLoginAt?->format('Y-m-d H:i'),
+                'last_login_at' => $lastLoginAt?->timezone('Europe/Vilnius')->format('Y-m-d H:i'),
                 'inactive_days' => $inactiveDays,
             ];
         }
@@ -207,7 +207,7 @@ class AutomationService
                     Problem::AUTOMATION_RESOLVED_SEARCH_PREVIEW
                 ),
                 'problem_line' => $problem->automationResolvedListingLine(),
-                'resolved_at' => $resolvedAt?->format('Y-m-d H:i'),
+                'resolved_at' => $resolvedAt?->timezone('Europe/Vilnius')->format('Y-m-d H:i'),
                 'resolved_at_ts' => $resolvedAt?->timestamp,
             ];
         }

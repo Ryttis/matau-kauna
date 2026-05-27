@@ -29,7 +29,7 @@ class InvitationNotification extends Notification
         $appName = config('mail.brand_name');
         $institutionName = $this->invitation->institution?->name ?? '-';
         $roleName = $this->invitation->role?->name ?? '-';
-        $expiresAt = $this->invitation->expires_at?->format('Y-m-d H:i') ?? '-';
+        $expiresAt = $this->invitation->expires_at?->timezone('Europe/Vilnius')->format('Y-m-d H:i') ?? '-';
 
         $map = [
             '{app_name}' => $appName,

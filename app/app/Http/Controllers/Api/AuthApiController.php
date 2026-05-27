@@ -33,6 +33,10 @@ class AuthApiController extends Controller
 
     public function login(Request $request): JsonResponse
     {
+        if (is_string($request->input('email'))) {
+            $request->merge(['email' => Str::lower(trim($request->input('email')))]);
+        }
+
         $validated = $request->validate([
             'email' => ['required', 'string', 'email'],
             'password' => ['required', 'string'],
@@ -41,7 +45,7 @@ class AuthApiController extends Controller
         ]);
 
         $user = User::query()
-            ->where('email', $validated['email'])
+            ->whereRaw('LOWER(email) = ?', [$validated['email']])
             ->first();
 
         if (! $user || ! Hash::check($validated['password'], $user->password)) {
@@ -522,6 +526,10 @@ class AuthApiController extends Controller
 
     public function forgotPassword(Request $request): JsonResponse
     {
+        if (is_string($request->input('email'))) {
+            $request->merge(['email' => Str::lower(trim($request->input('email')))]);
+        }
+
         $validated = $request->validate([
             'email' => ['required', 'email'],
         ], [
@@ -531,7 +539,7 @@ class AuthApiController extends Controller
 
         $user = User::query()
             ->with('roles:id,role')
-            ->where('email', $validated['email'])
+            ->whereRaw('LOWER(email) = ?', [$validated['email']])
             ->first();
 
         if (! $user?->canRequestPasswordResetLink()) {

@@ -4,6 +4,7 @@ import axios from 'axios'
 import AppButton from '@/Components/App/AppButton.vue'
 import AppInput from '@/Components/App/AppInput.vue'
 import AppSwitch from '@/Components/App/AppSwitch.vue'
+import { formatDateLt } from '@/utils/dateFormat'
 import SuccessModal from '@/Components/App/SuccessModal.vue'
 import ConfirmModal from '@/Components/App/ConfirmModal.vue'
 import { debounce } from 'lodash-es'
@@ -115,10 +116,7 @@ const saveSettings = async () => {
     }
 }
 
-const formatDate = (str) => {
-    if (!str) return '-'
-    return new Date(str).toLocaleDateString('lt-LT')
-}
+const formatDate = (str) => formatDateLt(str, '-')
 
 function currentRuleForActiveTab() {
     const entityType = TAB_ENTITY_MAP[activeTab.value]

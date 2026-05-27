@@ -4,6 +4,7 @@ import axios from 'axios'
 import BaseModal from '@/Components/App/BaseModal.vue'
 import { adminRbacApi } from '@/constants/api/adminRbacApi'
 import { invitationsApi } from '@/constants/api/invitationsApi'
+import { formatDateTimeLt } from '@/utils/dateFormat'
 import ConfirmModal from '@/Components/App/ConfirmModal.vue'
 import AppButton from '@/Components/App/AppButton.vue'
 import { ROLE_INSTITUTION_ADMIN, ROLE_EMPLOYEE, ROLE_REPORTER } from '@/constants/domain/roles'
@@ -61,18 +62,7 @@ const selectedRoleIds = ref([])
 
 const displayUserName = (user) => [user?.name, user?.surname].filter(Boolean).join(' ').trim()
 
-const formatTermsAcceptance = (user) => {
-    if (!user?.terms_accepted_at) return '-'
-    const date = new Date(user.terms_accepted_at)
-    if (Number.isNaN(date.getTime())) return '-'
-    return date.toLocaleString('lt-LT', {
-        year: 'numeric',
-        month: '2-digit',
-        day: '2-digit',
-        hour: '2-digit',
-        minute: '2-digit',
-    })
-}
+const formatTermsAcceptance = (user) => formatDateTimeLt(user?.terms_accepted_at, '-')
 
 const formatTermsVersion = (user) => {
     const version = user?.accepted_terms_version?.version

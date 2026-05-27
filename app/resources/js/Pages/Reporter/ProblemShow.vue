@@ -4,6 +4,7 @@ import axios from 'axios'
 import { Head, Link, router } from '@inertiajs/vue3'
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue'
 import AppButton from '@/Components/App/AppButton.vue'
+import { formatDateLt } from '@/utils/dateFormat'
 import AppInput from '@/Components/App/AppInput.vue'
 import { ICON_LEFT_ARROW } from '@/constants/ui/icons'
 import ProblemDetailBlocks from '@/Components/Problems/ProblemDetailBlocks.vue'
@@ -50,10 +51,7 @@ async function toggleProblemWatch() {
     }
 }
 
-const formattedDate = computed(() => {
-    if (!props.problem?.created_at) return ''
-    return new Date(props.problem.created_at).toLocaleDateString('lt-LT')
-})
+const formattedDate = computed(() => formatDateLt(props.problem?.created_at))
 
 const problemIdForReview = computed(() =>
     props.reviewProgressProblemId ?? props.problem?.id

@@ -12,6 +12,7 @@ import {
 } from '@/constants/domain/reviewProgressEntry'
 import { PROBLEM_STATUS } from '@/constants/domain/problemStatus'
 import { useReviewProgressEntryForm } from '@/composables/useReviewProgressEntryForm'
+import { formatDateLt } from '@/utils/dateFormat'
 import { useFileUploadQueue, defaultFileUploadSettings, isBrowserPreviewableFile } from '@/composables/useFileUploadQueue'
 import { firstInertiaErrorForPrefix, humanizeTechnicalUploadError } from '@/utils/laravelApiErrors'
 import {
@@ -37,7 +38,7 @@ const props = defineProps({
 
 const emit = defineEmits(['close'])
 
-const todayDate = new Date().toLocaleDateString('lt-LT')
+const todayDate = formatDateLt(new Date())
 const selectedKey = ref(null)
 const localStatusHint = ref('')
 const localCommentHint = ref('')
@@ -46,7 +47,7 @@ const modalTitle = computed(() => (props.entry?.id ? 'Koreguoti įrašą' : 'Bū
 
 const headerDateDisplay = computed(() => {
     if (props.entry?.date) {
-        return new Date(props.entry.date).toLocaleDateString('lt-LT')
+        return formatDateLt(props.entry.date)
     }
     return todayDate
 })

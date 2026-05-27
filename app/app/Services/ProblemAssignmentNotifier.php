@@ -135,7 +135,7 @@ class ProblemAssignmentNotifier
                 '- %s | %s | %s | %s',
                 $problem->internal_number,
                 Problem::descriptionPreview($problem->description, 120),
-                $problem->created_at?->format('Y-m-d'),
+                $problem->created_at?->timezone('Europe/Vilnius')->format('Y-m-d'),
                 route('problems.show', $problem->id)
             );
         }
@@ -306,7 +306,7 @@ class ProblemAssignmentNotifier
             'description_excerpt' => Problem::descriptionPreview($problem->description, $excerptLimit) ?: '-',
             'description' => $this->plainDescription($problem),
             'address' => $problem->address ?? '-',
-            'created_at' => $problem->created_at?->format('Y-m-d') ?? '-',
+            'created_at' => $problem->created_at?->timezone('Europe/Vilnius')->format('Y-m-d') ?? '-',
             'deadline_line' => $deadlineLine,
             'deadline_date' => $deadlineDate,
             'url' => route('problems.show', $problem->id),

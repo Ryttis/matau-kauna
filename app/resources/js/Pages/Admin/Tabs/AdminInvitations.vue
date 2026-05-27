@@ -4,6 +4,7 @@ import axios from 'axios'
 import SuccessModal from '@/Components/App/SuccessModal.vue'
 import AppDataTable from '@/Components/App/AppDataTable.vue'
 import AppButton from '@/Components/App/AppButton.vue'
+import { formatDateTimeLt } from '@/utils/dateFormat'
 import { adminApi } from '@/constants/api/adminApi'
 import { useSuccessModal } from '@/composables/useSuccessModal'
 
@@ -85,8 +86,8 @@ onMounted(loadInvitations)
                     <td>{{ invite.institution?.name ?? '-' }}</td>
                     <td>{{ invite.role?.name ?? '-' }}</td>
                     <td>{{ statusLabel(invite) }}</td>
-                    <td>{{ invite.expires_at ? new Date(invite.expires_at).toLocaleString('lt-LT') : '-' }}</td>
-                    <td>{{ invite.created_at ? new Date(invite.created_at).toLocaleString('lt-LT') : '-' }}</td>
+                    <td>{{ formatDateTimeLt(invite.expires_at, '-') }}</td>
+                    <td>{{ formatDateTimeLt(invite.created_at, '-') }}</td>
                     <td>
                         <button
                             type="button"

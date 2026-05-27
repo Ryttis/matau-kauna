@@ -3,7 +3,7 @@ import AppButton from '@/Components/App/AppButton.vue';
 import GuestHeader from '@/Components/Landing/GuestHeader.vue';
 import LandingFooter from '@/Components/Landing/LandingFooter.vue';
 import { Head, Link, useForm } from '@inertiajs/vue3';
-import { computed } from 'vue';
+import { computed, nextTick, onMounted, ref } from 'vue';
 
 defineProps({
     terms_title: { type: String, default: 'Sistemos taisyklės ir asmens duomenų tvarkymas' },
@@ -14,7 +14,29 @@ const form = useForm({
     accepted: false,
 });
 
-const canSubmit = computed(() => form.accepted);
+const termsContentRef = ref(null);
+const scrolledToBottom = ref(false);
+const contentFits = ref(false);
+const canAccept = computed(() => scrolledToBottom.value || contentFits.value);
+const canSubmit = computed(() => form.accepted && canAccept.value);
+
+const onTermsScroll = (e) => {
+    const el = e.target;
+    if (!el) return;
+    const distance = el.scrollHeight - el.clientHeight - el.scrollTop;
+    if (distance < 8) scrolledToBottom.value = true;
+};
+
+const evaluateContentFits = () => {
+    const el = termsContentRef.value;
+    if (!el) return;
+    contentFits.value = el.scrollHeight <= el.clientHeight + 4;
+};
+
+onMounted(async () => {
+    await nextTick();
+    evaluateContentFits();
+});
 
 const submit = () => {
     if (!canSubmit.value) return;
@@ -41,21 +63,35 @@ const submit = () => {
                     taisyklėmis.
                 </p>
 
-                <div v-if="terms_body" class="reporter-terms-content content-html" v-html="terms_body"></div>
+                <div
+                    v-if="terms_body"
+                    ref="termsContentRef"
+                    class="reporter-terms-content content-html"
+                    v-html="terms_body"
+                    @scroll="onTermsScroll"
+                ></div>
 
                 <div class="reporter-terms-links">
                     <Link :href="route('privacy')" class="reporter-terms-link">Privatumo politika</Link>
                     <Link :href="route('privacy')" class="reporter-terms-link">Slapukų politika</Link>
                 </div>
 
+                <p v-if="!canAccept" class="reporter-terms-scroll-hint">
+                    Perskaitykite iki galo, kad galėtumėte patvirtinti.
+                </p>
+
                 <form @submit.prevent="submit" class="reporter-terms-form">
-                    <label class="reporter-terms-checkbox-label">
+                    <label
+                        class="reporter-terms-checkbox-label"
+                        :class="{ 'is-disabled': !canAccept }"
+                    >
                         <input
                             v-model="form.accepted"
                             type="checkbox"
                             name="accepted"
                             value="1"
                             class="reporter-terms-checkbox"
+                            :disabled="!canAccept"
                         />
                         <span class="reporter-terms-checkbox-text">Sutinku su taisyklėmis</span>
                     </label>
@@ -159,6 +195,14 @@ const submit = () => {
     gap: 0.75rem;
 }
 
+.reporter-terms-scroll-hint {
+    margin: 0 0 0.75rem 0;
+    font-size: 12px;
+    color: #888;
+    font-style: italic;
+    text-align: center;
+}
+
 .reporter-terms-checkbox-label {
     display: flex;
     align-items: flex-start;
@@ -166,6 +210,11 @@ const submit = () => {
     cursor: pointer;
     font-size: 14px;
     color: #333;
+}
+
+.reporter-terms-checkbox-label.is-disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
 }
 
 .reporter-terms-checkbox {

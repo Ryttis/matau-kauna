@@ -4,6 +4,7 @@ import axios from 'axios'
 import { Head } from '@inertiajs/vue3'
 import GuestHeader from '@/Components/Landing/GuestHeader.vue'
 import LandingFooter from '@/Components/Landing/LandingFooter.vue'
+import { formatDateLt } from '@/utils/dateFormat'
 import AppSelect from '@/Components/App/AppSelect.vue'
 import AppDatePicker from '@/Components/App/AppDatePicker.vue'
 import CategoryStatsBlock from '@/Components/Statistics/CategoryStatsBlock.vue'
@@ -34,12 +35,7 @@ const categoryOptions = computed(() => {
 const periodLabel = computed(() => {
     const from = effective.value?.date_from || config.value?.date_from
     const to = effective.value?.date_to || config.value?.date_to
-    const fmt = (s) => {
-        if (!s) return ''
-        const d = new Date(s)
-        if (Number.isNaN(d.getTime())) return s
-        return d.toLocaleDateString('lt-LT')
-    }
+    const fmt = (s) => formatDateLt(s, s ?? '')
     if (from && to) return `${fmt(from)} – ${fmt(to)}`
     if (from) return `Nuo ${fmt(from)}`
     if (to) return `Iki ${fmt(to)}`

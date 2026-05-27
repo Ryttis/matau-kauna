@@ -4,6 +4,7 @@ import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue'
 import AppBackButton from '@/Components/App/AppBackButton.vue'
 import AppButton from '@/Components/App/AppButton.vue'
 import AddEntryModal from '@/Components/App/Modals/AddEntryModal.vue'
+import { formatDateLt } from '@/utils/dateFormat'
 import ConfirmModal from '@/Components/App/ConfirmModal.vue'
 import AttachmentMediaLightbox from '@/Components/Problems/AttachmentMediaLightbox.vue'
 import StatusBadge from '@/Components/Problems/StatusBadge.vue'
@@ -63,7 +64,7 @@ const {
                 <div class="review-progress-header-info">
                     <div class="review-progress-header-info-item">
                         <span class="review-progress-header-label">Data</span>
-                        <span class="review-progress-header-value">{{ new Date(problem.created_at).toLocaleDateString('lt-LT') }}</span>
+                        <span class="review-progress-header-value">{{ formatDateLt(problem.created_at) }}</span>
                     </div>
                     <div class="review-progress-header-spacer"></div>
                     <div class="review-progress-header-info-item">
@@ -112,7 +113,7 @@ const {
                     class="review-progress-entry"
                 >
                     <div class="review-progress-entry-header">
-                        <span class="review-progress-date">{{ new Date(entry.date).toLocaleDateString('lt-LT') }}</span>
+                        <span class="review-progress-date">{{ formatDateLt(entry.date) }}</span>
                         <div class="review-progress-entry-header-actions">
                             <button
                                 v-if="currentUserMayEditEntry(entry)"

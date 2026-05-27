@@ -371,19 +371,13 @@ class ProblemInstitutionAssignmentController extends Controller
         if (! $user) {
             abort(403);
         }
-        if ($user->canReassignInstitutions() && $user->institution_id === null) {
+        if (! $user->canReassignInstitutions()) {
             abort(403);
         }
-        if ($this->scopeService->isInstitutionScoped($user) && $user->institution_id !== null) {
-            if ((int) $problem->institution_id !== (int) $user->institution_id) {
-                abort(403);
-            }
-        } elseif ($this->scopeService->isEmployeeScoped($user)) {
-            $employeeId = $this->scopeService->employeeIdForUser($user);
-            if (! $this->scopeService->employeeHasAccessToAssignment($employeeId, $problem)) {
-                abort(403);
-            }
-        } else {
+        if ($user->institution_id === null) {
+            abort(403);
+        }
+        if ((int) $problem->institution_id !== (int) $user->institution_id) {
             abort(403);
         }
 
