@@ -72,29 +72,75 @@ class ProblemReporterStatusNotifier
     public function notifyPublicReviewEntry(Problem $mainProblem, ProblemReviewHistory $entry): void
     {
         $template = EmailNotificationTemplate::getByKey(EmailNotificationTemplate::KEY_REPORTER_REVIEW_ENTRY);
-        if (! $template || ! $template->is_enabled) {
+        if ($template && $template->is_enabled) {
+            $url = route('reports.show', $mainProblem->id);
+            $replacements = [
+                'internal_number' => (string) ($mainProblem->internal_number ?? ''),
+                'description_excerpt' => Problem::descriptionPreview($mainProblem->description, 200),
+                'url' => $url,
+                'status_label' => $this->statusLabel($entry->status),
+                'responsible' => (string) ($entry->responsible ?? ''),
+                'comment_excerpt' => $entry->comment
+                    ? Problem::descriptionPreview($entry->comment, 400)
+                    : '(nėra)',
+                'entry_date' => $entry->created_at?->timezone('Europe/Vilnius')->format('Y-m-d H:i') ?? '',
+            ];
+
+            $this->dispatchToReportersAndWatchers(
+                $mainProblem,
+                EmailBody::replacePlaceholders($template->subject, $replacements),
+                EmailBody::replacePlaceholders($template->body, $replacements),
+                $url,
+            );
+        }
+
+        $this->dispatchReviewEntryPush($mainProblem, $entry);
+    }
+
+    private function dispatchReviewEntryPush(Problem $mainProblem, ProblemReviewHistory $entry): void
+    {
+        if (! self::PUSH_ON_STATUS_CHANGE_ENABLED) {
             return;
         }
 
-        $url = route('reports.show', $mainProblem->id);
-        $replacements = [
+        $mainProblem->loadMissing('mergedProblems');
+        $groupIds = $mainProblem->getMergeGroupIds();
+
+        $reporterIds = Problem::query()
+            ->whereIn('id', $groupIds)
+            ->whereNotNull('reported_by_user_id')
+            ->pluck('reported_by_user_id')
+            ->map(fn($id) => (int) $id)
+            ->unique()
+            ->filter();
+
+        $reporterIdSet = $reporterIds->flip()->all();
+
+        $watcherIds = ProblemWatch::query()
+            ->whereIn('problem_id', $groupIds)
+            ->pluck('user_id')
+            ->map(fn($id) => (int) $id)
+            ->unique()
+            ->reject(fn($id) => isset($reporterIdSet[$id]));
+
+        $statusLabel = $this->statusLabel((string) $entry->status);
+        $title = 'Pranešimo eigos įrašas';
+        $body = sprintf(
+            '%s · %s',
+            (string) ($mainProblem->internal_number ?? 'Pranešimas'),
+            $statusLabel,
+        );
+        $data = [
+            'type' => 'problem_review_entry',
+            'problem_id' => (string) $mainProblem->id,
             'internal_number' => (string) ($mainProblem->internal_number ?? ''),
-            'description_excerpt' => Problem::descriptionPreview($mainProblem->description, 200),
-            'url' => $url,
-            'status_label' => $this->statusLabel($entry->status),
-            'responsible' => (string) ($entry->responsible ?? ''),
-            'comment_excerpt' => $entry->comment
-                ? Problem::descriptionPreview($entry->comment, 400)
-                : '(nėra)',
-            'entry_date' => $entry->created_at?->timezone('Europe/Vilnius')->format('Y-m-d H:i') ?? '',
+            'entry_id' => (string) $entry->id,
+            'status' => (string) $entry->status,
+            'status_label' => $statusLabel,
         ];
 
-        $this->dispatchToReportersAndWatchers(
-            $mainProblem,
-            EmailBody::replacePlaceholders($template->subject, $replacements),
-            EmailBody::replacePlaceholders($template->body, $replacements),
-            $url,
-        );
+        $this->pushToUsers($reporterIds, $title, $body, $data);
+        $this->pushToUsers($watcherIds, $title, $body, $data);
     }
 
     private function dispatchToReportersAndWatchers(Problem $mainProblem, string $subject, string $body, string $url): void
