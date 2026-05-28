@@ -4,7 +4,7 @@ import SettingsSection from '@/Components/App/SettingsSection.vue'
 import AppInput from '@/Components/App/AppInput.vue'
 import AppButton from '@/Components/App/AppButton.vue'
 import SuccessModal from '@/Components/App/SuccessModal.vue'
-import { Head, router, useForm, usePage } from '@inertiajs/vue3'
+import { Head, useForm, usePage } from '@inertiajs/vue3'
 import { ref, computed, watch } from 'vue'
 import { useSuccessModal } from '@/composables/useSuccessModal'
 import { ROLE_REPORTER, STAFF_ROLE_VALUES } from '@/constants/domain/roles'
@@ -15,11 +15,6 @@ const page = usePage()
 const { showSuccessModal, successMessage, closeSuccessModal } = useSuccessModal()
 const user = computed(() => page.props.auth?.user ?? null)
 const authRoles = computed(() => page.props.auth?.roles ?? [])
-const canSwitchActiveRole = computed(
-    () =>
-        authRoles.value.length > 1 &&
-        authRoles.value.every((r) => STAFF_ROLE_VALUES.includes(r.role)),
-)
 const isViispUser = computed(() => !!user.value?.viisp_personal_code_hash)
 const isReporterOnly = computed(
     () =>
@@ -112,10 +107,6 @@ const updatePassword = () => {
         onSuccess: () => passwordForm.reset(),
     })
 }
-
-const patchActiveRole = (roleId) => {
-    router.patch(route('settings.active-role'), { role_id: roleId }, { preserveScroll: true })
-}
 </script>
 
 <template>
@@ -157,18 +148,6 @@ const patchActiveRole = (roleId) => {
                                 variant="primary"
                                 :disabled="profileForm.processing"
                             />
-                            <label v-if="canSwitchActiveRole" class="profile-active-role">
-                                <span class="profile-active-role__label">Aktyvi rolė</span>
-                                <select
-                                    class="profile-active-role__select"
-                                    :value="page.props.auth?.activeRoleId ?? ''"
-                                    @change="patchActiveRole($event.target.value)"
-                                >
-                                    <option v-for="r in authRoles" :key="r.id" :value="r.id">
-                                        {{ r.name }}
-                                    </option>
-                                </select>
-                            </label>
                         </form>
                     </SettingsSection>
 

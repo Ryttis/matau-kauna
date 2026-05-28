@@ -1,5 +1,5 @@
 <script setup>
-import { Link, usePage } from '@inertiajs/vue3'
+import { Link, router, usePage } from '@inertiajs/vue3'
 import { computed, ref } from 'vue'
 import { useAuth } from '@/composables/useAuth'
 import {
@@ -11,7 +11,7 @@ import {
     ICON_ARROW,
     ICON_SETTINGS,
 } from '@/constants/ui/icons'
-import { ROLE_INSTITUTION_ADMIN } from '@/constants/domain/roles'
+import { ROLE_INSTITUTION_ADMIN, STAFF_ROLE_VALUES } from '@/constants/domain/roles'
 import { SIDEBAR_DASHBOARD_STATUS_ENTRIES } from '@/constants/ui/dashboardSidebarNav'
 
 const page = usePage()
@@ -51,6 +51,14 @@ const canAccessStatistics = computed(() =>
     isSystemAdmin.value || permissions.value.includes('statistics.view')
 )
 
+const authRoles = computed(() => page.props.auth?.roles ?? [])
+const activeRoleId = computed(() => page.props.auth?.activeRoleId ?? '')
+const canSwitchActiveRole = computed(
+    () =>
+        authRoles.value.length > 1 &&
+        authRoles.value.every((role) => STAFF_ROLE_VALUES.includes(role.role)),
+)
+
 const sidebarTitle = computed(() => {
     return activeRole.value?.name ?? 'Naudotojas'
 })
@@ -78,12 +86,30 @@ const handleDashboardListClick = () => {
     isStatesOpen.value = false
 }
 
+const patchActiveRole = (roleId) => {
+    if (!roleId || roleId === activeRoleId.value) return
+    router.patch(route('settings.active-role'), { role_id: roleId }, { preserveScroll: true })
+}
+
 </script>
 
 <template>
     <aside class="sidebar">
         <div class="sidebar-title">
-            <span>{{ sidebarTitle }}</span>
+            <label v-if="canSwitchActiveRole" class="sidebar-role-switch">
+                <span class="sidebar-role-switch__label">Aktyvi rolė</span>
+                <select
+                    class="sidebar-role-switch__select"
+                    :value="activeRoleId"
+                    aria-label="Aktyvi rolė"
+                    @change="patchActiveRole($event.target.value)"
+                >
+                    <option v-for="role in authRoles" :key="role.id" :value="role.id">
+                        {{ role.name }}
+                    </option>
+                </select>
+            </label>
+            <span v-else class="sidebar-title__text">{{ sidebarTitle }}</span>
         </div>
 
         <nav class="nav">
@@ -283,10 +309,71 @@ const handleDashboardListClick = () => {
     }
 }
 
-.sidebar-title span {
+.sidebar-title__text {
     display: block;
     line-height: 1.35;
     word-break: break-word;
+}
+
+.sidebar-role-switch {
+    display: block;
+    width: 100%;
+    min-width: 0;
+}
+
+.sidebar-role-switch__label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+}
+
+.sidebar-role-switch__select {
+    display: block;
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+    box-sizing: border-box;
+    padding: 8px 34px 8px 0;
+    border: 1px solid transparent;
+    border-radius: 8px;
+    background-color: transparent;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20' viewBox='0 0 24 24' fill='none' stroke='%23111111' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 8px center;
+    background-size: 18px 18px;
+    color: inherit;
+    cursor: pointer;
+    font-family: var(--font-family-base, 'Open Sans', sans-serif);
+    font-size: inherit;
+    font-weight: inherit;
+    line-height: 1.35;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    appearance: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+}
+
+.sidebar-role-switch__select::-ms-expand {
+    display: none;
+}
+
+.sidebar-role-switch__select:hover,
+.sidebar-role-switch__select:focus {
+    border-color: var(--color-border);
+    background-color: rgba(255, 255, 255, 0.65);
+}
+
+.sidebar-role-switch__select:focus {
+    outline: none;
+    box-shadow: 0 0 0 2px rgba(25, 70, 160, 0.18);
 }
 
 .nav {
