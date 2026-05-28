@@ -9,6 +9,7 @@ import FilterModal from '@/Components/App/Modals/FilterModal.vue'
 import SearchFilterBar from '@/Components/App/SearchFilterBar.vue'
 import StatusBadge from '@/Components/Problems/StatusBadge.vue'
 import { buildReporterProblemDisplayRows } from '@/utils/reporterProblemRows'
+import { formatDateLt } from '@/utils/dateFormat'
 import { getReporterStatusKey, getReporterStatusLabel } from '@/constants/domain/problemStatus'
 
 const props = defineProps({
@@ -153,7 +154,7 @@ const columns = [
         key: 'created_at',
         label: 'Data',
         sortable: false,
-        value: (row) => (rowProblem(row).created_at ? new Date(rowProblem(row).created_at).toLocaleDateString('lt-LT') : ''),
+        value: (row) => formatDateLt(rowProblem(row).created_at),
     },
     {
         key: 'category',

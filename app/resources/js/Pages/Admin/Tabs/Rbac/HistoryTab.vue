@@ -4,6 +4,7 @@ import axios from 'axios'
 import AppDataTable from '@/Components/App/AppDataTable.vue'
 import AppDatePicker from '@/Components/App/AppDatePicker.vue'
 import AppInput from '@/Components/App/AppInput.vue'
+import { formatDateTimeLt } from '@/utils/dateFormat'
 import { adminApi } from '@/constants/api/adminApi'
 
 const activeType = ref('internal')
@@ -45,8 +46,7 @@ async function load() {
 }
 
 function formatDate(str) {
-    if (!str) return '-'
-    return new Date(str).toLocaleString('lt-LT')
+    return formatDateTimeLt(str, '-')
 }
 
 watch([

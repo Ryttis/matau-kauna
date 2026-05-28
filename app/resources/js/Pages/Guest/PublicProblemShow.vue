@@ -4,6 +4,7 @@ import { Head, Link } from '@inertiajs/vue3'
 import GuestHeader from '@/Components/Landing/GuestHeader.vue'
 import LandingFooter from '@/Components/Landing/LandingFooter.vue'
 import AppInput from '@/Components/App/AppInput.vue'
+import { formatDateLt } from '@/utils/dateFormat'
 import ProblemDetailBlocks from '@/Components/Problems/ProblemDetailBlocks.vue'
 import ProblemAttachmentsPanel from '@/Components/Problems/ProblemAttachmentsPanel.vue'
 import ProblemMergeLinks from '@/Components/Problems/ProblemMergeLinks.vue'
@@ -17,10 +18,7 @@ const props = defineProps({
     mergedSiblings: { type: Array, default: () => [] },
 })
 
-const formattedDate = computed(() => {
-    if (!props.problem?.created_at) return ''
-    return new Date(props.problem.created_at).toLocaleDateString('lt-LT')
-})
+const formattedDate = computed(() => formatDateLt(props.problem?.created_at))
 </script>
 
 <template>

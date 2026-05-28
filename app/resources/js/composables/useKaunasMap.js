@@ -3,6 +3,7 @@ import { getMarkerColorForStatus, PROBLEM_STATUS_LABELS } from '@/constants/doma
 import { loadLeaflet, createBaseMap, KAUNAS_CENTER, MAP_MAX_ZOOM } from '@/utils/leafletKaunas'
 import { MAP_HIGHLIGHT_COLOR, MAP_MERGED_MARKER_COLOR, MAP_CLUSTER_COLOR } from '@/constants/ui/theme'
 import { clusterProblems } from '@/utils/mapClustering'
+import { formatDateLt } from '@/utils/dateFormat'
 import { truncateMapPopupText } from '@/utils/mapPopupText'
 
 const HIGHLIGHTED_MARKER_SIZE = 18
@@ -18,10 +19,7 @@ function escapeHtml(text) {
 }
 
 function mapPopupDateLabel(iso) {
-    if (!iso) return ''
-    const d = new Date(iso)
-    if (Number.isNaN(d.getTime())) return ''
-    return d.toLocaleDateString('lt-LT')
+    return formatDateLt(iso)
 }
 
 function mapPopupStatusLabel(problem) {

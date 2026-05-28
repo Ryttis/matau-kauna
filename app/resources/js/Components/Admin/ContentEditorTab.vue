@@ -4,6 +4,7 @@ import axios from 'axios'
 import AppButton from '@/Components/App/AppButton.vue'
 import AppInput from '@/Components/App/AppInput.vue'
 import AppCheckbox from '@/Components/App/AppCheckbox.vue'
+import { formatDateTimeLt } from '@/utils/dateFormat'
 import SuccessModal from '@/Components/App/SuccessModal.vue'
 import ConfirmModal from '@/Components/App/ConfirmModal.vue'
 import BaseModal from '@/Components/App/BaseModal.vue'
@@ -309,13 +310,7 @@ function confirmPublish() {
 }
 
 function formatDate(s) {
-    if (!s) return '–'
-    try {
-        const d = new Date(s)
-        return d.toLocaleString('lt-LT')
-    } catch {
-        return s
-    }
+    return formatDateTimeLt(s, '–')
 }
 </script>
 

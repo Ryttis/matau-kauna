@@ -21,6 +21,7 @@ import {
 import { MAP_CLUSTER_COLOR } from '@/constants/ui/theme'
 import { clusterProblems } from '@/utils/mapClustering'
 import { truncateMapPopupText } from '@/utils/mapPopupText'
+import { formatDateLt } from '@/utils/dateFormat'
 
 const CLUSTER_SIZE = 28
 
@@ -29,10 +30,7 @@ function escapeHtml(s) {
 }
 
 function landingMapDateLabel(iso) {
-    if (!iso) return ''
-    const d = new Date(iso)
-    if (Number.isNaN(d.getTime())) return ''
-    return d.toLocaleDateString('lt-LT')
+    return formatDateLt(iso)
 }
 
 function landingMapStatusLabel(status) {

@@ -4,6 +4,7 @@ import axios from 'axios'
 import AppButton from '@/Components/App/AppButton.vue'
 import AppSwitch from '@/Components/App/AppSwitch.vue'
 import AppDatePicker from '@/Components/App/AppDatePicker.vue'
+import { formatDateTimeLt } from '@/utils/dateFormat'
 import AppInput from '@/Components/App/AppInput.vue'
 import SuccessModal from '@/Components/App/SuccessModal.vue'
 import { debounce } from 'lodash-es'
@@ -120,8 +121,7 @@ function exportCsv() {
 }
 
 function formatDate(str) {
-    if (!str) return '-'
-    return new Date(str).toLocaleString('lt-LT')
+    return formatDateTimeLt(str, '-')
 }
 
 function eventTypeLabel(type) {

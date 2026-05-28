@@ -4,6 +4,7 @@ import { Head, router } from '@inertiajs/vue3'
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue'
 import ConfirmModal from '@/Components/App/ConfirmModal.vue'
 import InactiveReasonModal from '@/Components/App/Modals/InactiveReasonModal.vue'
+import { formatDateLt } from '@/utils/dateFormat'
 import StatusChangeModal from '@/Components/App/Modals/StatusChangeModal.vue'
 import EditModal from '@/Components/App/Modals/EditModal.vue'
 import SuccessModal from '@/Components/App/SuccessModal.vue'
@@ -94,7 +95,7 @@ const reporterPhone = computed(() => (props.problem?.reported_by_user?.phone ?? 
                 <div class="header-spacer"></div>
                 <div class="header-info header-info-right">
                     <span class="header-label">Data</span>
-                    <span class="header-value">{{ new Date(problem.created_at).toLocaleDateString('lt-LT') }}</span>
+                    <span class="header-value">{{ formatDateLt(problem.created_at) }}</span>
                 </div>
             </div>
 
@@ -301,13 +302,6 @@ const reporterPhone = computed(() => (props.problem?.reported_by_user?.phone ?? 
                     as-button
                     class="action-btn"
                     @click="openStatusModal"
-                />
-                <AppButton
-                    text="Grąžinti problemos administratoriui"
-                    variant="primary"
-                    as-button
-                    class="action-btn"
-                    @click="returnProblemToAdmin"
                 />
             </div>
 

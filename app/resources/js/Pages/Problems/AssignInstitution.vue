@@ -212,9 +212,9 @@ const {
                 </div>
             </div>
 
-            <div class="assign-institution-section">
+            <div v-if="dvsAvailable" class="assign-institution-section">
                 <h2 class="section-title">Perduoti į DVS</h2>
-                <div v-if="dvsAvailable" class="gis-transfer-card">
+                <div class="gis-transfer-card">
                     <p class="gis-transfer-text">
                         DVS API:
                         <strong>{{ dvsApiLabel(dvsTransfer?.complaint_api || dvsComplaintApi) }}</strong>
@@ -250,14 +250,11 @@ const {
                         />
                     </div>
                 </div>
-                <div v-else class="assign-empty-state assign-empty-state--left">
-                    <span class="assign-empty-text">Šiai įstaigai DVS siuntimas dar nesukonfigūruotas.</span>
-                </div>
             </div>
 
-            <div class="assign-institution-section">
+            <div v-if="gisAvailable" class="assign-institution-section">
                 <h2 class="section-title">Perduoti į GIS</h2>
-                <div v-if="gisAvailable" class="gis-transfer-card">
+                <div class="gis-transfer-card">
                     <p class="gis-transfer-text">
                         GIS būsena:
                         <strong>{{ gisStatusLabel(gisTransfer?.send_status) }}</strong>
@@ -294,9 +291,6 @@ const {
                             @click="handlePullFromGis"
                         />
                     </div>
-                </div>
-                <div v-else class="assign-empty-state assign-empty-state--left">
-                    <span class="assign-empty-text">Šiai įstaigai GIS siuntimas dar nesukonfigūruotas.</span>
                 </div>
             </div>
 

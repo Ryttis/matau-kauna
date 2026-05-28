@@ -18,6 +18,13 @@ class LoginRequest extends FormRequest
         return true;
     }
 
+    protected function prepareForValidation(): void
+    {
+        if ($this->has('email') && is_string($this->input('email'))) {
+            $this->merge(['email' => Str::lower(trim($this->input('email')))]);
+        }
+    }
+
     public function rules(): array
     {
         return [
@@ -31,7 +38,7 @@ class LoginRequest extends FormRequest
     {
         $this->ensureIsNotRateLimited();
 
-        $emailUser = User::query()->where('email', $this->input('email'))->first();
+        $emailUser = User::query()->whereRaw('LOWER(email) = ?', [$this->input('email')])->first();
         if ($emailUser instanceof User && ! $emailUser->canAuthenticateWithEmailPassword()) {
             RateLimiter::hit($this->throttleKey());
 
@@ -40,7 +47,12 @@ class LoginRequest extends FormRequest
             ]);
         }
 
-        if (! Auth::attempt($this->only('email', 'password'), $this->boolean('remember'))) {
+        $credentials = $this->only('email', 'password');
+        if ($emailUser instanceof User) {
+            $credentials['email'] = $emailUser->email;
+        }
+
+        if (! Auth::attempt($credentials, $this->boolean('remember'))) {
             RateLimiter::hit($this->throttleKey());
 
             throw ValidationException::withMessages([

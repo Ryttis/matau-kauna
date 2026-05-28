@@ -19,7 +19,11 @@ export function useProblemAssignPage(props) {
     const isAssigningInstitution = ref(false)
     const isSendingInstitutionEmail = ref(false)
 
-    const displayedInstitutions = computed(() => props.institutions.slice(0, displayedCount.value))
+    const assignableInstitutions = computed(() =>
+        (props.institutions || []).filter((i) => !i.is_email_only),
+    )
+
+    const displayedInstitutions = computed(() => assignableInstitutions.value.slice(0, displayedCount.value))
 
     const resolveInitialInstitutionId = () => {
         if (props.problem?.institution_id) {
@@ -100,7 +104,7 @@ export function useProblemAssignPage(props) {
         { immediate: true, deep: true },
     )
 
-    const hasMore = computed(() => props.institutions.length > displayedCount.value)
+    const hasMore = computed(() => assignableInstitutions.value.length > displayedCount.value)
 
     const handleTableSelectItem = (key) => {
         const idx = selectedInstitutionIds.value.indexOf(key)

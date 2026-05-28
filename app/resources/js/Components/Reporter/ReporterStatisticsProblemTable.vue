@@ -1,5 +1,6 @@
 <script setup>
 import { Link } from '@inertiajs/vue3'
+import { formatDateLt } from '@/utils/dateFormat'
 
 defineProps({
     title: { type: String, required: true },
@@ -12,8 +13,7 @@ function problemViewUrl(problemId) {
 }
 
 function formatDate(isoDateString) {
-    if (!isoDateString) return ''
-    return new Date(isoDateString).toLocaleDateString('lt-LT')
+    return formatDateLt(isoDateString)
 }
 </script>
 

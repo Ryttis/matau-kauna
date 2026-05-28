@@ -24,7 +24,7 @@ class PasswordResetLinkController extends Controller
     {
         $user = User::query()
             ->with('roles:id,role')
-            ->where('email', $request->validated('email'))
+            ->whereRaw('LOWER(email) = ?', [$request->validated('email')])
             ->first();
 
         if (! $user?->canRequestPasswordResetLink()) {

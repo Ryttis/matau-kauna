@@ -9,6 +9,7 @@ import { ref, computed, watch } from 'vue'
 import { useSuccessModal } from '@/composables/useSuccessModal'
 import { ROLE_REPORTER, STAFF_ROLE_VALUES } from '@/constants/domain/roles'
 import { SETTINGS_PAGE_STYLE } from '@/constants/ui/theme'
+import { formatDateTimeLt } from '@/utils/dateFormat'
 import '@/Components/App/settings-profile-page.css'
 
 const page = usePage()
@@ -59,15 +60,7 @@ const termsAcceptedAt = computed(() => user.value?.terms_accepted_at ?? null)
 const termsVersion = computed(() => user.value?.accepted_terms_version ?? null)
 const termsAcceptedAtFormatted = computed(() => {
     if (!termsAcceptedAt.value) return null
-    const date = new Date(termsAcceptedAt.value)
-    if (Number.isNaN(date.getTime())) return null
-    return date.toLocaleString('lt-LT', {
-        year: 'numeric',
-        month: '2-digit',
-        day: '2-digit',
-        hour: '2-digit',
-        minute: '2-digit',
-    })
+    return formatDateTimeLt(termsAcceptedAt.value) || null
 })
 const termsBodyPlain = computed(() => {
     const body = termsVersion.value?.body

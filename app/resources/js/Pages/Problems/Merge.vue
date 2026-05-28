@@ -4,6 +4,7 @@ import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue'
 import SearchableSelect from '@/Components/App/SearchableSelect.vue'
 import AppButton from '@/Components/App/AppButton.vue'
 import AppBackButton from '@/Components/App/AppBackButton.vue'
+import { formatDateLt } from '@/utils/dateFormat'
 import AppCheckbox from '@/Components/App/AppCheckbox.vue'
 import SuccessModal from '@/Components/App/SuccessModal.vue'
 import KaunasProblemsMap from '@/Components/Map/KaunasProblemsMap.vue'
@@ -72,10 +73,7 @@ function mergeProblemCategory(problem) {
 }
 
 function mergeProblemCreatedDate(problem) {
-    if (!problem?.created_at) return '-'
-    const date = new Date(problem.created_at)
-    if (Number.isNaN(date.getTime())) return '-'
-    return date.toLocaleDateString('lt-LT')
+    return formatDateLt(problem?.created_at, '-')
 }
 
 function mergeProblemStatusLetter(problem) {
