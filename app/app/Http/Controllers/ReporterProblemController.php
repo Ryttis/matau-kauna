@@ -44,12 +44,15 @@ class ReporterProblemController extends Controller
             return redirect()->route('dashboard');
         }
 
+        $reporterStatuses = $this->requestedReporterStatuses($request);
+
         $filters = [
             'search' => $request->get('search'),
             'report_number' => $request->get('report_number'),
             'category' => $request->get('category'),
             'date_from' => $request->get('date_from'),
             'date_to' => $request->get('date_to'),
+            'statuses' => ProblemStatus::rawValuesForReporterStatuses($reporterStatuses),
             'only_mine' => $request->boolean('only_mine'),
         ];
 
@@ -76,8 +79,26 @@ class ReporterProblemController extends Controller
         return Inertia::render('Reporter/Sarasas', [
             'problems' => $problems,
             'categories' => $categories,
-            'filters' => $filters,
+            'filters' => array_merge($filters, ['statuses' => $reporterStatuses]),
         ]);
+    }
+
+    private function requestedReporterStatuses(Request $request): array
+    {
+        $statuses = $request->input('statuses', []);
+        if (! is_array($statuses)) {
+            $statuses = [$statuses];
+        }
+        $valid = [
+            ProblemStatus::NEW->value,
+            ProblemStatus::IN_REVIEW->value,
+            ProblemStatus::RESOLVED->value,
+        ];
+
+        return array_values(array_filter(
+            array_map('strval', $statuses),
+            fn (string $status) => in_array($status, $valid, true),
+        ));
     }
 
     public function reporterStatistics(Request $request): Response|RedirectResponse

@@ -60,7 +60,10 @@ class ProblemAdminAssignController extends Controller
 
         $statusesAllowedOnAssign = implode(',', array_values(array_filter(
             ProblemStatus::values(),
-            fn (string $status) => $status !== ProblemStatus::RESOLVED->value
+            fn (string $status) => ! in_array($status, [
+                ProblemStatus::RESOLVED->value,
+                ProblemStatus::RETURNED_FOR_REVIEW->value,
+            ], true)
         )));
 
         $validated = $request->validate([

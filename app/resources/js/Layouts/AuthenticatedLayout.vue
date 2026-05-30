@@ -110,6 +110,8 @@ watch([sidebarOpen, isMobileNav], () => {
     min-width: 0;
     padding: 24px;
     box-sizing: border-box;
+    overflow: auto;
+    max-height: calc(100vh - var(--app-header-height, 66px));
 }
 
 .sidebar-backdrop {

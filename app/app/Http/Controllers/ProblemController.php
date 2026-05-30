@@ -52,7 +52,7 @@ class ProblemController extends Controller
 
         $filters = [
             'search' => $request->get('search'),
-            'status' => $request->get('status'),
+            'statuses' => $this->requestedStatuses($request),
             'category' => $request->get('category'),
             'problem_nature_id' => $request->get('problem_nature_id'),
             'report_number' => $request->get('report_number'),
@@ -70,6 +70,20 @@ class ProblemController extends Controller
             $sortBy,
             $sortDirection,
             $perPage
+        ));
+    }
+
+    private function requestedStatuses(Request $request): array
+    {
+        $statuses = $request->input('statuses', []);
+        if (! is_array($statuses)) {
+            $statuses = [$statuses];
+        }
+        $valid = ProblemStatus::values();
+
+        return array_values(array_filter(
+            array_map('strval', $statuses),
+            fn (string $status) => in_array($status, $valid, true),
         ));
     }
 
@@ -334,7 +348,7 @@ class ProblemController extends Controller
 
         $filters = [
             'search' => $request->get('search'),
-            'status' => $request->get('status'),
+            'statuses' => $this->requestedStatuses($request),
             'category' => $request->get('category'),
             'problem_nature_id' => $request->get('problem_nature_id'),
             'report_number' => $request->get('report_number'),

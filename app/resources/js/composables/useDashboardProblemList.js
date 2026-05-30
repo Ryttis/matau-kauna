@@ -14,7 +14,7 @@ const DEFAULT_PAGE_SIZE_OPTIONS = [10, 20, 50, 100]
 
 export function useDashboardProblemList(props) {
     const search = ref(props.filters?.search || '')
-    const statusFilter = ref(props.filters?.status || '')
+    const statusesFilter = ref(Array.isArray(props.filters?.statuses) ? [...props.filters.statuses] : [])
     const categoryFilter = ref(props.filters?.category || '')
     const natureFilter = ref(props.filters?.problem_nature_id || props.filters?.problemNatureId || '')
     const reportNumberFilter = ref(props.filters?.report_number || props.filters?.reportNumber || '')
@@ -94,7 +94,7 @@ export function useDashboardProblemList(props) {
         if ((natureFilter.value || '').trim() !== '') {
             return true
         }
-        if ((statusFilter.value || '').trim() !== '') {
+        if ((statusesFilter.value || []).length > 0) {
             return true
         }
         if ((dateFromFilter.value || '').trim() !== '') {
@@ -112,7 +112,7 @@ export function useDashboardProblemList(props) {
         }
         const params = buildDashboardListRouterParams({
             search: search.value,
-            status: statusFilter.value,
+            statuses: statusesFilter.value,
             category: categoryFilter.value,
             problem_nature_id: natureFilter.value,
             report_number: reportNumberFilter.value,
@@ -136,7 +136,7 @@ export function useDashboardProblemList(props) {
         selectedProblems.value = []
         router.get(route('dashboard'), buildDashboardListRouterParams({
             search: search.value,
-            status: statusFilter.value,
+            statuses: statusesFilter.value,
             category: categoryFilter.value,
             problem_nature_id: natureFilter.value,
             report_number: reportNumberFilter.value,
@@ -296,7 +296,6 @@ export function useDashboardProblemList(props) {
     const handleExport = (scope) => {
         const params = new URLSearchParams({
             search: search.value || '',
-            status: statusFilter.value || '',
             category: categoryFilter.value || '',
             problem_nature_id: natureFilter.value || '',
             report_number: reportNumberFilter.value || '',
@@ -308,17 +307,18 @@ export function useDashboardProblemList(props) {
             page: props.problems?.current_page || 1,
             per_page: perPage.value,
         })
+        ;(statusesFilter.value || []).forEach((status) => params.append('statuses[]', status))
         window.location.href = `${route('problems.export')}?${params.toString()}`
         showExportDropdown.value = false
     }
 
-    watch([statusFilter, categoryFilter, natureFilter, reportNumberFilter, dateFromFilter, dateToFilter], () => {
+    watch([statusesFilter, categoryFilter, natureFilter, reportNumberFilter, dateFromFilter, dateToFilter], () => {
         problemsList.value = []
         loadProblems(true)
-    })
+    }, { deep: true })
 
     const handleFilterApply = (filters) => {
-        statusFilter.value = filters.status || ''
+        statusesFilter.value = Array.isArray(filters.statuses) ? filters.statuses : []
         categoryFilter.value = filters.problemType || ''
         natureFilter.value = filters.problemNatureId || ''
         reportNumberFilter.value = filters.reportNumber || ''
@@ -331,7 +331,7 @@ export function useDashboardProblemList(props) {
     }
 
     const handleFilterClear = () => {
-        statusFilter.value = ''
+        statusesFilter.value = []
         categoryFilter.value = ''
         natureFilter.value = ''
         reportNumberFilter.value = ''
@@ -488,7 +488,7 @@ export function useDashboardProblemList(props) {
 
     return {
         search,
-        statusFilter,
+        statusesFilter,
         categoryFilter,
         natureFilter,
         reportNumberFilter,

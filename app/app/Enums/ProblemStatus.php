@@ -6,6 +6,7 @@ enum ProblemStatus: string
 {
     case UNREGISTERED = 'neuzregistruota';
     case NEW = 'nauja';
+    case ASSIGNED = 'paskirta';
     case IN_REVIEW = 'nagrinejama';
     case RETURNED_FOR_REVIEW = 'grazinta_nagrinejimui';
     case RESOLVED = 'isspresta';
@@ -16,6 +17,7 @@ enum ProblemStatus: string
         return match ($this) {
             self::UNREGISTERED => 'Pateikta',
             self::NEW => 'Nauja',
+            self::ASSIGNED => 'Paskirta',
             self::IN_REVIEW => 'Nagrinėjama',
             self::RETURNED_FOR_REVIEW => 'Grąžinta',
             self::RESOLVED => 'Išspręsta',
@@ -38,7 +40,10 @@ enum ProblemStatus: string
 
     public static function selectableOptions(): array
     {
-        $cases = array_filter(self::cases(), fn ($case) => $case !== self::UNREGISTERED);
+        $cases = array_filter(
+            self::cases(),
+            fn ($case) => ! in_array($case, [self::UNREGISTERED, self::ASSIGNED], true)
+        );
 
         return array_values(array_map(fn ($case) => [
             'value' => $case->value,
@@ -50,7 +55,11 @@ enum ProblemStatus: string
     {
         return array_values(array_filter(
             self::values(),
-            fn (string $v) => $v !== self::NEW->value
+            fn (string $v) => ! in_array($v, [
+                self::NEW->value,
+                self::ASSIGNED->value,
+                self::RETURNED_FOR_REVIEW->value,
+            ], true)
         ));
     }
 
@@ -67,6 +76,7 @@ enum ProblemStatus: string
         return [
             self::UNREGISTERED->value,
             self::NEW->value,
+            self::ASSIGNED->value,
             self::IN_REVIEW->value,
             self::RETURNED_FOR_REVIEW->value,
             self::RESOLVED->value,
@@ -79,6 +89,7 @@ enum ProblemStatus: string
         return [
             self::UNREGISTERED->value,
             self::NEW->value,
+            self::ASSIGNED->value,
             self::IN_REVIEW->value,
             self::RETURNED_FOR_REVIEW->value,
             self::RESOLVED->value,
@@ -91,6 +102,7 @@ enum ProblemStatus: string
         return [
             self::UNREGISTERED->value,
             self::NEW->value,
+            self::ASSIGNED->value,
             self::IN_REVIEW->value,
             self::RETURNED_FOR_REVIEW->value,
             self::RESOLVED->value,
@@ -102,6 +114,7 @@ enum ProblemStatus: string
     {
         return [
             self::NEW->value,
+            self::ASSIGNED->value,
             self::IN_REVIEW->value,
             self::RETURNED_FOR_REVIEW->value,
             self::RESOLVED->value,
@@ -114,7 +127,7 @@ enum ProblemStatus: string
     {
         return match ($status) {
             self::UNREGISTERED->value, self::NEW->value, self::RETURNED_FOR_REVIEW->value => self::NEW->value,
-            self::IN_REVIEW->value => self::IN_REVIEW->value,
+            self::IN_REVIEW->value, self::ASSIGNED->value => self::IN_REVIEW->value,
             self::RESOLVED->value, self::INACTIVE->value => self::RESOLVED->value,
             default => $status,
         };
@@ -128,5 +141,27 @@ enum ProblemStatus: string
             self::RESOLVED->value => 'Išspręsta',
             default => self::tryFrom($status)?->label() ?? $status,
         };
+    }
+
+    public static function rawValuesForReporterStatus(string $reporterStatus): array
+    {
+        return match ($reporterStatus) {
+            self::NEW->value => [self::UNREGISTERED->value, self::NEW->value, self::RETURNED_FOR_REVIEW->value],
+            self::IN_REVIEW->value => [self::IN_REVIEW->value, self::ASSIGNED->value],
+            self::RESOLVED->value => [self::RESOLVED->value, self::INACTIVE->value],
+            default => [],
+        };
+    }
+
+    public static function rawValuesForReporterStatuses(array $reporterStatuses): array
+    {
+        $raw = [];
+        foreach ($reporterStatuses as $reporterStatus) {
+            foreach (self::rawValuesForReporterStatus((string) $reporterStatus) as $value) {
+                $raw[$value] = true;
+            }
+        }
+
+        return array_keys($raw);
     }
 }

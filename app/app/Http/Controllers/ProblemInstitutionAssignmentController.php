@@ -139,6 +139,7 @@ class ProblemInstitutionAssignmentController extends Controller
                 'assigned_employee_id' => $employee->id,
                 'assigned_institution_team_id' => null,
                 'completion_deadline' => $deadline,
+                'status' => ProblemStatus::ASSIGNED->value,
             ]);
 
             $this->assignmentNotifier->notifyEmployeeOfAssignment($problem, $employee);
@@ -170,6 +171,7 @@ class ProblemInstitutionAssignmentController extends Controller
             'assigned_employee_id' => null,
             'assigned_institution_team_id' => $team->id,
             'completion_deadline' => $deadline,
+            'status' => ProblemStatus::ASSIGNED->value,
         ]);
 
         foreach ($teamAssignees as $employee) {

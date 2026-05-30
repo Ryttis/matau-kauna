@@ -22,7 +22,7 @@ export function computeProblemsListAfterPropsChange(newProblems) {
 
 export function buildDashboardListRouterParams({
     search,
-    status,
+    statuses,
     category,
     problem_nature_id,
     report_number,
@@ -35,7 +35,7 @@ export function buildDashboardListRouterParams({
 }) {
     const params = {
         search: search || null,
-        status: status || null,
+        statuses: (Array.isArray(statuses) && statuses.length) ? statuses : null,
         category: category || null,
         problem_nature_id: problem_nature_id || null,
         report_number: report_number || null,

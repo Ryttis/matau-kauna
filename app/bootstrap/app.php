@@ -43,6 +43,20 @@ return Application::configure(basePath: dirname(__DIR__))
             return back()->with('error', 'Failas per didelis.');
         });
 
+        $exceptions->renderable(function (HttpException $e, Request $request) {
+            if ($e->getStatusCode() !== 403) {
+                return null;
+            }
+            if ($request->is('api/*') || $request->expectsJson()) {
+                return null;
+            }
+            if ($request->user() && $request->session()->get('forbidden_redirects_to_dashboard')) {
+                return redirect()->route('dashboard');
+            }
+
+            return null;
+        });
+
         $exceptions->renderable(function (Throwable $e, Request $request) {
             if (! $request->is('api/*') && ! $request->expectsJson()) {
                 return null;

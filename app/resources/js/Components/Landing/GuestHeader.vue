@@ -42,7 +42,7 @@
                         class="guest-link guest-link--btn"
                         @click="navOpen = false"
                     >
-                        {{ user ? 'Skydelis' : 'Prisijungti' }}
+                        {{ user ? 'Administravimas' : 'Prisijungti' }}
                     </Link>
                 </nav>
             </div>

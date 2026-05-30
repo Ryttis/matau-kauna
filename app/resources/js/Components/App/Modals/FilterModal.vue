@@ -32,6 +32,7 @@ const props = defineProps({
     allStatusOptions: Array,
     onlyMine: { type: Boolean, default: undefined },
     onlyWatched: { type: Boolean, default: undefined },
+    multiStatus: { type: Boolean, default: false },
     statusCheckboxOptions: { type: Array, default: null },
     dateMin: { type: String, default: '' },
     dateMax: { type: String, default: '' },
@@ -114,7 +115,11 @@ const handleApply = () => {
     if (isPublicMap()) {
         payload.statuses = [...(f.statuses || [])]
     } else {
-        payload.status = f.status
+        if (props.multiStatus) {
+            payload.statuses = [...(f.statuses || [])]
+        } else {
+            payload.status = f.status
+        }
         payload.problemNatureId = f.problemNatureId
     }
     emit('apply', payload)
@@ -123,7 +128,7 @@ const handleApply = () => {
 const handleClear = () => {
     localFilters.value = isPublicMap()
         ? { reportNumber: '', problemType: 'all', dateFrom: '', dateTo: '', statuses: [] }
-        : { reportNumber: '', problemType: '', problemNatureId: '', dateFrom: '', dateTo: '', status: '' }
+        : { reportNumber: '', problemType: '', problemNatureId: '', dateFrom: '', dateTo: '', status: '', statuses: [] }
     emit('clear')
 }
 
@@ -159,7 +164,24 @@ const handleClose = () => {
                 />
             </div>
 
-            <div v-if="!isPublicMap()" class="filter-section">
+            <div v-if="!isPublicMap() && multiStatus" class="filter-section">
+                <label class="filter-label">Būsena</label>
+                <div class="filter-status-checkboxes">
+                    <label
+                        v-for="opt in dashboardStatusOptions"
+                        :key="opt.value"
+                        class="filter-checkbox-label"
+                    >
+                        <AppCheckbox
+                            :model-value="(localFilters.statuses || []).includes(opt.value)"
+                            @update:model-value="(checked) => setStatus(opt.value, checked)"
+                        />
+                        <span>{{ opt.label }}</span>
+                    </label>
+                </div>
+            </div>
+
+            <div v-if="!isPublicMap() && !multiStatus" class="filter-section">
                 <AppSelect
                     v-model="localFilters.status"
                     label="Būsena"

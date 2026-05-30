@@ -178,7 +178,7 @@ class ProblemHttpSupport
     {
         $reportNumber = isset($filters['report_number']) ? trim((string) $filters['report_number']) : '';
         $search = isset($filters['search']) ? trim((string) $filters['search']) : '';
-        $hasFacetFilters = collect(['status', 'category', 'problem_nature_id', 'date_from', 'date_to'])
+        $hasFacetFilters = collect(['status', 'statuses', 'category', 'problem_nature_id', 'date_from', 'date_to'])
             ->contains(fn ($key) => filled($filters[$key] ?? null));
 
         if ($reportNumber === '' && $search === '' && ! $hasFacetFilters) {
