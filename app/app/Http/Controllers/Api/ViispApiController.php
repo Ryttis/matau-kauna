@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Models\UserRole;
+use App\Support\TokenExpiration;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
@@ -163,12 +164,13 @@ class ViispApiController extends Controller
         }
 
         $deviceName = $validated['device_name'] ?? 'mobile';
-        $token = $user->createToken($deviceName)->plainTextToken;
+        $tokenExpiresAt = TokenExpiration::next();
+        $token = $user->createToken($deviceName, ['*'], $tokenExpiresAt)->plainTextToken;
 
         return response()->json([
             'token' => $token,
             'token_type' => 'Bearer',
-            'expires_at' => null,
+            'expires_at' => $tokenExpiresAt->toIso8601String(),
             'user' => [
                 'id' => $user->id,
                 'name' => $user->name,
@@ -261,11 +263,13 @@ class ViispApiController extends Controller
 
     private function authTokenResponse(User $user, string $deviceName): JsonResponse
     {
-        $token = $user->createToken($deviceName)->plainTextToken;
+        $tokenExpiresAt = TokenExpiration::next();
+        $token = $user->createToken($deviceName, ['*'], $tokenExpiresAt)->plainTextToken;
 
         return response()->json([
             'token' => $token,
             'token_type' => 'Bearer',
+            'expires_at' => $tokenExpiresAt->toIso8601String(),
             'user' => [
                 'id' => $user->id,
                 'name' => $user->name,

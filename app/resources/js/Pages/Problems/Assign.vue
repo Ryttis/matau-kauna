@@ -141,16 +141,6 @@ const {
                             >
                                 Nagrinėjama
                             </button>
-                            <button
-                                class="assign-status-btn"
-                                :class="{
-                                    'assign-status-btn-active': selectedStatus === PROBLEM_STATUS.RETURNED_FOR_REVIEW,
-                                    'assign-status-btn-returned': true,
-                                }"
-                                @click="handleStatusSelect(PROBLEM_STATUS.RETURNED_FOR_REVIEW)"
-                            >
-                                Grąžinta
-                            </button>
                         </div>
                         <div class="assign-send-btn-wrap">
                             <AppButton

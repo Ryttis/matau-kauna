@@ -63,9 +63,9 @@ class SettingsApiController extends Controller
 
         $enabled = (bool) $validated['two_factor_enabled'];
 
-        if ($enabled && ! $this->twoFactorService->isGloballyRequired()) {
+        if (! $enabled && $this->twoFactorService->isGloballyRequired()) {
             throw ValidationException::withMessages([
-                'two_factor_enabled' => ['Sistemos administratorius yra išjungęs 2FA visiems vartotojams.'],
+                'two_factor_enabled' => ['2FA įjungtas visiems vidiniams – išjungti negalima.'],
             ]);
         }
 

@@ -93,7 +93,7 @@ class ProblemDashboardQueryService
             'sortDirection' => $sortDirection,
             'categories' => ClassifierValue::getActiveTypeNames()->values(),
             'natures' => $this->activeNatureOptions(),
-            'statusOptions' => ProblemStatus::selectableOptions(),
+            'statusOptions' => ProblemStatus::options(),
             'pageSizeOptions' => self::STAFF_PAGE_SIZES,
         ];
     }

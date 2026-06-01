@@ -36,7 +36,7 @@ const {
     natureFilter,
     dateFromFilter,
     dateToFilter,
-    statusFilter,
+    statusesFilter,
     sortBy,
     sortDirection,
     perPage,
@@ -296,13 +296,14 @@ const {
 
         <FilterModal
             :show="showFilterModal"
+            multi-status
             :filters="{
                 reportNumber: reportNumberFilter,
                 problemType: categoryFilter,
                 problemNatureId: natureFilter,
                 dateFrom: dateFromFilter,
                 dateTo: dateToFilter,
-                status: statusFilter,
+                statuses: statusesFilter,
             }"
             :categories="props.categories"
             :natures="props.natures"

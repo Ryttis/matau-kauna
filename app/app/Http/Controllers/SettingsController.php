@@ -141,6 +141,7 @@ class SettingsController extends Controller
 
         $user->forceFill(['active_role_id' => $validated['role_id']])->save();
         $request->session()->put('active_role_id', $validated['role_id']);
+        session()->flash('forbidden_redirects_to_dashboard', true);
 
         return back();
     }
@@ -212,9 +213,9 @@ class SettingsController extends Controller
             if (array_key_exists('two_factor_enabled', $data)) {
                 if (! $this->twoFactorService->isStaffUser($user)) {
                     unset($data['two_factor_enabled']);
-                } elseif ($data['two_factor_enabled'] === true && ! $this->twoFactorService->isGloballyRequired()) {
+                } elseif ($data['two_factor_enabled'] === false && $this->twoFactorService->isGloballyRequired()) {
                     return back()->withErrors([
-                        'two_factor_enabled' => 'Sistemos administratorius yra išjungęs 2FA visiems vartotojams.',
+                        'two_factor_enabled' => '2FA įjungtas visiems vidiniams – išjungti negalima.',
                     ]);
                 }
             }

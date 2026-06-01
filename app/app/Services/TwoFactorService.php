@@ -21,7 +21,6 @@ class TwoFactorService
     public function requiresChallenge(User $user): bool
     {
         return $this->isStaffUser($user)
-            && $this->isGloballyRequired()
             && $this->isEffectivelyEnabled($user)
             && filled($user->two_factor_secret);
     }
@@ -49,16 +48,18 @@ class TwoFactorService
 
     public function ensurePrepared(User $user): void
     {
-        if (! $this->isGloballyRequired() || ! $this->isStaffUser($user)) {
+        if (! $this->isStaffUser($user)) {
             return;
         }
 
-        if (! (bool) $user->two_factor_enabled) {
+        if ($this->isGloballyRequired() && ! (bool) $user->two_factor_enabled) {
             $user->update(['two_factor_enabled' => true]);
             $user->refresh();
         }
 
-        $this->ensureSecret($user);
+        if ($this->isEffectivelyEnabled($user)) {
+            $this->ensureSecret($user);
+        }
     }
 
     public function enforceGlobalRequirement(User $user): void

@@ -37,7 +37,7 @@
                             class="landing-link landing-link--btn"
                             @click="navOpen = false"
                         >
-                            {{ user ? 'Skydelis' : 'Prisijungti' }}
+                            {{ user ? 'Administravimas' : 'Prisijungti' }}
                         </Link>
                     </nav>
                 </div>
@@ -82,7 +82,7 @@
                             class="landing-link landing-link--btn"
                             @click="navOpen = false"
                         >
-                            {{ user ? 'Skydelis' : 'Prisijungti' }}
+                            {{ user ? 'Administravimas' : 'Prisijungti' }}
                         </Link>
                     </nav>
                 </div>

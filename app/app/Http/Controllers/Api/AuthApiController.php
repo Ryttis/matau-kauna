@@ -13,6 +13,7 @@ use App\Notifications\PushNotification;
 use App\Services\ActiveRoleService;
 use App\Services\AuditLogService;
 use App\Services\TwoFactorService;
+use App\Support\TokenExpiration;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
@@ -100,12 +101,13 @@ class AuthApiController extends Controller
             return response()->json($payload);
         }
 
-        $token = $user->createToken($deviceName)->plainTextToken;
+        $tokenExpiresAt = TokenExpiration::next();
+        $token = $user->createToken($deviceName, ['*'], $tokenExpiresAt)->plainTextToken;
 
         return response()->json([
             'token' => $token,
             'token_type' => 'Bearer',
-            'expires_at' => null,
+            'expires_at' => $tokenExpiresAt->toIso8601String(),
             'user' => [
                 'id' => $user->id,
                 'name' => $user->name,
@@ -152,7 +154,8 @@ class AuthApiController extends Controller
         $deviceName = is_string($pending['device_name'] ?? null) && $pending['device_name'] !== ''
             ? $pending['device_name']
             : 'swagger';
-        $token = $user->createToken($deviceName)->plainTextToken;
+        $tokenExpiresAt = TokenExpiration::next();
+        $token = $user->createToken($deviceName, ['*'], $tokenExpiresAt)->plainTextToken;
 
         $updates = ['last_login_at' => now(), 'inactive_reporter_reminder_sent_at' => null];
         if ($user->archived_at !== null) {
@@ -170,7 +173,7 @@ class AuthApiController extends Controller
         return response()->json([
             'token' => $token,
             'token_type' => 'Bearer',
-            'expires_at' => null,
+            'expires_at' => $tokenExpiresAt->toIso8601String(),
             'user' => [
                 'id' => $user->id,
                 'name' => $user->name,
@@ -216,12 +219,13 @@ class AuthApiController extends Controller
         $user->sendEmailVerificationNotification();
 
         $deviceName = $validated['device_name'] ?? 'swagger';
-        $token = $user->createToken($deviceName)->plainTextToken;
+        $tokenExpiresAt = TokenExpiration::next();
+        $token = $user->createToken($deviceName, ['*'], $tokenExpiresAt)->plainTextToken;
 
         return response()->json([
             'token' => $token,
             'token_type' => 'Bearer',
-            'expires_at' => null,
+            'expires_at' => $tokenExpiresAt->toIso8601String(),
             'user' => [
                 'id' => $user->id,
                 'name' => $user->name,
@@ -309,12 +313,13 @@ class AuthApiController extends Controller
 
     private function authTokenResponse(User $user, string $deviceName, int $status = 200): JsonResponse
     {
-        $token = $user->createToken($deviceName)->plainTextToken;
+        $tokenExpiresAt = TokenExpiration::next();
+        $token = $user->createToken($deviceName, ['*'], $tokenExpiresAt)->plainTextToken;
 
         return response()->json([
             'token' => $token,
             'token_type' => 'Bearer',
-            'expires_at' => null,
+            'expires_at' => $tokenExpiresAt->toIso8601String(),
             'user' => [
                 'id' => $user->id,
                 'name' => $user->name,

@@ -163,7 +163,13 @@ class Problem extends Model
 
     private static function applyDashboardFacetFilters(Builder $query, array $filters): void
     {
-        if (isset($filters['status']) && $filters['status']) {
+        $statuses = $filters['statuses'] ?? null;
+        if (is_array($statuses)) {
+            $statuses = array_values(array_filter($statuses, fn ($value) => filled($value)));
+        }
+        if (is_array($statuses) && $statuses !== []) {
+            $query->whereIn('status', $statuses);
+        } elseif (isset($filters['status']) && $filters['status']) {
             $query->where('status', $filters['status']);
         }
         if (isset($filters['category']) && $filters['category']) {
@@ -184,7 +190,7 @@ class Problem extends Model
     {
         $reportNumber = isset($filters['report_number']) ? trim((string) $filters['report_number']) : '';
         $search = isset($filters['search']) ? trim((string) $filters['search']) : '';
-        $hasFacetFilters = collect(['status', 'category', 'problem_nature_id', 'date_from', 'date_to'])
+        $hasFacetFilters = collect(['status', 'statuses', 'category', 'problem_nature_id', 'date_from', 'date_to'])
             ->contains(fn ($key) => filled($filters[$key] ?? null));
 
         if ($reportNumber === '' && $search === '' && ! $hasFacetFilters) {

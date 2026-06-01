@@ -17,13 +17,17 @@ const props = defineProps({
     isReporterOnly: { type: Boolean, default: false },
 });
 
-const twoFactorDisabled = computed(() => !props.twoFactorGloballyRequired);
+const twoFactorDisabled = computed(() => props.twoFactorGloballyRequired);
+
+const twoFactorSwitchValue = computed(
+    () => props.twoFactorGloballyRequired || props.twoFactorEnabled,
+);
 
 const twoFactorHint = computed(() => {
-    if (!props.twoFactorGloballyRequired) {
-        return "Sistemos administratorius išjungė 2FA - įjungti negalima.";
+    if (props.twoFactorGloballyRequired) {
+        return "2FA įjungtas visiems vidiniams naudotojams – išjungti negalima.";
     }
-    return "Įjungta sistemos administratoriaus. Norite - galite išjungti tik sau.";
+    return "Galite pasirinkti, ar įjungti 2FA papildomam paskyros saugumui.";
 });
 
 const showFiveFields = computed(
@@ -106,7 +110,7 @@ function onSecondSwitchChange(v) {
                 </span>
                 <div class="privacy-row-right">
                     <AppSwitch
-                        :modelValue="twoFactorEnabled"
+                        :modelValue="twoFactorSwitchValue"
                         :disabled="twoFactorDisabled"
                         @update:modelValue="
                             (v) => {
@@ -188,7 +192,7 @@ function onSecondSwitchChange(v) {
                 </span>
                 <div class="privacy-row-right">
                     <AppSwitch
-                        :modelValue="twoFactorEnabled"
+                        :modelValue="twoFactorSwitchValue"
                         :disabled="twoFactorDisabled"
                         @update:modelValue="
                             (v) => {

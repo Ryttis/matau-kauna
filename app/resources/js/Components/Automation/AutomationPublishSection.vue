@@ -6,6 +6,7 @@ import AppCheckbox from '@/Components/App/AppCheckbox.vue'
 import AppSelect from '@/Components/App/AppSelect.vue'
 import BaseModal from '@/Components/App/BaseModal.vue'
 import ConfirmModal from '@/Components/App/ConfirmModal.vue'
+import StatusBadge from '@/Components/Problems/StatusBadge.vue'
 
 const props = defineProps({
     publishRules: Array,
@@ -128,7 +129,10 @@ function doPublishDelete() {
                 <tbody>
                     <tr v-for="r in publishRules" :key="r.id">
                         <td>{{ r.category || 'Bet kuri' }}</td>
-                        <td>{{ r.status || 'Bet kuri' }}</td>
+                        <td>
+                            <StatusBadge v-if="r.status" :status="r.status" size="small" />
+                            <span v-else>Bet kuri</span>
+                        </td>
                         <td>{{ r.is_active ? 'Taip' : 'Ne' }}</td>
                         <td>
                             <button type="button" class="automation-link" @click="openPublishEdit(r)">Redaguoti</button>

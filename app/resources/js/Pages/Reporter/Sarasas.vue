@@ -10,7 +10,7 @@ import SearchFilterBar from '@/Components/App/SearchFilterBar.vue'
 import StatusBadge from '@/Components/Problems/StatusBadge.vue'
 import { buildReporterProblemDisplayRows } from '@/utils/reporterProblemRows'
 import { formatDateLt } from '@/utils/dateFormat'
-import { getReporterStatusKey, getReporterStatusLabel } from '@/constants/domain/problemStatus'
+import { getReporterStatusKey, getReporterStatusLabel, getStatusBadgeStyle, REPORTER_MAP_FILTER_STATUS_OPTIONS } from '@/constants/domain/problemStatus'
 
 const props = defineProps({
     problems: { type: Array, default: () => [] },
@@ -28,6 +28,9 @@ const categoryFilter = ref(props.filters?.category ?? '')
 const dateFromFilter = ref(props.filters?.date_from ?? '')
 const dateToFilter = ref(props.filters?.date_to ?? '')
 const onlyMineFilter = ref(props.filters?.only_mine === true || props.filters?.only_mine === '1')
+const statusesFilter = ref(Array.isArray(props.filters?.statuses) ? [...props.filters.statuses] : [])
+
+const statusOptions = REPORTER_MAP_FILTER_STATUS_OPTIONS
 
 watch(() => props.filters, (f) => {
     if (!f) return
@@ -37,15 +40,18 @@ watch(() => props.filters, (f) => {
     dateFromFilter.value = f.date_from ?? ''
     dateToFilter.value = f.date_to ?? ''
     onlyMineFilter.value = f.only_mine === true || f.only_mine === '1'
+    statusesFilter.value = Array.isArray(f.statuses) ? [...f.statuses] : []
 }, { immediate: true })
 
 const applyFilters = (params = {}) => {
+    const nextStatuses = params.statuses ?? statusesFilter.value
     router.get(route('reporter.sarasas'), {
         search: searchQuery.value || undefined,
         report_number: (params.reportNumber ?? reportNumberFilter.value) || undefined,
         category: (params.problemType ?? categoryFilter.value) || undefined,
         date_from: (params.dateFrom ?? dateFromFilter.value) || undefined,
         date_to: (params.dateTo ?? dateToFilter.value) || undefined,
+        statuses: (Array.isArray(nextStatuses) && nextStatuses.length) ? nextStatuses : undefined,
         only_mine: (params.onlyMine ?? onlyMineFilter.value) ? 1 : undefined,
     }, {
         preserveState: true,
@@ -53,6 +59,14 @@ const applyFilters = (params = {}) => {
         replace: true,
         only: ['problems', 'filters'],
     })
+}
+
+function toggleStatus(value) {
+    const current = statusesFilter.value
+    statusesFilter.value = current.includes(value)
+        ? current.filter((v) => v !== value)
+        : [...current, value]
+    applyFilters({ statuses: statusesFilter.value })
 }
 
 const debouncedSearch = debounce(() => applyFilters(), 300)
@@ -76,11 +90,14 @@ function handleFilterApply(payload) {
     categoryFilter.value = payload.problemType ?? ''
     dateFromFilter.value = payload.dateFrom ?? ''
     dateToFilter.value = payload.dateTo ?? ''
+    const nextStatuses = payload.status ? [payload.status] : []
+    statusesFilter.value = nextStatuses
     applyFilters({
         reportNumber: payload.reportNumber,
         problemType: payload.problemType,
         dateFrom: payload.dateFrom,
         dateTo: payload.dateTo,
+        statuses: nextStatuses,
     })
 }
 
@@ -90,15 +107,7 @@ function handleFilterClear() {
     categoryFilter.value = ''
     dateFromFilter.value = ''
     dateToFilter.value = ''
-    router.get(route('reporter.sarasas'), {
-        search: searchQuery.value || undefined,
-        only_mine: onlyMineFilter.value ? 1 : undefined,
-    }, {
-        preserveState: true,
-        preserveScroll: true,
-        replace: true,
-        only: ['problems', 'filters'],
-    })
+    applyFilters()
 }
 
 const filtersActive = computed(() => {
@@ -115,6 +124,9 @@ const filtersActive = computed(() => {
         return true
     }
     if ((dateToFilter.value || '').trim() !== '') {
+        return true
+    }
+    if ((statusesFilter.value || []).length > 0) {
         return true
     }
     if (onlyMineFilter.value) {
@@ -223,6 +235,22 @@ function sarasasRowClass(row) {
                     <span>Rodyti tik mano iškeltas problemas</span>
                 </label>
             </div>
+            <div class="reporter-sarasas-statuses">
+                <span class="reporter-sarasas-statuses-label">Būsena</span>
+                <div class="reporter-sarasas-status-options">
+                    <button
+                        v-for="opt in statusOptions"
+                        :key="opt.value"
+                        type="button"
+                        class="reporter-sarasas-status-pill"
+                        :class="{ 'is-active': statusesFilter.includes(opt.value) }"
+                        :style="statusesFilter.includes(opt.value) ? getStatusBadgeStyle(opt.value) : null"
+                        @click="toggleStatus(opt.value)"
+                    >
+                        {{ opt.label }}
+                    </button>
+                </div>
+            </div>
             <div class="reporter-sarasas-table-wrap table">
                 <EntityTable
                     :items="displayRows"
@@ -242,9 +270,10 @@ function sarasasRowClass(row) {
                 problemType: categoryFilter,
                 dateFrom: dateFromFilter,
                 dateTo: dateToFilter,
+                status: statusesFilter.length === 1 ? statusesFilter[0] : '',
             }"
             :categories="categories"
-            :all-status-options="[]"
+            :all-status-options="statusOptions"
             @close="handleFilterClose"
             @apply="handleFilterApply"
             @clear="handleFilterClear"
@@ -288,6 +317,50 @@ function sarasasRowClass(row) {
 .reporter-sarasas-checkbox {
     width: 16px;
     height: 16px;
+}
+
+.reporter-sarasas-statuses {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 10px 16px;
+    margin-bottom: 24px;
+}
+
+.reporter-sarasas-statuses-label {
+    font-size: 14px;
+    font-weight: 600;
+    color: #333;
+}
+
+.reporter-sarasas-status-options {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 16px;
+}
+
+.reporter-sarasas-status-pill {
+    display: inline-flex;
+    align-items: center;
+    padding: 6px 16px;
+    border-radius: 999px;
+    border: 1px solid #d0d5dd;
+    background: #fff;
+    color: #555;
+    font-size: 14px;
+    font-family: 'Open Sans', sans-serif;
+    line-height: 1.4;
+    cursor: pointer;
+    transition: border-color 0.15s ease, background-color 0.15s ease, color 0.15s ease;
+}
+
+.reporter-sarasas-status-pill:hover {
+    border-color: #9aa3b2;
+}
+
+.reporter-sarasas-status-pill.is-active {
+    border-color: transparent;
+    font-weight: 600;
 }
 
 .reporter-sarasas-table-wrap {

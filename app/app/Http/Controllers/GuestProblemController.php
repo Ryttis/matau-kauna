@@ -46,6 +46,12 @@ class GuestProblemController extends Controller
         $isPublic = $problem->is_published_publicly;
 
         if (! $isReporterOwnProblem && ! $isPublic) {
+            if (! $user) {
+                session()->put('url.intended', url()->current());
+
+                return Inertia::render('Guest/LoginRequired');
+            }
+
             abort(404);
         }
 
