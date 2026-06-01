@@ -8,6 +8,7 @@ import SearchFilterBar from '@/Components/App/SearchFilterBar.vue'
 import ProblemsTable from '@/Components/Problems/ProblemsTable.vue'
 import { useAuth } from '@/composables/useAuth'
 import { useDashboardProblemList } from '@/composables/useDashboardProblemList'
+import { getStatusBadgeStyle } from '@/constants/domain/problemStatus'
 
 const props = defineProps({
     problems: [Object, Array],
@@ -79,6 +80,7 @@ const {
     handleFilterApply,
     handleFilterClear,
     handleFilterClose,
+    toggleStatusFilter,
     handleAssignProblems,
     handleAssignInstitution,
     handleDeleteProblems,
@@ -108,6 +110,23 @@ const {
                 @input="handleSearch"
                 @filter-click="showFilterModal = true"
             />
+        </div>
+        <div class="dashboard-statuses">
+            <span class="dashboard-statuses-label">Būsena</span>
+            <div class="dashboard-status-options">
+                <button
+                    v-for="opt in allStatusOptions"
+                    :key="opt.value"
+                    type="button"
+                    class="dashboard-status-pill"
+                    :class="{ 'is-active': statusesFilter.includes(opt.value) }"
+                    :style="statusesFilter.includes(opt.value) ? getStatusBadgeStyle(opt.value) : null"
+                    :aria-pressed="statusesFilter.includes(opt.value)"
+                    @click="toggleStatusFilter(opt.value)"
+                >
+                    {{ opt.label }}
+                </button>
+            </div>
         </div>
 
         <ProblemsTable
@@ -342,6 +361,55 @@ const {
     min-width: 0;
 }
 
+.dashboard-statuses {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 10px 16px;
+    margin: 18px 0 24px;
+}
+
+.dashboard-statuses-label {
+    flex: 0 0 auto;
+    font-size: 14px;
+    font-weight: 600;
+    color: #333;
+}
+
+.dashboard-status-options {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 16px;
+    min-width: 0;
+}
+
+.dashboard-status-pill {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 34px;
+    padding: 6px 16px;
+    border-radius: 999px;
+    border: 1px solid #d0d5dd;
+    background: #fff;
+    color: #555;
+    font-family: 'Open Sans', sans-serif;
+    font-size: 14px;
+    line-height: 1.4;
+    white-space: nowrap;
+    cursor: pointer;
+    transition: border-color 0.15s ease, background-color 0.15s ease, color 0.15s ease;
+}
+
+.dashboard-status-pill:hover {
+    border-color: #9aa3b2;
+}
+
+.dashboard-status-pill.is-active {
+    border-color: transparent;
+    font-weight: 600;
+}
+
 .table-pagination {
     margin-top: 20px;
     display: flex;
@@ -502,6 +570,22 @@ const {
 }
 
 @media (max-width: 767px) {
+    .dashboard-statuses {
+        align-items: flex-start;
+        flex-direction: column;
+        margin-top: 16px;
+    }
+
+    .dashboard-status-options {
+        gap: 8px;
+        width: 100%;
+    }
+
+    .dashboard-status-pill {
+        white-space: normal;
+        text-align: center;
+    }
+
     .table-pagination {
         align-items: flex-start;
         flex-direction: column;

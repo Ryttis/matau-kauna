@@ -79,6 +79,13 @@ class ProblemController extends Controller
         if (! is_array($statuses)) {
             $statuses = [$statuses];
         }
+
+        $legacyStatus = $request->input('status', []);
+        if (! is_array($legacyStatus)) {
+            $legacyStatus = filled($legacyStatus) ? [$legacyStatus] : [];
+        }
+
+        $statuses = array_merge($statuses, $legacyStatus);
         $valid = ProblemStatus::values();
 
         return array_values(array_filter(

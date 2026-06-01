@@ -1,6 +1,6 @@
 <script setup>
 import { Link, router, usePage } from '@inertiajs/vue3'
-import { computed, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { useAuth } from '@/composables/useAuth'
 import {
     ICON_MAP,
@@ -25,19 +25,37 @@ const {
     hasPermission,
 } = useAuth()
 
-const dashboardStatusParam = computed(() => {
-    if (!page.url.startsWith('/dashboard')) return ''
+const dashboardStatusParams = computed(() => {
+    if (!page.url.startsWith('/dashboard')) return []
     try {
         const parts = page.url.split('?')
         const params = new URLSearchParams(parts[1] || '')
-        return params.get('status') || ''
+        const statuses = []
+        params.forEach((value, key) => {
+            if (
+                key === 'status' ||
+                key === 'statuses' ||
+                key === 'statuses[]' ||
+                key.startsWith('statuses[')
+            ) {
+                statuses.push(value)
+            }
+        })
+        return [...new Set(statuses.filter(Boolean))]
     } catch {
-        return ''
+        return []
     }
 })
 
-const isStatusLinkActive = (status) => dashboardStatusParam.value === status
-const isVisosActive = () => isActive('/dashboard') && !dashboardStatusParam.value
+const hasDashboardStatusFilter = computed(() => dashboardStatusParams.value.length > 0)
+const isStatusLinkActive = (status) => dashboardStatusParams.value.includes(status)
+const isVisosActive = () => isActive('/dashboard') && !hasDashboardStatusFilter.value
+const dashboardStatusHref = (status) => {
+    if (!status) return route('dashboard')
+    const params = new URLSearchParams()
+    params.append('statuses[]', status)
+    return `${route('dashboard')}?${params.toString()}`
+}
 
 const isInstitutionAdmin = computed(() => hasRole(ROLE_INSTITUTION_ADMIN) && !isSystemAdmin.value)
 
@@ -70,7 +88,7 @@ const isActive = (path) => {
     return page.url.startsWith(path)
 }
 
-const isStatesOpen = ref(!!dashboardStatusParam.value)
+const isStatesOpen = ref(hasDashboardStatusFilter.value)
 const toggleStates = () => {
     if (!isStatesOpen.value) isStatisticsOpen.value = false
     isStatesOpen.value = !isStatesOpen.value
@@ -81,6 +99,12 @@ const toggleStatistics = () => {
     if (!isStatisticsOpen.value) isStatesOpen.value = false
     isStatisticsOpen.value = !isStatisticsOpen.value
 }
+
+watch(hasDashboardStatusFilter, (hasFilter) => {
+    if (!hasFilter) return
+    isStatesOpen.value = true
+    isStatisticsOpen.value = false
+})
 
 const handleDashboardListClick = () => {
     isStatesOpen.value = false
@@ -153,7 +177,7 @@ const patchActiveRole = (roleId) => {
                     <Link
                         :href="route('dashboard')"
                         class="nav-link"
-                        :class="{ active: isActive('/dashboard') && !dashboardStatusParam }"
+                        :class="{ active: isActive('/dashboard') && !hasDashboardStatusFilter }"
                         @click="handleDashboardListClick"
                     >
                         <img :src="ICON_LIST" class="nav-icon" alt="" />
@@ -220,7 +244,7 @@ const patchActiveRole = (roleId) => {
                 <button
                     type="button"
                     class="nav-link states-trigger"
-                    :class="{ active: isStatesOpen || !!dashboardStatusParam }"
+                    :class="{ active: isStatesOpen || hasDashboardStatusFilter }"
                     @click="toggleStates"
                 >
                     <img :src="ICON_STATE" class="nav-icon nav-icon--symbol" alt="" />
@@ -237,7 +261,7 @@ const patchActiveRole = (roleId) => {
                     <Link
                         v-for="entry in SIDEBAR_DASHBOARD_STATUS_ENTRIES"
                         :key="entry.key"
-                        :href="entry.status ? `${route('dashboard')}?status=${entry.status}` : route('dashboard')"
+                        :href="dashboardStatusHref(entry.status)"
                         class="submenu-link"
                         :class="{
                             active: entry.status ? isStatusLinkActive(entry.status) : isVisosActive(),

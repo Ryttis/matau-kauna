@@ -312,6 +312,14 @@ export function useDashboardProblemList(props) {
         showExportDropdown.value = false
     }
 
+    const toggleStatusFilter = (status) => {
+        if (!status) return
+        const current = statusesFilter.value || []
+        statusesFilter.value = current.includes(status)
+            ? current.filter((value) => value !== status)
+            : [...current, status]
+    }
+
     watch([statusesFilter, categoryFilter, natureFilter, reportNumberFilter, dateFromFilter, dateToFilter], () => {
         problemsList.value = []
         loadProblems(true)
@@ -536,6 +544,7 @@ export function useDashboardProblemList(props) {
         handleFilterApply,
         handleFilterClear,
         handleFilterClose,
+        toggleStatusFilter,
         handleAssignProblems,
         handleAssignInstitution,
         handleDeleteProblems,
