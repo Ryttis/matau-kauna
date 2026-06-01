@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Problems;
 
+use App\Enums\ProblemStatus;
 use App\Models\ClassifierValue;
 use App\Models\Institution;
 use App\Models\InstitutionGisConfig;
@@ -107,6 +108,7 @@ class ProblemGisTransferTest extends TestCase
         $this->assertSame('outbound', $transfer->attachmentTransfers->first()->direction);
         $this->assertSame('ATT-GLOBAL-111', $transfer->attachmentTransfers->first()->external_global_id);
         $this->assertSame($config->id, $transfer->institution_gis_config_id);
+        $this->assertSame(ProblemStatus::IN_REVIEW->value, $problem->fresh()->status);
 
         $audit = AuditLog::where('action', 'integration.gis.send')->first();
         $this->assertNotNull($audit);
@@ -137,7 +139,7 @@ class ProblemGisTransferTest extends TestCase
                 'adresas',
                 'pranese',
             ]
-            && ($this->requestAttributes($request)['busena'] ?? null) === 'Nauja');
+            && ($this->requestAttributes($request)['busena'] ?? null) === ProblemStatus::IN_REVIEW->label());
         Http::assertNotSent(fn ($request) => $request->url() === 'https://digital.kaunas.lt/portal/sharing/rest/generateToken');
     }
 
@@ -258,6 +260,10 @@ class ProblemGisTransferTest extends TestCase
                         'code' => 'Registruojama',
                         'name' => 'Registruojama',
                     ],
+                    'nagrinejama' => [
+                        'code' => 'Vykdoma',
+                        'name' => 'Vykdoma',
+                    ],
                 ],
             ],
             'active_token' => 'cached-token',
@@ -279,7 +285,7 @@ class ProblemGisTransferTest extends TestCase
             ->assertRedirect();
 
         Http::assertSent(fn ($request) => $request->url() === 'https://example.test/FeatureServer/1/applyEdits'
-            && ($this->requestAttributes($request)['busena'] ?? null) === 'Registruojama');
+            && ($this->requestAttributes($request)['busena'] ?? null) === 'Vykdoma');
     }
 
     public function test_missing_status_value_mapping_preserves_status_label(): void
@@ -331,7 +337,7 @@ class ProblemGisTransferTest extends TestCase
             ->assertRedirect();
 
         Http::assertSent(fn ($request) => $request->url() === 'https://example.test/FeatureServer/1/applyEdits'
-            && ($this->requestAttributes($request)['busena'] ?? null) === 'Nauja');
+            && ($this->requestAttributes($request)['busena'] ?? null) === ProblemStatus::IN_REVIEW->label());
     }
 
     public function test_category_value_mapping_prefers_problem_nature_for_gis_payload(): void
