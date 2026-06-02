@@ -160,6 +160,7 @@ class InternalProblemApiController extends Controller
             'report_number' => $request->query('report_number'),
             'date_from' => $request->query('date_from'),
             'date_to' => $request->query('date_to'),
+            'institution_id' => $request->query('institution_id'),
         ];
         $sortBy = (string) $request->query('sort_by', 'created_at');
         $sortDirection = (string) $request->query('sort_direction', 'desc');
@@ -171,6 +172,8 @@ class InternalProblemApiController extends Controller
             return $problem->toArray() + [
                 'nature' => $problem->problemNature?->name,
                 'institution_name' => $problem->institution?->name,
+                'assigned_employee' => $problem->assignedEmployee,
+                'assigned_institution_team' => $problem->assignedInstitutionTeam,
             ];
         });
 

@@ -85,6 +85,7 @@ class Problem extends Model
                 $yearFromDate = $createdAt instanceof \DateTime ? $createdAt->format('Y') : date('Y', strtotime($createdAt));
 
                 $lastProblem = static::where('internal_number', 'like', "KP-{$yearFromDate}-%")
+                    ->whereRaw('internal_number ~ ?', ["^KP-{$yearFromDate}-[0-9]{6}$"])
                     ->orderByRaw('CAST(SUBSTRING(internal_number FROM 10) AS INTEGER) DESC')
                     ->first();
 
@@ -179,6 +180,13 @@ class Problem extends Model
         if (isset($filters['problem_nature_id']) && $filters['problem_nature_id']) {
             $query->where('problem_nature_id', (int) $filters['problem_nature_id']);
         }
+        if (isset($filters['institution_id']) && $filters['institution_id'] !== null && $filters['institution_id'] !== '') {
+            if ((string) $filters['institution_id'] === 'none') {
+                $query->whereNull('institution_id');
+            } else {
+                $query->where('institution_id', (int) $filters['institution_id']);
+            }
+        }
         if (isset($filters['date_from']) && $filters['date_from']) {
             $query->whereDate('created_at', '>=', $filters['date_from']);
         }
@@ -191,7 +199,7 @@ class Problem extends Model
     {
         $reportNumber = isset($filters['report_number']) ? trim((string) $filters['report_number']) : '';
         $search = isset($filters['search']) ? trim((string) $filters['search']) : '';
-        $hasFacetFilters = collect(['status', 'statuses', 'category', 'problem_nature_id', 'date_from', 'date_to'])
+        $hasFacetFilters = collect(['status', 'statuses', 'category', 'problem_nature_id', 'institution_id', 'date_from', 'date_to'])
             ->contains(fn ($key) => filled($filters[$key] ?? null));
 
         if ($reportNumber === '' && $search === '' && ! $hasFacetFilters) {

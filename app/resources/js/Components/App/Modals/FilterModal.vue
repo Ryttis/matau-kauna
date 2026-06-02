@@ -25,10 +25,12 @@ const props = defineProps({
             dateTo: '',
             status: '',
             statuses: [],
+            institutionId: '',
         }),
     },
     categories: Array,
     natures: Array,
+    institutions: Array,
     allStatusOptions: Array,
     onlyMine: { type: Boolean, default: undefined },
     onlyWatched: { type: Boolean, default: undefined },
@@ -64,6 +66,7 @@ function getInitialFilters() {
         dateTo: props.filters?.dateTo || '',
         status: props.filters?.status || '',
         statuses: props.filters?.statuses ? [...props.filters.statuses] : [],
+        institutionId: props.filters?.institutionId || '',
     }
 }
 
@@ -121,6 +124,7 @@ const handleApply = () => {
             payload.status = f.status
         }
         payload.problemNatureId = f.problemNatureId
+        payload.institutionId = f.institutionId
     }
     emit('apply', payload)
 }
@@ -128,7 +132,7 @@ const handleApply = () => {
 const handleClear = () => {
     localFilters.value = isPublicMap()
         ? { reportNumber: '', problemType: 'all', dateFrom: '', dateTo: '', statuses: [] }
-        : { reportNumber: '', problemType: '', problemNatureId: '', dateFrom: '', dateTo: '', status: '', statuses: [] }
+        : { reportNumber: '', problemType: '', problemNatureId: '', institutionId: '', dateFrom: '', dateTo: '', status: '', statuses: [] }
     emit('clear')
 }
 
@@ -243,6 +247,22 @@ const handleClose = () => {
                     <option value="">Visi pobūdžiai</option>
                     <option v-for="nature in (natures || [])" :key="nature.id" :value="String(nature.id)">
                         {{ nature.category ? `${nature.category} - ${nature.name}` : nature.name }}
+                    </option>
+                </AppSelect>
+            </div>
+
+            <div v-if="!isPublicMap()" class="filter-section">
+                <AppSelect
+                    v-model="localFilters.institutionId"
+                    label="Įstaiga"
+                    placeholder="Pasirinkti įstaigą"
+                    variant="white"
+                    :rounded="true"
+                >
+                    <option value="">Visos įstaigos</option>
+                    <option value="none">Be įstaigos</option>
+                    <option v-for="institution in (institutions || [])" :key="institution.id" :value="String(institution.id)">
+                        {{ institution.name }}
                     </option>
                 </AppSelect>
             </div>

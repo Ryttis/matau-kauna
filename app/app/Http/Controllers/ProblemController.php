@@ -58,6 +58,7 @@ class ProblemController extends Controller
             'report_number' => $request->get('report_number'),
             'date_from' => $request->get('date_from'),
             'date_to' => $request->get('date_to'),
+            'institution_id' => $request->get('institution_id'),
         ];
 
         $sortBy = $request->get('sort_by', 'created_at');
@@ -361,6 +362,7 @@ class ProblemController extends Controller
             'report_number' => $request->get('report_number'),
             'date_from' => $request->get('date_from'),
             'date_to' => $request->get('date_to'),
+            'institution_id' => $request->get('institution_id'),
         ];
 
         $sortBy = $request->get('sort_by', 'created_at');
@@ -377,7 +379,7 @@ class ProblemController extends Controller
             (int) $request->get('per_page', 10)
         );
 
-        $filename = 'problemos_'.date('Y-m-d_His').'.xlsx';
+        $filename = 'problemos_'.now()->format('Y-m-d_His').'.xlsx';
 
         return Excel::download(new ProblemsExport($problems), $filename);
     }

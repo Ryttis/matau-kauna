@@ -17,6 +17,7 @@ export function useDashboardProblemList(props) {
     const statusesFilter = ref(Array.isArray(props.filters?.statuses) ? [...props.filters.statuses] : [])
     const categoryFilter = ref(props.filters?.category || '')
     const natureFilter = ref(props.filters?.problem_nature_id || props.filters?.problemNatureId || '')
+    const institutionFilter = ref(props.filters?.institution_id || props.filters?.institutionId || '')
     const reportNumberFilter = ref(props.filters?.report_number || props.filters?.reportNumber || '')
     const dateFromFilter = ref(props.filters?.date_from || props.filters?.dateFrom || '')
     const dateToFilter = ref(props.filters?.date_to || props.filters?.dateTo || '')
@@ -94,6 +95,9 @@ export function useDashboardProblemList(props) {
         if ((natureFilter.value || '').trim() !== '') {
             return true
         }
+        if ((institutionFilter.value || '').trim() !== '') {
+            return true
+        }
         if ((statusesFilter.value || []).length > 0) {
             return true
         }
@@ -115,6 +119,7 @@ export function useDashboardProblemList(props) {
             statuses: statusesFilter.value,
             category: categoryFilter.value,
             problem_nature_id: natureFilter.value,
+            institution_id: institutionFilter.value,
             report_number: reportNumberFilter.value,
             date_from: dateFromFilter.value,
             date_to: dateToFilter.value,
@@ -139,6 +144,7 @@ export function useDashboardProblemList(props) {
             statuses: statusesFilter.value,
             category: categoryFilter.value,
             problem_nature_id: natureFilter.value,
+            institution_id: institutionFilter.value,
             report_number: reportNumberFilter.value,
             date_from: dateFromFilter.value,
             date_to: dateToFilter.value,
@@ -298,6 +304,7 @@ export function useDashboardProblemList(props) {
             search: search.value || '',
             category: categoryFilter.value || '',
             problem_nature_id: natureFilter.value || '',
+            institution_id: institutionFilter.value || '',
             report_number: reportNumberFilter.value || '',
             date_from: dateFromFilter.value || '',
             date_to: dateToFilter.value || '',
@@ -320,7 +327,7 @@ export function useDashboardProblemList(props) {
             : [...current, status]
     }
 
-    watch([statusesFilter, categoryFilter, natureFilter, reportNumberFilter, dateFromFilter, dateToFilter], () => {
+    watch([statusesFilter, categoryFilter, natureFilter, institutionFilter, reportNumberFilter, dateFromFilter, dateToFilter], () => {
         problemsList.value = []
         loadProblems(true)
     }, { deep: true })
@@ -329,6 +336,7 @@ export function useDashboardProblemList(props) {
         statusesFilter.value = Array.isArray(filters.statuses) ? filters.statuses : []
         categoryFilter.value = filters.problemType || ''
         natureFilter.value = filters.problemNatureId || ''
+        institutionFilter.value = filters.institutionId || ''
         reportNumberFilter.value = filters.reportNumber || ''
         dateFromFilter.value = filters.dateFrom || ''
         dateToFilter.value = filters.dateTo || ''
@@ -342,6 +350,7 @@ export function useDashboardProblemList(props) {
         statusesFilter.value = []
         categoryFilter.value = ''
         natureFilter.value = ''
+        institutionFilter.value = ''
         reportNumberFilter.value = ''
         dateFromFilter.value = ''
         dateToFilter.value = ''
@@ -499,6 +508,7 @@ export function useDashboardProblemList(props) {
         statusesFilter,
         categoryFilter,
         natureFilter,
+        institutionFilter,
         reportNumberFilter,
         dateFromFilter,
         dateToFilter,

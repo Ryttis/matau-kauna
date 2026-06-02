@@ -17,6 +17,7 @@ const props = defineProps({
     sortDirection: String,
     categories: Array,
     natures: Array,
+    institutions: Array,
     statusOptions: Array,
     pageSizeOptions: Array,
 })
@@ -35,6 +36,7 @@ const {
     reportNumberFilter,
     categoryFilter,
     natureFilter,
+    institutionFilter,
     dateFromFilter,
     dateToFilter,
     statusesFilter,
@@ -320,12 +322,14 @@ const {
                 reportNumber: reportNumberFilter,
                 problemType: categoryFilter,
                 problemNatureId: natureFilter,
+                institutionId: institutionFilter,
                 dateFrom: dateFromFilter,
                 dateTo: dateToFilter,
                 statuses: statusesFilter,
             }"
             :categories="props.categories"
             :natures="props.natures"
+            :institutions="props.institutions"
             :all-status-options="allStatusOptions"
             @close="handleFilterClose"
             @apply="handleFilterApply"

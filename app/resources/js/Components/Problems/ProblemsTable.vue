@@ -73,6 +73,25 @@ const reporterName = (row) => {
     return truncate(fullName || reporter.email || '-', 24)
 }
 
+const employeeName = (employee) => {
+    if (!employee) return ''
+    return [employee.name, employee.surname].filter(Boolean).join(' ').trim() || employee.email || ''
+}
+
+const assignmentLabel = (row) => {
+    const problem = getRowData(row)
+    const institution = problem.institution?.name?.trim() || ''
+    const employee = problem.assigned_employee || problem.assignedEmployee
+    const team = problem.assigned_institution_team || problem.assignedInstitutionTeam
+    const parts = [
+        institution,
+        employeeName(employee),
+        team?.name?.trim() || '',
+    ].filter(Boolean)
+
+    return parts.length ? truncate(parts.join(' / '), 42) : '-'
+}
+
 const formatDateTime = (value) => formatDateTimeLt(value, '-')
 
 const columns = computed(() => {
@@ -120,6 +139,14 @@ const columns = computed(() => {
             headerClass: 'problem-col-reporter',
             class: 'problem-col-reporter',
             value: reporterName
+        },
+        {
+            key: 'assignment',
+            label: 'Priskirta',
+            sortable: false,
+            headerClass: 'problem-col-assignment',
+            class: 'problem-col-assignment',
+            value: assignmentLabel
         },
         {
             key: 'category',
@@ -257,6 +284,12 @@ function problemTableRowClass(row) {
 :deep(.problem-col-reporter) {
     min-width: 8rem;
     max-width: 11rem;
+    word-break: break-word;
+}
+
+:deep(.problem-col-assignment) {
+    min-width: 10rem;
+    max-width: 15rem;
     word-break: break-word;
 }
 

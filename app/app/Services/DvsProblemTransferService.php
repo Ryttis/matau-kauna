@@ -351,7 +351,7 @@ class DvsProblemTransferService
             'dokNr' => $problem->internal_number,
             'patikslinimas' => $this->reporterName($problem),
             'antraste' => Str::limit($this->problemNatureTitle($problem), 250, ''),
-            'pastabos' => $problem->description,
+            'pastabos' => $this->descriptionWithProblemUrl($problem),
             'elektroninis' => true,
             'failai' => $this->attachmentsPayload($problem, $config->gaunami_failu_registro_kodas),
         ];
@@ -395,7 +395,7 @@ class DvsProblemTransferService
                 $problem->internal_number,
                 $this->problemNatureTitle($problem),
             ]))), 250, ''),
-            'pastabos' => $problem->description,
+            'pastabos' => $this->descriptionWithProblemUrl($problem),
             'nukreiptoId' => (int) $config->pilieciu_nukreipto_id,
             'failai' => $this->attachmentsPayload($problem, $config->pilieciu_failu_registro_kodas),
         ];
@@ -466,6 +466,16 @@ class DvsProblemTransferService
             $reporter->name,
             $reporter->surname,
         ]))) ?: (string) $reporter->email;
+    }
+
+    private function descriptionWithProblemUrl(Problem $problem): string
+    {
+        $description = trim((string) $problem->description);
+        $urlLine = 'Nuoroda: '.route('problems.show', $problem->id);
+
+        return $description === ''
+            ? $urlLine
+            : $description."\n\n".$urlLine;
     }
 
     private function problemNatureTitle(Problem $problem): string

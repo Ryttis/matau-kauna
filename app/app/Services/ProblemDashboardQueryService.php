@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Enums\ProblemStatus;
 use App\Models\ClassifierValue;
+use App\Models\Institution;
 use App\Models\Problem;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Collection;
@@ -74,10 +75,15 @@ class ProblemDashboardQueryService
                 'mergedProblems' => fn ($query) => $query->with([
                     'problemNature:id,name',
                     'reportedByUser:id,name,surname,email',
+                    'institution:id,name',
+                    'assignedEmployee:id,name,surname,email',
+                    'assignedInstitutionTeam:id,name',
                 ]),
                 'problemNature:id,name',
                 'institution:id,name',
                 'reportedByUser:id,name,surname,email',
+                'assignedEmployee:id,name,surname,email',
+                'assignedInstitutionTeam:id,name',
             ])
             ->paginate($pageSize)
             ->withQueryString();
@@ -93,6 +99,7 @@ class ProblemDashboardQueryService
             'sortDirection' => $sortDirection,
             'categories' => ClassifierValue::getActiveTypeNames()->values(),
             'natures' => $this->activeNatureOptions(),
+            'institutions' => $this->institutionOptionsFor($user),
             'statusOptions' => ProblemStatus::options(),
             'pageSizeOptions' => self::STAFF_PAGE_SIZES,
         ];
@@ -102,6 +109,11 @@ class ProblemDashboardQueryService
     {
         $query = Problem::query()
             ->notArchived()
+            ->with([
+                'institution:id,name',
+                'assignedEmployee:id,name,surname,email',
+                'assignedInstitutionTeam:id,name',
+            ])
             ->when(
                 $this->scopeService->isInstitutionScoped($user),
                 fn ($q) => $q->where('institution_id', $user->institution_id)
@@ -138,6 +150,31 @@ class ProblemDashboardQueryService
                 'id' => $nature->id,
                 'name' => $nature->name,
                 'category' => $nature->parent?->name,
+            ])
+            ->values()
+            ->all();
+    }
+
+    private function institutionOptionsFor(User $user): array
+    {
+        $query = Institution::query()
+            ->notArchived()
+            ->orderBy('name')
+            ->select(['id', 'name']);
+
+        if ($this->scopeService->isInstitutionScoped($user)) {
+            if ($user->institution_id === null) {
+                return [];
+            }
+
+            $query->where('id', $user->institution_id);
+        }
+
+        return $query
+            ->get()
+            ->map(fn (Institution $institution) => [
+                'id' => $institution->id,
+                'name' => $institution->name,
             ])
             ->values()
             ->all();
