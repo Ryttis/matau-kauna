@@ -115,7 +115,6 @@ const toggleGlobalRequired = async (checked) => {
                 <span class="global-switch-track" aria-hidden="true">
                     <span class="global-switch-thumb"></span>
                 </span>
-                <span>2FA įjungtas visiems vidiniams (įskaitant naujas paskyras)</span>
             </label>
         </div>
 
