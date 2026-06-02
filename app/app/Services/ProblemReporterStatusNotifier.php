@@ -37,7 +37,7 @@ class ProblemReporterStatusNotifier
 
     public function notifyReportersAndWatchersWhenStatusChanges(Problem $mainProblem, string $oldStatus, string $newStatus): void
     {
-        if ($oldStatus === $newStatus) {
+        if (ProblemStatus::reporterStatusValue($oldStatus) === ProblemStatus::reporterStatusValue($newStatus)) {
             return;
         }
 

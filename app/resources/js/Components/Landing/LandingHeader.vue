@@ -37,7 +37,7 @@
                             class="landing-link landing-link--btn"
                             @click="navOpen = false"
                         >
-                            {{ user ? 'Administravimas' : 'Prisijungti' }}
+                            {{ user ? (isActiveRoleReporter ? 'Problemos' : 'Administravimas') : 'Prisijungti' }}
                         </Link>
                     </nav>
                 </div>
@@ -82,7 +82,7 @@
                             class="landing-link landing-link--btn"
                             @click="navOpen = false"
                         >
-                            {{ user ? 'Administravimas' : 'Prisijungti' }}
+                            {{ user ? (isActiveRoleReporter ? 'Problemos' : 'Administravimas') : 'Prisijungti' }}
                         </Link>
                     </nav>
                 </div>
@@ -100,7 +100,7 @@ import { useAuth } from '@/composables/useAuth'
 import { useBrandHomeHref } from '@/composables/useBrandHomeHref'
 
 const brandHomeHref = useBrandHomeHref()
-const { user } = useAuth()
+const { user, isActiveRoleReporter } = useAuth()
 
 defineProps({
     activeLink: { type: String, default: '' },
