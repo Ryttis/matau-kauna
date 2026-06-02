@@ -21,7 +21,7 @@ const addressDropdownRef = ref(null)
 let suggestDebounceTimer = null
 let lastSuggestQuery = ''
 
-const { lat, lng, address, isGeocoding, searchAddress, applySuggestionSelection, fetchAddressSuggestions, centerMap } =
+const { lat, lng, address, isGeocoding, locationError, searchAddress, applySuggestionSelection, fetchAddressSuggestions, centerMap } =
     useKaunasMapLocationPicker(mapContainer, {
         initialLat: props.initialLat,
         initialLng: props.initialLng,
@@ -162,6 +162,7 @@ function onCenterClick() {
                     <div class="reporter-location-suggestions-item reporter-location-suggestions-item--muted">Nerasta Kauno adresų</div>
                 </template>
             </div>
+            <p v-if="locationError" class="reporter-location-error">{{ locationError }}</p>
         </div>
     </div>
 </template>
@@ -278,6 +279,12 @@ function onCenterClick() {
 
 .reporter-location-suggestions-item--muted:hover {
     background: transparent;
+}
+
+.reporter-location-error {
+    margin: 0;
+    font-size: 14px;
+    color: #d23b3b;
 }
 
 .reporter-location-input {

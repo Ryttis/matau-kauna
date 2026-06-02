@@ -3,6 +3,10 @@ import { loadLeaflet, createBaseMap, KAUNAS_CENTER, KAUNAS_BOUNDS } from '@/util
 
 const NOMINATIM_DELAY_MS = 1100
 const NOMINATIM_HEADERS = { Accept: 'application/json', 'Accept-Language': 'lt' }
+const MAX_MARKER_MOVES = 3
+const MARKER_COOLDOWN_MS = 4000
+const MARKER_LOCKED_OPACITY = 0.45
+const OUTSIDE_CITY_MESSAGE = 'Registruoti galima tik Kauno miesto savivaldybės teritorijoje.'
 let lastGeocodeAt = 0
 
 let NOMINATIM_VIEWBOX = '23.65,55.05,24.15,54.75'
@@ -17,6 +21,10 @@ function isInKaunasBounds(lat, lng) {
     if (!KAUNAS_BOUNDS || KAUNAS_BOUNDS.length < 2) return true
     const [[minLat, minLon], [maxLat, maxLon]] = KAUNAS_BOUNDS
     return lat >= minLat && lat <= maxLat && lng >= minLon && lng <= maxLon
+}
+
+function isKaunasCityAddress(displayName) {
+    return !String(displayName ?? '').toLowerCase().includes('rajono savivaldyb')
 }
 
 function rateLimitWait() {
@@ -86,12 +94,13 @@ async function fetchAddressSuggestions(query) {
         .slice(0, 8)
 }
 
-async function reverseGeocode(lat, lng) {
+async function reverseGeocode(lat, lng, signal) {
     await rateLimitWait()
+    if (signal?.aborted) return ''
     lastGeocodeAt = Date.now()
     const res = await fetch(
         `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json`,
-        { headers: NOMINATIM_HEADERS }
+        { headers: NOMINATIM_HEADERS, signal }
     )
     const data = await res.json()
     return data?.display_name ?? ''
@@ -108,9 +117,66 @@ export function useKaunasMapLocationPicker(containerRef, options = {}) {
     const lng = ref(initialLng)
     const address = ref(typeof initialAddress === 'string' ? initialAddress : '')
     const isGeocoding = ref(false)
+    const markerLocked = ref(false)
+    const locationError = ref('')
     let map = null
     let marker = null
     let initialized = false
+    let lastValidLat = initialLat
+    let lastValidLng = initialLng
+    let markerMoveCount = 0
+    let markerCooldownTimer = null
+    let reverseAbortController = null
+
+    function lockMarker() {
+        markerLocked.value = true
+        if (marker?.dragging) marker.dragging.disable()
+        if (marker?.setOpacity) marker.setOpacity(MARKER_LOCKED_OPACITY)
+        if (markerCooldownTimer) clearTimeout(markerCooldownTimer)
+        markerCooldownTimer = setTimeout(() => {
+            markerLocked.value = false
+            markerMoveCount = 0
+            if (marker?.dragging) marker.dragging.enable()
+            if (marker?.setOpacity) marker.setOpacity(1)
+        }, MARKER_COOLDOWN_MS)
+    }
+
+    function registerMarkerMove() {
+        markerMoveCount += 1
+        if (markerMoveCount >= MAX_MARKER_MOVES) lockMarker()
+    }
+
+    function commitValidPosition(newLat, newLng) {
+        lat.value = newLat
+        lng.value = newLng
+        lastValidLat = newLat
+        lastValidLng = newLng
+    }
+
+    function revertToLastValid() {
+        lat.value = lastValidLat
+        lng.value = lastValidLng
+        if (marker) marker.setLatLng([lastValidLat, lastValidLng])
+    }
+
+    async function updateAddressFromLatLng(newLat, newLng) {
+        if (reverseAbortController) reverseAbortController.abort()
+        reverseAbortController = new AbortController()
+        const signal = reverseAbortController.signal
+        try {
+            const addr = await reverseGeocode(newLat, newLng, signal)
+            if (signal.aborted) return
+            if (addr && !isKaunasCityAddress(addr)) {
+                locationError.value = OUTSIDE_CITY_MESSAGE
+                revertToLastValid()
+                return
+            }
+            locationError.value = ''
+            lastValidLat = newLat
+            lastValidLng = newLng
+            if (addr) address.value = addr
+        } catch {}
+    }
 
     function setMarkerPosition(newLat, newLng) {
         lat.value = newLat
@@ -125,9 +191,9 @@ export function useKaunasMapLocationPicker(containerRef, options = {}) {
         isGeocoding.value = true
         try {
             const result = await geocodeAddress(query)
-            if (result) {
-                lat.value = result.lat
-                lng.value = result.lng
+            if (result && isInKaunasBounds(result.lat, result.lng) && isKaunasCityAddress(result.address)) {
+                locationError.value = ''
+                commitValidPosition(result.lat, result.lng)
                 address.value = result.address
                 if (marker) {
                     marker.setLatLng([result.lat, result.lng])
@@ -145,8 +211,11 @@ export function useKaunasMapLocationPicker(containerRef, options = {}) {
         if (!Number.isFinite(newLat) || !Number.isFinite(newLng)) {
             return
         }
-        lat.value = newLat
-        lng.value = newLng
+        if (!isInKaunasBounds(newLat, newLng) || !isKaunasCityAddress(item.display_name)) {
+            return
+        }
+        locationError.value = ''
+        commitValidPosition(newLat, newLng)
         address.value = item.display_name || ''
         if (marker && map) {
             marker.setLatLng([newLat, newLng])
@@ -163,28 +232,37 @@ export function useKaunasMapLocationPicker(containerRef, options = {}) {
         map = createBaseMap(containerRef.value, { center: [lat.value, lng.value] })
         if (!map) return
         marker = L.marker([lat.value, lng.value], { draggable: true }).addTo(map)
-        marker.on('dragend', async () => {
+        marker.on('dragend', () => {
+            if (markerLocked.value) return
             const pos = marker.getLatLng()
+            if (!isInKaunasBounds(pos.lat, pos.lng)) {
+                locationError.value = OUTSIDE_CITY_MESSAGE
+                revertToLastValid()
+                return
+            }
             lat.value = pos.lat
             lng.value = pos.lng
-            try {
-                const addr = await reverseGeocode(pos.lat, pos.lng)
-                if (addr) address.value = addr
-            } catch {}
+            registerMarkerMove()
+            updateAddressFromLatLng(pos.lat, pos.lng)
         })
-        map.on('click', async (event) => {
+        map.on('click', (event) => {
+            if (markerLocked.value) return
             const { lat: newLat, lng: newLng } = event.latlng
+            if (!isInKaunasBounds(newLat, newLng)) {
+                locationError.value = OUTSIDE_CITY_MESSAGE
+                return
+            }
             setMarkerPosition(newLat, newLng)
-            try {
-                const addr = await reverseGeocode(newLat, newLng)
-                if (addr) address.value = addr
-            } catch {}
+            registerMarkerMove()
+            updateAddressFromLatLng(newLat, newLng)
         })
         initialized = true
         setTimeout(() => map?.invalidateSize(), invalidateSizeDelay)
     }
 
     function cleanup() {
+        if (markerCooldownTimer) clearTimeout(markerCooldownTimer)
+        if (reverseAbortController) reverseAbortController.abort()
         if (map) {
             map.remove()
             map = null
@@ -201,6 +279,8 @@ export function useKaunasMapLocationPicker(containerRef, options = {}) {
         lng,
         address,
         isGeocoding,
+        markerLocked,
+        locationError,
         setMarkerPosition,
         searchAddress,
         applySuggestionSelection,
