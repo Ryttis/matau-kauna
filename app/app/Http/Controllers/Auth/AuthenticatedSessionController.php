@@ -23,9 +23,9 @@ class AuthenticatedSessionController extends Controller
         private ActiveRoleService $activeRoleService,
     ) {}
 
-    public function create(): Response|RedirectResponse
+    public function create(Request $request): Response|RedirectResponse
     {
-        if (request()->session()->has('two_factor_pending_user_id')) {
+        if ($request->session()->has('two_factor_pending_user_id')) {
             return redirect()->route('two-factor.challenge');
         }
 
@@ -35,8 +35,13 @@ class AuthenticatedSessionController extends Controller
             return redirect()->intended(route('dashboard', absolute: false));
         }
 
+        $initialLoginType = $request->query('role') === 'darbuotojas'
+            ? 'darbuotojas'
+            : 'pareiskejas';
+
         return Inertia::render('Auth/Login', [
             'canResetPassword' => Route::has('password.request'),
+            'initialLoginType' => $initialLoginType,
             'status' => session('status'),
         ]);
     }

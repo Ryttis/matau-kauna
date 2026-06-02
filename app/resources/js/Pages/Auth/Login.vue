@@ -18,17 +18,31 @@ const props = defineProps({
         type: String,
         default: '',
     },
+    initialLoginType: {
+        type: String,
+        default: 'pareiskejas',
+        validator: (value) => ['pareiskejas', 'darbuotojas'].includes(value),
+    },
 });
 
 const showSuccessModal = ref(!!props.status);
 watch(() => props.status, (v) => { if (v) showSuccessModal.value = true }, { immediate: true });
-const activeRole = ref('pareiskejas');
+
+const normalizeLoginType = (loginType) => loginType === 'darbuotojas' ? 'darbuotojas' : 'pareiskejas';
+const initialLoginType = normalizeLoginType(props.initialLoginType);
+const activeRole = ref(initialLoginType);
 
 const form = useForm({
     email: '',
     password: '',
     remember: false,
-    login_type: 'pareiskejas',
+    login_type: initialLoginType,
+});
+
+watch(() => props.initialLoginType, (loginType) => {
+    const nextLoginType = normalizeLoginType(loginType);
+    activeRole.value = nextLoginType;
+    form.login_type = nextLoginType;
 });
 
 watch(activeRole, (tab) => {

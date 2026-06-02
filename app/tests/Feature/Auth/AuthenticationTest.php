@@ -2,12 +2,14 @@
 
 namespace Tests\Feature\Auth;
 
+use App\Models\PasswordPolicy;
 use App\Models\User;
 use App\Models\UserRole;
 use App\Services\TwoFactorService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Http;
+use Inertia\Testing\AssertableInertia as Assert;
 use Mockery;
 use Tests\TestCase;
 
@@ -20,6 +22,32 @@ class AuthenticationTest extends TestCase
         $response = $this->get('/login');
 
         $response->assertStatus(200);
+        $response->assertInertia(fn (Assert $page) => $page
+            ->component('Auth/Login')
+            ->where('initialLoginType', 'pareiskejas')
+        );
+    }
+
+    public function test_login_screen_can_default_to_worker_tab(): void
+    {
+        $response = $this->get('/login?role=darbuotojas');
+
+        $response->assertStatus(200);
+        $response->assertInertia(fn (Assert $page) => $page
+            ->component('Auth/Login')
+            ->where('initialLoginType', 'darbuotojas')
+        );
+    }
+
+    public function test_login_screen_ignores_invalid_role_query(): void
+    {
+        $response = $this->get('/login?role=admin');
+
+        $response->assertStatus(200);
+        $response->assertInertia(fn (Assert $page) => $page
+            ->component('Auth/Login')
+            ->where('initialLoginType', 'pareiskejas')
+        );
     }
 
     public function test_verified_user_visiting_login_is_redirected_to_dashboard(): void
@@ -43,6 +71,7 @@ class AuthenticationTest extends TestCase
     public function test_users_can_authenticate_using_the_login_screen(): void
     {
         $user = User::factory()->create();
+        $user->roles()->sync([$this->reporterRole()->id]);
 
         $response = $this->post('/login', [
             'email' => $user->email,
@@ -81,14 +110,14 @@ class AuthenticationTest extends TestCase
         ]);
         $user->roles()->sync([$reporterRole->id]);
 
-        $this->post('/login', [
+        $response = $this->post('/login', [
             'email' => $user->email,
             'password' => 'password',
             'login_type' => 'pareiskejas',
         ]);
 
         $this->assertGuest();
-        $this->assertSessionHasErrors('email');
+        $response->assertSessionHasErrors('email');
     }
 
     public function test_users_can_logout(): void
@@ -126,6 +155,7 @@ class AuthenticationTest extends TestCase
             'active_role_id' => $systemAdminRole->id,
         ]);
         $user->roles()->sync([$employeeRole->id, $systemAdminRole->id]);
+        $this->setGlobalTwoFactorRequired(false);
 
         $this
             ->post('/login', [
@@ -148,6 +178,7 @@ class AuthenticationTest extends TestCase
             'active_role_id' => $systemAdminRole->id,
         ]);
         $user->roles()->sync([$employeeRole->id]);
+        $this->setGlobalTwoFactorRequired(false);
 
         $this
             ->post('/login', [
@@ -240,5 +271,27 @@ class AuthenticationTest extends TestCase
                 ['name' => 'Sistemos administratorius'],
             ),
         ];
+    }
+
+    private function reporterRole(): UserRole
+    {
+        return UserRole::firstOrCreate(
+            ['role' => UserRole::ROLE_REPORTER],
+            ['name' => 'Reporter'],
+        );
+    }
+
+    private function setGlobalTwoFactorRequired(bool $enabled): void
+    {
+        PasswordPolicy::query()->delete();
+        PasswordPolicy::create([
+            'min_length' => 8,
+            'require_lowercase' => true,
+            'require_uppercase' => true,
+            'require_special' => true,
+            'two_factor_can_enable' => $enabled,
+            'prohibit_name_email' => true,
+        ]);
+        PasswordPolicy::clearCache();
     }
 }
