@@ -2,6 +2,32 @@
 import GuestHeader from "@/Components/Landing/GuestHeader.vue";
 import LandingFooter from "@/Components/Landing/LandingFooter.vue";
 import { Head } from "@inertiajs/vue3";
+import { onMounted } from "vue";
+
+const props = defineProps({
+    shouldOpenMobileApp: {
+        type: Boolean,
+        default: false,
+    },
+    mobileAppDeepLink: {
+        type: String,
+        default: "mataukauna://home",
+    },
+});
+
+function openMobileApp() {
+    if (!props.mobileAppDeepLink) {
+        return;
+    }
+
+    window.location.href = props.mobileAppDeepLink;
+}
+
+onMounted(() => {
+    if (props.shouldOpenMobileApp) {
+        openMobileApp();
+    }
+});
 </script>
 
 <template>
@@ -31,6 +57,14 @@ import { Head } from "@inertiajs/vue3";
                     Galite uždaryti šį langą - ankstesnėje kortelėje paskyra
                     atsinaujins automatiškai.
                 </p>
+                <button
+                    v-if="shouldOpenMobileApp"
+                    type="button"
+                    class="verify-success-open-app"
+                    @click="openMobileApp"
+                >
+                    Atidaryti programėlę
+                </button>
             </div>
         </main>
 
@@ -85,5 +119,24 @@ import { Head } from "@inertiajs/vue3";
     color: #4b5563;
     font-size: 16px;
     line-height: 1.55;
+}
+
+.verify-success-open-app {
+    margin-top: 1.25rem;
+    min-height: 44px;
+    padding: 0 18px;
+    border: none;
+    border-radius: 6px;
+    background: var(--color-primary, #1946a0);
+    color: #fff;
+    font-family: inherit;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.verify-success-open-app:hover,
+.verify-success-open-app:focus-visible {
+    background: var(--color-primary-dark, #12377f);
 }
 </style>

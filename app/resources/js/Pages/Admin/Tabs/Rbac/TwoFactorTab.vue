@@ -115,7 +115,6 @@ const toggleGlobalRequired = async (checked) => {
                 <span class="global-switch-track" aria-hidden="true">
                     <span class="global-switch-thumb"></span>
                 </span>
-                <span>2FA įjungtas visiems vidiniams (įskaitant naujas paskyras)</span>
             </label>
         </div>
 
@@ -314,7 +313,8 @@ const toggleGlobalRequired = async (checked) => {
 }
 
 .twofa-table-wrap {
-    max-height: 318px;
+    height: clamp(360px, calc(100vh - 440px), 820px);
+    max-height: none;
     overflow-y: auto;
     overflow-x: auto;
     border-radius: 8px;

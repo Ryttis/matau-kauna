@@ -17,7 +17,7 @@ import { Head, Link } from '@inertiajs/vue3'
             <p class="login-required-text">
                 Šis pranešimas nėra viešas. Norėdami jį peržiūrėti, prisijunkite.
             </p>
-            <Link :href="route('login')" class="login-required-button">Prisijungti</Link>
+            <Link :href="route('login', { role: 'darbuotojas' })" class="login-required-button">Prisijungti</Link>
             <Link href="/" class="login-required-link">Į pradžią</Link>
         </div>
     </div>

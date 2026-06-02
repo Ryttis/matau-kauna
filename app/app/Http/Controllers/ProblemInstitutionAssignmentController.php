@@ -13,6 +13,7 @@ use App\Services\ArcGisProblemTransferService;
 use App\Services\DvsProblemTransferService;
 use App\Services\ProblemAssignmentNotifier;
 use App\Services\ProblemInstitutionAssignmentPickerService;
+use App\Services\ProblemReporterStatusNotifier;
 use App\Services\ProblemReviewHistoryService;
 use App\Services\ProblemScopeService;
 use App\Services\TransactionalMail;
@@ -30,6 +31,7 @@ class ProblemInstitutionAssignmentController extends Controller
         private ProblemInstitutionAssignmentPickerService $assignmentPickerService,
         private ArcGisProblemTransferService $arcGisProblemTransferService,
         private DvsProblemTransferService $dvsProblemTransferService,
+        private ProblemReporterStatusNotifier $reporterStatusNotifier,
         private ProblemReviewHistoryService $reviewHistoryService,
     ) {}
 
@@ -239,13 +241,20 @@ class ProblemInstitutionAssignmentController extends Controller
         }
 
         try {
-            $result = $this->arcGisProblemTransferService->transferProblem($problem, [
+            $problemForTransfer = $problem->replicate();
+            $problemForTransfer->exists = true;
+            $problemForTransfer->setAttribute($problem->getKeyName(), $problem->getKey());
+            $problemForTransfer->forceFill(['status' => ProblemStatus::IN_REVIEW->value]);
+
+            $result = $this->arcGisProblemTransferService->transferProblem($problemForTransfer, [
                 'trigger' => 'manual',
                 'actor' => $user,
             ]);
         } catch (\Throwable $e) {
             return redirect()->back()->with('error', $e->getMessage());
         }
+
+        $this->markProblemInReviewAfterTransfer($problem, $user);
 
         $message = $result['attachments_failed'] > 0
             ? 'Problema perduota į GIS, bet dalies priedų išsiųsti nepavyko.'
@@ -274,6 +283,8 @@ class ProblemInstitutionAssignmentController extends Controller
         } catch (\Throwable $e) {
             return redirect()->back()->with('error', $e->getMessage());
         }
+
+        $this->markProblemInReviewAfterTransfer($problem, $user);
 
         return redirect()->back()->with('success', 'Problema sėkmingai perduota į DVS.');
     }
@@ -433,5 +444,35 @@ class ProblemInstitutionAssignmentController extends Controller
         $this->assignmentNotifier->notifyInstitutionOfAssignment([$problem->id], $validated['institution_id']);
 
         return redirect()->route('dashboard')->with('success', 'Problema perduota kitai įstaigai.');
+    }
+
+    private function markProblemInReviewAfterTransfer(Problem $problem, User $user): void
+    {
+        $problem->refresh();
+
+        $newStatus = ProblemStatus::IN_REVIEW->value;
+        if ((string) $problem->status === $newStatus) {
+            return;
+        }
+
+        $ids = $problem->getMergeGroupIds();
+        $mainId = $problem->merged_into_problem_id ?? $problem->id;
+        $oldMainStatus = Problem::where('id', $mainId)->value('status');
+
+        $query = Problem::whereIn('id', $ids);
+        $this->scopeService->scopeProblemsForUser($query, $user);
+        $this->scopeService->ensureScopeMatchesCount($query, count($ids));
+        $query->update([
+            'status' => $newStatus,
+            'status_updated_at' => now(),
+        ]);
+
+        if ($oldMainStatus !== null && $oldMainStatus !== $newStatus) {
+            $main = Problem::find($mainId);
+            if ($main) {
+                $this->reporterStatusNotifier->notifyReportersAndWatchersWhenStatusChanges($main, $oldMainStatus, $newStatus);
+                $this->reviewHistoryService->logStatusChangeEntry($main, $user, $newStatus);
+            }
+        }
     }
 }

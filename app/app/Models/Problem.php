@@ -25,6 +25,7 @@ class Problem extends Model
         'address',
         'description',
         'nature',
+        'is_published_publicly',
         'updated_at',
     ];
 
