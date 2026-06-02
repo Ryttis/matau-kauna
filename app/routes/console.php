@@ -8,7 +8,10 @@ Artisan::command('inspire', function () {
     $this->comment(Inspiring::quote());
 })->purpose('Display an inspiring quote');
 
-Schedule::command('problems:check-deadlines')->daily();
+Schedule::command('problems:check-deadlines')
+    ->dailyAt('09:00')
+    ->timezone('Europe/Vilnius')
+    ->withoutOverlapping();
 Schedule::command('archive:process')
     ->dailyAt('00:10')
     ->timezone('Europe/Vilnius')
@@ -26,10 +29,10 @@ Schedule::command('problems:hide-resolved-privacy')
     ->timezone('Europe/Vilnius')
     ->withoutOverlapping();
 Schedule::command('gis:pull-attachments')
-    ->everyFifteenMinutes()
+    ->dailyAt('08:00')
     ->timezone('Europe/Vilnius')
     ->withoutOverlapping();
 Schedule::command('dvs:pull-statuses')
-    ->daily()
+    ->dailyAt('08:20')
     ->timezone('Europe/Vilnius')
     ->withoutOverlapping();

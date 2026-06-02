@@ -313,7 +313,8 @@ const toggleGlobalRequired = async (checked) => {
 }
 
 .twofa-table-wrap {
-    max-height: 318px;
+    height: clamp(360px, calc(100vh - 440px), 820px);
+    max-height: none;
     overflow-y: auto;
     overflow-x: auto;
     border-radius: 8px;
