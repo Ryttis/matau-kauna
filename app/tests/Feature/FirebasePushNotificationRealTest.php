@@ -8,7 +8,7 @@ use Tests\TestCase;
 
 class FirebasePushNotificationRealTest extends TestCase
 {
-    private const FCM_TOKEN = 'f75hH9noFESninJs_oztbj:APA91bHqWj6u0eoy9iN6CfRkyxMxae_mQTaZ8Abf4MjrjCJlzwh_jvVueWG7ifAf5cA5WBXUDVlupjTQjDujK4TMtsDMf88MxcZ3yrTmoh8xIG2twGW7ISA';
+    private const FCM_TOKEN = 'e0SlnniADU0zsJfo_ASUpi:APA91bEf8kKEm1zt-c1o9EneeEvYH7DFjIu7bu8DFQo2K7s0fqxASaVanZW33T3_mneaLXsY5UuXwVglJ3vDybu639DC0rnGUZPIZcD_SwkkuHqLERDCI_U';
 
     public function test_real_firebase_push_notification_is_sent_to_hardcoded_token(): void
     {
