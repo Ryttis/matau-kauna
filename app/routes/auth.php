@@ -70,7 +70,15 @@ Route::get('email/verify/{id}/{hash}', VerifyEmailController::class)
     ->middleware(['signed', 'throttle:6,1'])
     ->name('verification.verify');
 
-Route::get('email/verified-success', fn () => Inertia::render('Auth/VerifyEmailSuccess'))
+Route::get('email/verified-success', function (Request $request) {
+    $userAgent = (string) $request->userAgent();
+    $shouldOpenMobileApp = preg_match('/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini|Mobile/i', $userAgent) === 1;
+
+    return Inertia::render('Auth/VerifyEmailSuccess', [
+        'shouldOpenMobileApp' => $shouldOpenMobileApp,
+        'mobileAppDeepLink' => 'mataukauna://home',
+    ]);
+})
     ->name('verification.success');
 
 Route::middleware('auth')->group(function () {
