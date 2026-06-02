@@ -41,7 +41,8 @@ function shortenQuery(raw, maxLen, fallbackLen) {
 
 function parseNominatimItem(item) {
     return {
-        display_name: item.display_name || '',
+        display_name: formatReverseAddress(item) || item.display_name || '',
+        raw_display_name: item.display_name || '',
         lat: parseFloat(item.lat),
         lng: parseFloat(item.lon),
     }
@@ -64,6 +65,7 @@ async function geocodeAddress(query) {
         q: `${shortQuery}, Kaunas`,
         format: 'json',
         limit: 3,
+        addressdetails: 1,
         viewbox: NOMINATIM_VIEWBOX,
         bounded: 0,
     })
@@ -72,7 +74,8 @@ async function geocodeAddress(query) {
     return {
         lat: parseFloat(first.lat),
         lng: parseFloat(first.lon),
-        address: first.display_name || query,
+        address: formatReverseAddress(first) || first.display_name || query,
+        rawAddress: first.display_name || '',
     }
 }
 
@@ -90,20 +93,36 @@ async function fetchAddressSuggestions(query) {
     })
     return data
         .map(parseNominatimItem)
-        .filter((suggestion) => isInKaunasBounds(suggestion.lat, suggestion.lng))
+        .filter((suggestion) => isInKaunasBounds(suggestion.lat, suggestion.lng) && isKaunasCityAddress(suggestion.raw_display_name))
         .slice(0, 8)
+}
+
+function formatReverseAddress(data) {
+    const a = data?.address || {}
+    const road = a.road || a.pedestrian || a.footway || a.cycleway || a.path || a.square || ''
+    const house = road && a.house_number ? ` ${a.house_number}` : ''
+    const area = a.suburb || a.neighbourhood || a.city_district || a.quarter || a.residential || ''
+    const city = a.city || a.town || a.municipality || 'Kaunas'
+    const parts = []
+    if (road) parts.push(`${road}${house}`)
+    if (area) parts.push(area)
+    if (city) parts.push(city)
+    return parts.join(', ')
 }
 
 async function reverseGeocode(lat, lng, signal) {
     await rateLimitWait()
-    if (signal?.aborted) return ''
+    if (signal?.aborted) return null
     lastGeocodeAt = Date.now()
     const res = await fetch(
-        `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json`,
+        `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json&addressdetails=1`,
         { headers: NOMINATIM_HEADERS, signal }
     )
     const data = await res.json()
-    return data?.display_name ?? ''
+    return {
+        address: formatReverseAddress(data) || data?.display_name || '',
+        displayName: data?.display_name ?? '',
+    }
 }
 
 export function useKaunasMapLocationPicker(containerRef, options = {}) {
@@ -164,9 +183,9 @@ export function useKaunasMapLocationPicker(containerRef, options = {}) {
         reverseAbortController = new AbortController()
         const signal = reverseAbortController.signal
         try {
-            const addr = await reverseGeocode(newLat, newLng, signal)
+            const result = await reverseGeocode(newLat, newLng, signal)
             if (signal.aborted) return
-            if (addr && !isKaunasCityAddress(addr)) {
+            if (result && !isKaunasCityAddress(result.displayName)) {
                 locationError.value = OUTSIDE_CITY_MESSAGE
                 revertToLastValid()
                 return
@@ -174,7 +193,7 @@ export function useKaunasMapLocationPicker(containerRef, options = {}) {
             locationError.value = ''
             lastValidLat = newLat
             lastValidLng = newLng
-            if (addr) address.value = addr
+            if (result?.address) address.value = result.address
         } catch {}
     }
 
@@ -191,7 +210,7 @@ export function useKaunasMapLocationPicker(containerRef, options = {}) {
         isGeocoding.value = true
         try {
             const result = await geocodeAddress(query)
-            if (result && isInKaunasBounds(result.lat, result.lng) && isKaunasCityAddress(result.address)) {
+            if (result && isInKaunasBounds(result.lat, result.lng) && isKaunasCityAddress(result.rawAddress)) {
                 locationError.value = ''
                 commitValidPosition(result.lat, result.lng)
                 address.value = result.address
@@ -211,7 +230,7 @@ export function useKaunasMapLocationPicker(containerRef, options = {}) {
         if (!Number.isFinite(newLat) || !Number.isFinite(newLng)) {
             return
         }
-        if (!isInKaunasBounds(newLat, newLng) || !isKaunasCityAddress(item.display_name)) {
+        if (!isInKaunasBounds(newLat, newLng) || !isKaunasCityAddress(item.raw_display_name)) {
             return
         }
         locationError.value = ''
