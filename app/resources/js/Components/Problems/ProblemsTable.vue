@@ -147,9 +147,9 @@ const columns = computed(() => {
         },
         ...(useRowProblem.value && props.canPublish
             ? [{
-                key: 'publish',
+                key: 'is_published_publicly',
                 label: 'Viešai',
-                sortable: false,
+                sortable: true,
                 cellComponent: ProblemTablePublishCell,
                 cellProps: (row) => ({
                     problem: getRowData(row),
