@@ -16,7 +16,46 @@ const props = defineProps({
     problems: { type: Array, default: () => [] },
 })
 
-const allProblems = computed(() => props.problems || [])
+function problemCreatedAtTime(problem) {
+    const time = Date.parse(problem?.created_at || '')
+    return Number.isFinite(time) ? time : 0
+}
+
+function problemId(problem) {
+    return Number(problem?.id) || 0
+}
+
+function compareNewestFirst(a, b) {
+    const byDate = problemCreatedAtTime(b) - problemCreatedAtTime(a)
+    if (byDate !== 0) return byDate
+    return problemId(b) - problemId(a)
+}
+
+function sortNewestFirst(list) {
+    return [...(list || [])].sort(compareNewestFirst)
+}
+
+function groupSortValue(problem) {
+    const group = [problem, ...(problem?.merged_problems || [])]
+    return group.reduce((best, item) => {
+        const time = problemCreatedAtTime(item)
+        const id = problemId(item)
+        if (time > best.time || (time === best.time && id > best.id)) {
+            return { time, id }
+        }
+        return best
+    }, { time: 0, id: 0 })
+}
+
+function compareGroupsNewestFirst(a, b) {
+    const left = groupSortValue(a)
+    const right = groupSortValue(b)
+    const byDate = right.time - left.time
+    if (byDate !== 0) return byDate
+    return right.id - left.id
+}
+
+const allProblems = computed(() => sortNewestFirst(props.problems || []))
 
 const {
     searchQuery,
@@ -45,15 +84,15 @@ const groupedForList = computed(() => {
     })
     const grouped = mainProblems.map((problem) => ({
         ...problem,
-        merged_problems: mergedByParentId[problem.id] || [],
+        merged_problems: sortNewestFirst(mergedByParentId[problem.id] || []),
     }))
     const orphanChildren = mergedChildren.filter(
         (problem) => !parentIds.has(problem.merged_into_problem_id)
     )
-    orphanChildren.forEach((orphan) => {
+    sortNewestFirst(orphanChildren).forEach((orphan) => {
         grouped.push({ ...orphan, merged_into_problem_id: null, merged_problems: [] })
     })
-    return grouped
+    return grouped.sort(compareGroupsNewestFirst)
 })
 
 const { displayRows } = useProblemDisplayRows(groupedForList)
