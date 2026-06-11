@@ -14,6 +14,7 @@ import AppBackButton from '@/Components/App/AppBackButton.vue'
 import ProblemMergeLinks from '@/Components/Problems/ProblemMergeLinks.vue'
 import ProblemAttachmentsPanel from '@/Components/Problems/ProblemAttachmentsPanel.vue'
 import StatusBadge from '@/Components/Problems/StatusBadge.vue'
+import KaunasProblemsMap from '@/Components/Map/KaunasProblemsMap.vue'
 import { ICON_RIGHT_ARROW } from '@/constants/ui/icons'
 import { useProblemShowPage } from '@/composables/useProblemShowPage'
 import '@/Components/Problems/problem-show-page.css'
@@ -74,6 +75,16 @@ const reporterName = computed(() => {
 
 const reporterEmail = computed(() => (props.problem?.reported_by_user?.email ?? '').trim())
 const reporterPhone = computed(() => (props.problem?.reported_by_user?.phone ?? '').trim())
+const problemLatitude = computed(() => Number(props.problem?.lat))
+const problemLongitude = computed(() => Number(props.problem?.lng))
+const hasProblemCoordinates = computed(() =>
+    Number.isFinite(problemLatitude.value) && Number.isFinite(problemLongitude.value),
+)
+const problemMapItems = computed(() => (
+    hasProblemCoordinates.value
+        ? [{ ...props.problem, lat: problemLatitude.value, lng: problemLongitude.value }]
+        : []
+))
 </script>
 
 <template>
@@ -117,6 +128,7 @@ const reporterPhone = computed(() => (props.problem?.reported_by_user?.phone ?? 
             />
 
             <div class="problem-content">
+                <div class="problem-main-column">
                 <div class="problem-fields-top">
                     <AppInput
                         v-if="assignmentSummary.institutionName"
@@ -213,6 +225,25 @@ const reporterPhone = computed(() => (props.problem?.reported_by_user?.phone ?? 
                         />
                     </div>
                 </div>
+                </div>
+
+                <aside class="problem-map-panel" aria-labelledby="problem-map-title">
+                    <div class="problem-map-header">
+                        <h2 id="problem-map-title" class="problem-map-title">Vieta žemėlapyje</h2>
+                        <p class="problem-map-address">{{ problem.address || 'Adresas nenurodytas' }}</p>
+                    </div>
+                    <div v-if="hasProblemCoordinates" class="problem-map-frame">
+                        <KaunasProblemsMap
+                            :problems="problemMapItems"
+                            :highlighted-problem-id="problem.id"
+                            marker-class="problem-show-map-marker"
+                            :auto-fit-view="true"
+                        />
+                    </div>
+                    <div v-else class="problem-map-empty">
+                        Žemėlapis nerodomas, nes šiai problemai nėra koordinačių.
+                    </div>
+                </aside>
             </div>
 
             <div class="review-progress-section" @click="() => router.visit(route('problems.reviewProgress', problem.id))">
