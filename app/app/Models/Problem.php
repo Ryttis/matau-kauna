@@ -143,24 +143,58 @@ class Problem extends Model
         $lowerLike = '%'.mb_strtolower($search).'%';
         $query->whereRaw("LOWER(COALESCE(address, '')) LIKE ?", [$lowerLike])
             ->orWhereRaw("LOWER(COALESCE(description, '')) LIKE ?", [$lowerLike])
-            ->orWhereRaw("LOWER(COALESCE(internal_number, '')) LIKE ?", [$lowerLike]);
+            ->orWhereRaw("LOWER(COALESCE(internal_number, '')) LIKE ?", [$lowerLike])
+            ->orWhereRaw("LOWER(COALESCE(status, '')) LIKE ?", [$lowerLike])
+            ->orWhereRaw("LOWER(COALESCE(category, '')) LIKE ?", [$lowerLike])
+            ->orWhereIn('status', static::matchingStatusValues($search))
+            ->orWhereHas('problemNature', function (Builder $natureQuery) use ($lowerLike) {
+                $natureQuery->whereRaw("LOWER(COALESCE(name, '')) LIKE ?", [$lowerLike]);
+            })
+            ->orWhereHas('institution', function (Builder $institutionQuery) use ($lowerLike) {
+                $institutionQuery->whereRaw("LOWER(COALESCE(name, '')) LIKE ?", [$lowerLike])
+                    ->orWhereRaw("LOWER(COALESCE(code, '')) LIKE ?", [$lowerLike]);
+            })
+            ->orWhereHas('assignedEmployee', function (Builder $employeeQuery) use ($search) {
+                static::applyPersonKeywordSearch($employeeQuery, $search);
+            })
+            ->orWhereHas('assignedInstitutionTeam', function (Builder $teamQuery) use ($lowerLike) {
+                $teamQuery->whereRaw("LOWER(COALESCE(name, '')) LIKE ?", [$lowerLike]);
+            });
 
         if ($includeReporterSearch) {
             $query->orWhereHas('reportedByUser', function (Builder $userQuery) use ($search) {
-                static::applyReporterKeywordSearch($userQuery, $search);
+                static::applyPersonKeywordSearch($userQuery, $search);
             });
         }
     }
 
-    private static function applyReporterKeywordSearch(Builder $query, string $search): void
+    private static function applyPersonKeywordSearch(Builder $query, string $search): void
     {
-        $lowerLike = '%'.strtolower($search).'%';
+        $lowerLike = '%'.mb_strtolower($search).'%';
 
         $query->where(function (Builder $userQuery) use ($lowerLike) {
             $userQuery->whereRaw("LOWER(COALESCE(name, '')) LIKE ?", [$lowerLike])
                 ->orWhereRaw("LOWER(COALESCE(surname, '')) LIKE ?", [$lowerLike])
-                ->orWhereRaw("LOWER(TRIM(COALESCE(name, '') || ' ' || COALESCE(surname, ''))) LIKE ?", [$lowerLike]);
+                ->orWhereRaw("LOWER(TRIM(COALESCE(name, '') || ' ' || COALESCE(surname, ''))) LIKE ?", [$lowerLike])
+                ->orWhereRaw("LOWER(COALESCE(email, '')) LIKE ?", [$lowerLike]);
         });
+    }
+
+    private static function matchingStatusValues(string $search): array
+    {
+        $needle = mb_strtolower(trim($search));
+        if ($needle === '') {
+            return [];
+        }
+
+        return collect(ProblemStatus::cases())
+            ->filter(function (ProblemStatus $status) use ($needle) {
+                return str_contains(mb_strtolower($status->value), $needle)
+                    || str_contains(mb_strtolower($status->label()), $needle);
+            })
+            ->map(fn (ProblemStatus $status) => $status->value)
+            ->values()
+            ->all();
     }
 
     private static function applyDashboardFacetFilters(Builder $query, array $filters): void
