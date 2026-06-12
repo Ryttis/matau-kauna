@@ -8,7 +8,8 @@ import SearchFilterBar from '@/Components/App/SearchFilterBar.vue'
 import ProblemsTable from '@/Components/Problems/ProblemsTable.vue'
 import { useAuth } from '@/composables/useAuth'
 import { useDashboardProblemList } from '@/composables/useDashboardProblemList'
-import { getStatusBadgeStyle } from '@/constants/domain/problemStatus'
+import { PROBLEM_STATUS, getStatusBadgeStyle } from '@/constants/domain/problemStatus'
+import { computed } from 'vue'
 
 const props = defineProps({
     problems: [Object, Array],
@@ -93,6 +94,10 @@ const {
     handleSelectItem,
     hasActiveListFilters,
 } = useDashboardProblemList(props)
+
+const visibleStatusOptions = computed(() =>
+    allStatusOptions.value.filter((opt) => opt.value !== PROBLEM_STATUS.UNREGISTERED)
+)
 </script>
 
 <template>
@@ -117,7 +122,7 @@ const {
             <span class="dashboard-statuses-label">Būsena</span>
             <div class="dashboard-status-options">
                 <button
-                    v-for="opt in allStatusOptions"
+                    v-for="opt in visibleStatusOptions"
                     :key="opt.value"
                     type="button"
                     class="dashboard-status-pill"
