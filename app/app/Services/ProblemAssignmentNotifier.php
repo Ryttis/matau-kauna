@@ -204,6 +204,10 @@ class ProblemAssignmentNotifier
 
     public function notifyDeadlineReminder(Problem $problem, string $type): void
     {
+        if (! $problem->isNotificationActive()) {
+            return;
+        }
+
         $key = $type === 'overdue'
             ? EmailNotificationTemplate::KEY_DEADLINE_OVERDUE
             : EmailNotificationTemplate::KEY_DEADLINE_APPROACHING;

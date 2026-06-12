@@ -188,10 +188,15 @@ class ProblemReviewHistoryService
         $query = Problem::whereIn('id', $ids);
         $this->scopeService->scopeProblemsForUser($query, $user);
         $this->scopeService->ensureScopeMatchesCount($query, count($ids));
-        $query->update([
+        $statusUpdate = [
             'status' => $status,
             'status_updated_at' => now(),
-        ]);
+        ];
+        if (in_array($status, Problem::NON_NOTIFIABLE_STATUSES, true)) {
+            $statusUpdate['deadline_status'] = null;
+            $statusUpdate['deadline_reminder_sent_at'] = null;
+        }
+        $query->update($statusUpdate);
 
         if ($notifyStatusChange && $oldMainStatus !== null && $oldMainStatus !== $status) {
             $main = Problem::find($mainId);

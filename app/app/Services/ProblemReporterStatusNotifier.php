@@ -37,6 +37,10 @@ class ProblemReporterStatusNotifier
 
     public function notifyReportersAndWatchersWhenStatusChanges(Problem $mainProblem, string $oldStatus, string $newStatus): void
     {
+        if (! $this->canNotifyStatusChange($mainProblem, $oldStatus, $newStatus)) {
+            return;
+        }
+
         if (ProblemStatus::reporterStatusValue($oldStatus) === ProblemStatus::reporterStatusValue($newStatus)) {
             return;
         }
@@ -71,6 +75,10 @@ class ProblemReporterStatusNotifier
 
     public function notifyPublicReviewEntry(Problem $mainProblem, ProblemReviewHistory $entry): void
     {
+        if (! $this->canNotifyReviewEntry($mainProblem, $entry)) {
+            return;
+        }
+
         $template = EmailNotificationTemplate::getByKey(EmailNotificationTemplate::KEY_REPORTER_REVIEW_ENTRY);
         if ($template && $template->is_enabled) {
             $url = route('reports.show', $mainProblem->id);
@@ -95,6 +103,31 @@ class ProblemReporterStatusNotifier
         }
 
         $this->dispatchReviewEntryPush($mainProblem, $entry);
+    }
+
+    private function canNotifyStatusChange(Problem $mainProblem, string $oldStatus, string $newStatus): bool
+    {
+        if ($mainProblem->is_archived) {
+            return false;
+        }
+
+        return $mainProblem->isNotificationActive()
+            || ($this->isTerminalStatus($newStatus) && ! $this->isTerminalStatus($oldStatus));
+    }
+
+    private function canNotifyReviewEntry(Problem $mainProblem, ProblemReviewHistory $entry): bool
+    {
+        if ($mainProblem->is_archived) {
+            return false;
+        }
+
+        return $mainProblem->isNotificationActive()
+            || ((bool) $entry->status_changed && $this->isTerminalStatus((string) $entry->status));
+    }
+
+    private function isTerminalStatus(string $status): bool
+    {
+        return in_array($status, Problem::NON_NOTIFIABLE_STATUSES, true);
     }
 
     private function dispatchReviewEntryPush(Problem $mainProblem, ProblemReviewHistory $entry): void

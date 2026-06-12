@@ -40,6 +40,8 @@ class DataRetentionService
         Problem::whereIn('id', $ids)->update([
             'is_archived' => true,
             'archived_at' => now(),
+            'deadline_status' => null,
+            'deadline_reminder_sent_at' => null,
         ]);
 
         return $ids->count();

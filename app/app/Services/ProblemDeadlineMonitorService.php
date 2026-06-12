@@ -24,6 +24,7 @@ class ProblemDeadlineMonitorService
         $sentTodayStart = $today->copy()->startOfDay();
 
         $withDeadline = Problem::query()
+            ->notificationActive()
             ->whereNotNull('completion_deadline')
             ->whereNull('merged_into_problem_id')
             ->get();
@@ -33,9 +34,9 @@ class ProblemDeadlineMonitorService
         }
 
         $overdue = Problem::query()
+            ->notificationActive()
             ->whereNotNull('completion_deadline')
             ->where('completion_deadline', '<', $today)
-            ->whereNotIn('status', ['isspresta'])
             ->whereNull('merged_into_problem_id')
             ->get();
 
@@ -46,9 +47,9 @@ class ProblemDeadlineMonitorService
         }
 
         $approaching = Problem::query()
+            ->notificationActive()
             ->whereNotNull('completion_deadline')
             ->whereBetween('completion_deadline', [$today, $approachingEnd])
-            ->whereNotIn('status', ['isspresta'])
             ->whereNull('merged_into_problem_id')
             ->get();
 

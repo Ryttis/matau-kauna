@@ -110,10 +110,15 @@ class ProblemController extends Controller
         $query = Problem::whereIn('id', $ids);
         $this->scopeService->scopeProblemsForUser($query, $user);
         $this->scopeService->ensureScopeMatchesCount($query, count($ids));
-        $query->update([
+        $statusUpdate = [
             'status' => $validated['status'],
             'status_updated_at' => now(),
-        ]);
+        ];
+        if (in_array($validated['status'], Problem::NON_NOTIFIABLE_STATUSES, true)) {
+            $statusUpdate['deadline_status'] = null;
+            $statusUpdate['deadline_reminder_sent_at'] = null;
+        }
+        $query->update($statusUpdate);
 
         $main = Problem::find($mainId);
 
@@ -158,10 +163,15 @@ class ProblemController extends Controller
         $rootIdsMap = Problem::rootIdsMapFromProblemIds($expandedIds);
         $oldByMain = Problem::statusesByRootId($rootIdsMap);
 
-        $query->update([
+        $statusUpdate = [
             'status' => $validated['status'],
             'status_updated_at' => now(),
-        ]);
+        ];
+        if (in_array($validated['status'], Problem::NON_NOTIFIABLE_STATUSES, true)) {
+            $statusUpdate['deadline_status'] = null;
+            $statusUpdate['deadline_reminder_sent_at'] = null;
+        }
+        $query->update($statusUpdate);
 
         $this->reporterStatusNotifier->notifyRootsAfterStatusChange($oldByMain, $validated['status']);
 
@@ -289,6 +299,8 @@ class ProblemController extends Controller
         Problem::whereIn('id', $ids)->update([
             'is_archived' => true,
             'archived_at' => now(),
+            'deadline_status' => null,
+            'deadline_reminder_sent_at' => null,
         ]);
 
         return redirect()->route('dashboard')->with('success', 'Problema perkelta į archyvą');
@@ -338,6 +350,8 @@ class ProblemController extends Controller
         Problem::whereIn('id', $allIds)->update([
             'is_archived' => true,
             'archived_at' => now(),
+            'deadline_status' => null,
+            'deadline_reminder_sent_at' => null,
         ]);
 
         $message = count($problemIds) > 1

@@ -37,6 +37,11 @@ class Problem extends Model
 
     private const AUTOMATION_RESOLVED_LINE_MIN_BASE_BEFORE_DESC = 8;
 
+    public const NON_NOTIFIABLE_STATUSES = [
+        ProblemStatus::RESOLVED->value,
+        ProblemStatus::INACTIVE->value,
+    ];
+
     protected $fillable = [
         'internal_number',
         'status',
@@ -107,15 +112,33 @@ class Problem extends Model
         static::updating(function ($problem) {
             if ($problem->isDirty('status')) {
                 $problem->status_updated_at = now();
-                if ($problem->status === ProblemStatus::RESOLVED->value) {
+                if (in_array($problem->status, self::NON_NOTIFIABLE_STATUSES, true)) {
                     $problem->deadline_status = null;
+                    $problem->deadline_reminder_sent_at = null;
                 }
+            }
+            if ($problem->isDirty('is_archived') && $problem->is_archived) {
+                $problem->deadline_status = null;
+                $problem->deadline_reminder_sent_at = null;
             }
             if ($problem->isDirty('completion_deadline') && $problem->completion_deadline === null) {
                 $problem->deadline_status = null;
                 $problem->deadline_reminder_sent_at = null;
             }
         });
+    }
+
+    public function isNotificationActive(): bool
+    {
+        return ! $this->is_archived
+            && ! in_array((string) $this->status, self::NON_NOTIFIABLE_STATUSES, true);
+    }
+
+    public function scopeNotificationActive(Builder $query): Builder
+    {
+        return $query
+            ->where('is_archived', false)
+            ->whereNotIn('status', self::NON_NOTIFIABLE_STATUSES);
     }
 
     public function scopeFiltered($query, $filters, bool $includeReporterSearch = false)
