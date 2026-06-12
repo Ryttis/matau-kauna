@@ -42,6 +42,7 @@ const props = defineProps({
     natures: Array,
     institutions: Array,
     statusOptions: Array,
+    availableStatusCounts: Object,
 })
 
 const { showSuccessModal, successMessage, closeSuccessModal, showWithMessage } = useSuccessModal()
@@ -209,6 +210,7 @@ const reporterDateMax = `${currentYear}-12-31`
             :natures="natures"
             :institutions="institutions"
             :status-options="statusOptions"
+            :available-status-counts="availableStatusCounts"
         />
     </AuthenticatedLayout>
 </template>

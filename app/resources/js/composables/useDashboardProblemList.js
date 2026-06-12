@@ -82,6 +82,17 @@ export function useDashboardProblemList(props) {
         }))
     })
 
+    const visibleStatusOptions = computed(() => {
+        const counts = props.availableStatusCounts
+        if (!counts || typeof counts !== 'object') {
+            return allStatusOptions.value
+        }
+
+        return allStatusOptions.value.filter((opt) =>
+            statusesFilter.value.includes(opt.value) || Number(counts[opt.value] || 0) > 0
+        )
+    })
+
     const hasActiveListFilters = computed(() => {
         if ((search.value || '').trim() !== '') {
             return true
@@ -542,6 +553,7 @@ export function useDashboardProblemList(props) {
         selectedIncludesResolvedProblem,
         selectedProblemIdForReview,
         allStatusOptions,
+        visibleStatusOptions,
         bulkPublishButtonLabel,
         goToPage,
         handlePerPageChange,

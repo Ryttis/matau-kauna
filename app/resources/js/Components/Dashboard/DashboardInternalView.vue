@@ -8,8 +8,7 @@ import SearchFilterBar from '@/Components/App/SearchFilterBar.vue'
 import ProblemsTable from '@/Components/Problems/ProblemsTable.vue'
 import { useAuth } from '@/composables/useAuth'
 import { useDashboardProblemList } from '@/composables/useDashboardProblemList'
-import { PROBLEM_STATUS, getStatusBadgeStyle } from '@/constants/domain/problemStatus'
-import { computed } from 'vue'
+import { getStatusBadgeStyle } from '@/constants/domain/problemStatus'
 
 const props = defineProps({
     problems: [Object, Array],
@@ -20,6 +19,7 @@ const props = defineProps({
     natures: Array,
     institutions: Array,
     statusOptions: Array,
+    availableStatusCounts: Object,
     pageSizeOptions: Array,
 })
 
@@ -71,6 +71,7 @@ const {
     selectedIncludesResolvedProblem,
     selectedProblemIdForReview,
     allStatusOptions,
+    visibleStatusOptions,
     bulkPublishButtonLabel,
     goToPage,
     handlePerPageChange,
@@ -94,10 +95,6 @@ const {
     handleSelectItem,
     hasActiveListFilters,
 } = useDashboardProblemList(props)
-
-const visibleStatusOptions = computed(() =>
-    allStatusOptions.value.filter((opt) => opt.value !== PROBLEM_STATUS.UNREGISTERED)
-)
 </script>
 
 <template>
@@ -214,16 +211,6 @@ const visibleStatusOptions = computed(() =>
                     </div>
                 </div>
                 <AppButton
-                    v-if="canPublish"
-                    :text="bulkPublishButtonLabel"
-                    variant="secondary"
-                    as-button
-                    class="list-nav-btn"
-                    :disabled="selectedProblems.length === 0 || bulkPublishSubmitting"
-                    :loading="bulkPublishSubmitting"
-                    @click="handleBulkPublishToggle"
-                />
-                <AppButton
                     v-if="canDeleteProblem"
                     text="Šalinti"
                     variant="secondary"
@@ -287,6 +274,17 @@ const visibleStatusOptions = computed(() =>
                     @click="handleStebeti"
                 />
             </template>
+
+            <AppButton
+                v-if="canPublish"
+                :text="bulkPublishButtonLabel"
+                variant="secondary"
+                as-button
+                class="list-nav-btn"
+                :disabled="selectedProblems.length === 0 || bulkPublishSubmitting"
+                :loading="bulkPublishSubmitting"
+                @click="handleBulkPublishToggle"
+            />
         </div>
 
         <ConfirmModal

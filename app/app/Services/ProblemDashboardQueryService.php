@@ -7,6 +7,7 @@ use App\Models\ClassifierValue;
 use App\Models\Institution;
 use App\Models\Problem;
 use App\Models\User;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Pagination\LengthAwarePaginator;
 
@@ -36,6 +37,89 @@ class ProblemDashboardQueryService
     public function paginatedStaffProblems(User $user, array $filters, string $sortBy, string $sortDirection, ?int $perPage = null): LengthAwarePaginator
     {
         $pageSize = $this->normalizeStaffPerPage($perPage);
+
+        return $this->staffProblemsBaseQuery($user, $filters)
+            ->sorted($sortBy, $sortDirection)
+            ->with([
+                'mergedProblems' => fn ($query) => $query->with([
+                    'problemNature:id,name',
+                    'reportedByUser:id,name,surname,email',
+                    'institution:id,name',
+                    'assignedEmployee:id,name,surname,email',
+                    'assignedInstitutionTeam:id,name',
+                ]),
+                'problemNature:id,name',
+                'institution:id,name',
+                'reportedByUser:id,name,surname,email',
+                'assignedEmployee:id,name,surname,email',
+                'assignedInstitutionTeam:id,name',
+            ])
+            ->paginate($pageSize)
+            ->withQueryString();
+    }
+
+    public function availableStaffStatusCounts(User $user, array $filters): array
+    {
+        $countFilters = $filters;
+        unset($countFilters['status'], $countFilters['statuses']);
+
+        return $this->staffProblemsBaseQuery($user, $countFilters)
+            ->selectRaw('status, COUNT(*) as problem_count')
+            ->groupBy('status')
+            ->pluck('problem_count', 'status')
+            ->map(fn ($count) => (int) $count)
+            ->all();
+    }
+
+    public function staffDashboardProps(User $user, array $filters, string $sortBy, string $sortDirection, ?int $perPage = null): array
+    {
+        return [
+            'reporterView' => false,
+            'problems' => $this->paginatedStaffProblems($user, $filters, $sortBy, $sortDirection, $perPage),
+            'filters' => $filters,
+            'sortBy' => $sortBy,
+            'sortDirection' => $sortDirection,
+            'categories' => ClassifierValue::getActiveTypeNames()->values(),
+            'natures' => $this->activeNatureOptions(),
+            'institutions' => $this->institutionOptionsFor($user),
+            'statusOptions' => ProblemStatus::options(),
+            'availableStatusCounts' => $this->availableStaffStatusCounts($user, $filters),
+            'pageSizeOptions' => self::STAFF_PAGE_SIZES,
+        ];
+    }
+
+    public function problemsForExport(User $user, array $filters, string $sortBy, string $sortDirection, string $scope, int $page, ?int $perPage = null): Collection
+    {
+        $query = Problem::query()
+            ->notArchived()
+            ->with([
+                'institution:id,name',
+                'assignedEmployee:id,name,surname,email',
+                'assignedInstitutionTeam:id,name',
+            ])
+            ->when(
+                $this->scopeService->isInstitutionScoped($user),
+                fn ($q) => $q->where('institution_id', $user->institution_id)
+            )
+            ->filtered($filters, true)
+            ->sorted($sortBy, $sortDirection);
+
+        if ($scope === 'current_page') {
+            $perPage = $this->normalizeStaffPerPage($perPage);
+
+            return $query->skip(($page - 1) * $perPage)->take($perPage)->get();
+        }
+
+        return $query->get();
+    }
+
+    public function normalizeStaffPerPage(?int $perPage): int
+    {
+        return in_array($perPage, self::STAFF_PAGE_SIZES, true) ? $perPage : self::STAFF_PAGE_SIZES[0];
+    }
+
+    private function staffProblemsBaseQuery(User $user, array $filters): Builder
+    {
         $employeeId = $this->scopeService->employeeIdForUser($user);
         $mergeRootIdsFromChildMatch = Problem::mergeGroupRootIdsFromMatchingMergedChildren($filters, true);
 
@@ -69,70 +153,7 @@ class ProblemDashboardQueryService
                 if ($mergeRootIdsFromChildMatch !== []) {
                     $query->orWhereIn('id', $mergeRootIdsFromChildMatch);
                 }
-            })
-            ->sorted($sortBy, $sortDirection)
-            ->with([
-                'mergedProblems' => fn ($query) => $query->with([
-                    'problemNature:id,name',
-                    'reportedByUser:id,name,surname,email',
-                    'institution:id,name',
-                    'assignedEmployee:id,name,surname,email',
-                    'assignedInstitutionTeam:id,name',
-                ]),
-                'problemNature:id,name',
-                'institution:id,name',
-                'reportedByUser:id,name,surname,email',
-                'assignedEmployee:id,name,surname,email',
-                'assignedInstitutionTeam:id,name',
-            ])
-            ->paginate($pageSize)
-            ->withQueryString();
-    }
-
-    public function staffDashboardProps(User $user, array $filters, string $sortBy, string $sortDirection, ?int $perPage = null): array
-    {
-        return [
-            'reporterView' => false,
-            'problems' => $this->paginatedStaffProblems($user, $filters, $sortBy, $sortDirection, $perPage),
-            'filters' => $filters,
-            'sortBy' => $sortBy,
-            'sortDirection' => $sortDirection,
-            'categories' => ClassifierValue::getActiveTypeNames()->values(),
-            'natures' => $this->activeNatureOptions(),
-            'institutions' => $this->institutionOptionsFor($user),
-            'statusOptions' => ProblemStatus::options(),
-            'pageSizeOptions' => self::STAFF_PAGE_SIZES,
-        ];
-    }
-
-    public function problemsForExport(User $user, array $filters, string $sortBy, string $sortDirection, string $scope, int $page, ?int $perPage = null): Collection
-    {
-        $query = Problem::query()
-            ->notArchived()
-            ->with([
-                'institution:id,name',
-                'assignedEmployee:id,name,surname,email',
-                'assignedInstitutionTeam:id,name',
-            ])
-            ->when(
-                $this->scopeService->isInstitutionScoped($user),
-                fn ($q) => $q->where('institution_id', $user->institution_id)
-            )
-            ->filtered($filters, true)
-            ->sorted($sortBy, $sortDirection);
-
-        if ($scope === 'current_page') {
-            $perPage = $this->normalizeStaffPerPage($perPage);
-
-            return $query->skip(($page - 1) * $perPage)->take($perPage)->get();
-        }
-
-        return $query->get();
-    }
-
-    public function normalizeStaffPerPage(?int $perPage): int
-    {
-        return in_array($perPage, self::STAFF_PAGE_SIZES, true) ? $perPage : self::STAFF_PAGE_SIZES[0];
+            });
     }
 
     private function activeNatureOptions(): array
