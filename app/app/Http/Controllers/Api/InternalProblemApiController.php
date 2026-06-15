@@ -25,7 +25,6 @@ use App\Services\ReporterFileUploadService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
-use Illuminate\Validation\Rule;
 
 class InternalProblemApiController extends Controller
 {
@@ -839,22 +838,13 @@ class InternalProblemApiController extends Controller
             return response()->json(['message' => 'Negalima siųsti el. laiško be įstaigos konteksto.'], 422);
         }
 
-        $validated = $request->validate([
-            'email' => [
-                'required',
-                'email',
-                Rule::exists('employees', 'email')->where('institution_id', $user->institution_id),
-            ],
+        $request->merge([
+            'email' => trim((string) $request->input('email')),
         ]);
 
-        $assignable = User::queryAssignableInstitutionEmployeeUsers((int) $user->institution_id, $user->assignableInstitutionExcludedEmail())
-            ->where('email', $validated['email'])
-            ->exists();
-        if (! $assignable) {
-            return response()->json([
-                'message' => 'Šis el. paštas nepriskirtas Įstaigos darbuotojo vaidmeniui šioje įstaigoje.',
-            ], 422);
-        }
+        $validated = $request->validate([
+            'email' => ['required', 'string', 'email', 'max:255'],
+        ]);
 
         $mail = $this->assignmentNotifier->buildInstitutionProblemShareEmail($problem);
         \App\Services\TransactionalMail::send(
@@ -865,11 +855,46 @@ class InternalProblemApiController extends Controller
             $mail['action_label'] ?? null,
         );
 
+        $this->markProblemResolvedAfterShareEmail($problem, $user);
+
         return response()->json([
             'ok' => true,
             'message' => 'Informacija išsiųsta el. paštu.',
+            'status' => ProblemStatus::RESOLVED->value,
             'problem_id' => $problem->id,
         ]);
+    }
+
+    private function markProblemResolvedAfterShareEmail(Problem $problem, User $user): void
+    {
+        $problem->refresh();
+
+        $newStatus = ProblemStatus::RESOLVED->value;
+        if ((string) $problem->status === $newStatus) {
+            return;
+        }
+
+        $ids = $problem->getMergeGroupIds();
+        $mainId = $problem->merged_into_problem_id ?? $problem->id;
+        $oldMainStatus = Problem::where('id', $mainId)->value('status');
+
+        $query = Problem::whereIn('id', $ids);
+        $this->scopeService->scopeProblemsForUser($query, $user);
+        $this->scopeService->ensureScopeMatchesCount($query, count($ids));
+        $query->update([
+            'status' => $newStatus,
+            'status_updated_at' => now(),
+            'deadline_status' => null,
+            'deadline_reminder_sent_at' => null,
+        ]);
+
+        if ($oldMainStatus !== null && $oldMainStatus !== $newStatus) {
+            $main = Problem::find($mainId);
+            if ($main) {
+                $this->reporterStatusNotifier->notifyReportersAndWatchersWhenStatusChanges($main, $oldMainStatus, $newStatus);
+                $this->reviewHistoryService->logStatusChangeEntry($main, $user, $newStatus);
+            }
+        }
     }
 
     public function reassignInstitution(Request $request, Problem $problem): JsonResponse

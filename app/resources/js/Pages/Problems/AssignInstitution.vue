@@ -4,6 +4,7 @@ import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue'
 import AppButton from '@/Components/App/AppButton.vue'
 import AppDatePicker from '@/Components/App/AppDatePicker.vue'
 import AppBackButton from '@/Components/App/AppBackButton.vue'
+import AppInput from '@/Components/App/AppInput.vue'
 import SearchableSelect from '@/Components/App/SearchableSelect.vue'
 import SuccessModal from '@/Components/App/SuccessModal.vue'
 import InstitutionTeamMembersModal from '@/Components/InstitutionTeams/InstitutionTeamMembersModal.vue'
@@ -54,6 +55,7 @@ const {
     selectedTeamIds,
     deadline,
     emailForInfo,
+    manualEmailForInfo,
     employeeEmailOptions,
     canSendInfoEmail,
     selectedReassignIds,
@@ -300,13 +302,22 @@ const {
                     <SearchableSelect
                         v-model="emailForInfo"
                         :options="employeeEmailOptions"
-                        :disabled="!employeeEmailOptions.length"
                         :show-empty-option="false"
                         empty-option-label="Pasirinkite darbuotoją"
                         search-placeholder="Ieškoti darbuotojo ar el. pašto…"
+                        no-results-text="Darbuotojas nerastas. Įveskite el. paštą žemiau."
                         list-max-height="min(50vh, 320px)"
                         :max-display-length="110"
                         class="assign-institution-email-searchable"
+                    />
+                </div>
+                <div class="field-row field-fixed-width assign-institution-manual-email-row">
+                    <AppInput
+                        v-model="manualEmailForInfo"
+                        type="email"
+                        label="Kitas el. paštas"
+                        placeholder="pvz. info@imone.lt"
+                        autocomplete="email"
                     />
                 </div>
                 <div class="btn-row">
@@ -623,6 +634,11 @@ const {
 
 .assign-institution-email-row :deep(.searchable-select__dropdown) {
     border-radius: var(--button-border-radius, 15px);
+}
+
+.assign-institution-manual-email-row {
+    width: 100%;
+    max-width: var(--button-width, 290px);
 }
 
 .assign-return-hint {

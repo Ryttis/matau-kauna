@@ -19,7 +19,6 @@ use App\Services\ProblemScopeService;
 use App\Services\TransactionalMail;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -201,20 +200,13 @@ class ProblemInstitutionAssignmentController extends Controller
             return redirect()->back()->with('error', 'Negalima siųsti el. laiško be įstaigos konteksto.');
         }
 
-        $validated = $request->validate([
-            'email' => [
-                'required',
-                'email',
-                Rule::exists('employees', 'email')->where('institution_id', $user->institution_id),
-            ],
+        $request->merge([
+            'email' => trim((string) $request->input('email')),
         ]);
 
-        $assignable = User::queryAssignableInstitutionEmployeeUsers((int) $user->institution_id, $user->assignableInstitutionExcludedEmail())
-            ->where('email', $validated['email'])
-            ->exists();
-        if (! $assignable) {
-            return redirect()->back()->with('error', 'Šis el. paštas nepriskirtas Įstaigos darbuotojo vaidmeniui šioje įstaigoje.');
-        }
+        $validated = $request->validate([
+            'email' => ['required', 'string', 'email', 'max:255'],
+        ]);
 
         $mail = $this->assignmentNotifier->buildInstitutionProblemShareEmail($problem);
         TransactionalMail::send(
@@ -224,6 +216,8 @@ class ProblemInstitutionAssignmentController extends Controller
             $mail['action_url'] ?? null,
             $mail['action_label'] ?? null,
         );
+
+        $this->markProblemResolvedAfterShareEmail($problem, $user);
 
         return redirect()->back()->with('success', 'Informacija išsiųsta el. paštu.');
     }
@@ -465,6 +459,38 @@ class ProblemInstitutionAssignmentController extends Controller
         $query->update([
             'status' => $newStatus,
             'status_updated_at' => now(),
+        ]);
+
+        if ($oldMainStatus !== null && $oldMainStatus !== $newStatus) {
+            $main = Problem::find($mainId);
+            if ($main) {
+                $this->reporterStatusNotifier->notifyReportersAndWatchersWhenStatusChanges($main, $oldMainStatus, $newStatus);
+                $this->reviewHistoryService->logStatusChangeEntry($main, $user, $newStatus);
+            }
+        }
+    }
+
+    private function markProblemResolvedAfterShareEmail(Problem $problem, User $user): void
+    {
+        $problem->refresh();
+
+        $newStatus = ProblemStatus::RESOLVED->value;
+        if ((string) $problem->status === $newStatus) {
+            return;
+        }
+
+        $ids = $problem->getMergeGroupIds();
+        $mainId = $problem->merged_into_problem_id ?? $problem->id;
+        $oldMainStatus = Problem::where('id', $mainId)->value('status');
+
+        $query = Problem::whereIn('id', $ids);
+        $this->scopeService->scopeProblemsForUser($query, $user);
+        $this->scopeService->ensureScopeMatchesCount($query, count($ids));
+        $query->update([
+            'status' => $newStatus,
+            'status_updated_at' => now(),
+            'deadline_status' => null,
+            'deadline_reminder_sent_at' => null,
         ]);
 
         if ($oldMainStatus !== null && $oldMainStatus !== $newStatus) {

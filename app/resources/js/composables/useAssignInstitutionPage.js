@@ -21,6 +21,9 @@ export function useAssignInstitutionPage(props) {
             : '',
     )
     const emailForInfo = ref('')
+    const manualEmailForInfo = ref('')
+
+    const looksLikeEmail = (value) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)
 
     const employeeEmailOptions = computed(() =>
         (props.employees ?? []).map((emp) => ({
@@ -30,6 +33,11 @@ export function useAssignInstitutionPage(props) {
     )
 
     const canSendInfoEmail = computed(() => {
+        const manual = (manualEmailForInfo.value || '').trim()
+        if (manual) {
+            return looksLikeEmail(manual)
+        }
+
         const raw = (emailForInfo.value || '').trim()
         if (!raw) {
             return false
@@ -168,10 +176,10 @@ export function useAssignInstitutionPage(props) {
             return
         }
         if (!canSendInfoEmail.value) {
-            alert('Pasirinkite darbuotoją iš sąrašo.')
+            alert('Pasirinkite darbuotoją iš sąrašo arba įveskite el. pašto adresą.')
             return
         }
-        const email = (emailForInfo.value || '').trim()
+        const email = (manualEmailForInfo.value || '').trim() || (emailForInfo.value || '').trim()
         emailSubmitting.value = true
         router.post(
             route('problems.assignInstitution.sendEmail', props.problem.id),
@@ -256,6 +264,7 @@ export function useAssignInstitutionPage(props) {
         selectedTeamIds,
         deadline,
         emailForInfo,
+        manualEmailForInfo,
         employeeEmailOptions,
         canSendInfoEmail,
         selectedReassignIds,
