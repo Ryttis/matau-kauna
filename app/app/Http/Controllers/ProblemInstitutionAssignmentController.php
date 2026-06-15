@@ -217,8 +217,6 @@ class ProblemInstitutionAssignmentController extends Controller
             $mail['action_label'] ?? null,
         );
 
-        $this->markProblemResolvedAfterShareEmail($problem, $user);
-
         return redirect()->back()->with('success', 'Informacija išsiųsta el. paštu.');
     }
 
@@ -470,35 +468,4 @@ class ProblemInstitutionAssignmentController extends Controller
         }
     }
 
-    private function markProblemResolvedAfterShareEmail(Problem $problem, User $user): void
-    {
-        $problem->refresh();
-
-        $newStatus = ProblemStatus::RESOLVED->value;
-        if ((string) $problem->status === $newStatus) {
-            return;
-        }
-
-        $ids = $problem->getMergeGroupIds();
-        $mainId = $problem->merged_into_problem_id ?? $problem->id;
-        $oldMainStatus = Problem::where('id', $mainId)->value('status');
-
-        $query = Problem::whereIn('id', $ids);
-        $this->scopeService->scopeProblemsForUser($query, $user);
-        $this->scopeService->ensureScopeMatchesCount($query, count($ids));
-        $query->update([
-            'status' => $newStatus,
-            'status_updated_at' => now(),
-            'deadline_status' => null,
-            'deadline_reminder_sent_at' => null,
-        ]);
-
-        if ($oldMainStatus !== null && $oldMainStatus !== $newStatus) {
-            $main = Problem::find($mainId);
-            if ($main) {
-                $this->reporterStatusNotifier->notifyReportersAndWatchersWhenStatusChanges($main, $oldMainStatus, $newStatus);
-                $this->reviewHistoryService->logStatusChangeEntry($main, $user, $newStatus);
-            }
-        }
-    }
 }

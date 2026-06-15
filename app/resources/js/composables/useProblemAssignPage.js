@@ -13,6 +13,7 @@ export function useProblemAssignPage(props) {
     const selectedInstitutionIds = ref([])
     const selectedStatus = ref(normalizeStatusForAssignPage(props.problem?.status || PROBLEM_STATUS.NEW))
     const selectedEmailRecipientKey = ref('')
+    const manualEmailRecipient = ref('')
     const displayedCount = ref(6)
     const isInstitutionsExpanded = ref(true)
     const isStatusExpanded = ref(true)
@@ -85,7 +86,16 @@ export function useProblemAssignPage(props) {
         return 'Pasirinkite el. paštą'
     })
 
-    const canSendAssignEmail = computed(() => Boolean(selectedEmailRecipient.value))
+    const looksLikeEmail = (value) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)
+
+    const canSendAssignEmail = computed(() => {
+        const manual = (manualEmailRecipient.value || '').trim()
+        if (manual) {
+            return looksLikeEmail(manual) && selectedInstitutionIds.value.length === 1
+        }
+
+        return Boolean(selectedEmailRecipient.value)
+    })
 
     watch(() => [props.problem, props.problems], () => {
         syncInitialSelection()
@@ -163,15 +173,21 @@ export function useProblemAssignPage(props) {
                 ? [props.problem.id]
                 : []
 
-        if (!canSendAssignEmail.value || !ids.length || isSendingInstitutionEmail.value || isAssigningInstitution.value) {
+        const manualEmail = (manualEmailRecipient.value || '').trim()
+        const institutionId = manualEmail
+            ? selectedInstitutionIds.value[0]
+            : selectedEmailRecipient.value?.institutionId
+        const email = manualEmail || selectedEmailRecipient.value?.email
+
+        if (!canSendAssignEmail.value || !ids.length || isSendingInstitutionEmail.value || isAssigningInstitution.value || !email || !institutionId) {
             return
         }
 
         isSendingInstitutionEmail.value = true
         router.post(route('problems.assign.email'), {
-            email: selectedEmailRecipient.value.email,
+            email,
             problem_ids: ids,
-            institution_id: selectedEmailRecipient.value.institutionId,
+            institution_id: institutionId,
         }, {
             preserveScroll: true,
             onFinish: () => {
@@ -206,6 +222,7 @@ export function useProblemAssignPage(props) {
         selectedInstitutionIds,
         selectedStatus,
         selectedEmailRecipientKey,
+        manualEmailRecipient,
         displayedInstitutions,
         emailRecipients,
         emailRecipientSelectOptions,

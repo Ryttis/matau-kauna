@@ -67,7 +67,7 @@ class ProblemAdminAssignController extends Controller
         )));
 
         $validated = $request->validate([
-            'problem_ids' => ['required', 'array'],
+            'problem_ids' => ['required', 'array', 'min:1'],
             'problem_ids.*' => ['required', 'integer', 'exists:problems,id'],
             'institution_id' => ['nullable', 'integer', 'exists:institutions,id'],
             'status' => ['nullable', 'string', 'in:'.$statusesAllowedOnAssign],
@@ -141,24 +141,21 @@ class ProblemAdminAssignController extends Controller
             abort(403);
         }
 
+        $request->merge([
+            'email' => trim((string) $request->input('email')),
+        ]);
+
         $validated = $request->validate([
-            'email' => ['required', 'email'],
-            'problem_ids' => ['required', 'array'],
+            'email' => ['required', 'string', 'email', 'max:255'],
+            'problem_ids' => ['required', 'array', 'min:1'],
             'problem_ids.*' => ['required', 'integer', 'exists:problems,id'],
             'institution_id' => ['required', 'integer', 'exists:institutions,id'],
         ]);
 
         $institution = Institution::query()->findOrFail($validated['institution_id']);
-        $allowedEmails = array_values(array_unique(array_filter([
-            $institution->contact_email,
-            $institution->integration_email,
-        ])));
+        $expandedIds = Problem::expandIdsToMergeGroups(array_map('intval', $validated['problem_ids']));
 
-        if (! in_array($validated['email'], $allowedEmails, true)) {
-            return redirect()->back()->with('error', 'Pasirinktas el. paštas nepriklauso pasirinktai įstaigai.');
-        }
-
-        $problems = Problem::whereIn('id', $validated['problem_ids'])
+        $problems = Problem::whereIn('id', $expandedIds)
             ->orderBy('created_at', 'desc')
             ->get();
 
@@ -166,14 +163,14 @@ class ProblemAdminAssignController extends Controller
             return redirect()->back()->with('error', 'Išspręstų problemų negalima priskirti.');
         }
 
-        Problem::whereIn('id', $validated['problem_ids'])->update([
+        Problem::whereIn('id', $expandedIds)->update([
             'institution_id' => $institution->id,
             'assigned_employee_id' => null,
             'assigned_institution_team_id' => null,
         ]);
 
         $problems = Problem::query()
-            ->whereIn('id', $validated['problem_ids'])
+            ->whereIn('id', $expandedIds)
             ->orderBy('created_at', 'desc')
             ->get();
 
@@ -182,7 +179,7 @@ class ProblemAdminAssignController extends Controller
         }
 
         $problems = Problem::query()
-            ->whereIn('id', $validated['problem_ids'])
+            ->whereIn('id', $expandedIds)
             ->orderBy('created_at', 'desc')
             ->get();
 
@@ -195,6 +192,22 @@ class ProblemAdminAssignController extends Controller
             ! empty($mail['action_url']) ? $mail['action_url'] : null,
             $mail['action_label'] ?? null,
         );
+
+        $rootIdsMap = Problem::rootIdsMapFromProblemIds($expandedIds);
+        $oldByMain = Problem::statusesByRootId($rootIdsMap);
+        Problem::whereIn('id', $expandedIds)->update([
+            'status' => ProblemStatus::RESOLVED->value,
+            'status_updated_at' => now(),
+            'deadline_status' => null,
+            'deadline_reminder_sent_at' => null,
+        ]);
+        $this->reporterStatusNotifier->notifyRootsAfterStatusChange($oldByMain, ProblemStatus::RESOLVED->value);
+        foreach (array_keys($rootIdsMap) as $rootId) {
+            $rootProblem = Problem::find($rootId);
+            if ($rootProblem) {
+                $this->reviewHistoryService->logStatusChangeEntry($rootProblem, $user, ProblemStatus::RESOLVED->value);
+            }
+        }
 
         return redirect()->back()->with('success', 'Informacija išsiųsta el. paštu ir problema priskirta įstaigai.');
     }

@@ -136,6 +136,11 @@
     flex: 0 0 auto;
 }
 
+.assign-section-email .assign-email-manual-input {
+    width: var(--button-width);
+    max-width: 100%;
+}
+
 .assign-section-email .searchable-select__input {
     font-size: 16px;
     border-radius: var(--button-border-radius, 15px);

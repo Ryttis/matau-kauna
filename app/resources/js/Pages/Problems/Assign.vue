@@ -2,6 +2,7 @@
 import { Head } from '@inertiajs/vue3'
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue'
 import AppButton from '@/Components/App/AppButton.vue'
+import AppInput from '@/Components/App/AppInput.vue'
 import SearchableSelect from '@/Components/App/SearchableSelect.vue'
 import AppBackButton from '@/Components/App/AppBackButton.vue'
 import SuccessModal from '@/Components/App/SuccessModal.vue'
@@ -34,8 +35,8 @@ const {
     selectedInstitutionIds,
     selectedStatus,
     selectedEmailRecipientKey,
+    manualEmailRecipient,
     displayedInstitutions,
-    emailRecipients,
     emailRecipientSelectOptions,
     emailSelectPlaceholder,
     canSendAssignEmail,
@@ -161,13 +162,21 @@ const {
                         v-model="selectedEmailRecipientKey"
                         label="Siųsti informaciją el. paštu"
                         :options="emailRecipientSelectOptions"
-                        :disabled="!emailRecipients.length"
                         :show-empty-option="false"
                         :empty-option-label="emailSelectPlaceholder"
                         search-placeholder="Ieškoti įstaigos ar el. pašto…"
+                        no-results-text="El. paštas nerastas. Įveskite adresą žemiau."
                         list-max-height="min(50vh, 320px)"
                         :max-display-length="140"
                         class="assign-email-select"
+                    />
+                    <AppInput
+                        v-model="manualEmailRecipient"
+                        type="email"
+                        label="Kitas el. paštas"
+                        placeholder="pvz. info@imone.lt"
+                        autocomplete="email"
+                        class="assign-email-manual-input"
                     />
                     <div class="assign-send-btn-wrap">
                         <AppButton

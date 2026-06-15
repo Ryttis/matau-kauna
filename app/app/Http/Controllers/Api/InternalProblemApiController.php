@@ -76,26 +76,21 @@ class InternalProblemApiController extends Controller
             abort(403);
         }
 
+        $request->merge([
+            'email' => trim((string) $request->input('email')),
+        ]);
+
         $validated = $request->validate([
-            'email' => ['required', 'email'],
+            'email' => ['required', 'string', 'email', 'max:255'],
             'problem_ids' => ['required', 'array', 'min:1'],
             'problem_ids.*' => ['required', 'integer', 'exists:problems,id'],
             'institution_id' => ['required', 'integer', 'exists:institutions,id'],
         ]);
 
         $institution = Institution::query()->findOrFail($validated['institution_id']);
-        $allowedEmails = array_values(array_unique(array_filter([
-            $institution->contact_email,
-            $institution->integration_email,
-        ])));
+        $expandedIds = Problem::expandIdsToMergeGroups(array_map('intval', $validated['problem_ids']));
 
-        if (! in_array($validated['email'], $allowedEmails, true)) {
-            return response()->json([
-                'message' => 'Pasirinktas el. paštas nepriklauso pasirinktai įstaigai.',
-            ], 422);
-        }
-
-        $problems = Problem::whereIn('id', $validated['problem_ids'])
+        $problems = Problem::whereIn('id', $expandedIds)
             ->orderBy('created_at', 'desc')
             ->get();
 
@@ -105,14 +100,14 @@ class InternalProblemApiController extends Controller
             ], 422);
         }
 
-        Problem::whereIn('id', $validated['problem_ids'])->update([
+        Problem::whereIn('id', $expandedIds)->update([
             'institution_id' => $institution->id,
             'assigned_employee_id' => null,
             'assigned_institution_team_id' => null,
         ]);
 
         $problems = Problem::query()
-            ->whereIn('id', $validated['problem_ids'])
+            ->whereIn('id', $expandedIds)
             ->orderBy('created_at', 'desc')
             ->get();
 
@@ -121,7 +116,7 @@ class InternalProblemApiController extends Controller
         }
 
         $problems = Problem::query()
-            ->whereIn('id', $validated['problem_ids'])
+            ->whereIn('id', $expandedIds)
             ->orderBy('created_at', 'desc')
             ->get();
 
@@ -134,10 +129,27 @@ class InternalProblemApiController extends Controller
             $mail['action_label'] ?? null,
         );
 
+        $rootIdsMap = Problem::rootIdsMapFromProblemIds($expandedIds);
+        $oldByMain = Problem::statusesByRootId($rootIdsMap);
+        Problem::whereIn('id', $expandedIds)->update([
+            'status' => ProblemStatus::RESOLVED->value,
+            'status_updated_at' => now(),
+            'deadline_status' => null,
+            'deadline_reminder_sent_at' => null,
+        ]);
+        $this->reporterStatusNotifier->notifyRootsAfterStatusChange($oldByMain, ProblemStatus::RESOLVED->value);
+        foreach (array_keys($rootIdsMap) as $rootId) {
+            $rootProblem = Problem::find($rootId);
+            if ($rootProblem) {
+                $this->reviewHistoryService->logStatusChangeEntry($rootProblem, $user, ProblemStatus::RESOLVED->value);
+            }
+        }
+
         return response()->json([
             'ok' => true,
             'message' => 'Laiškas išsiųstas.',
-            'problem_ids' => array_map('intval', $validated['problem_ids']),
+            'problem_ids' => $expandedIds,
+            'status' => ProblemStatus::RESOLVED->value,
         ]);
     }
 
@@ -855,46 +867,11 @@ class InternalProblemApiController extends Controller
             $mail['action_label'] ?? null,
         );
 
-        $this->markProblemResolvedAfterShareEmail($problem, $user);
-
         return response()->json([
             'ok' => true,
             'message' => 'Informacija išsiųsta el. paštu.',
-            'status' => ProblemStatus::RESOLVED->value,
             'problem_id' => $problem->id,
         ]);
-    }
-
-    private function markProblemResolvedAfterShareEmail(Problem $problem, User $user): void
-    {
-        $problem->refresh();
-
-        $newStatus = ProblemStatus::RESOLVED->value;
-        if ((string) $problem->status === $newStatus) {
-            return;
-        }
-
-        $ids = $problem->getMergeGroupIds();
-        $mainId = $problem->merged_into_problem_id ?? $problem->id;
-        $oldMainStatus = Problem::where('id', $mainId)->value('status');
-
-        $query = Problem::whereIn('id', $ids);
-        $this->scopeService->scopeProblemsForUser($query, $user);
-        $this->scopeService->ensureScopeMatchesCount($query, count($ids));
-        $query->update([
-            'status' => $newStatus,
-            'status_updated_at' => now(),
-            'deadline_status' => null,
-            'deadline_reminder_sent_at' => null,
-        ]);
-
-        if ($oldMainStatus !== null && $oldMainStatus !== $newStatus) {
-            $main = Problem::find($mainId);
-            if ($main) {
-                $this->reporterStatusNotifier->notifyReportersAndWatchersWhenStatusChanges($main, $oldMainStatus, $newStatus);
-                $this->reviewHistoryService->logStatusChangeEntry($main, $user, $newStatus);
-            }
-        }
     }
 
     public function reassignInstitution(Request $request, Problem $problem): JsonResponse
