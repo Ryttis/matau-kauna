@@ -69,6 +69,8 @@ const canAccessStatistics = computed(() =>
     isSystemAdmin.value || permissions.value.includes('statistics.view')
 )
 
+const showStatesMenu = false
+
 const authRoles = computed(() => page.props.auth?.roles ?? [])
 const activeRoleId = computed(() => page.props.auth?.activeRoleId ?? '')
 const canSwitchActiveRole = computed(
@@ -240,7 +242,7 @@ const patchActiveRole = (roleId) => {
                     </div>
                 </template>
 
-                <template v-if="canAccessIssues">
+                <template v-if="canAccessIssues && showStatesMenu">
                 <button
                     type="button"
                     class="nav-link states-trigger"
