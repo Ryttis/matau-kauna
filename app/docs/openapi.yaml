@@ -62,8 +62,10 @@ paths:
       description: >
         Returns a Sanctum Bearer token. Mobile apps should store this token securely and
         send it on every authenticated API request as `Authorization: Bearer {token}`.
-        The token has no fixed expiration (`expires_at: null`) and remains valid until
-        POST `/api/logout` revokes the current token, or until the server returns 401.
+        Send `remember_session: true` only after the user consents to biometric or
+        remembered access. Remembered mobile sessions use a 90-day sliding expiration;
+        normal tokens use the server session lifetime. If the server returns 401, clear
+        the stored token and require full login again.
       requestBody:
         required: true
         content:
@@ -225,7 +227,8 @@ paths:
       description: >
         Requires `Authorization: Bearer {token}`. Returns the authenticated user's profile,
         email verification state, 2FA state, VIISP linkage state, reporter notification
-        preferences, roles, and permissions.
+        preferences, roles, permissions, and current token expiration for mobile
+        app-start/app-resume sync.
       security:
         - bearerAuth: []
       parameters:
@@ -239,6 +242,12 @@ paths:
       responses:
         "200":
           description: OK
+          headers:
+            X-Session-Expires-At:
+              description: Renewed current Sanctum token expiration as an ISO-8601 datetime.
+              schema:
+                type: string
+                format: date-time
           content:
             application/json:
               schema:
@@ -2360,6 +2369,12 @@ components:
           type: string
           description: Optional. Sanctum token label. If omitted, backend uses a default value.
           example: api-client
+        remember_session:
+          type: boolean
+          default: false
+          description: >
+            Optional. Send true only after biometric/remembered-session consent.
+            Issues a long mobile session with sliding renewal.
 
     ApiRegisterRequest:
       oneOf:
@@ -2395,6 +2410,10 @@ components:
           type: string
           nullable: true
           example: mobile-ios
+        remember_session:
+          type: boolean
+          default: false
+          description: Optional. Issues a long mobile session with sliding renewal.
 
     ApiViispRegisterRequest:
       type: object
@@ -2418,6 +2437,10 @@ components:
           type: string
           nullable: true
           example: mobile-ios
+        remember_session:
+          type: boolean
+          default: false
+          description: Optional. Issues a long mobile session with sliding renewal.
 
     PushDeviceRegisterRequest:
       type: object
@@ -2514,6 +2537,10 @@ components:
           nullable: true
           description: Sanctum token name to use if VIISP callback logs in an existing user.
           example: mobile-ios
+        remember_session:
+          type: boolean
+          default: false
+          description: Optional. Preserved through VIISP callback and registration completion.
 
     ViispInitResponse:
       type: object
@@ -2590,14 +2617,20 @@ components:
         device_name:
           type: string
           example: mobile-ios
+        remember_session:
+          type: boolean
+          default: false
+          description: Optional. Issues a long mobile session with sliding renewal.
 
     AuthTokenResponse:
       type: object
       required: [token, token_type, expires_at, user]
       description: >
         Store `token` securely on mobile and send it on authenticated endpoints as
-        `Authorization: Bearer {token}`. `expires_at: null` means the token is valid until
-        revoked by POST /api/logout or rejected by the server with 401.
+        `Authorization: Bearer {token}`. `expires_at` is an ISO-8601 datetime. For
+        remembered mobile sessions, authenticated API responses renew the token and
+        return the new deadline in `X-Session-Expires-At`; `GET /api/me` also returns
+        `session_expires_at`.
       properties:
         token:
           type: string
@@ -2608,8 +2641,7 @@ components:
         expires_at:
           type: string
           format: date-time
-          nullable: true
-          example: null
+          example: "2026-09-15T10:00:00+03:00"
         user:
           $ref: "#/components/schemas/UserSummary"
 
@@ -2670,6 +2702,7 @@ components:
         - email_updates_institution_admin
         - reporter_email_own_problems
         - reporter_email_watched_problems
+        - session_expires_at
         - roles
         - permissions
       properties:
@@ -2727,6 +2760,12 @@ components:
         reporter_email_watched_problems:
           type: boolean
           example: true
+        session_expires_at:
+          type: string
+          format: date-time
+          nullable: true
+          description: Current bearer token expiration after sliding renewal. Null for non-token session auth.
+          example: "2026-09-15T10:00:00+03:00"
         push_notifications_registered:
           type: boolean
           description: True when a Firebase FCM token is saved for this user.

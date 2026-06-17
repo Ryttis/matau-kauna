@@ -12,17 +12,22 @@ class ExtendTokenExpiration
 {
     public function handle(Request $request, Closure $next): Response
     {
-        $response = $next($request);
-
         $token = $request->user()?->currentAccessToken();
 
         if ($token instanceof PersonalAccessToken) {
-            $minutes = TokenExpiration::minutes();
+            $rememberSession = TokenExpiration::tokenHasRememberSessionAbility($token->abilities ?? []);
+            $minutes = $rememberSession ? TokenExpiration::mobileDays() * 24 * 60 : TokenExpiration::minutes();
             $threshold = now()->addMinutes(max(1, $minutes - 5));
 
             if (! $token->expires_at || $token->expires_at->lt($threshold)) {
-                $token->forceFill(['expires_at' => TokenExpiration::next()])->save();
+                $token->forceFill(['expires_at' => TokenExpiration::nextForRememberSession($rememberSession)])->save();
             }
+        }
+
+        $response = $next($request);
+
+        if ($token instanceof PersonalAccessToken && $token->expires_at) {
+            $response->headers->set('X-Session-Expires-At', $token->expires_at->toIso8601String());
         }
 
         return $response;

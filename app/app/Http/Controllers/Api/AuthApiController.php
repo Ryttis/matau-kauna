@@ -21,6 +21,7 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Password as PasswordBroker;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
+use Laravel\Sanctum\PersonalAccessToken;
 
 class AuthApiController extends Controller
 {
@@ -43,6 +44,7 @@ class AuthApiController extends Controller
             'password' => ['required', 'string'],
             'login_type' => ['required', 'string', 'in:pareiskejas,darbuotojas'],
             'device_name' => ['nullable', 'string', 'max:255'],
+            'remember_session' => ['sometimes', 'boolean'],
         ]);
 
         $user = User::query()
@@ -73,6 +75,7 @@ class AuthApiController extends Controller
         }
 
         $deviceName = $validated['device_name'] ?? 'swagger';
+        $rememberSession = (bool) ($validated['remember_session'] ?? false);
 
         $this->twoFactorService->ensurePrepared($user);
         $user->refresh();
@@ -83,6 +86,7 @@ class AuthApiController extends Controller
             Cache::put($key, [
                 'user_id' => $user->id,
                 'device_name' => $deviceName,
+                'remember_session' => $rememberSession,
             ], now()->addMinutes(self::TWO_FACTOR_PENDING_TTL_MINUTES));
 
             $payload = [
@@ -101,8 +105,12 @@ class AuthApiController extends Controller
             return response()->json($payload);
         }
 
-        $tokenExpiresAt = TokenExpiration::next();
-        $token = $user->createToken($deviceName, ['*'], $tokenExpiresAt)->plainTextToken;
+        $tokenExpiresAt = TokenExpiration::nextForRememberSession($rememberSession);
+        $token = $user->createToken(
+            $deviceName,
+            TokenExpiration::abilitiesForRememberSession($rememberSession),
+            $tokenExpiresAt
+        )->plainTextToken;
 
         return response()->json([
             'token' => $token,
@@ -154,8 +162,13 @@ class AuthApiController extends Controller
         $deviceName = is_string($pending['device_name'] ?? null) && $pending['device_name'] !== ''
             ? $pending['device_name']
             : 'swagger';
-        $tokenExpiresAt = TokenExpiration::next();
-        $token = $user->createToken($deviceName, ['*'], $tokenExpiresAt)->plainTextToken;
+        $rememberSession = (bool) ($pending['remember_session'] ?? false);
+        $tokenExpiresAt = TokenExpiration::nextForRememberSession($rememberSession);
+        $token = $user->createToken(
+            $deviceName,
+            TokenExpiration::abilitiesForRememberSession($rememberSession),
+            $tokenExpiresAt
+        )->plainTextToken;
 
         $updates = ['last_login_at' => now(), 'inactive_reporter_reminder_sent_at' => null];
         if ($user->archived_at !== null) {
@@ -197,6 +210,7 @@ class AuthApiController extends Controller
             'phone' => ['nullable', 'string', 'max:32', 'regex:/^[0-9+\s\-]+$/'],
             'password' => $policy->passwordRules(),
             'device_name' => ['nullable', 'string', 'max:255'],
+            'remember_session' => ['sometimes', 'boolean'],
         ], $policy->validationMessagesForPasswordField());
 
         $termsVersion = ContentVersion::getLatestPublished(ContentVersion::TYPE_TERMS);
@@ -219,8 +233,13 @@ class AuthApiController extends Controller
         $user->sendEmailVerificationNotification();
 
         $deviceName = $validated['device_name'] ?? 'swagger';
-        $tokenExpiresAt = TokenExpiration::next();
-        $token = $user->createToken($deviceName, ['*'], $tokenExpiresAt)->plainTextToken;
+        $rememberSession = (bool) ($validated['remember_session'] ?? false);
+        $tokenExpiresAt = TokenExpiration::nextForRememberSession($rememberSession);
+        $token = $user->createToken(
+            $deviceName,
+            TokenExpiration::abilitiesForRememberSession($rememberSession),
+            $tokenExpiresAt
+        )->plainTextToken;
 
         return response()->json([
             'token' => $token,
@@ -241,6 +260,7 @@ class AuthApiController extends Controller
             'email' => ['nullable', 'string', 'email', 'max:255'],
             'phone' => ['nullable', 'string', 'max:32', 'regex:/^[0-9+\s\-]+$/'],
             'device_name' => ['nullable', 'string', 'max:255'],
+            'remember_session' => ['sometimes', 'boolean'],
         ]);
 
         $cacheKey = ViispApiController::REGISTRATION_CACHE_PREFIX.hash('sha256', $validated['viisp_registration_token']);
@@ -256,11 +276,12 @@ class AuthApiController extends Controller
             ->first();
         $deviceName = $validated['device_name'] ?? ($payload['device_name'] ?? 'mobile');
         $deviceName = is_string($deviceName) && $deviceName !== '' ? $deviceName : 'mobile';
+        $rememberSession = (bool) ($validated['remember_session'] ?? ($payload['remember_session'] ?? false));
 
         if ($existingUser) {
             Cache::forget($cacheKey);
 
-            return $this->authTokenResponse($existingUser, $deviceName);
+            return $this->authTokenResponse($existingUser, $deviceName, rememberSession: $rememberSession);
         }
 
         $email = $validated['email'] ?? ($payload['email'] ?? '');
@@ -308,13 +329,17 @@ class AuthApiController extends Controller
         $user->sendEmailVerificationNotification();
         Cache::forget($cacheKey);
 
-        return $this->authTokenResponse($user->fresh(), $deviceName, 201);
+        return $this->authTokenResponse($user->fresh(), $deviceName, 201, $rememberSession);
     }
 
-    private function authTokenResponse(User $user, string $deviceName, int $status = 200): JsonResponse
+    private function authTokenResponse(User $user, string $deviceName, int $status = 200, bool $rememberSession = false): JsonResponse
     {
-        $tokenExpiresAt = TokenExpiration::next();
-        $token = $user->createToken($deviceName, ['*'], $tokenExpiresAt)->plainTextToken;
+        $tokenExpiresAt = TokenExpiration::nextForRememberSession($rememberSession);
+        $token = $user->createToken(
+            $deviceName,
+            TokenExpiration::abilitiesForRememberSession($rememberSession),
+            $tokenExpiresAt
+        )->plainTextToken;
 
         return response()->json([
             'token' => $token,
@@ -332,8 +357,13 @@ class AuthApiController extends Controller
     {
         $user = $request->user()->load('roles');
         $context = $this->activeRoleService->resolveAndBind($request, $user);
+        $accessToken = $user->currentAccessToken();
+        $payload = $this->buildMePayload($user, $context);
+        $payload['session_expires_at'] = $accessToken instanceof PersonalAccessToken
+            ? $accessToken->expires_at?->toIso8601String()
+            : null;
 
-        return response()->json($this->buildMePayload($user, $context));
+        return response()->json($payload);
     }
 
     public function acceptTerms(Request $request): JsonResponse

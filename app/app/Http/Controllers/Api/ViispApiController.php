@@ -29,6 +29,7 @@ class ViispApiController extends Controller
         $validated = $request->validate([
             'redirect_uri' => ['required', 'string', 'max:2048'],
             'device_name' => ['nullable', 'string', 'max:255'],
+            'remember_session' => ['sometimes', 'boolean'],
         ]);
 
         $secret = $this->viispExchangeSecret();
@@ -42,6 +43,7 @@ class ViispApiController extends Controller
             [
                 'redirect_uri' => $validated['redirect_uri'],
                 'device_name' => $validated['device_name'] ?? 'mobile',
+                'remember_session' => (bool) ($validated['remember_session'] ?? false),
             ],
             now()->addSeconds(self::STATE_TTL_SECONDS)
         );
@@ -85,6 +87,7 @@ class ViispApiController extends Controller
         $deviceName = is_string($stateData['device_name'] ?? null) && $stateData['device_name'] !== ''
             ? $stateData['device_name']
             : 'mobile';
+        $rememberSession = (bool) ($stateData['remember_session'] ?? false);
         $secret = $this->viispExchangeSecret();
         if ($secret === null) {
             return $this->callbackError('viisp_unavailable', 'VIISP is temporarily unavailable.', 503, $redirectUri);
@@ -111,7 +114,7 @@ class ViispApiController extends Controller
                 }
                 $user = $this->linkViispToExistingUser($byEmail, $identity, $email);
             } else {
-                $registrationPayload = $this->registrationPayload($identity, $email, $deviceName);
+                $registrationPayload = $this->registrationPayload($identity, $email, $deviceName, $rememberSession);
                 if ($registrationPayload === null) {
                     return $this->callbackError('identity_incomplete', 'VIISP identity is missing required profile fields.', 422, $redirectUri);
                 }
@@ -143,7 +146,7 @@ class ViispApiController extends Controller
             $user = $this->syncViispProfile($user, $identity, $email);
         }
 
-        return $this->authTokenResponse($user, $deviceName);
+        return $this->authTokenResponse($user, $deviceName, $rememberSession);
     }
 
     public function exchange(Request $request): JsonResponse
@@ -151,6 +154,7 @@ class ViispApiController extends Controller
         $validated = $request->validate([
             'code' => ['required', 'string', 'size:64'],
             'device_name' => ['nullable', 'string', 'max:255'],
+            'remember_session' => ['sometimes', 'boolean'],
         ]);
 
         $data = Cache::pull(self::EXCHANGE_CACHE_PREFIX.$validated['code']);
@@ -164,8 +168,13 @@ class ViispApiController extends Controller
         }
 
         $deviceName = $validated['device_name'] ?? 'mobile';
-        $tokenExpiresAt = TokenExpiration::next();
-        $token = $user->createToken($deviceName, ['*'], $tokenExpiresAt)->plainTextToken;
+        $rememberSession = (bool) ($validated['remember_session'] ?? ($data['remember_session'] ?? false));
+        $tokenExpiresAt = TokenExpiration::nextForRememberSession($rememberSession);
+        $token = $user->createToken(
+            $deviceName,
+            TokenExpiration::abilitiesForRememberSession($rememberSession),
+            $tokenExpiresAt
+        )->plainTextToken;
 
         return response()->json([
             'token' => $token,
@@ -237,7 +246,7 @@ class ViispApiController extends Controller
         return $user->fresh();
     }
 
-    private function registrationPayload(array $identity, string $email, string $deviceName): ?array
+    private function registrationPayload(array $identity, string $email, string $deviceName, bool $rememberSession): ?array
     {
         $hashedCode = is_string($identity['hashedCode'] ?? null) ? $identity['hashedCode'] : '';
         $firstName = is_string($identity['firstName'] ?? null) ? trim($identity['firstName']) : '';
@@ -258,13 +267,18 @@ class ViispApiController extends Controller
             'email' => $email,
             'phone' => $phone,
             'device_name' => $deviceName,
+            'remember_session' => $rememberSession,
         ];
     }
 
-    private function authTokenResponse(User $user, string $deviceName): JsonResponse
+    private function authTokenResponse(User $user, string $deviceName, bool $rememberSession): JsonResponse
     {
-        $tokenExpiresAt = TokenExpiration::next();
-        $token = $user->createToken($deviceName, ['*'], $tokenExpiresAt)->plainTextToken;
+        $tokenExpiresAt = TokenExpiration::nextForRememberSession($rememberSession);
+        $token = $user->createToken(
+            $deviceName,
+            TokenExpiration::abilitiesForRememberSession($rememberSession),
+            $tokenExpiresAt
+        )->plainTextToken;
 
         return response()->json([
             'token' => $token,
