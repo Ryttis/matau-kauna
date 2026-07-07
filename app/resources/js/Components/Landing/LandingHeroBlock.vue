@@ -21,10 +21,10 @@
             </div>
             <div class="landing-hero-content-bottom">
                 <div class="landing-hero-buttons">
-                    <a href="https://play.google.com/store" target="_blank" rel="noopener noreferrer" class="landing-dl-btn">
+                    <a href="https://play.google.com/store/apps/details?id=lt.kaunas.mataukaune" target="_blank" rel="noopener noreferrer" class="landing-dl-btn">
                         <img src="/images/google.png" alt="Atsisiųsk Google Play" class="landing-dl-btn-img" />
                     </a>
-                    <a href="https://apps.apple.com" target="_blank" rel="noopener noreferrer" class="landing-dl-btn">
+                    <a href="https://apps.apple.com/lt/app/matau-kaune/id6764333218" target="_blank" rel="noopener noreferrer" class="landing-dl-btn">
                         <img src="/images/apple.png" alt="Atsisiųsk App Store" class="landing-dl-btn-img" />
                     </a>
                 </div>
