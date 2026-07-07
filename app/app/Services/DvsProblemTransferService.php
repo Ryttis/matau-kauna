@@ -350,7 +350,7 @@ class DvsProblemTransferService
             'dokData' => $documentAt->toIso8601String(),
             'dokNr' => $problem->internal_number,
             'patikslinimas' => $this->reporterName($problem),
-            'antraste' => Str::limit($this->problemNatureTitle($problem), 250, ''),
+            'antraste' => $this->dvsTitle($problem),
             'pastabos' => $this->descriptionWithProblemUrl($problem),
             'elektroninis' => true,
             'failai' => $this->attachmentsPayload($problem, $config->gaunami_failu_registro_kodas),
@@ -387,14 +387,10 @@ class DvsProblemTransferService
             'dokData' => $documentAt->toIso8601String(),
             'dokNr' => $problem->internal_number,
             'autorius' => $this->reporterName($problem) ?: 'Gyventojas',
-            'adresas' => $problem->address,
             'elektroninisPastas' => $problem->reportedByUser?->email,
             'telefonoNumeris' => $problem->reportedByUser?->phone,
             'elektroninis' => true,
-            'antraste' => Str::limit(trim(implode(' - ', array_filter([
-                $problem->internal_number,
-                $this->problemNatureTitle($problem),
-            ]))), 250, ''),
+            'antraste' => $this->dvsTitle($problem),
             'pastabos' => $this->descriptionWithProblemUrl($problem),
             'nukreiptoId' => (int) $config->pilieciu_nukreipto_id,
             'failai' => $this->attachmentsPayload($problem, $config->pilieciu_failu_registro_kodas),
@@ -478,14 +474,26 @@ class DvsProblemTransferService
             : $description."\n\n".$urlLine;
     }
 
-    private function problemNatureTitle(Problem $problem): string
+    private function dvsTitle(Problem $problem): string
     {
-        return trim((string) (
-            $problem->problemNature?->name
-            ?? $problem->problemType?->name
+        $number = trim((string) $problem->internal_number);
+        $category = trim((string) (
+            $problem->problemType?->name
             ?? $problem->category
             ?? 'Problema'
         ));
+        $nature = trim((string) ($problem->problemNature?->name ?? ''));
+        $address = trim((string) $problem->address);
+
+        $title = trim(implode(' - ', array_filter([$number, $category])));
+        if ($nature !== '') {
+            $title .= ', '.$nature;
+        }
+        if ($address !== '') {
+            $title .= ' Problemos adresas: '.$address;
+        }
+
+        return Str::limit($title !== '' ? $title : 'Problema', 250, '');
     }
 
     private function sendUrl(InstitutionDvsConfig $config, string $api): string

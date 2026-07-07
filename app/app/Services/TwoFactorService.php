@@ -73,7 +73,9 @@ class TwoFactorService
             return false;
         }
 
-        return (bool) $this->google2FA->verifyKey((string) $user->two_factor_secret, $code);
+        $window = (int) config('google2fa.window', 2);
+
+        return (bool) $this->google2FA->verifyKey((string) $user->two_factor_secret, $code, $window);
     }
 
     public function otpauthUrl(User $user): string
