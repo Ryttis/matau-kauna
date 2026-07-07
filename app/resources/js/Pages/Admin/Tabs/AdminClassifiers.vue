@@ -243,9 +243,7 @@ async function toggleNatureActive(nature) {
 
 async function removeNature(nature) {
     try {
-        await axios.put(adminApi.classifierValue(nature.id), {
-            is_active: false,
-        })
+        await axios.delete(adminApi.classifierValue(nature.id))
         await loadNaturesForType(selectedTypeForNatures.value.id)
         successMessage.value = 'Pobūdis pašalintas.'
         showSuccessModal.value = true
