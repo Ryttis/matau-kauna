@@ -41,7 +41,12 @@ return [
     /*
      * One Time Password validation window in 30-second TOTP steps.
      */
-    'window' => (int) env('OTP_WINDOW', 2),
+    'window' => (int) env('OTP_WINDOW', 3),
+
+    /*
+     * Wider window used only to diagnose failed OTP attempts.
+     */
+    'diagnostic_window' => (int) env('OTP_DIAGNOSTIC_WINDOW', 6),
 
     /*
      * Forbid user to reuse One Time Passwords.

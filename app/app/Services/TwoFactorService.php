@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Enums\UserRoleEnum;
 use App\Models\PasswordPolicy;
 use App\Models\User;
+use Illuminate\Support\Facades\Log;
 use PragmaRX\Google2FALaravel\Google2FA;
 
 class TwoFactorService
@@ -73,9 +74,40 @@ class TwoFactorService
             return false;
         }
 
-        $window = (int) config('google2fa.window', 2);
+        $secret = (string) $user->two_factor_secret;
+        $window = (int) config('google2fa.window', 3);
 
-        return (bool) $this->google2FA->verifyKey((string) $user->two_factor_secret, $code, $window);
+        if ((bool) $this->google2FA->verifyKey($secret, $code, $window)) {
+            return true;
+        }
+
+        $this->logFailedVerificationDiagnostics($user, $secret, $code, $window);
+
+        return false;
+    }
+
+    private function logFailedVerificationDiagnostics(User $user, string $secret, string $code, int $window): void
+    {
+        $diagnosticWindow = max($window, (int) config('google2fa.diagnostic_window', 6));
+        $serverTotpStep = $this->google2FA->getTimestamp();
+        $matchedOffset = null;
+
+        for ($offset = -$diagnosticWindow; $offset <= $diagnosticWindow; $offset++) {
+            if (hash_equals($this->google2FA->oathTotp($secret, $serverTotpStep + $offset), (string) $code)) {
+                $matchedOffset = $offset;
+                break;
+            }
+        }
+
+        Log::warning('2FA verification failed', [
+            'user_id' => $user->id,
+            'configured_window' => $window,
+            'diagnostic_window' => $diagnosticWindow,
+            'server_time' => now()->toIso8601String(),
+            'server_totp_step' => $serverTotpStep,
+            'matched_in_diagnostic_window' => $matchedOffset !== null,
+            'matched_offset' => $matchedOffset,
+        ]);
     }
 
     public function otpauthUrl(User $user): string
