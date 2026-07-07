@@ -156,9 +156,15 @@ class ProblemReviewHistoryService
 
         $latestId = (int) $problem->reviewHistory()->max('id');
         $isLatest = (int) $entry->id === $latestId;
+        $problem->refresh();
+        $statusWouldChangeProblem = $isLatest && (string) $problem->status !== (string) $status;
+        $statusChangedForEntry = $oldStatus !== (string) $status
+            ? $statusWouldChangeProblem
+            : (bool) ($entry->status_changed ?? true);
 
         $entry->update([
             'status' => $status,
+            'status_changed' => $statusChangedForEntry,
             'comment' => $commentNormalized,
             'visibility' => $visibility->value,
         ]);
@@ -166,9 +172,9 @@ class ProblemReviewHistoryService
         $newVisibilityIsPublic = $visibility === ProblemReviewCommentVisibility::Public;
         $becomingNewlyPublic = $newVisibilityIsPublic
             && $oldVisibility !== ProblemReviewCommentVisibility::Public->value;
-        $publicReviewEntryWillCoverStatus = $newVisibilityIsPublic && $oldStatus !== $status;
+        $publicReviewEntryWillCoverStatus = $newVisibilityIsPublic && $statusWouldChangeProblem;
 
-        if ($isLatest && $oldStatus !== $status) {
+        if ($statusWouldChangeProblem) {
             $this->applyStatusToProblemAndMerged($problem, $user, $status, ! $publicReviewEntryWillCoverStatus);
         }
 
@@ -188,6 +194,16 @@ class ProblemReviewHistoryService
         $query = Problem::whereIn('id', $ids);
         $this->scopeService->scopeProblemsForUser($query, $user);
         $this->scopeService->ensureScopeMatchesCount($query, count($ids));
+        $changedIds = (clone $query)
+            ->where('status', '!=', $status)
+            ->pluck('id')
+            ->map(fn ($id) => (int) $id)
+            ->all();
+
+        if ($changedIds === []) {
+            return;
+        }
+
         $statusUpdate = [
             'status' => $status,
             'status_updated_at' => now(),
@@ -196,7 +212,7 @@ class ProblemReviewHistoryService
             $statusUpdate['deadline_status'] = null;
             $statusUpdate['deadline_reminder_sent_at'] = null;
         }
-        $query->update($statusUpdate);
+        Problem::whereIn('id', $changedIds)->update($statusUpdate);
 
         if ($notifyStatusChange && $oldMainStatus !== null && $oldMainStatus !== $status) {
             $main = Problem::find($mainId);

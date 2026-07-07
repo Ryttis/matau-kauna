@@ -411,6 +411,11 @@ class InternalProblemApiController extends Controller
         $query = Problem::query()->whereIn('id', $ids);
         $this->scopeService->scopeProblemsForUser($query, $user);
         $this->scopeService->ensureScopeMatchesCount($query, count($ids));
+        $changedIds = (clone $query)
+            ->where('status', '!=', $validated['status'])
+            ->pluck('id')
+            ->map(fn ($id) => (int) $id)
+            ->all();
 
         $statusUpdate = [
             'status' => $validated['status'],
@@ -420,19 +425,21 @@ class InternalProblemApiController extends Controller
             $statusUpdate['deadline_status'] = null;
             $statusUpdate['deadline_reminder_sent_at'] = null;
         }
-        $query->update($statusUpdate);
+        if ($changedIds !== []) {
+            Problem::whereIn('id', $changedIds)->update($statusUpdate);
+        }
 
         $main = Problem::find($mainId);
 
-        if ($oldMainStatus !== null && $oldMainStatus !== $validated['status'] && $main) {
+        if ($changedIds !== [] && $oldMainStatus !== null && $oldMainStatus !== $validated['status'] && $main) {
             $this->reporterStatusNotifier->notifyReportersAndWatchersWhenStatusChanges($main, $oldMainStatus, $validated['status']);
         }
 
-        if ($main) {
+        if ($changedIds !== [] && $oldMainStatus !== null && $oldMainStatus !== $validated['status'] && $main) {
             $this->reviewHistoryService->logStatusChangeEntry($main, $user, $validated['status']);
         }
 
-        foreach (Problem::query()->whereIn('id', $ids)->get() as $p) {
+        foreach (Problem::query()->whereIn('id', $changedIds)->get() as $p) {
             $this->autoAssignmentService->applyRules($p);
             $this->autoPublishService->applyRules($p);
         }
@@ -472,18 +479,29 @@ class InternalProblemApiController extends Controller
             $statusUpdate['deadline_status'] = null;
             $statusUpdate['deadline_reminder_sent_at'] = null;
         }
-        $query->update($statusUpdate);
+        $changedIds = (clone $query)
+            ->where('status', '!=', $validated['status'])
+            ->pluck('id')
+            ->map(fn ($id) => (int) $id)
+            ->all();
+
+        if ($changedIds !== []) {
+            Problem::whereIn('id', $changedIds)->update($statusUpdate);
+        }
 
         $this->reporterStatusNotifier->notifyRootsAfterStatusChange($oldByMain, $validated['status']);
 
-        foreach (array_keys($rootIdsMap) as $rootId) {
+        foreach ($oldByMain as $rootId => $oldStatus) {
+            if ($oldStatus === null || $oldStatus === $validated['status']) {
+                continue;
+            }
             $rootProblem = Problem::find($rootId);
             if ($rootProblem) {
                 $this->reviewHistoryService->logStatusChangeEntry($rootProblem, $user, $validated['status']);
             }
         }
 
-        foreach (Problem::query()->whereIn('id', $expandedIds)->get() as $p) {
+        foreach (Problem::query()->whereIn('id', $changedIds)->get() as $p) {
             $this->autoAssignmentService->applyRules($p);
             $this->autoPublishService->applyRules($p);
         }
