@@ -3,6 +3,8 @@
 namespace App\Models;
 
 use Illuminate\Auth\MustVerifyEmail as MustVerifyEmailTrait;
+use Illuminate\Auth\Notifications\ResetPassword;
+use Illuminate\Auth\Notifications\VerifyEmail;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -206,6 +208,24 @@ class User extends Authenticatable implements MustVerifyEmail
     public function hasPermission(string $permission): bool
     {
         return in_array($permission, $this->permissions(), true);
+    }
+
+    public function sendEmailVerificationNotification(): void
+    {
+        if (EmailNotificationTemplate::isDisabled(EmailNotificationTemplate::KEY_VERIFY_EMAIL)) {
+            return;
+        }
+
+        $this->notify(new VerifyEmail);
+    }
+
+    public function sendPasswordResetNotification($token): void
+    {
+        if (EmailNotificationTemplate::isDisabled(EmailNotificationTemplate::KEY_PASSWORD_RESET)) {
+            return;
+        }
+
+        $this->notify(new ResetPassword($token));
     }
 
     public function hasAnyRole(array $roles): bool

@@ -18,6 +18,10 @@ class InvitationNotification extends Notification
 
     public function via(object $notifiable): array
     {
+        if (EmailNotificationTemplate::isDisabled(EmailNotificationTemplate::KEY_INSTITUTION_INVITATION)) {
+            return [];
+        }
+
         return ['mail'];
     }
 

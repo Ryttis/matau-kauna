@@ -209,15 +209,21 @@ class ProblemInstitutionAssignmentController extends Controller
         ]);
 
         $mail = $this->assignmentNotifier->buildInstitutionProblemShareEmail($problem);
-        TransactionalMail::send(
-            $validated['email'],
-            $mail['subject'],
-            $mail['body'],
-            $mail['action_url'] ?? null,
-            $mail['action_label'] ?? null,
-        );
+        if ($mail !== null) {
+            TransactionalMail::send(
+                $validated['email'],
+                $mail['subject'],
+                $mail['body'],
+                $mail['action_url'] ?? null,
+                $mail['action_label'] ?? null,
+            );
+        }
 
-        return redirect()->back()->with('success', 'Informacija išsiųsta el. paštu.');
+        $message = $mail !== null
+            ? 'Informacija išsiųsta el. paštu.'
+            : 'El. laiškas išjungtas, todėl informacija nebuvo išsiųsta.';
+
+        return redirect()->back()->with('success', $message);
     }
 
     public function sendToGis(Request $request, Problem $problem): RedirectResponse

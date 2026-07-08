@@ -121,13 +121,15 @@ class InternalProblemApiController extends Controller
             ->get();
 
         $mail = $this->assignmentNotifier->buildManualAssignToInstitutionEmail($institution, $problems);
-        \App\Services\TransactionalMail::send(
-            $validated['email'],
-            $mail['subject'],
-            $mail['body'],
-            ! empty($mail['action_url']) ? $mail['action_url'] : null,
-            $mail['action_label'] ?? null,
-        );
+        if ($mail !== null) {
+            \App\Services\TransactionalMail::send(
+                $validated['email'],
+                $mail['subject'],
+                $mail['body'],
+                ! empty($mail['action_url']) ? $mail['action_url'] : null,
+                $mail['action_label'] ?? null,
+            );
+        }
 
         $rootIdsMap = Problem::rootIdsMapFromProblemIds($expandedIds);
         $oldByMain = Problem::statusesByRootId($rootIdsMap);
@@ -147,7 +149,7 @@ class InternalProblemApiController extends Controller
 
         return response()->json([
             'ok' => true,
-            'message' => 'Laiškas išsiųstas.',
+            'message' => $mail !== null ? 'Laiškas išsiųstas.' : 'Problema priskirta įstaigai.',
             'problem_ids' => $expandedIds,
             'status' => ProblemStatus::RESOLVED->value,
         ]);
@@ -877,17 +879,21 @@ class InternalProblemApiController extends Controller
         ]);
 
         $mail = $this->assignmentNotifier->buildInstitutionProblemShareEmail($problem);
-        \App\Services\TransactionalMail::send(
-            $validated['email'],
-            $mail['subject'],
-            $mail['body'],
-            $mail['action_url'] ?? null,
-            $mail['action_label'] ?? null,
-        );
+        if ($mail !== null) {
+            \App\Services\TransactionalMail::send(
+                $validated['email'],
+                $mail['subject'],
+                $mail['body'],
+                $mail['action_url'] ?? null,
+                $mail['action_label'] ?? null,
+            );
+        }
 
         return response()->json([
             'ok' => true,
-            'message' => 'Informacija išsiųsta el. paštu.',
+            'message' => $mail !== null
+                ? 'Informacija išsiųsta el. paštu.'
+                : 'El. laiškas išjungtas, todėl informacija nebuvo išsiųsta.',
             'problem_id' => $problem->id,
         ]);
     }

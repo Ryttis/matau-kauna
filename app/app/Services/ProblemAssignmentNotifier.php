@@ -13,13 +13,17 @@ use Illuminate\Support\Collection;
 
 class ProblemAssignmentNotifier
 {
-    public function buildInstitutionProblemShareEmail(Problem $problem): array
+    public function buildInstitutionProblemShareEmail(Problem $problem): ?array
     {
         $template = EmailNotificationTemplate::getByKey(EmailNotificationTemplate::KEY_INSTITUTION_PROBLEM_SHARE);
+        if ($template !== null && ! $template->is_enabled) {
+            return null;
+        }
+
         $map = $this->problemPlaceholderMap($problem, 500);
         $url = $map['url'];
 
-        if ($template && $template->is_enabled) {
+        if ($template) {
             return [
                 'subject' => EmailBody::replacePlaceholders($template->subject, $map),
                 'body' => EmailBody::replacePlaceholders($template->body, $map),
@@ -54,7 +58,7 @@ class ProblemAssignmentNotifier
         ];
     }
 
-    public function buildManualAssignToInstitutionEmail(Institution $institution, Collection $problems): array
+    public function buildManualAssignToInstitutionEmail(Institution $institution, Collection $problems): ?array
     {
         $first = $problems->first();
         $firstMap = $first ? $this->problemPlaceholderMap($first, 200) : [];
@@ -64,7 +68,11 @@ class ProblemAssignmentNotifier
             ->implode("\n\n---\n\n");
 
         $template = EmailNotificationTemplate::getByKey(EmailNotificationTemplate::KEY_MANUAL_ASSIGN_TO_INSTITUTION_EMAIL);
-        if ($template && $template->is_enabled) {
+        if ($template !== null && ! $template->is_enabled) {
+            return null;
+        }
+
+        if ($template) {
             $map = array_merge($firstMap, [
                 'institution_name' => $institution->name,
                 'problem_list' => $problemList,
@@ -143,7 +151,11 @@ class ProblemAssignmentNotifier
         $institutionName = $institution ? $institution->name : '';
 
         $template = EmailNotificationTemplate::getByKey(EmailNotificationTemplate::KEY_INSTITUTION_ASSIGNMENT);
-        if ($template && $template->is_enabled) {
+        if ($template !== null && ! $template->is_enabled) {
+            return;
+        }
+
+        if ($template) {
             $subject = EmailBody::replacePlaceholders($template->subject, [
                 'problem_list' => $problemList,
                 'institution_name' => $institutionName,
@@ -181,7 +193,11 @@ class ProblemAssignmentNotifier
         $url = route('problems.show', $problem->id);
         $excerpt = Problem::descriptionPreview($problem->description, 200);
         $template = EmailNotificationTemplate::getByKey(EmailNotificationTemplate::KEY_EMPLOYEE_ASSIGNMENT);
-        if ($template && $template->is_enabled) {
+        if ($template !== null && ! $template->is_enabled) {
+            return;
+        }
+
+        if ($template) {
             $subject = EmailBody::replacePlaceholders($template->subject, [
                 'internal_number' => $problem->internal_number,
                 'title' => $excerpt,

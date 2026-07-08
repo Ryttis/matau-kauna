@@ -185,13 +185,15 @@ class ProblemAdminAssignController extends Controller
 
         $mail = $this->assignmentNotifier->buildManualAssignToInstitutionEmail($institution, $problems);
 
-        TransactionalMail::send(
-            $validated['email'],
-            $mail['subject'],
-            $mail['body'],
-            ! empty($mail['action_url']) ? $mail['action_url'] : null,
-            $mail['action_label'] ?? null,
-        );
+        if ($mail !== null) {
+            TransactionalMail::send(
+                $validated['email'],
+                $mail['subject'],
+                $mail['body'],
+                ! empty($mail['action_url']) ? $mail['action_url'] : null,
+                $mail['action_label'] ?? null,
+            );
+        }
 
         $rootIdsMap = Problem::rootIdsMapFromProblemIds($expandedIds);
         $oldByMain = Problem::statusesByRootId($rootIdsMap);
@@ -209,7 +211,11 @@ class ProblemAdminAssignController extends Controller
             }
         }
 
-        return redirect()->back()->with('success', 'Informacija išsiųsta el. paštu ir problema priskirta įstaigai.');
+        $message = $mail !== null
+            ? 'Informacija išsiųsta el. paštu ir problema priskirta įstaigai.'
+            : 'Problema priskirta įstaigai.';
+
+        return redirect()->back()->with('success', $message);
     }
 
     public function assignSingle(Problem $problem): Response|RedirectResponse

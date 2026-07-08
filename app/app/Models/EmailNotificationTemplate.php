@@ -49,4 +49,16 @@ class EmailNotificationTemplate extends Model
 
         return $template && $template->is_enabled;
     }
+
+    public static function isDisabled(string $key): bool
+    {
+        $template = static::getByKey($key);
+
+        return $template !== null && ! $template->is_enabled;
+    }
+
+    public static function isEnabledOrMissing(string $key): bool
+    {
+        return ! static::isDisabled($key);
+    }
 }
