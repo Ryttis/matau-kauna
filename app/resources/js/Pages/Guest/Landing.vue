@@ -12,7 +12,7 @@ defineProps({
 </script>
 
 <template>
-    <Head title="Kauno problemos – Praneškite apie problemą mieste" />
+    <Head title="Praneškite apie problemą mieste" />
 
     <div class="landing">
         <LandingHeader variant="dark" />
