@@ -18,7 +18,7 @@ const props = defineProps({
 
 const emit = defineEmits(['refresh', 'set-saving', 'show-success', 'filter'])
 
-const filters = ref({ search: '', role_id: '', institution_id: '' })
+const filters = ref({ search: '', role_id: '', institution_id: '', blocked: '' })
 
 let searchDebounce = null
 watch(() => filters.value.search, () => {
@@ -28,21 +28,23 @@ watch(() => filters.value.search, () => {
     }, 300)
 })
 
-watch([() => filters.value.role_id, () => filters.value.institution_id], () => {
+watch([() => filters.value.role_id, () => filters.value.institution_id, () => filters.value.blocked], () => {
     emit('filter', { ...filters.value })
 })
 
 const hasActiveFilters = computed(
-    () => !!(filters.value.search || filters.value.role_id || filters.value.institution_id)
+    () => !!(filters.value.search || filters.value.role_id || filters.value.institution_id || filters.value.blocked)
 )
 
 const clearFilters = () => {
-    filters.value = { search: '', role_id: '', institution_id: '' }
+    filters.value = { search: '', role_id: '', institution_id: '', blocked: '' }
 }
 
 const isCreateOpen = ref(false)
 const isEditOpen = ref(false)
 const isDeleteOpen = ref(false)
+const isBlockOpen = ref(false)
+const isUnblockOpen = ref(false)
 const isAssignRolesOpen = ref(false)
 const isInviteOpen = ref(false)
 const inviteError = ref('')
@@ -56,11 +58,26 @@ const createForm = ref({ name: '', surname: '', email: '', password: '', passwor
 const inviteForm = ref({ email: '', institution_id: '', role_id: '' })
 const editForm = ref({ id: null, name: '', surname: '', email: '', password: '', institution_id: '' })
 const deleteTarget = ref({ id: null, name: '', email: '' })
+const blockTarget = ref({ id: null, name: '', email: '' })
+const unblockTarget = ref({ id: null, name: '', email: '' })
 
 const selectedUser = ref(null)
 const selectedRoleIds = ref([])
 
 const displayUserName = (user) => [user?.name, user?.surname].filter(Boolean).join(' ').trim()
+
+const userRoles = (user) => (user?.roles ?? []).filter(Boolean)
+
+const isReporterOnlyUser = (user) => {
+    const roles = userRoles(user)
+    return roles.length > 0 && roles.every((role) => role.role === ROLE_REPORTER)
+}
+
+const canBlockUser = (user) => isReporterOnlyUser(user) && !user?.blocked_at
+
+const canUnblockUser = (user) => isReporterOnlyUser(user) && !!user?.blocked_at
+
+const statusLabel = (user) => user?.blocked_at ? 'Užblokuotas' : 'Aktyvus'
 
 const formatTermsAcceptance = (user) => formatDateTimeLt(user?.terms_accepted_at, '-')
 
@@ -86,6 +103,16 @@ const openEdit = (u) => {
 const openDelete = (u) => {
     deleteTarget.value = { id: u.id, name: u.name, email: u.email }
     isDeleteOpen.value = true
+}
+
+const openBlock = (u) => {
+    blockTarget.value = { id: u.id, name: displayUserName(u) || u.name, email: u.email }
+    isBlockOpen.value = true
+}
+
+const openUnblock = (u) => {
+    unblockTarget.value = { id: u.id, name: displayUserName(u) || u.name, email: u.email }
+    isUnblockOpen.value = true
 }
 
 const openAssignRoles = (u) => {
@@ -251,6 +278,30 @@ const deleteUser = async () => {
     }
 }
 
+const blockUser = async () => {
+    emit('set-saving', true)
+    try {
+        await axios.post(adminRbacApi.userBlock(blockTarget.value.id))
+        isBlockOpen.value = false
+        emit('show-success', 'Paskyra užblokuota.')
+        emit('refresh')
+    } finally {
+        emit('set-saving', false)
+    }
+}
+
+const unblockUser = async () => {
+    emit('set-saving', true)
+    try {
+        await axios.post(adminRbacApi.userUnblock(unblockTarget.value.id))
+        isUnblockOpen.value = false
+        emit('show-success', 'Paskyra atblokuota.')
+        emit('refresh')
+    } finally {
+        emit('set-saving', false)
+    }
+}
+
 const saveUserRoles = async () => {
     if (!selectedUser.value) return
 
@@ -310,6 +361,11 @@ const saveUserRoles = async () => {
                 <option value="none">Be įstaigos</option>
                 <option v-for="i in (institutions ?? [])" :key="i.id" :value="i.id">{{ i.name }}</option>
             </select>
+            <select v-model="filters.blocked" class="input filter-select">
+                <option value="">Visi</option>
+                <option value="0">Aktyvūs</option>
+                <option value="1">Užblokuoti</option>
+            </select>
             <button v-if="hasActiveFilters" type="button" class="link-btn" @click="clearFilters">
                 Išvalyti filtrus
             </button>
@@ -325,6 +381,7 @@ const saveUserRoles = async () => {
                     <th>Rolės</th>
                     <th>Taisyklių sutikimas</th>
                     <th>Versija</th>
+                    <th>Būsena</th>
                     <th>Veiksmai</th>
                 </tr>
             </thead>
@@ -342,7 +399,12 @@ const saveUserRoles = async () => {
                     </td>
                     <td>{{ formatTermsAcceptance(u) }}</td>
                     <td>{{ formatTermsVersion(u) }}</td>
-                    <td class="actions"><span class="actions-row"><button type="button" class="link-btn" @click="openAssignRoles(u)">Rolės</button><button type="button" class="link-btn" @click="openEdit(u)">Redaguoti</button><button type="button" class="link-btn danger" @click="openDelete(u)">Trinti</button></span></td>
+                    <td>
+                        <span class="pill" :class="{ 'pill-danger': u.blocked_at }">
+                            {{ statusLabel(u) }}
+                        </span>
+                    </td>
+                    <td class="actions"><span class="actions-row"><button type="button" class="link-btn" @click="openAssignRoles(u)">Rolės</button><button type="button" class="link-btn" @click="openEdit(u)">Redaguoti</button><button v-if="canBlockUser(u)" type="button" class="link-btn danger" @click="openBlock(u)">Blokuoti</button><button v-if="canUnblockUser(u)" type="button" class="link-btn" @click="openUnblock(u)">Atblokuoti</button><button type="button" class="link-btn danger" @click="openDelete(u)">Trinti</button></span></td>
                 </tr>
             </tbody>
         </table>
@@ -526,6 +588,28 @@ const saveUserRoles = async () => {
             @close="isDeleteOpen = false"
             @confirm="deleteUser"
         />
+
+        <ConfirmModal
+            :open="isBlockOpen"
+            title="Blokuoti paskyrą"
+            :message="`Ar tikrai norite užblokuoti ${blockTarget.name} (${blockTarget.email})? Naudotojas bus atjungtas ir nebegalės prisijungti.`"
+            confirm-text="Blokuoti"
+            cancel-text="Atšaukti"
+            :loading="saving"
+            @close="isBlockOpen = false"
+            @confirm="blockUser"
+        />
+
+        <ConfirmModal
+            :open="isUnblockOpen"
+            title="Atblokuoti paskyrą"
+            :message="`Ar tikrai norite atblokuoti ${unblockTarget.name} (${unblockTarget.email})?`"
+            confirm-text="Atblokuoti"
+            cancel-text="Atšaukti"
+            :loading="saving"
+            @close="isUnblockOpen = false"
+            @confirm="unblockUser"
+        />
     </div>
 </template>
 
@@ -550,5 +634,10 @@ const saveUserRoles = async () => {
 
 .error {
     white-space: pre-line;
+}
+
+.pill-danger {
+    background: #fff0f0;
+    color: #8b1e1e;
 }
 </style>

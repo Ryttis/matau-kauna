@@ -28,7 +28,7 @@ const twoFactorGlobalRequired = ref(true)
 const roles = ref([])
 const institutions = ref([])
 const permissions = ref([])
-const userFilters = ref({ search: '', role_id: '', institution_id: '' })
+const userFilters = ref({ search: '', role_id: '', institution_id: '', blocked: '' })
 
 const clearError = () => {
     errorMessage.value = ''
@@ -39,6 +39,7 @@ const loadUsers = async () => {
     if (userFilters.value.search) params.search = userFilters.value.search
     if (userFilters.value.role_id) params.role_id = userFilters.value.role_id
     if (userFilters.value.institution_id) params.institution_id = userFilters.value.institution_id
+    if (userFilters.value.blocked !== '') params.blocked = userFilters.value.blocked
     const { data } = await axios.get(adminRbacApi.users, { params })
     usersPage.value = data
 }

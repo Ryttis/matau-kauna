@@ -13,6 +13,7 @@ use App\Notifications\PushNotification;
 use App\Services\ActiveRoleService;
 use App\Services\AuditLogService;
 use App\Services\TwoFactorService;
+use App\Services\UserBlockingService;
 use App\Support\TokenExpiration;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -54,6 +55,12 @@ class AuthApiController extends Controller
         if (! $user || ! Hash::check($validated['password'], $user->password)) {
             throw ValidationException::withMessages([
                 'email' => [__('auth.failed', [], 'lt')],
+            ]);
+        }
+
+        if ($user->isBlocked()) {
+            throw ValidationException::withMessages([
+                'email' => [UserBlockingService::BLOCKED_MESSAGE],
             ]);
         }
 
@@ -144,6 +151,12 @@ class AuthApiController extends Controller
             Cache::forget($key);
             throw ValidationException::withMessages([
                 'login_token' => ['Sesija nebegalioja. Prisijunkite iš naujo.'],
+            ]);
+        }
+        if ($user->isBlocked()) {
+            Cache::forget($key);
+            throw ValidationException::withMessages([
+                'login_token' => [UserBlockingService::BLOCKED_MESSAGE],
             ]);
         }
 
@@ -281,6 +294,12 @@ class AuthApiController extends Controller
         if ($existingUser) {
             Cache::forget($cacheKey);
 
+            if ($existingUser->isBlocked()) {
+                throw ValidationException::withMessages([
+                    'viisp_registration_token' => [UserBlockingService::BLOCKED_MESSAGE],
+                ]);
+            }
+
             return $this->authTokenResponse($existingUser, $deviceName, rememberSession: $rememberSession);
         }
 
@@ -334,6 +353,12 @@ class AuthApiController extends Controller
 
     private function authTokenResponse(User $user, string $deviceName, int $status = 200, bool $rememberSession = false): JsonResponse
     {
+        if ($user->isBlocked()) {
+            throw ValidationException::withMessages([
+                'email' => [UserBlockingService::BLOCKED_MESSAGE],
+            ]);
+        }
+
         $tokenExpiresAt = TokenExpiration::nextForRememberSession($rememberSession);
         $token = $user->createToken(
             $deviceName,

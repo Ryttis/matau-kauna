@@ -6,6 +6,8 @@ export const adminRbacApi = {
     roles: `${BASE}/roles`,
     permissions: `${BASE}/permissions`,
     user: (id) => `${BASE}/users/${id}`,
+    userBlock: (id) => `${BASE}/users/${id}/block`,
+    userUnblock: (id) => `${BASE}/users/${id}/unblock`,
     userRoles: (id) => `${BASE}/users/${id}/roles`,
     userTwoFactor: (id) => `${BASE}/users/${id}/two-factor`,
     userTwoFactorResetConfirmation: (id) => `${BASE}/users/${id}/two-factor/reset-confirmation`,

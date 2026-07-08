@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Models\UserRole;
+use App\Services\UserBlockingService;
 use App\Support\TokenExpiration;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -146,6 +147,10 @@ class ViispApiController extends Controller
             $user = $this->syncViispProfile($user, $identity, $email);
         }
 
+        if ($user->isBlocked()) {
+            return $this->callbackError('account_blocked', UserBlockingService::BLOCKED_MESSAGE, 403, $redirectUri);
+        }
+
         return $this->authTokenResponse($user, $deviceName, $rememberSession);
     }
 
@@ -165,6 +170,12 @@ class ViispApiController extends Controller
         $user = User::query()->find((int) $data['user_id']);
         if (! $user) {
             return response()->json(['message' => 'Naudotojas nerastas.'], 404);
+        }
+        if ($user->isBlocked()) {
+            return response()->json([
+                'message' => UserBlockingService::BLOCKED_MESSAGE,
+                'code' => 'account_blocked',
+            ], 403);
         }
 
         $deviceName = $validated['device_name'] ?? 'mobile';
@@ -273,6 +284,13 @@ class ViispApiController extends Controller
 
     private function authTokenResponse(User $user, string $deviceName, bool $rememberSession): JsonResponse
     {
+        if ($user->isBlocked()) {
+            return response()->json([
+                'message' => UserBlockingService::BLOCKED_MESSAGE,
+                'code' => 'account_blocked',
+            ], 403);
+        }
+
         $tokenExpiresAt = TokenExpiration::nextForRememberSession($rememberSession);
         $token = $user->createToken(
             $deviceName,

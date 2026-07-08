@@ -44,7 +44,7 @@ Route::get('/statistika/duomenys', [\App\Http\Controllers\PublicStatisticsContro
 Route::get('/reports', [GuestProblemController::class, 'publicMap'])->name('reports');
 Route::get('/reports/{problem}', [GuestProblemController::class, 'publicShow'])->name('reports.show');
 
-Route::middleware(['auth', 'verified', 'reporter.terms'])->group(function () {
+Route::middleware(['auth', 'not_blocked', 'verified', 'reporter.terms'])->group(function () {
     Route::get('/reporter/terms', [\App\Http\Controllers\Auth\ReporterTermsController::class, 'show'])
         ->name('reporter.terms');
     Route::post('/reporter/terms', [\App\Http\Controllers\Auth\ReporterTermsController::class, 'store'])
@@ -150,6 +150,8 @@ Route::middleware(['auth', 'verified', 'reporter.terms'])->group(function () {
             Route::post('/rbac/users', [RbacUserController::class, 'createUser']);
             Route::put('/rbac/users/{user}', [RbacUserController::class, 'updateUser']);
             Route::delete('/rbac/users/{user}', [RbacUserController::class, 'deleteUser']);
+            Route::post('/rbac/users/{user}/block', [RbacUserController::class, 'blockUser']);
+            Route::post('/rbac/users/{user}/unblock', [RbacUserController::class, 'unblockUser']);
             Route::post('/rbac/users/{user}/roles', [RbacUserController::class, 'syncUserRoles']);
             Route::get('/rbac/users-2fa', [RbacUserController::class, 'usersTwoFactor']);
             Route::post('/rbac/users/{user}/two-factor', [RbacUserController::class, 'updateUserTwoFactor']);

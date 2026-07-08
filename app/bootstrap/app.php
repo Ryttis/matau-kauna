@@ -30,6 +30,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'admin' => \App\Http\Middleware\AdminMiddleware::class,
             'automation' => \App\Http\Middleware\EnsureAutomationAccess::class,
             'permission' => \App\Http\Middleware\EnsurePermission::class,
+            'not_blocked' => \App\Http\Middleware\EnsureUserNotBlocked::class,
             'reporter.terms' => \App\Http\Middleware\EnsureReporterAcceptedTerms::class,
             'verified' => \Illuminate\Auth\Middleware\EnsureEmailIsVerified::class,
         ]);

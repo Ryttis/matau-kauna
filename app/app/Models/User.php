@@ -47,6 +47,10 @@ class User extends Authenticatable implements MustVerifyEmail
         'reporter_wizard_completed_at',
         'reporter_report_terms_accepted_at',
         'archived_at',
+        'blocked_at',
+        'blocked_by',
+        'unblocked_at',
+        'unblocked_by',
         'last_login_at',
         'inactive_reporter_reminder_sent_at',
         'reporter_email_own_problems',
@@ -75,6 +79,8 @@ class User extends Authenticatable implements MustVerifyEmail
             'email_notifications_enabled' => 'boolean',
             'email_updates_institution_admin' => 'boolean',
             'archived_at' => 'datetime',
+            'blocked_at' => 'datetime',
+            'unblocked_at' => 'datetime',
             'last_login_at' => 'datetime',
             'inactive_reporter_reminder_sent_at' => 'datetime',
             'reporter_email_own_problems' => 'boolean',
@@ -131,6 +137,16 @@ class User extends Authenticatable implements MustVerifyEmail
     public function acceptedTermsVersion(): BelongsTo
     {
         return $this->belongsTo(ContentVersion::class, 'terms_accepted_version_id');
+    }
+
+    public function blockedBy(): BelongsTo
+    {
+        return $this->belongsTo(self::class, 'blocked_by');
+    }
+
+    public function unblockedBy(): BelongsTo
+    {
+        return $this->belongsTo(self::class, 'unblocked_by');
     }
 
     public function watchedProblems(): BelongsToMany
@@ -299,8 +315,13 @@ class User extends Authenticatable implements MustVerifyEmail
 
     public function isReporterOnly(): bool
     {
-        return $this->hasAssignedRole(UserRole::ROLE_REPORTER)
-            && ! $this->hasPermission('issues.view');
+        if ($this->relationLoaded('roles')) {
+            return $this->roles->contains('role', UserRole::ROLE_REPORTER)
+                && ! $this->roles->contains(fn (UserRole $role) => in_array($role->role, UserRole::staffRoles(), true));
+        }
+
+        return $this->roles()->where('role', UserRole::ROLE_REPORTER)->exists()
+            && ! $this->roles()->whereIn('role', UserRole::staffRoles())->exists();
     }
 
     public function canAuthenticateWithEmailPassword(): bool
@@ -310,6 +331,11 @@ class User extends Authenticatable implements MustVerifyEmail
         }
 
         return $this->viisp_local_password_set_at !== null;
+    }
+
+    public function isBlocked(): bool
+    {
+        return $this->blocked_at !== null;
     }
 
     public function canRequestPasswordResetLink(): bool

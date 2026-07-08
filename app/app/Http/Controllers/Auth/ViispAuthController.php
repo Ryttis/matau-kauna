@@ -11,6 +11,7 @@ use App\Models\User;
 use App\Models\UserRole;
 use App\Services\ActiveRoleService;
 use App\Services\AuditLogService;
+use App\Services\UserBlockingService;
 use Illuminate\Http\Client\Response as HttpClientResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -127,6 +128,10 @@ class ViispAuthController extends Controller
             }
         } else {
             $user = $this->syncViispProfile($user, $identity, $email);
+        }
+
+        if ($user->isBlocked()) {
+            return $this->viispLoginError(UserBlockingService::BLOCKED_MESSAGE);
         }
 
         return $this->finalizeViispLogin($request, $user);
@@ -257,6 +262,10 @@ class ViispAuthController extends Controller
 
     private function finalizeViispLogin(Request $request, User $user): RedirectResponse
     {
+        if ($user->isBlocked()) {
+            return $this->viispLoginError(UserBlockingService::BLOCKED_MESSAGE);
+        }
+
         Auth::login($user, false);
         $request->session()->regenerate();
 

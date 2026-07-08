@@ -8,6 +8,7 @@ use App\Models\User;
 use App\Services\ActiveRoleService;
 use App\Services\AuditLogService;
 use App\Services\TwoFactorService;
+use App\Services\UserBlockingService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -28,6 +29,13 @@ class TwoFactorChallengeController extends Controller
         if (! $user) {
             return redirect()->route('login');
         }
+        if ($user->isBlocked()) {
+            $this->clearPending($request);
+
+            return redirect()->route('login')->withErrors([
+                'email' => UserBlockingService::BLOCKED_MESSAGE,
+            ]);
+        }
 
         $showSetup = $user->two_factor_confirmed_at === null;
 
@@ -44,6 +52,13 @@ class TwoFactorChallengeController extends Controller
         $user = $this->pendingUser($request);
         if (! $user) {
             return redirect()->route('login');
+        }
+        if ($user->isBlocked()) {
+            $this->clearPending($request);
+
+            return redirect()->route('login')->withErrors([
+                'email' => UserBlockingService::BLOCKED_MESSAGE,
+            ]);
         }
 
         $data = $request->validate([
@@ -103,12 +118,17 @@ class TwoFactorChallengeController extends Controller
 
         $user = User::query()->find($id);
         if (! $user || ! $this->twoFactorService->requiresChallenge($user)) {
-            $request->session()->forget('two_factor_pending_user_id');
-            $request->session()->forget('two_factor_pending_remember');
+            $this->clearPending($request);
 
             return null;
         }
 
         return $user;
+    }
+
+    private function clearPending(Request $request): void
+    {
+        $request->session()->forget('two_factor_pending_user_id');
+        $request->session()->forget('two_factor_pending_remember');
     }
 }

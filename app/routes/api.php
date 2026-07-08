@@ -30,7 +30,7 @@ Route::get('/content/{type}', [InfoApiController::class, 'content'])
 Route::get('/problems', [ProblemApiController::class, 'index']);
 Route::get('/problems/{problem}', [ProblemApiController::class, 'show']);
 
-Route::middleware(['auth:sanctum', \App\Http\Middleware\ExtendTokenExpiration::class])->group(function () {
+Route::middleware(['auth:sanctum', 'not_blocked', \App\Http\Middleware\ExtendTokenExpiration::class])->group(function () {
     Route::post('/logout', [AuthApiController::class, 'logout']);
     Route::delete('/me', [AuthApiController::class, 'deleteAccount']);
     Route::get('/me', [AuthApiController::class, 'me']);
@@ -62,7 +62,7 @@ Route::middleware(['auth:sanctum', \App\Http\Middleware\ExtendTokenExpiration::c
     });
 });
 
-Route::middleware(['auth:sanctum', \App\Http\Middleware\ExtendTokenExpiration::class, 'verified', \App\Http\Middleware\ApplyActiveRoleContext::class])->prefix('internal')->group(function () {
+Route::middleware(['auth:sanctum', 'not_blocked', \App\Http\Middleware\ExtendTokenExpiration::class, 'verified', \App\Http\Middleware\ApplyActiveRoleContext::class])->prefix('internal')->group(function () {
     Route::middleware('admin')->prefix('two-factor')->group(function () {
         Route::get('/users', [InternalTwoFactorApiController::class, 'index']);
         Route::post('/users/{user}', [InternalTwoFactorApiController::class, 'updateUser']);

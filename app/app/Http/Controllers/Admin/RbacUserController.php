@@ -12,6 +12,7 @@ use App\Models\User;
 use App\Services\AuditLogService;
 use App\Services\RbacService;
 use App\Services\TwoFactorService;
+use App\Services\UserBlockingService;
 use Illuminate\Http\Request;
 
 class RbacUserController extends Controller
@@ -20,13 +21,14 @@ class RbacUserController extends Controller
         private AuditLogService $auditLogService,
         private RbacService $rbacService,
         private TwoFactorService $twoFactorService,
+        private UserBlockingService $userBlockingService,
     ) {}
 
     public function users(Request $request)
     {
         $query = User::query()
             ->notArchived()
-            ->select(['id', 'name', 'surname', 'email', 'institution_id', 'two_factor_enabled', 'terms_accepted_at', 'terms_accepted_version_id'])
+            ->select(['id', 'name', 'surname', 'email', 'institution_id', 'two_factor_enabled', 'terms_accepted_at', 'terms_accepted_version_id', 'blocked_at', 'blocked_by', 'unblocked_at', 'unblocked_by'])
             ->with([
                 'roles:id,role,name',
                 'institution:id,name',
@@ -54,6 +56,13 @@ class RbacUserController extends Controller
             $query->whereNull('institution_id');
         } elseif ($institutionId !== null && $institutionId !== '') {
             $query->where('institution_id', $institutionId);
+        }
+
+        $blocked = $request->query('blocked');
+        if ($blocked === '1') {
+            $query->whereNotNull('blocked_at');
+        } elseif ($blocked === '0') {
+            $query->whereNull('blocked_at');
         }
 
         return $query
@@ -266,6 +275,32 @@ class RbacUserController extends Controller
             return response()->noContent();
         } catch (\Throwable $e) {
             $this->auditLogService->logUserAction($request->user(), 'rbac.user.archive', 'User', $user->id, AuditLogResult::Error, $e->getMessage());
+            throw $e;
+        }
+    }
+
+    public function blockUser(Request $request, User $user)
+    {
+        try {
+            $updated = $this->userBlockingService->block($user, $request->user());
+            $this->auditLogService->logUserAction($request->user(), 'rbac.user.block', 'User', $user->id, AuditLogResult::Success, null, ['user_id' => $user->id]);
+
+            return $updated;
+        } catch (\Throwable $e) {
+            $this->auditLogService->logUserAction($request->user(), 'rbac.user.block', 'User', $user->id, AuditLogResult::Error, $e->getMessage(), ['user_id' => $user->id]);
+            throw $e;
+        }
+    }
+
+    public function unblockUser(Request $request, User $user)
+    {
+        try {
+            $updated = $this->userBlockingService->unblock($user, $request->user());
+            $this->auditLogService->logUserAction($request->user(), 'rbac.user.unblock', 'User', $user->id, AuditLogResult::Success, null, ['user_id' => $user->id]);
+
+            return $updated;
+        } catch (\Throwable $e) {
+            $this->auditLogService->logUserAction($request->user(), 'rbac.user.unblock', 'User', $user->id, AuditLogResult::Error, $e->getMessage(), ['user_id' => $user->id]);
             throw $e;
         }
     }

@@ -4,6 +4,7 @@ namespace App\Http\Requests\Auth;
 
 use App\Enums\UserRoleEnum;
 use App\Models\User;
+use App\Services\UserBlockingService;
 use Illuminate\Auth\Events\Lockout;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\Facades\Auth;
@@ -61,6 +62,15 @@ class LoginRequest extends FormRequest
         }
 
         $user = Auth::user();
+        if ($user->isBlocked()) {
+            Auth::logout();
+            RateLimiter::hit($this->throttleKey());
+
+            throw ValidationException::withMessages([
+                'email' => UserBlockingService::BLOCKED_MESSAGE,
+            ]);
+        }
+
         $loginType = $this->string('login_type')->toString();
 
         $hasStaffRole = collect(UserRoleEnum::staffValues())->contains(fn ($role) => $user->hasAssignedRole($role));
