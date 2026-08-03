@@ -5,9 +5,11 @@ namespace App\Http\Controllers;
 use App\Enums\ProblemStatus;
 use App\Models\Institution;
 use App\Models\Problem;
+use App\Models\User;
 use App\Services\ProblemAssignmentNotifier;
 use App\Services\ProblemAutoPublishService;
 use App\Services\ProblemHttpSupport;
+use App\Services\ProblemMergeGroupSyncService;
 use App\Services\ProblemReporterStatusNotifier;
 use App\Services\ProblemResolutionTermService;
 use App\Services\ProblemReviewHistoryService;
@@ -26,6 +28,7 @@ class ProblemAdminAssignController extends Controller
         private ProblemReporterStatusNotifier $reporterStatusNotifier,
         private ProblemReviewHistoryService $reviewHistoryService,
         private ProblemAutoPublishService $autoPublishService,
+        private ProblemMergeGroupSyncService $mergeGroupSyncService,
     ) {}
 
     public function assign(Request $request): Response|RedirectResponse
@@ -73,24 +76,28 @@ class ProblemAdminAssignController extends Controller
             'status' => ['nullable', 'string', 'in:'.$statusesAllowedOnAssign],
         ]);
 
-        $problemsToUpdate = Problem::whereIn('id', $validated['problem_ids'])->get();
-        if ($problemsToUpdate->contains(fn (Problem $problem) => $problem->status === ProblemStatus::RESOLVED->value)) {
+        $submittedIds = array_map('intval', $validated['problem_ids']);
+        if (Problem::query()->whereIn('id', $submittedIds)->where('status', ProblemStatus::RESOLVED->value)->exists()) {
             return redirect()->back()->with('error', 'Išspręstų problemų negalima priskirti.');
         }
 
+        // Įstaiga ir būsena taikomos visai sujungimo grupei, kad apjungtos problemos
+        // paveldėtų sprendžiančią įstaigą (kitaip joms neveikia DVS/GIS perdavimas).
+        $expandedIds = Problem::expandIdsToMergeGroups($submittedIds);
+        $problemsToUpdate = Problem::whereIn('id', $expandedIds)->get();
+
         $newInstitutionId = $validated['institution_id'] ?? null;
         $newStatus = $validated['status'] ?? null;
-        $rootIdsMap = ! empty($newStatus)
-            ? Problem::rootIdsMapFromProblemIds($validated['problem_ids'])
-            : [];
-        $oldByMain = $rootIdsMap !== []
+        $rootIdsMap = Problem::rootIdsMapFromProblemIds($expandedIds);
+        $oldByMain = ! empty($newStatus)
             ? Problem::statusesByRootId($rootIdsMap)
             : [];
 
         $newInstitutionName = $newInstitutionId !== null
             ? Institution::query()->whereKey($newInstitutionId)->value('name')
             : null;
-        $loggedInstitutionRootIds = [];
+
+        $this->logInstitutionChangeForRoots($rootIdsMap, $user, $newInstitutionId, $newInstitutionName);
 
         foreach ($problemsToUpdate as $problem) {
             $attrs = ['institution_id' => $newInstitutionId];
@@ -104,21 +111,6 @@ class ProblemAdminAssignController extends Controller
             if (! empty($newStatus)) {
                 $attrs['status'] = $newStatus;
                 $attrs['status_updated_at'] = now();
-            }
-
-            $rootId = (int) ($problem->merged_into_problem_id ?? $problem->id);
-            if (! isset($loggedInstitutionRootIds[$rootId])
-                && (int) ($problem->institution_id ?? 0) !== (int) ($newInstitutionId ?? 0)
-            ) {
-                $loggedInstitutionRootIds[$rootId] = true;
-                $this->reviewHistoryService->logInternalEventEntry(
-                    $problem,
-                    $user,
-                    ProblemReviewHistoryService::institutionChangeNote(
-                        Institution::query()->whereKey($problem->institution_id)->value('name'),
-                        $newInstitutionName,
-                    ),
-                );
             }
 
             $problem->update($attrs);
@@ -139,14 +131,21 @@ class ProblemAdminAssignController extends Controller
         }
 
         if (! empty($newInstitutionId)) {
-            foreach (Problem::query()->whereIn('id', $validated['problem_ids'])->get() as $p) {
-                $this->resolutionTermService->applyRules($p);
+            // Terminas skaičiuojamas šakninei problemai ir perduodamas grupei,
+            // kad apjungtos problemos negautų skirtingų terminų.
+            foreach (array_keys($rootIdsMap) as $rootId) {
+                $rootProblem = Problem::find($rootId);
+                if (! $rootProblem) {
+                    continue;
+                }
+                $this->resolutionTermService->applyRules($rootProblem);
+                $this->mergeGroupSyncService->syncGroupFromRoot($rootProblem);
             }
-            $this->assignmentNotifier->notifyInstitutionOfAssignment($validated['problem_ids'], (int) $newInstitutionId);
+            $this->assignmentNotifier->notifyInstitutionOfAssignment($submittedIds, (int) $newInstitutionId);
         }
 
         if (! empty($newStatus)) {
-            foreach (Problem::query()->whereIn('id', $validated['problem_ids'])->get() as $p) {
+            foreach (Problem::query()->whereIn('id', $expandedIds)->get() as $p) {
                 $this->autoPublishService->applyRules($p);
             }
         }
@@ -156,6 +155,37 @@ class ProblemAdminAssignController extends Controller
             : 'Problemos priskirtos įstaigai.';
 
         return redirect()->route('dashboard')->with('success', $message);
+    }
+
+    /**
+     * Kiekvienai sujungimo grupei įrašo vieną vidinį žurnalo įrašą apie įstaigos keitimą.
+     *
+     * @param  array<int, bool>  $rootIdsMap
+     */
+    private function logInstitutionChangeForRoots(
+        array $rootIdsMap,
+        User $user,
+        ?int $newInstitutionId,
+        ?string $newInstitutionName,
+    ): void {
+        foreach (array_keys($rootIdsMap) as $rootId) {
+            $rootProblem = Problem::find($rootId);
+            if (! $rootProblem) {
+                continue;
+            }
+            if ((int) ($rootProblem->institution_id ?? 0) === (int) ($newInstitutionId ?? 0)) {
+                continue;
+            }
+
+            $this->reviewHistoryService->logInternalEventEntry(
+                $rootProblem,
+                $user,
+                ProblemReviewHistoryService::institutionChangeNote(
+                    Institution::query()->whereKey($rootProblem->institution_id)->value('name'),
+                    $newInstitutionName,
+                ),
+            );
+        }
     }
 
     public function sendAssignEmail(Request $request): RedirectResponse

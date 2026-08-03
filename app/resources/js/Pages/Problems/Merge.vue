@@ -331,6 +331,13 @@ function mergeProblemStatusStyle(problem) {
                                                 <span class="merge-problem-text">
                                                     {{ mergeProblemLabel(row.problem) }}
                                                 </span>
+                                                <span
+                                                    v-if="row.isInMergedGroup"
+                                                    class="merge-problem-root-chip"
+                                                    title="Apjungus ši problema liks grupės pagrindine problema"
+                                                >
+                                                    grupės pagrindinė problema
+                                                </span>
                                             </span>
                                             <span class="merge-problem-meta">
                                                 <span class="merge-problem-category-chip">{{ mergeProblemCategory(row.problem) }}</span>

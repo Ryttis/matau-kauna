@@ -17,6 +17,7 @@ use App\Services\ProblemAutoPublishService;
 use App\Services\ProblemDashboardQueryService;
 use App\Services\ProblemHttpSupport;
 use App\Services\ProblemInstitutionAssignmentPickerService;
+use App\Services\ProblemMergeGroupSyncService;
 use App\Services\ProblemReporterStatusNotifier;
 use App\Services\ProblemResolutionTermService;
 use App\Services\ProblemReviewHistoryService;
@@ -24,6 +25,7 @@ use App\Services\ProblemScopeService;
 use App\Services\ReporterFileUploadService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
 
 class InternalProblemApiController extends Controller
@@ -40,6 +42,7 @@ class InternalProblemApiController extends Controller
         private ProblemReporterStatusNotifier $reporterStatusNotifier,
         private ProblemAutoAssignmentService $autoAssignmentService,
         private ProblemAutoPublishService $autoPublishService,
+        private ProblemMergeGroupSyncService $mergeGroupSyncService,
     ) {}
 
     public function institutionsForAssign(Request $request): JsonResponse
@@ -603,46 +606,78 @@ class InternalProblemApiController extends Controller
             'problem_ids.*' => 'required|integer|exists:problems,id',
         ]);
 
-        $ids = array_values(array_filter(
+        $selectedIds = array_values(array_filter(
             array_unique(array_map('intval', $validated['problem_ids'])),
             fn (int $id) => $id !== (int) $problem->id
         ));
 
-        $idsToMerge = [];
-        $collectDescendants = function (int $problemId) use (&$collectDescendants, &$idsToMerge): void {
-            $idsToMerge[$problemId] = true;
-            $sub = Problem::query()->where('id', $problemId)->with('mergedProblems')->first();
-            if (! $sub) {
-                return;
-            }
-            foreach ($sub->mergedProblems as $m) {
-                $collectDescendants((int) $m->id);
-            }
-        };
-        foreach ($ids as $id) {
-            $collectDescendants($id);
-        }
-        $idsToMerge = array_keys($idsToMerge);
-
-        if (count($idsToMerge) === 0) {
+        if ($selectedIds === []) {
             return response()->json(['ok' => true, 'message' => 'Nėra ką apjungti.', 'problem_ids' => []]);
         }
 
-        if (Problem::query()->whereIn('id', $idsToMerge)->where('is_archived', true)->exists()) {
+        $groupIds = $this->collectMergeGroupIds(array_merge([(int) $problem->id], $selectedIds));
+
+        if (Problem::query()->whereIn('id', $groupIds)->where('is_archived', true)->exists()) {
             return response()->json(['message' => 'Negalima apjungti archyvuotų problemų.'], 422);
         }
 
-        $query = Problem::query()->whereIn('id', $idsToMerge);
-        $this->scopeService->scopeProblemsForUser($query, $user);
-        $this->scopeService->ensureScopeMatchesCount($query, count($idsToMerge));
-        $query->update(['merged_into_problem_id' => $problem->id]);
+        if (Problem::query()->whereIn('id', $groupIds)->where('status', ProblemStatus::RESOLVED->value)->exists()) {
+            return response()->json(['message' => 'Negalima apjungti išspręstų problemų.'], 422);
+        }
+
+        $scopeQuery = Problem::query()->whereIn('id', $groupIds);
+        $this->scopeService->scopeProblemsForUser($scopeQuery, $user);
+        $this->scopeService->ensureScopeMatchesCount($scopeQuery, count($groupIds));
+
+        $rootId = $this->mergeGroupSyncService->resolveMergeRootId($problem, $selectedIds);
+
+        DB::transaction(function () use ($groupIds, $rootId) {
+            Problem::query()
+                ->whereIn('id', $groupIds)
+                ->where('id', '!=', $rootId)
+                ->update(['merged_into_problem_id' => $rootId]);
+
+            Problem::query()
+                ->where('id', $rootId)
+                ->whereNotNull('merged_into_problem_id')
+                ->update(['merged_into_problem_id' => null]);
+
+            $this->mergeGroupSyncService->syncGroupFromRoot(Problem::query()->findOrFail($rootId));
+        });
 
         return response()->json([
             'ok' => true,
             'message' => 'Problemos apjungtos.',
-            'root_problem_id' => $problem->id,
-            'merged_problem_ids' => $idsToMerge,
+            'root_problem_id' => $rootId,
+            'merged_problem_ids' => array_values(array_filter($groupIds, fn (int $id) => $id !== $rootId)),
         ]);
+    }
+
+    /**
+     * @param  array<int, int>  $ids
+     * @return array<int, int>
+     */
+    private function collectMergeGroupIds(array $ids): array
+    {
+        $collected = [];
+        $collectDescendants = function (int $problemId) use (&$collectDescendants, &$collected): void {
+            if (isset($collected[$problemId])) {
+                return;
+            }
+            $collected[$problemId] = true;
+            $childIds = Problem::query()
+                ->where('merged_into_problem_id', $problemId)
+                ->pluck('id');
+            foreach ($childIds as $childId) {
+                $collectDescendants((int) $childId);
+            }
+        };
+
+        foreach ($ids as $id) {
+            $collectDescendants((int) $id);
+        }
+
+        return array_keys($collected);
     }
 
     public function unmerge(Request $request, Problem $problem): JsonResponse
@@ -677,24 +712,28 @@ class InternalProblemApiController extends Controller
             'status' => ['nullable', 'string', 'in:'.$statusesAllowedOnAssign],
         ]);
 
-        $problemsToUpdate = Problem::query()->whereIn('id', $validated['problem_ids'])->get();
-        if ($problemsToUpdate->contains(fn (Problem $p) => $p->status === ProblemStatus::RESOLVED->value)) {
+        $submittedIds = array_map('intval', $validated['problem_ids']);
+        if (Problem::query()->whereIn('id', $submittedIds)->where('status', ProblemStatus::RESOLVED->value)->exists()) {
             return response()->json(['message' => 'Išspręstų problemų negalima priskirti.'], 422);
         }
 
+        // Įstaiga ir būsena taikomos visai sujungimo grupei, kad apjungtos problemos
+        // paveldėtų sprendžiančią įstaigą (kitaip joms neveikia DVS/GIS perdavimas).
+        $expandedIds = Problem::expandIdsToMergeGroups($submittedIds);
+        $problemsToUpdate = Problem::query()->whereIn('id', $expandedIds)->get();
+
         $newInstitutionId = $validated['institution_id'] ?? null;
         $newStatus = $validated['status'] ?? null;
-        $rootIdsMap = ! empty($newStatus)
-            ? Problem::rootIdsMapFromProblemIds($validated['problem_ids'])
-            : [];
-        $oldByMain = $rootIdsMap !== []
+        $rootIdsMap = Problem::rootIdsMapFromProblemIds($expandedIds);
+        $oldByMain = ! empty($newStatus)
             ? Problem::statusesByRootId($rootIdsMap)
             : [];
 
         $newInstitutionName = $newInstitutionId !== null
             ? Institution::query()->whereKey($newInstitutionId)->value('name')
             : null;
-        $loggedInstitutionRootIds = [];
+
+        $this->logInstitutionChangeForRoots($rootIdsMap, $user, $newInstitutionId, $newInstitutionName);
 
         foreach ($problemsToUpdate as $problem) {
             $attrs = ['institution_id' => $newInstitutionId];
@@ -708,21 +747,6 @@ class InternalProblemApiController extends Controller
             if (! empty($newStatus)) {
                 $attrs['status'] = $newStatus;
                 $attrs['status_updated_at'] = now();
-            }
-
-            $rootId = (int) ($problem->merged_into_problem_id ?? $problem->id);
-            if (! isset($loggedInstitutionRootIds[$rootId])
-                && (int) ($problem->institution_id ?? 0) !== (int) ($newInstitutionId ?? 0)
-            ) {
-                $loggedInstitutionRootIds[$rootId] = true;
-                $this->reviewHistoryService->logInternalEventEntry(
-                    $problem,
-                    $user,
-                    ProblemReviewHistoryService::institutionChangeNote(
-                        Institution::query()->whereKey($problem->institution_id)->value('name'),
-                        $newInstitutionName,
-                    ),
-                );
             }
 
             $problem->update($attrs);
@@ -743,14 +767,21 @@ class InternalProblemApiController extends Controller
         }
 
         if (! empty($newInstitutionId)) {
-            foreach (Problem::query()->whereIn('id', $validated['problem_ids'])->get() as $p) {
-                $this->resolutionTermService->applyRules($p);
+            // Terminas skaičiuojamas šakninei problemai ir perduodamas grupei,
+            // kad apjungtos problemos negautų skirtingų terminų.
+            foreach (array_keys($rootIdsMap) as $rootId) {
+                $rootProblem = Problem::find($rootId);
+                if (! $rootProblem) {
+                    continue;
+                }
+                $this->resolutionTermService->applyRules($rootProblem);
+                $this->mergeGroupSyncService->syncGroupFromRoot($rootProblem);
             }
-            $this->assignmentNotifier->notifyInstitutionOfAssignment($validated['problem_ids'], (int) $newInstitutionId);
+            $this->assignmentNotifier->notifyInstitutionOfAssignment($submittedIds, (int) $newInstitutionId);
         }
 
         if (! empty($newStatus)) {
-            foreach (Problem::query()->whereIn('id', $validated['problem_ids'])->get() as $p) {
+            foreach (Problem::query()->whereIn('id', $expandedIds)->get() as $p) {
                 $this->autoPublishService->applyRules($p);
             }
         }
@@ -758,8 +789,52 @@ class InternalProblemApiController extends Controller
         return response()->json([
             'ok' => true,
             'message' => empty($newInstitutionId) ? 'Problemos atšauktos nuo įstaigos.' : 'Problemos priskirtos įstaigai.',
-            'problem_ids' => array_values(array_map('intval', $validated['problem_ids'])),
+            'problem_ids' => $expandedIds,
         ]);
+    }
+
+    /**
+     * Būsena ir atlikimo terminas galioja visai sujungimo grupei; konkretus
+     * darbuotojas/komanda lieka priskirti tik tai problemai, kurioje priskirta.
+     */
+    private function applyAssignmentToMergeGroup(Problem $problem, ?string $deadline): void
+    {
+        Problem::query()->whereIn('id', $problem->getMergeGroupIds())->update([
+            'completion_deadline' => $deadline,
+            'status' => ProblemStatus::ASSIGNED->value,
+            'status_updated_at' => now(),
+        ]);
+
+        $problem->refresh();
+    }
+
+    /**
+     * @param  array<int, bool>  $rootIdsMap
+     */
+    private function logInstitutionChangeForRoots(
+        array $rootIdsMap,
+        User $user,
+        ?int $newInstitutionId,
+        ?string $newInstitutionName,
+    ): void {
+        foreach (array_keys($rootIdsMap) as $rootId) {
+            $rootProblem = Problem::find($rootId);
+            if (! $rootProblem) {
+                continue;
+            }
+            if ((int) ($rootProblem->institution_id ?? 0) === (int) ($newInstitutionId ?? 0)) {
+                continue;
+            }
+
+            $this->reviewHistoryService->logInternalEventEntry(
+                $rootProblem,
+                $user,
+                ProblemReviewHistoryService::institutionChangeNote(
+                    Institution::query()->whereKey($rootProblem->institution_id)->value('name'),
+                    $newInstitutionName,
+                ),
+            );
+        }
     }
 
     public function assignInstitutionOptions(Request $request, Problem $problem): JsonResponse
@@ -872,9 +947,8 @@ class InternalProblemApiController extends Controller
             $problem->update([
                 'assigned_employee_id' => $employee->id,
                 'assigned_institution_team_id' => null,
-                'completion_deadline' => $deadline,
-                'status' => ProblemStatus::ASSIGNED->value,
             ]);
+            $this->applyAssignmentToMergeGroup($problem, $deadline);
 
             $this->reviewHistoryService->logInternalEventEntry(
                 $problem,
@@ -912,9 +986,8 @@ class InternalProblemApiController extends Controller
         $problem->update([
             'assigned_employee_id' => null,
             'assigned_institution_team_id' => $team->id,
-            'completion_deadline' => $deadline,
-            'status' => ProblemStatus::ASSIGNED->value,
         ]);
+        $this->applyAssignmentToMergeGroup($problem, $deadline);
 
         $this->reviewHistoryService->logInternalEventEntry(
             $problem,
@@ -1007,7 +1080,7 @@ class InternalProblemApiController extends Controller
             ),
         );
 
-        $problem->update([
+        Problem::query()->whereIn('id', $problem->getMergeGroupIds())->update([
             'institution_id' => $validated['institution_id'],
             'assigned_employee_id' => null,
             'assigned_institution_team_id' => null,
@@ -1041,11 +1114,12 @@ class InternalProblemApiController extends Controller
             ProblemReviewHistoryService::INTERNAL_NOTE_RETURNED_TO_ADMIN,
         );
 
-        $problem->update([
+        Problem::query()->whereIn('id', $problem->getMergeGroupIds())->update([
             'institution_id' => null,
             'assigned_employee_id' => null,
             'assigned_institution_team_id' => null,
             'status' => ProblemStatus::RETURNED_FOR_REVIEW->value,
+            'status_updated_at' => now(),
         ]);
 
         return response()->json([

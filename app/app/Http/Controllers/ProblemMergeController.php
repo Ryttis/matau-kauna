@@ -6,9 +6,11 @@ use App\Enums\ProblemStatus;
 use App\Models\ClassifierValue;
 use App\Models\Problem;
 use App\Services\ProblemMapService;
+use App\Services\ProblemMergeGroupSyncService;
 use App\Services\ProblemScopeService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -17,6 +19,7 @@ class ProblemMergeController extends Controller
     public function __construct(
         private ProblemScopeService $scopeService,
         private ProblemMapService $mapService,
+        private ProblemMergeGroupSyncService $mergeGroupSyncService,
     ) {}
 
     public function merge(Request $request, Problem $problem): Response|RedirectResponse
@@ -112,39 +115,91 @@ class ProblemMergeController extends Controller
             'problem_ids.*' => 'required|integer|exists:problems,id',
         ]);
 
-        $ids = array_unique($validated['problem_ids']);
-        $ids = array_values(array_filter($ids, fn ($id) => (int) $id !== (int) $problem->id));
+        $selectedIds = array_values(array_filter(
+            array_unique(array_map('intval', $validated['problem_ids'])),
+            fn (int $id) => $id !== (int) $problem->id
+        ));
 
-        $idsToMerge = [];
-        $collectDescendants = function ($problemId) use (&$collectDescendants, &$idsToMerge) {
-            $idsToMerge[(int) $problemId] = true;
-            $sub = Problem::where('id', $problemId)->with('mergedProblems')->first();
-            if ($sub && $sub->mergedProblems->isNotEmpty()) {
-                foreach ($sub->mergedProblems as $m) {
-                    $collectDescendants($m->id);
-                }
-            }
-        };
-        foreach ($ids as $id) {
-            $collectDescendants($id);
+        if ($selectedIds === []) {
+            return redirect()->back()->with('info', 'Nėra ką apjungti.');
         }
-        $idsToMerge = array_keys($idsToMerge);
 
-        if (Problem::query()->whereIn('id', $idsToMerge)->where('is_archived', true)->exists()) {
+        // Į grupę patenka ir dabartinė problema - ji gali tapti vaiku, jei tarp
+        // pažymėtų problemų yra jau egzistuojanti grupės šaknis.
+        $groupIds = $this->collectGroupIds(array_merge([(int) $problem->id], $selectedIds));
+
+        if (Problem::query()->whereIn('id', $groupIds)->where('is_archived', true)->exists()) {
             return redirect()->back()->with('error', 'Negalima apjungti archyvuotų problemų.');
         }
 
-        if (Problem::query()->whereIn('id', $idsToMerge)->where('status', ProblemStatus::RESOLVED->value)->exists()) {
+        if (Problem::query()->whereIn('id', $groupIds)->where('status', ProblemStatus::RESOLVED->value)->exists()) {
             return redirect()->back()->with('error', 'Negalima apjungti išspręstų problemų.');
         }
 
-        $query = Problem::whereIn('id', $idsToMerge);
-        if ($this->scopeService->isInstitutionScoped($user)) {
-            $query->where('institution_id', $user->institution_id);
-        }
-        $query->update(['merged_into_problem_id' => $problem->id]);
+        $scopeQuery = Problem::query()->whereIn('id', $groupIds);
+        $this->scopeService->scopeProblemsForUser($scopeQuery, $user);
+        $this->scopeService->ensureScopeMatchesCount($scopeQuery, count($groupIds));
 
-        return redirect()->route('problems.show', $problem)->with('success', 'Problemos apjungtos.');
+        $rootId = $this->mergeGroupSyncService->resolveMergeRootId($problem, $selectedIds);
+
+        $root = DB::transaction(function () use ($groupIds, $rootId) {
+            Problem::query()
+                ->whereIn('id', $groupIds)
+                ->where('id', '!=', $rootId)
+                ->update(['merged_into_problem_id' => $rootId]);
+
+            Problem::query()
+                ->where('id', $rootId)
+                ->whereNotNull('merged_into_problem_id')
+                ->update(['merged_into_problem_id' => null]);
+
+            $root = Problem::query()->findOrFail($rootId);
+            $this->mergeGroupSyncService->syncGroupFromRoot($root);
+
+            return $root;
+        });
+
+        return redirect()
+            ->route('problems.show', $root)
+            ->with('success', $this->mergeSuccessMessage($problem, $root));
+    }
+
+    /**
+     * Surenka pateiktas problemas kartu su visais jų palikuonimis.
+     *
+     * @param  array<int, int>  $ids
+     * @return array<int, int>
+     */
+    private function collectGroupIds(array $ids): array
+    {
+        $collected = [];
+        $collectDescendants = function (int $problemId) use (&$collectDescendants, &$collected): void {
+            if (isset($collected[$problemId])) {
+                return;
+            }
+            $collected[$problemId] = true;
+            $childIds = Problem::query()
+                ->where('merged_into_problem_id', $problemId)
+                ->pluck('id');
+            foreach ($childIds as $childId) {
+                $collectDescendants((int) $childId);
+            }
+        };
+
+        foreach ($ids as $id) {
+            $collectDescendants((int) $id);
+        }
+
+        return array_keys($collected);
+    }
+
+    private function mergeSuccessMessage(Problem $current, Problem $root): string
+    {
+        if ((int) $current->id === (int) $root->id) {
+            return 'Problemos apjungtos.';
+        }
+
+        return 'Problemos apjungtos. Pagrindine problema liko '.$root->internal_number.'.';
     }
 
     public function unmerge(Request $request, Problem $problem): RedirectResponse

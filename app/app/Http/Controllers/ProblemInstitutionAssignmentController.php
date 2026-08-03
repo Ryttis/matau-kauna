@@ -139,9 +139,8 @@ class ProblemInstitutionAssignmentController extends Controller
             $problem->update([
                 'assigned_employee_id' => $employee->id,
                 'assigned_institution_team_id' => null,
-                'completion_deadline' => $deadline,
-                'status' => ProblemStatus::ASSIGNED->value,
             ]);
+            $this->applyAssignmentToMergeGroup($problem, $deadline);
 
             $this->reviewHistoryService->logInternalEventEntry(
                 $problem,
@@ -180,9 +179,8 @@ class ProblemInstitutionAssignmentController extends Controller
         $problem->update([
             'assigned_employee_id' => null,
             'assigned_institution_team_id' => $team->id,
-            'completion_deadline' => $deadline,
-            'status' => ProblemStatus::ASSIGNED->value,
         ]);
+        $this->applyAssignmentToMergeGroup($problem, $deadline);
 
         $this->reviewHistoryService->logInternalEventEntry(
             $problem,
@@ -415,11 +413,12 @@ class ProblemInstitutionAssignmentController extends Controller
             ProblemReviewHistoryService::INTERNAL_NOTE_RETURNED_TO_ADMIN,
         );
 
-        $problem->update([
+        Problem::query()->whereIn('id', $problem->getMergeGroupIds())->update([
             'institution_id' => null,
             'assigned_employee_id' => null,
             'assigned_institution_team_id' => null,
             'status' => ProblemStatus::RETURNED_FOR_REVIEW->value,
+            'status_updated_at' => now(),
         ]);
 
         return redirect()->route('dashboard')->with('success', 'Problema grąžinta problemų administratoriui.');
@@ -458,7 +457,7 @@ class ProblemInstitutionAssignmentController extends Controller
             ),
         );
 
-        $problem->update([
+        Problem::query()->whereIn('id', $problem->getMergeGroupIds())->update([
             'institution_id' => $validated['institution_id'],
             'assigned_employee_id' => null,
             'assigned_institution_team_id' => null,
@@ -467,6 +466,21 @@ class ProblemInstitutionAssignmentController extends Controller
         $this->assignmentNotifier->notifyInstitutionOfAssignment([$problem->id], $validated['institution_id']);
 
         return redirect()->route('dashboard')->with('success', 'Problema perduota kitai įstaigai.');
+    }
+
+    /**
+     * Būsena ir atlikimo terminas galioja visai sujungimo grupei; konkretus
+     * darbuotojas/komanda lieka priskirti tik tai problemai, kurioje priskirta.
+     */
+    private function applyAssignmentToMergeGroup(Problem $problem, ?string $deadline): void
+    {
+        Problem::query()->whereIn('id', $problem->getMergeGroupIds())->update([
+            'completion_deadline' => $deadline,
+            'status' => ProblemStatus::ASSIGNED->value,
+            'status_updated_at' => now(),
+        ]);
+
+        $problem->refresh();
     }
 
     private function markProblemInReviewAfterTransfer(Problem $problem, User $user): void
