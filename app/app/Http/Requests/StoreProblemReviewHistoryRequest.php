@@ -72,7 +72,9 @@ class StoreProblemReviewHistoryRequest extends FormRequest
             'status' => $statusRules,
             'comment' => $commentRules,
             'files' => ['nullable', 'array'],
-            'files.*' => ['file', 'mimes:jpg,jpeg,png'],
+            // Formatai tikrinami ReviewEntryFileUploadService pagal administravimo
+            // nustatymus (FileUploadSettings), todėl čia jų neužkoduojame.
+            'files.*' => ['file'],
             'visibility' => $visibilityRules,
         ];
     }
@@ -88,7 +90,6 @@ class StoreProblemReviewHistoryRequest extends FormRequest
             'comment.max' => 'Komentaras per ilgas.',
             'files.array' => 'Netinkami priedai.',
             'files.*.file' => 'Failas per didelis arba nepriimtas.',
-            'files.*.mimes' => 'Leidžiamos tik JPEG arba PNG nuotraukos.',
             'files.*.uploaded' => 'Nepavyko įkelti failo. Patikrinkite failo dydį ir bandykite dar kartą.',
         ];
     }

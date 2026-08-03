@@ -15,6 +15,7 @@ class ReviewEntryFileUploadService
 {
     public function __construct(
         private VideoUploadDurationValidator $videoDurationValidator,
+        private HeicImageConverter $heicImageConverter,
     ) {}
 
     public function validateAndStore(Problem $problem, ProblemReviewHistory $entry, array $files, string $channel): array
@@ -159,6 +160,33 @@ class ReviewEntryFileUploadService
         $absolutePath = $absoluteDir.'/'.$name;
 
         $file->move($absoluteDir, $name);
+
+        if ($this->heicImageConverter->needsConversion($mime, $safeExt)) {
+            $jpegName = $this->heicImageConverter->jpegFileName($name);
+
+            try {
+                $sizeBytes = $this->heicImageConverter->convertToJpeg(
+                    $absoluteDir.'/'.$name,
+                    $absoluteDir.'/'.$jpegName,
+                );
+            } catch (\Throwable $e) {
+                report($e);
+                if (File::exists($absolutePath)) {
+                    File::delete($absolutePath);
+                }
+
+                throw ValidationException::withMessages([
+                    'files' => 'Nepavyko apdoroti HEIC nuotraukos. Bandykite įkelti JPEG formatu.',
+                ]);
+            }
+
+            $name = $jpegName;
+            $mime = HeicImageConverter::JPEG_MIME;
+            $absolutePath = $absoluteDir.'/'.$name;
+            if ($originalName !== null) {
+                $originalName = $this->heicImageConverter->jpegFileName($originalName);
+            }
+        }
 
         $relativePath = $relativeDir.'/'.$name;
 

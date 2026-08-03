@@ -14,6 +14,7 @@ class ReporterFileUploadService
 {
     public function __construct(
         private VideoUploadDurationValidator $videoDurationValidator,
+        private HeicImageConverter $heicImageConverter,
     ) {}
 
     public function validateForChannel(array $files, string $channel, bool $photosOnly = false): void
@@ -203,6 +204,15 @@ class ReporterFileUploadService
             ]);
         }
 
+        if ($this->heicImageConverter->needsConversion($mime, $safeExt)) {
+            [$name, $mime, $sizeBytes, $originalName] = $this->convertHeicToJpeg(
+                $absoluteDir,
+                $name,
+                $originalName,
+            );
+            $absolutePath = $absoluteDir.'/'.$name;
+        }
+
         $relativePath = $relativeDir.'/'.$name;
 
         try {
@@ -221,5 +231,36 @@ class ReporterFileUploadService
 
             throw $e;
         }
+    }
+
+    /**
+     * @return array{0:string,1:string,2:int,3:?string} [failo vardas, mime, dydis, originalus vardas]
+     */
+    private function convertHeicToJpeg(string $absoluteDir, string $name, ?string $originalName): array
+    {
+        $jpegName = $this->heicImageConverter->jpegFileName($name);
+
+        try {
+            $sizeBytes = $this->heicImageConverter->convertToJpeg(
+                $absoluteDir.'/'.$name,
+                $absoluteDir.'/'.$jpegName,
+            );
+        } catch (\Throwable $e) {
+            report($e);
+            if (File::exists($absoluteDir.'/'.$name)) {
+                File::delete($absoluteDir.'/'.$name);
+            }
+
+            throw ValidationException::withMessages([
+                'files' => 'Nepavyko apdoroti HEIC nuotraukos. Bandykite įkelti JPEG formatu.',
+            ]);
+        }
+
+        return [
+            $jpegName,
+            HeicImageConverter::JPEG_MIME,
+            $sizeBytes,
+            $originalName !== null ? $this->heicImageConverter->jpegFileName($originalName) : null,
+        ];
     }
 }
