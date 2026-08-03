@@ -1,6 +1,6 @@
 <?php
 
-$mailBrandName = env('MAIL_BRAND_NAME', 'Matau Kauną');
+$mailBrandName = env('MAIL_BRAND_NAME', 'Matau Kaune');
 $mailFromNameRaw = env('MAIL_FROM_NAME');
 $mailFromName = $mailBrandName;
 if ($mailFromNameRaw !== null && $mailFromNameRaw !== '' && strcasecmp(trim((string) $mailFromNameRaw), 'Laravel') !== 0) {
