@@ -87,6 +87,11 @@ class ProblemAdminAssignController extends Controller
             ? Problem::statusesByRootId($rootIdsMap)
             : [];
 
+        $newInstitutionName = $newInstitutionId !== null
+            ? Institution::query()->whereKey($newInstitutionId)->value('name')
+            : null;
+        $loggedInstitutionRootIds = [];
+
         foreach ($problemsToUpdate as $problem) {
             $attrs = ['institution_id' => $newInstitutionId];
             if ($newInstitutionId === null) {
@@ -100,13 +105,32 @@ class ProblemAdminAssignController extends Controller
                 $attrs['status'] = $newStatus;
                 $attrs['status_updated_at'] = now();
             }
+
+            $rootId = (int) ($problem->merged_into_problem_id ?? $problem->id);
+            if (! isset($loggedInstitutionRootIds[$rootId])
+                && (int) ($problem->institution_id ?? 0) !== (int) ($newInstitutionId ?? 0)
+            ) {
+                $loggedInstitutionRootIds[$rootId] = true;
+                $this->reviewHistoryService->logInternalEventEntry(
+                    $problem,
+                    $user,
+                    ProblemReviewHistoryService::institutionChangeNote(
+                        Institution::query()->whereKey($problem->institution_id)->value('name'),
+                        $newInstitutionName,
+                    ),
+                );
+            }
+
             $problem->update($attrs);
         }
 
         if (! empty($newStatus)) {
             $this->reporterStatusNotifier->notifyRootsAfterStatusChange($oldByMain, $newStatus);
 
-            foreach (array_keys($rootIdsMap) as $rootId) {
+            foreach ($oldByMain as $rootId => $oldStatus) {
+                if ($oldStatus === null || $oldStatus === $newStatus) {
+                    continue;
+                }
                 $rootProblem = Problem::find($rootId);
                 if ($rootProblem) {
                     $this->reviewHistoryService->logStatusChangeEntry($rootProblem, $user, $newStatus);
@@ -161,6 +185,26 @@ class ProblemAdminAssignController extends Controller
 
         if ($problems->contains(fn (Problem $problem) => $problem->status === ProblemStatus::RESOLVED->value)) {
             return redirect()->back()->with('error', 'Išspręstų problemų negalima priskirti.');
+        }
+
+        $loggedRootIds = [];
+        foreach ($problems as $problem) {
+            $rootId = (int) ($problem->merged_into_problem_id ?? $problem->id);
+            if (isset($loggedRootIds[$rootId])) {
+                continue;
+            }
+            if ((int) ($problem->institution_id ?? 0) === (int) $institution->id) {
+                continue;
+            }
+            $loggedRootIds[$rootId] = true;
+            $this->reviewHistoryService->logInternalEventEntry(
+                $problem,
+                $user,
+                ProblemReviewHistoryService::institutionChangeNote(
+                    Institution::query()->whereKey($problem->institution_id)->value('name'),
+                    $institution->name,
+                ),
+            );
         }
 
         Problem::whereIn('id', $expandedIds)->update([

@@ -23,6 +23,7 @@ class DvsProblemTransferService
     public function __construct(
         private ProblemReporterStatusNotifier $reporterStatusNotifier,
         private IntegrationAuditService $integrationAuditService,
+        private ProblemReviewHistoryService $reviewHistoryService,
     ) {}
 
     public function transferProblem(Problem $problem, array $auditContext = []): array
@@ -250,6 +251,14 @@ class DvsProblemTransferService
                     $main,
                     $oldStatus,
                     $newStatus
+                );
+
+                $actor = $this->auditActor($auditContext);
+                $this->reviewHistoryService->logStatusChangeEntry(
+                    $main,
+                    $actor,
+                    $newStatus,
+                    $actor === null ? ProblemReviewHistoryService::SYSTEM_RESPONSIBLE_DVS : null,
                 );
             }
         }

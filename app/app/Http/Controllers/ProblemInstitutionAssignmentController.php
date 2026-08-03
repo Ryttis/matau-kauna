@@ -143,6 +143,15 @@ class ProblemInstitutionAssignmentController extends Controller
                 'status' => ProblemStatus::ASSIGNED->value,
             ]);
 
+            $this->reviewHistoryService->logInternalEventEntry(
+                $problem,
+                $user,
+                ProblemReviewHistoryService::employeeAssignmentNote(
+                    trim((string) $employee->name.' '.(string) $employee->surname)
+                ),
+                ProblemStatus::ASSIGNED->value,
+            );
+
             $this->assignmentNotifier->notifyEmployeeOfAssignment($problem, $employee);
 
             return redirect()->back()->with('success', 'Problema priskirta darbuotojui.');
@@ -174,6 +183,13 @@ class ProblemInstitutionAssignmentController extends Controller
             'completion_deadline' => $deadline,
             'status' => ProblemStatus::ASSIGNED->value,
         ]);
+
+        $this->reviewHistoryService->logInternalEventEntry(
+            $problem,
+            $user,
+            ProblemReviewHistoryService::teamAssignmentNote((string) $team->name),
+            ProblemStatus::ASSIGNED->value,
+        );
 
         foreach ($teamAssignees as $employee) {
             if ($employee->email !== $user->email) {
@@ -432,6 +448,15 @@ class ProblemInstitutionAssignmentController extends Controller
         if ((int) $problem->institution_id === (int) $validated['institution_id']) {
             return redirect()->back()->with('info', 'Problema jau priskirta šiai įstaigai.');
         }
+
+        $this->reviewHistoryService->logInternalEventEntry(
+            $problem,
+            $user,
+            ProblemReviewHistoryService::institutionChangeNote(
+                Institution::query()->whereKey($problem->institution_id)->value('name'),
+                Institution::query()->whereKey($validated['institution_id'])->value('name'),
+            ),
+        );
 
         $problem->update([
             'institution_id' => $validated['institution_id'],

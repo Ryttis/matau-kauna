@@ -28,6 +28,7 @@ class ArcGisProblemTransferService
         private ProblemAutoAssignmentService $autoAssignmentService,
         private ProblemAutoPublishService $autoPublishService,
         private IntegrationAuditService $integrationAuditService,
+        private ProblemReviewHistoryService $reviewHistoryService,
     ) {}
 
     public function transferProblem(Problem $problem, array $auditContext = []): array
@@ -202,7 +203,12 @@ class ArcGisProblemTransferService
 
             if ($attributes !== []) {
                 $mapping = $this->gisConfigService->effectiveFieldMapping($config);
-                $statusChange = $this->applyStatusFromGis($transfer->problem, $attributes, $mapping);
+                $statusChange = $this->applyStatusFromGis(
+                    $transfer->problem,
+                    $attributes,
+                    $mapping,
+                    $this->auditActor($auditContext),
+                );
                 $deadlineChanged = $this->applyDeadlineFromGis($transfer->problem, $attributes, $mapping['completion_deadline']);
             }
 
@@ -533,7 +539,7 @@ class ArcGisProblemTransferService
     /**
      * @return array{changed: bool, old: ?string, new: ?string}
      */
-    private function applyStatusFromGis(?Problem $problem, array $attributes, array $mapping): array
+    private function applyStatusFromGis(?Problem $problem, array $attributes, array $mapping, ?User $actor = null): array
     {
         if (! $problem) {
             return ['changed' => false, 'old' => null, 'new' => null];
@@ -570,6 +576,13 @@ class ArcGisProblemTransferService
                 $main,
                 $oldStatus,
                 $newStatus->value
+            );
+
+            $this->reviewHistoryService->logStatusChangeEntry(
+                $main,
+                $actor,
+                $newStatus->value,
+                $actor === null ? ProblemReviewHistoryService::SYSTEM_RESPONSIBLE_GIS : null,
             );
         }
 

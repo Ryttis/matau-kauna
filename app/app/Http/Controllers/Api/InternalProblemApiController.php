@@ -100,6 +100,26 @@ class InternalProblemApiController extends Controller
             ], 422);
         }
 
+        $loggedInstitutionRootIds = [];
+        foreach ($problems as $p) {
+            $rootId = (int) ($p->merged_into_problem_id ?? $p->id);
+            if (isset($loggedInstitutionRootIds[$rootId])) {
+                continue;
+            }
+            if ((int) ($p->institution_id ?? 0) === (int) $institution->id) {
+                continue;
+            }
+            $loggedInstitutionRootIds[$rootId] = true;
+            $this->reviewHistoryService->logInternalEventEntry(
+                $p,
+                $user,
+                ProblemReviewHistoryService::institutionChangeNote(
+                    Institution::query()->whereKey($p->institution_id)->value('name'),
+                    $institution->name,
+                ),
+            );
+        }
+
         Problem::whereIn('id', $expandedIds)->update([
             'institution_id' => $institution->id,
             'assigned_employee_id' => null,
@@ -664,6 +684,17 @@ class InternalProblemApiController extends Controller
 
         $newInstitutionId = $validated['institution_id'] ?? null;
         $newStatus = $validated['status'] ?? null;
+        $rootIdsMap = ! empty($newStatus)
+            ? Problem::rootIdsMapFromProblemIds($validated['problem_ids'])
+            : [];
+        $oldByMain = $rootIdsMap !== []
+            ? Problem::statusesByRootId($rootIdsMap)
+            : [];
+
+        $newInstitutionName = $newInstitutionId !== null
+            ? Institution::query()->whereKey($newInstitutionId)->value('name')
+            : null;
+        $loggedInstitutionRootIds = [];
 
         foreach ($problemsToUpdate as $problem) {
             $attrs = ['institution_id' => $newInstitutionId];
@@ -678,7 +709,37 @@ class InternalProblemApiController extends Controller
                 $attrs['status'] = $newStatus;
                 $attrs['status_updated_at'] = now();
             }
+
+            $rootId = (int) ($problem->merged_into_problem_id ?? $problem->id);
+            if (! isset($loggedInstitutionRootIds[$rootId])
+                && (int) ($problem->institution_id ?? 0) !== (int) ($newInstitutionId ?? 0)
+            ) {
+                $loggedInstitutionRootIds[$rootId] = true;
+                $this->reviewHistoryService->logInternalEventEntry(
+                    $problem,
+                    $user,
+                    ProblemReviewHistoryService::institutionChangeNote(
+                        Institution::query()->whereKey($problem->institution_id)->value('name'),
+                        $newInstitutionName,
+                    ),
+                );
+            }
+
             $problem->update($attrs);
+        }
+
+        if (! empty($newStatus)) {
+            $this->reporterStatusNotifier->notifyRootsAfterStatusChange($oldByMain, $newStatus);
+
+            foreach ($oldByMain as $rootId => $oldStatus) {
+                if ($oldStatus === null || $oldStatus === $newStatus) {
+                    continue;
+                }
+                $rootProblem = Problem::find($rootId);
+                if ($rootProblem) {
+                    $this->reviewHistoryService->logStatusChangeEntry($rootProblem, $user, $newStatus);
+                }
+            }
         }
 
         if (! empty($newInstitutionId)) {
@@ -815,6 +876,15 @@ class InternalProblemApiController extends Controller
                 'status' => ProblemStatus::ASSIGNED->value,
             ]);
 
+            $this->reviewHistoryService->logInternalEventEntry(
+                $problem,
+                $user,
+                ProblemReviewHistoryService::employeeAssignmentNote(
+                    trim((string) $employee->name.' '.(string) $employee->surname)
+                ),
+                ProblemStatus::ASSIGNED->value,
+            );
+
             $this->assignmentNotifier->notifyEmployeeOfAssignment($problem->fresh(), $employee);
 
             return response()->json(['ok' => true, 'message' => 'Problema priskirta darbuotojui.', 'problem_id' => $problem->id]);
@@ -845,6 +915,13 @@ class InternalProblemApiController extends Controller
             'completion_deadline' => $deadline,
             'status' => ProblemStatus::ASSIGNED->value,
         ]);
+
+        $this->reviewHistoryService->logInternalEventEntry(
+            $problem,
+            $user,
+            ProblemReviewHistoryService::teamAssignmentNote((string) $team->name),
+            ProblemStatus::ASSIGNED->value,
+        );
 
         foreach ($teamAssignees as $employee) {
             if ($employee->email !== $user->email) {
@@ -920,6 +997,15 @@ class InternalProblemApiController extends Controller
         if ((int) $problem->institution_id === (int) $validated['institution_id']) {
             return response()->json(['ok' => true, 'message' => 'Problema jau priskirta šiai įstaigai.', 'problem_id' => $problem->id]);
         }
+
+        $this->reviewHistoryService->logInternalEventEntry(
+            $problem,
+            $user,
+            ProblemReviewHistoryService::institutionChangeNote(
+                Institution::query()->whereKey($problem->institution_id)->value('name'),
+                Institution::query()->whereKey($validated['institution_id'])->value('name'),
+            ),
+        );
 
         $problem->update([
             'institution_id' => $validated['institution_id'],

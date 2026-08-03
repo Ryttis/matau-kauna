@@ -12,6 +12,12 @@ class ProblemReviewHistoryService
 {
     public const INTERNAL_NOTE_RETURNED_TO_ADMIN = 'Problema grąžinta problemų administratoriui - įstaigos priskyrimas nuimtas.';
 
+    public const SYSTEM_RESPONSIBLE = 'Sistema';
+
+    public const SYSTEM_RESPONSIBLE_DVS = 'Sistema (DVS)';
+
+    public const SYSTEM_RESPONSIBLE_GIS = 'Sistema (GIS)';
+
     public function __construct(
         private ProblemScopeService $scopeService,
         private ProblemReporterStatusNotifier $reporterStatusNotifier
@@ -19,14 +25,23 @@ class ProblemReviewHistoryService
 
     public function visibleEntriesForProblem(Problem $problem, User $user, bool $reporterOnlyView): array
     {
-        $problem->loadMissing('reviewHistory.reviewAttachments');
-
-        $rows = $problem->reviewHistory;
         if ($reporterOnlyView) {
-            $rows = $rows->where(
+            $problem->loadMissing('reviewHistory.reviewAttachments');
+
+            $rows = $problem->reviewHistory->where(
                 'visibility',
                 ProblemReviewCommentVisibility::Public->value
             );
+        } else {
+            // Būsenos įrašai rašomi į sujungimo grupės šakninę problemą, todėl
+            // darbuotojams rodome visos grupės istoriją - kitaip atidarius sujungtą
+            // "vaikinę" problemą žurnalas atrodo tuščias.
+            $rows = ProblemReviewHistory::query()
+                ->whereIn('problem_id', $problem->getMergeGroupIds())
+                ->with('reviewAttachments')
+                ->orderByDesc('created_at')
+                ->orderByDesc('id')
+                ->get();
         }
 
         return $rows
@@ -121,6 +136,28 @@ class ProblemReviewHistoryService
             'status' => (string) $problem->status,
             'status_changed' => false,
             'responsible' => $this->responsibleLabel($user),
+            'comment' => $this->normalizeComment($comment),
+            'visibility' => ProblemReviewCommentVisibility::Internal->value,
+        ]);
+    }
+
+    /**
+     * Vidinis (tik darbuotojams matomas) įvykio įrašas - įstaigos perdavimas,
+     * priskyrimas darbuotojui ir pan. Autorizaciją atlieka kviečiantis kontroleris,
+     * nes įrašas dažnai rašomas prieš pakeičiant problemos įstaigą.
+     */
+    public function logInternalEventEntry(
+        Problem $problem,
+        ?User $user,
+        string $comment,
+        ?string $statusOverride = null,
+    ): ProblemReviewHistory {
+        return ProblemReviewHistory::create([
+            'problem_id' => $problem->merged_into_problem_id ?? $problem->id,
+            'user_id' => $user?->id,
+            'status' => $statusOverride ?? (string) $problem->status,
+            'status_changed' => $statusOverride !== null,
+            'responsible' => $this->responsibleLabelFor($user),
             'comment' => $this->normalizeComment($comment),
             'visibility' => ProblemReviewCommentVisibility::Internal->value,
         ]);
@@ -222,19 +259,61 @@ class ProblemReviewHistoryService
         }
     }
 
-    public function logStatusChangeEntry(Problem $problem, User $user, string $newStatus): void
-    {
+    public function logStatusChangeEntry(
+        Problem $problem,
+        ?User $user,
+        string $newStatus,
+        ?string $responsibleOverride = null,
+    ): void {
         $mainId = $problem->merged_into_problem_id ?? $problem->id;
 
         ProblemReviewHistory::create([
             'problem_id' => $mainId,
-            'user_id' => $user->id,
+            'user_id' => $user?->id,
             'status' => $newStatus,
             'status_changed' => true,
-            'responsible' => $this->responsibleLabel($user),
+            'responsible' => $responsibleOverride ?? $this->responsibleLabelFor($user),
             'comment' => null,
             'visibility' => ProblemReviewCommentVisibility::Public->value,
         ]);
+    }
+
+    public static function institutionChangeNote(?string $from, ?string $to): string
+    {
+        $from = trim((string) $from);
+        $to = trim((string) $to);
+
+        if ($from !== '' && $to !== '') {
+            return 'Problema perduota iš įstaigos „'.$from.'“ į įstaigą „'.$to.'“.';
+        }
+
+        if ($to !== '') {
+            return 'Problema priskirta įstaigai „'.$to.'“.';
+        }
+
+        if ($from !== '') {
+            return 'Problema atšaukta nuo įstaigos „'.$from.'“.';
+        }
+
+        return 'Problemos įstaigos priskyrimas pakeistas.';
+    }
+
+    public static function employeeAssignmentNote(string $employeeName): string
+    {
+        $name = trim($employeeName);
+
+        return $name !== ''
+            ? 'Problema priskirta darbuotojui „'.$name.'“.'
+            : 'Problema priskirta darbuotojui.';
+    }
+
+    public static function teamAssignmentNote(string $teamName): string
+    {
+        $name = trim($teamName);
+
+        return $name !== ''
+            ? 'Problema priskirta komandai „'.$name.'“.'
+            : 'Problema priskirta komandai.';
     }
 
     private function normalizeComment(?string $comment): ?string
@@ -254,6 +333,11 @@ class ProblemReviewHistoryService
         $name = trim((string) $user->name.' '.(string) $user->surname);
 
         return $name !== '' ? $name : (string) ($user->email ?? '');
+    }
+
+    private function responsibleLabelFor(?User $user): string
+    {
+        return $user !== null ? $this->responsibleLabel($user) : self::SYSTEM_RESPONSIBLE;
     }
 
     public static function allowedStatusesForReviewEntry(): array
