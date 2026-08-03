@@ -31,8 +31,8 @@ class StatisticsReportExport implements FromArray, WithColumnWidths
             ['Unikalūs pranešėjai', ($a['activeUsers']['current'] ?? 0).' / '.($a['activeUsers']['total'] ?? 0)],
             ['Gauti pranešimai', $a['receivedReports'] ?? 0],
             ['Vidutinis sprendimo laikas', ($a['averageResolutionTime'] ?? 0).' d.'],
-            ['Išspręstos problemos', ($a['resolvedProblems'] ?? 0).'%'],
-            ['Laiku išspręstos', ($a['resolvedOnTime'] ?? 0).'%'],
+            ['Išnagrinėtos problemos', ($a['resolvedProblems'] ?? 0).'%'],
+            ['Laiku išnagrinėtos', ($a['resolvedOnTime'] ?? 0).'%'],
             ['Pagerėjimas', (($a['improvement'] ?? 0) >= 0 ? '+' : '').($a['improvement'] ?? 0).'%'],
         ];
 
@@ -55,7 +55,7 @@ class StatisticsReportExport implements FromArray, WithColumnWidths
         }
 
         $rows[] = [];
-        $rows[] = ['Įstaiga', 'Išspręsta', 'Iš viso'];
+        $rows[] = ['Įstaiga', 'Išnagrinėta', 'Iš viso'];
         foreach ($a['institutionResults'] ?? [] as $i) {
             $rows[] = [$i['name'], $i['resolved'] ?? 0, $i['total'] ?? 0];
         }

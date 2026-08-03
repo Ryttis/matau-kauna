@@ -56,6 +56,6 @@ class AutomationController extends Controller
         ]);
         $this->auditLogService->logUserAction($request->user(), 'automation.resolved_problem_privacy_setting.update', 'ResolvedProblemPrivacySetting', $setting->id, AuditLogResult::Success);
 
-        return redirect()->route('automation.index')->with('success', 'Išspręstų problemų paslėpimo nustatymai atnaujinti.');
+        return redirect()->route('automation.index')->with('success', 'Išnagrinėtų problemų paslėpimo nustatymai atnaujinti.');
     }
 }

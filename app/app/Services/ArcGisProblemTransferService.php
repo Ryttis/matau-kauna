@@ -676,6 +676,9 @@ class ArcGisProblemTransferService
             'atlikti darbai' => ProblemStatus::RESOLVED,
             'atliktas darbas' => ProblemStatus::RESOLVED,
             'atlikta' => ProblemStatus::RESOLVED,
+            // Senas ir naujas būsenos pavadinimas - abu turi būti atpažįstami.
+            'isspresta' => ProblemStatus::RESOLVED,
+            'isnagrineta' => ProblemStatus::RESOLVED,
             'ivykdyta' => ProblemStatus::RESOLVED,
             'uzdaryta' => ProblemStatus::RESOLVED,
             'baigta' => ProblemStatus::RESOLVED,
@@ -857,7 +860,9 @@ class ArcGisProblemTransferService
     private function resolveOutgoingStatusValue(InstitutionGisConfig $config, Problem $problem): string
     {
         $status = ProblemStatus::tryFrom((string) $problem->status);
-        $fallback = $status?->label() ?? (string) $problem->status;
+        // Sąmoningai integrationLabel(), o ne label(): pervadinus būseną UI,
+        // į GIS turi ir toliau keliauti tas pats istorinis tekstas.
+        $fallback = $status?->integrationLabel() ?? (string) $problem->status;
         if (! $config->use_field_mapping) {
             return $fallback;
         }

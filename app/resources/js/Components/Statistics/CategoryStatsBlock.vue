@@ -34,7 +34,7 @@ function barWidth(category) {
             <div v-for="category in categories" :key="category.name" class="category-item">
                 <div class="category-info">
                     <span class="category-name">{{ category.name }}</span>
-                    <span class="category-percentage">{{ category.count ?? category.resolved ?? 0 }}{{ category.count !== undefined ? ' problemų' : '% Išspręsta' }}</span>
+                    <span class="category-percentage">{{ category.count ?? category.resolved ?? 0 }}{{ category.count !== undefined ? ' problemų' : '% Išnagrinėta' }}</span>
                 </div>
                 <div class="progress-bar">
                     <div class="progress-fill" :style="{ width: barWidth(category) + '%' }"></div>

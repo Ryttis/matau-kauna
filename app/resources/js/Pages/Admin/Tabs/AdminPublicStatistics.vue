@@ -41,8 +41,8 @@ const showSuccessModal = ref(false)
 const KPI_OPTIONS = [
     { value: 'received_reports', label: 'Gauti pranešimai' },
     { value: 'avg_resolution_days', label: 'Vidutinis sprendimo laikas' },
-    { value: 'resolved_problems', label: 'Išspręstos problemos procentais' },
-    { value: 'resolved_on_time', label: 'Laiku išspręstos procentais' },
+    { value: 'resolved_problems', label: 'Išnagrinėtos problemos procentais' },
+    { value: 'resolved_on_time', label: 'Laiku išnagrinėtos procentais' },
     { value: 'monthly_reports', label: 'Mėnesiniai pranešimų skaičiai' },
     { value: 'problematic_categories', label: 'Probleminės kategorijos' },
     { value: 'effectively_resolved', label: 'Efektyviausiai sprendžiamos' },

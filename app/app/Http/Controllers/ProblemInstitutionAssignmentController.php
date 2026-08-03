@@ -43,7 +43,7 @@ class ProblemInstitutionAssignmentController extends Controller
         $this->scopeService->authorizeProblemAccess($user, $problem);
 
         if ($problem->status === ProblemStatus::RESOLVED->value) {
-            return redirect()->route('problems.show', $problem)->with('error', 'Išspręstos problemos priskirti negalima.');
+            return redirect()->route('problems.show', $problem)->with('error', 'Išnagrinėtos problemos priskirti negalima.');
         }
 
         if ($user->institution_id) {
@@ -99,7 +99,7 @@ class ProblemInstitutionAssignmentController extends Controller
         $this->scopeService->authorizeProblemAccess($user, $problem);
 
         if ($problem->status === ProblemStatus::RESOLVED->value) {
-            return redirect()->back()->with('error', 'Išspręstos problemos priskirti negalima.');
+            return redirect()->back()->with('error', 'Išnagrinėtos problemos priskirti negalima.');
         }
 
         $validated = $request->validate([
@@ -207,7 +207,7 @@ class ProblemInstitutionAssignmentController extends Controller
         $this->scopeService->authorizeProblemAccess($user, $problem);
 
         if ($problem->status === ProblemStatus::RESOLVED->value) {
-            return redirect()->back()->with('error', 'Išspręstos problemos priskirti negalima.');
+            return redirect()->back()->with('error', 'Išnagrinėtos problemos priskirti negalima.');
         }
 
         if ($user->institution_id === null) {
@@ -249,7 +249,7 @@ class ProblemInstitutionAssignmentController extends Controller
         $this->scopeService->authorizeProblemAccess($user, $problem);
 
         if ($problem->status === ProblemStatus::RESOLVED->value) {
-            return redirect()->back()->with('error', 'Išspręstos problemos perduoti negalima.');
+            return redirect()->back()->with('error', 'Išnagrinėtos problemos perduoti negalima.');
         }
 
         try {
@@ -284,7 +284,7 @@ class ProblemInstitutionAssignmentController extends Controller
         $this->scopeService->authorizeProblemAccess($user, $problem);
 
         if ($problem->status === ProblemStatus::RESOLVED->value) {
-            return redirect()->back()->with('error', 'Išspręstos problemos perduoti negalima.');
+            return redirect()->back()->with('error', 'Išnagrinėtos problemos perduoti negalima.');
         }
 
         try {
@@ -327,10 +327,10 @@ class ProblemInstitutionAssignmentController extends Controller
             if ((string) ($result['new_status'] ?? '') === ProblemStatus::RESOLVED->value) {
                 return redirect()
                     ->route('problems.show', $problem)
-                    ->with('success', 'Atnaujinta iš DVS: būsena pakeista į „Išspręsta“, problema uždaryta.');
+                    ->with('success', 'Atnaujinta iš DVS: būsena pakeista į „Išnagrinėta“, problema uždaryta.');
             }
 
-            return redirect()->back()->with('success', 'Atnaujinta iš DVS: būsena pakeista į „Išspręsta“.');
+            return redirect()->back()->with('success', 'Atnaujinta iš DVS: būsena pakeista į „Išnagrinėta“.');
         }
 
         if ($result['answer_found']) {
@@ -368,7 +368,7 @@ class ProblemInstitutionAssignmentController extends Controller
             if ((string) ($result['new_status'] ?? '') === ProblemStatus::RESOLVED->value) {
                 return redirect()
                     ->route('problems.show', $problem)
-                    ->with('success', 'Atnaujinta iš GIS: būsena pakeista į „Išspręsta“, problema uždaryta.');
+                    ->with('success', 'Atnaujinta iš GIS: būsena pakeista į „Išnagrinėta“, problema uždaryta.');
             }
 
             $newLabel = ProblemStatus::tryFrom((string) $result['new_status'])?->label() ?? (string) $result['new_status'];
@@ -437,7 +437,7 @@ class ProblemInstitutionAssignmentController extends Controller
         }
 
         if ($problem->status === ProblemStatus::RESOLVED->value) {
-            return redirect()->back()->with('error', 'Išspręstos problemos perduoti negalima.');
+            return redirect()->back()->with('error', 'Išnagrinėtos problemos perduoti negalima.');
         }
 
         $validated = $request->validate([

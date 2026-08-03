@@ -3,7 +3,7 @@ export const AUTOMATION_SECTIONS = [
     { value: 'publish', label: 'Publikavimo taisyklės' },
     { value: 'resolution_term', label: 'Sprendimo terminų taisyklės' },
     { value: 'inactive_reporter', label: 'Nebenaudojamos pareiškėjo paskyros' },
-    { value: 'resolved_problem_privacy', label: 'Išspręstų problemų paslėpimas' },
+    { value: 'resolved_problem_privacy', label: 'Išnagrinėtų problemų paslėpimas' },
 ]
 
 export const INACTIVITY_DAYS_FALLBACK = 180
@@ -19,19 +19,19 @@ export const INACTIVE_REPORTER_DAYS_DEFAULT = 180
 export const AUTOMATION_SAVE_DEBOUNCE_MS = 450
 
 export const AUTOMATION_RESOLVED_PRIVACY_COPY = {
-    sectionTitle: 'Išspręstų problemų paslėpimas',
+    sectionTitle: 'Išnagrinėtų problemų paslėpimas',
     leadParagraph:
         'Įjungus, po nustatyto dienų skaičiaus nuo išsprendimo gali būti automatiškai nuimamas viešas skelbimas, kai serveryje paleidžiama suplanuota užduotis; lentelėje rodoma numatoma data.',
     switchLabel: 'Automatinis paslėpimas:',
     tableColumnProblem: 'Problema',
-    tableColumnResolvedAt: 'Išspręsta data',
+    tableColumnResolvedAt: 'Išnagrinėta data',
     tableColumnHideAt: 'Paslėpimo data',
     daysFieldLabel: 'Terminas nuo išsprendimo (dienomis)',
     searchLabel: 'Ieškoti problemos',
     searchPlaceholder: 'Numeris, adresas ar aprašymas',
     viewProblem: 'Peržiūrėti',
     noSearchMatches: 'Pagal paiešką nieko nerasta.',
-    noPublicResolvedProblems: 'Nėra viešai rodomų išspręstų problemų.',
+    noPublicResolvedProblems: 'Nėra viešai rodomų išnagrinėtų problemų.',
     daysHint: (minDays, maxDays) => `Leistina reikšmė: nuo ${minDays} iki ${maxDays} dienų.`,
     daysErrorEmpty: 'Įveskite terminą dienomis.',
     daysErrorTooLow: (minDays) => `Per mažas terminas. Minimali reikšmė: ${minDays} dienų.`,

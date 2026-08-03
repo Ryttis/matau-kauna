@@ -99,7 +99,7 @@ class InternalProblemApiController extends Controller
 
         if ($problems->contains(fn (Problem $p) => $p->status === ProblemStatus::RESOLVED->value)) {
             return response()->json([
-                'message' => 'Išspręstų problemų negalima priskirti.',
+                'message' => 'Išnagrinėtų problemų negalima priskirti.',
             ], 422);
         }
 
@@ -622,7 +622,7 @@ class InternalProblemApiController extends Controller
         }
 
         if (Problem::query()->whereIn('id', $groupIds)->where('status', ProblemStatus::RESOLVED->value)->exists()) {
-            return response()->json(['message' => 'Negalima apjungti išspręstų problemų.'], 422);
+            return response()->json(['message' => 'Negalima apjungti išnagrinėtų problemų.'], 422);
         }
 
         $scopeQuery = Problem::query()->whereIn('id', $groupIds);
@@ -714,7 +714,7 @@ class InternalProblemApiController extends Controller
 
         $submittedIds = array_map('intval', $validated['problem_ids']);
         if (Problem::query()->whereIn('id', $submittedIds)->where('status', ProblemStatus::RESOLVED->value)->exists()) {
-            return response()->json(['message' => 'Išspręstų problemų negalima priskirti.'], 422);
+            return response()->json(['message' => 'Išnagrinėtų problemų negalima priskirti.'], 422);
         }
 
         // Įstaiga ir būsena taikomos visai sujungimo grupei, kad apjungtos problemos
@@ -846,7 +846,7 @@ class InternalProblemApiController extends Controller
         $this->scopeService->authorizeProblemAccess($user, $problem);
 
         if ($problem->status === ProblemStatus::RESOLVED->value) {
-            return response()->json(['message' => 'Išspręstos problemos priskirti negalima.'], 422);
+            return response()->json(['message' => 'Išnagrinėtos problemos priskirti negalima.'], 422);
         }
 
         $picker = $this->institutionAssignmentPickerService->pickerDataFor($user);
@@ -908,7 +908,7 @@ class InternalProblemApiController extends Controller
         $this->scopeService->authorizeProblemAccess($user, $problem);
 
         if ($problem->status === ProblemStatus::RESOLVED->value) {
-            return response()->json(['message' => 'Išspręstos problemos priskirti negalima.'], 422);
+            return response()->json(['message' => 'Išnagrinėtos problemos priskirti negalima.'], 422);
         }
 
         $validated = $request->validate([
@@ -1014,7 +1014,7 @@ class InternalProblemApiController extends Controller
         $this->scopeService->authorizeProblemAccess($user, $problem);
 
         if ($problem->status === ProblemStatus::RESOLVED->value) {
-            return response()->json(['message' => 'Išspręstos problemos priskirti negalima.'], 422);
+            return response()->json(['message' => 'Išnagrinėtos problemos priskirti negalima.'], 422);
         }
         if ($user->institution_id === null) {
             return response()->json(['message' => 'Negalima siųsti el. laiško be įstaigos konteksto.'], 422);
@@ -1060,7 +1060,7 @@ class InternalProblemApiController extends Controller
         }
 
         if ($problem->status === ProblemStatus::RESOLVED->value) {
-            return response()->json(['message' => 'Išspręstos problemos perduoti negalima.'], 422);
+            return response()->json(['message' => 'Išnagrinėtos problemos perduoti negalima.'], 422);
         }
 
         $validated = $request->validate([

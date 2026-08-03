@@ -20,8 +20,21 @@ enum ProblemStatus: string
             self::ASSIGNED => 'Paskirta',
             self::IN_REVIEW => 'Nagrinėjama',
             self::RETURNED_FOR_REVIEW => 'Grąžinta',
-            self::RESOLVED => 'Išspręsta',
+            self::RESOLVED => 'Išnagrinėta',
             self::INACTIVE => 'Neaktuali',
+        };
+    }
+
+    /**
+     * Pavadinimas išorinėms sistemoms (ArcGIS). Būsena buvo pervadinta į
+     * "Išnagrinėta", bet į GIS ir toliau siunčiamas istorinis tekstas, kad
+     * įstaigoms be status_value_mapping perdavimai nenustotų veikti.
+     */
+    public function integrationLabel(): string
+    {
+        return match ($this) {
+            self::RESOLVED => 'Išspręsta',
+            default => $this->label(),
         };
     }
 
@@ -138,7 +151,7 @@ enum ProblemStatus: string
         return match (self::reporterStatusValue($status)) {
             self::NEW->value => 'Nauja',
             self::IN_REVIEW->value => 'Nagrinėjama',
-            self::RESOLVED->value => 'Išspręsta',
+            self::RESOLVED->value => 'Išnagrinėta',
             default => self::tryFrom($status)?->label() ?? $status,
         };
     }

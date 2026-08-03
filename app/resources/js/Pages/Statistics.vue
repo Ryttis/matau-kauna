@@ -240,7 +240,7 @@ const downloadReport = () => {
                 </div>
 
                 <div class="kpi-card">
-                    <h3 class="kpi-title">Išspręstos problemos</h3>
+                    <h3 class="kpi-title">Išnagrinėtos problemos</h3>
                     <p class="kpi-value">{{ props.resolvedProblems || 0 }}%</p>
                     <div class="kpi-mini-chart">
                         <svg width="100" height="20" viewBox="0 0 100 20">
@@ -253,7 +253,7 @@ const downloadReport = () => {
                 </div>
 
                 <div class="kpi-card">
-                    <h3 class="kpi-title">Laiku išspręstos</h3>
+                    <h3 class="kpi-title">Laiku išnagrinėtos</h3>
                     <p class="kpi-value">{{ props.resolvedOnTime || 0 }}%</p>
                     <div class="kpi-mini-chart">
                         <svg width="100" height="20" viewBox="0 0 100 20">

@@ -10,7 +10,7 @@ class HideResolvedProblemsPrivacyCommand extends Command
 {
     protected $signature = 'problems:hide-resolved-privacy {--sync : Vykdyti sinchroniškai be queue}';
 
-    protected $description = 'Pagal automatizacijos nustatymus nuima viešą skelbimą iš seniai išspręstų problemų';
+    protected $description = 'Pagal automatizacijos nustatymus nuima viešą skelbimą iš seniai išnagrinėtų problemų';
 
     public function handle(ResolvedProblemPrivacyService $service): int
     {

@@ -16,7 +16,7 @@ defineProps({
         <div v-else class="institution-list">
             <div v-for="(institution, idx) in institutions" :key="institution.name || idx" class="institution-item">
                 <span>{{ institution.name }}</span>
-                <span class="institution-stats">{{ institution.resolved ?? 0 }} / {{ institution.total ?? 0 }} išspręsta</span>
+                <span class="institution-stats">{{ institution.resolved ?? 0 }} / {{ institution.total ?? 0 }} išnagrinėta</span>
             </div>
         </div>
     </div>

@@ -24,7 +24,7 @@
                 <div class="landing-step">
                     <span class="landing-step-num">4</span>
                     <h3 class="landing-step-title">Sek eigą</h3>
-                    <p class="landing-step-desc">Gausite pranešimus, kai problema bus priimta ir išspręsta.</p>
+                    <p class="landing-step-desc">Gausite pranešimus, kai problema bus priimta ir išnagrinėta.</p>
                 </div>
             </div>
         </div>

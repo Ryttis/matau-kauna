@@ -174,9 +174,9 @@ function formatTermDate(isoDate) {
             </div>
 
             <section class="chart-section">
-                <h2 class="section-title">Išspręstos su terminu</h2>
+                <h2 class="section-title">Išnagrinėtos su terminu</h2>
                 <p class="chart-desc">
-                    Tik išspręstos problemos su nustatytu terminu, pagal būsenos
+                    Tik išnagrinėtos problemos su nustatytu terminu, pagal būsenos
                     pakeitimo datą.
                 </p>
                 <div
@@ -201,7 +201,7 @@ function formatTermDate(isoDate) {
                         <li>
                             <span class="legend-swatch legend-swatch--ontime" />
                             <span
-                                >Laiku išspręstos:
+                                >Laiku išnagrinėtos:
                                 <strong>{{ onTimeCount }}</strong></span
                             >
                         </li>
@@ -215,7 +215,7 @@ function formatTermDate(isoDate) {
                     </ul>
                 </div>
                 <p v-else class="empty">
-                    Pasirinktiems filtrams nėra išspręstų problemų su terminu.
+                    Pasirinktiems filtrams nėra išnagrinėtų problemų su terminu.
                 </p>
             </section>
 

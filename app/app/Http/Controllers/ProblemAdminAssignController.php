@@ -43,7 +43,7 @@ class ProblemAdminAssignController extends Controller
         $problemIds = array_filter((array) $request->get('problem_ids', []));
         $problems = $problemIds ? Problem::whereIn('id', $problemIds)->get() : collect();
         if ($problems->contains(fn (Problem $problem) => $problem->status === ProblemStatus::RESOLVED->value)) {
-            return redirect()->route('dashboard')->with('error', 'Išspręstų problemų negalima priskirti.');
+            return redirect()->route('dashboard')->with('error', 'Išnagrinėtų problemų negalima priskirti.');
         }
         $problem = $problems->count() === 1 ? $problems->first() : null;
 
@@ -78,7 +78,7 @@ class ProblemAdminAssignController extends Controller
 
         $submittedIds = array_map('intval', $validated['problem_ids']);
         if (Problem::query()->whereIn('id', $submittedIds)->where('status', ProblemStatus::RESOLVED->value)->exists()) {
-            return redirect()->back()->with('error', 'Išspręstų problemų negalima priskirti.');
+            return redirect()->back()->with('error', 'Išnagrinėtų problemų negalima priskirti.');
         }
 
         // Įstaiga ir būsena taikomos visai sujungimo grupei, kad apjungtos problemos
@@ -214,7 +214,7 @@ class ProblemAdminAssignController extends Controller
             ->get();
 
         if ($problems->contains(fn (Problem $problem) => $problem->status === ProblemStatus::RESOLVED->value)) {
-            return redirect()->back()->with('error', 'Išspręstų problemų negalima priskirti.');
+            return redirect()->back()->with('error', 'Išnagrinėtų problemų negalima priskirti.');
         }
 
         $loggedRootIds = [];
@@ -300,7 +300,7 @@ class ProblemAdminAssignController extends Controller
         }
 
         if ($problem->status === ProblemStatus::RESOLVED->value) {
-            return redirect()->route('problems.show', $problem)->with('error', 'Išspręstos problemos priskirti negalima.');
+            return redirect()->route('problems.show', $problem)->with('error', 'Išnagrinėtos problemos priskirti negalima.');
         }
 
         $institutions = $this->httpSupport->institutionsForAssignInertia();

@@ -77,10 +77,10 @@ const kpiCards = computed(() => {
         items.push({ title: 'Vidutinis sprendimo laikas', value: `${d.averageResolutionTime ?? 0} d.` })
     }
     if (kpis.includes('resolved_problems')) {
-        items.push({ title: 'Išspręstos problemos', value: `${d.resolvedProblems ?? 0}%` })
+        items.push({ title: 'Išnagrinėtos problemos', value: `${d.resolvedProblems ?? 0}%` })
     }
     if (kpis.includes('resolved_on_time')) {
-        items.push({ title: 'Laiku išspręstos', value: `${d.resolvedOnTime ?? 0}%` })
+        items.push({ title: 'Laiku išnagrinėtos', value: `${d.resolvedOnTime ?? 0}%` })
     }
     return items
 })

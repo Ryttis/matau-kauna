@@ -17,7 +17,7 @@ export const PROBLEM_STATUS_LABELS = {
     [PROBLEM_STATUS.ASSIGNED]: 'Paskirta',
     [PROBLEM_STATUS.IN_REVIEW]: 'Nagrinėjama',
     [PROBLEM_STATUS.RETURNED_FOR_REVIEW]: 'Grąžinta',
-    [PROBLEM_STATUS.RESOLVED]: 'Išspręsta',
+    [PROBLEM_STATUS.RESOLVED]: 'Išnagrinėta',
     [PROBLEM_STATUS.INACTIVE]: 'Neaktuali',
 }
 

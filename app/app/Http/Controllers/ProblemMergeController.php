@@ -133,7 +133,7 @@ class ProblemMergeController extends Controller
         }
 
         if (Problem::query()->whereIn('id', $groupIds)->where('status', ProblemStatus::RESOLVED->value)->exists()) {
-            return redirect()->back()->with('error', 'Negalima apjungti išspręstų problemų.');
+            return redirect()->back()->with('error', 'Negalima apjungti išnagrinėtų problemų.');
         }
 
         $scopeQuery = Problem::query()->whereIn('id', $groupIds);
