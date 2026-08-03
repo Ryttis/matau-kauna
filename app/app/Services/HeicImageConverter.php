@@ -26,6 +26,12 @@ class HeicImageConverter
 
     private const JPEG_QUALITY = 85;
 
+    /**
+     * Formatas žinomas Imagick'ui. DĖMESIO: tai negarantuoja, kad HEIC pavyks
+     * iškoduoti - libheif dekoderiai yra atskiri pluginai (libheif-plugin-libde265),
+     * o be jų queryFormats() vis tiek grąžina HEIC. Tikram patikrinimui su konkrečiu
+     * failu naudokite canDecodeFile().
+     */
     public static function isSupported(): bool
     {
         if (! extension_loaded('imagick') || ! class_exists(\Imagick::class)) {
@@ -36,6 +42,31 @@ class HeicImageConverter
             return \Imagick::queryFormats('HEIC') !== [];
         } catch (\Throwable $e) {
             return false;
+        }
+    }
+
+    /**
+     * Ar sistema tikrai moka iškoduoti šį HEIC failą (t. y. ar yra HEVC dekoderio pluginas).
+     */
+    public static function canDecodeFile(string $absolutePath): bool
+    {
+        if (! self::isSupported() || ! is_file($absolutePath)) {
+            return false;
+        }
+
+        $image = null;
+
+        try {
+            $image = new \Imagick($absolutePath);
+
+            return $image->getImageWidth() > 0;
+        } catch (\Throwable $e) {
+            return false;
+        } finally {
+            if ($image instanceof \Imagick) {
+                $image->clear();
+                $image->destroy();
+            }
         }
     }
 

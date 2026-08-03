@@ -13,15 +13,33 @@ const CHANNEL = {
 
 const VIDEO_DURATION_OPTIONS_SEC = [10, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60]
 
+// Plėtinys serveryje saugomas mažosiomis raidėmis, be taško: FileUploadSettings::normalizeExtensions()
+const EXTENSION_PATTERN = /^[a-z0-9]{1,12}$/
+
+let formatRowUid = 0
+
+function buildFormat(label, mime, extensions) {
+    formatRowUid += 1
+
+    return {
+        _uid: formatRowUid,
+        label,
+        mime,
+        extensions,
+        extensions_text: extensions.join(', '),
+        extensions_invalid: [],
+    }
+}
+
 const defaultPhotoFormats = () => [
-    { label: 'JPEG', mime: 'image/jpeg', extensions: ['jpg', 'jpeg'] },
-    { label: 'PNG', mime: 'image/png', extensions: ['png'] },
+    buildFormat('JPEG', 'image/jpeg', ['jpg', 'jpeg']),
+    buildFormat('PNG', 'image/png', ['png']),
 ]
 
 const defaultVideoFormats = () => [
-    { label: 'MP4', mime: 'video/mp4', extensions: ['mp4'] },
-    { label: 'WebM', mime: 'video/webm', extensions: ['webm'] },
-    { label: 'MOV', mime: 'video/quicktime', extensions: ['mov'] },
+    buildFormat('MP4', 'video/mp4', ['mp4']),
+    buildFormat('WebM', 'video/webm', ['webm']),
+    buildFormat('MOV', 'video/quicktime', ['mov']),
 ]
 
 const defaultChannel = () => ({
@@ -51,13 +69,13 @@ const config = ref({
 function normalizeFormats(formats, fallback) {
     const normalized = Array.isArray(formats)
         ? formats
-            .map((format) => ({
-                label: String(format?.label ?? '').trim(),
-                mime: String(format?.mime ?? '').trim().toLowerCase(),
-                extensions: Array.isArray(format?.extensions)
+            .map((format) => buildFormat(
+                String(format?.label ?? '').trim(),
+                String(format?.mime ?? '').trim().toLowerCase(),
+                Array.isArray(format?.extensions)
                     ? format.extensions.map((ext) => String(ext).trim().toLowerCase().replace(/^\./, '')).filter(Boolean)
                     : [],
-            }))
+            ))
             .filter((format) => format.label && format.mime && format.extensions.length)
         : []
 
@@ -84,7 +102,7 @@ function formatLabels(formats) {
 }
 
 function emptyFormat() {
-    return { label: '', mime: '', extensions: [] }
+    return buildFormat('', '', [])
 }
 
 function addFormat(channel, key) {
@@ -95,15 +113,59 @@ function removeFormat(channel, key, index) {
     config.value[channel][key].splice(index, 1)
 }
 
-function extensionsInput(format) {
-    return Array.isArray(format.extensions) ? format.extensions.join(', ') : ''
+/**
+ * Laukas redaguojamas kaip laisvas tekstas, o į masyvą paverčiamas tik palikus jį -
+ * kitaip kablelis, tarpas ir didžiosios raidės dingtų vos juos paspaudus.
+ */
+function applyExtensions(format) {
+    const valid = []
+    const invalid = []
+
+    for (const part of String(format.extensions_text ?? '').split(/[,\s]+/)) {
+        const candidate = part.trim().replace(/^\.+/, '')
+        if (candidate === '') {
+            continue
+        }
+
+        const normalized = candidate.toLowerCase()
+        if (! EXTENSION_PATTERN.test(normalized)) {
+            invalid.push(candidate)
+        } else if (! valid.includes(normalized)) {
+            valid.push(normalized)
+        }
+    }
+
+    format.extensions = valid
+    format.extensions_invalid = invalid
+    format.extensions_text = valid.join(', ')
 }
 
-function updateExtensions(format, value) {
-    format.extensions = String(value ?? '')
-        .split(/[,\s]+/)
-        .map((ext) => ext.trim().toLowerCase().replace(/^\./, ''))
-        .filter(Boolean)
+function applyAllExtensions() {
+    for (const channel of Object.keys(CHANNEL)) {
+        for (const key of ['photo_formats', 'video_formats']) {
+            for (const format of config.value[channel][key]) {
+                applyExtensions(format)
+            }
+        }
+    }
+}
+
+function payloadChannel(channel) {
+    const source = config.value[channel]
+
+    return {
+        ...source,
+        photo_formats: source.photo_formats.map(payloadFormat),
+        video_formats: source.video_formats.map(payloadFormat),
+    }
+}
+
+function payloadFormat(format) {
+    return {
+        label: format.label,
+        mime: format.mime,
+        extensions: format.extensions,
+    }
 }
 
 async function load() {
@@ -123,14 +185,17 @@ async function load() {
 }
 
 async function save() {
+    // Jei naudotojas spaudžia "Išsaugoti" neišėjęs iš lauko, jo tekstas dar nepaverstas masyvu.
+    applyAllExtensions()
+
     saving.value = true
     errorMessage.value = ''
     successMessage.value = ''
     try {
         await axios.put(adminApi.fileUploadSettings, {
             config: {
-                web: { ...config.value.web },
-                mobile: { ...config.value.mobile },
+                web: payloadChannel('web'),
+                mobile: payloadChannel('mobile'),
             },
         })
         successMessage.value = 'Nustatymai išsaugoti.'
@@ -271,16 +336,19 @@ onMounted(load)
                             <h4 class="formats-title">Nuotraukų formatai</h4>
                             <button type="button" class="link-btn" @click="addFormat(ch, 'photo_formats')">+ Pridėti</button>
                         </div>
-                        <div v-for="(format, index) in config[ch].photo_formats" :key="`photo-${index}`" class="format-row">
+                        <div v-for="(format, index) in config[ch].photo_formats" :key="format._uid" class="format-row">
                             <input v-model="format.label" class="format-input format-input--label" placeholder="Pavadinimas" />
                             <input v-model="format.mime" class="format-input" placeholder="MIME, pvz. image/jpeg" />
                             <input
-                                :value="extensionsInput(format)"
+                                v-model="format.extensions_text"
                                 class="format-input"
                                 placeholder="Plėtiniai, pvz. jpg,jpeg"
-                                @input="updateExtensions(format, $event.target.value)"
+                                @blur="applyExtensions(format)"
                             />
                             <button type="button" class="remove-btn" @click="removeFormat(ch, 'photo_formats', index)">Šalinti</button>
+                            <p v-if="format.extensions_invalid.length" class="format-warning">
+                                Atmesta: {{ format.extensions_invalid.join(', ') }} - leidžiamos tik raidės ir skaitmenys, iki 12 simbolių.
+                            </p>
                         </div>
                     </div>
 
@@ -289,16 +357,19 @@ onMounted(load)
                             <h4 class="formats-title">Vaizdo formatai</h4>
                             <button type="button" class="link-btn" @click="addFormat(ch, 'video_formats')">+ Pridėti</button>
                         </div>
-                        <div v-for="(format, index) in config[ch].video_formats" :key="`video-${index}`" class="format-row">
+                        <div v-for="(format, index) in config[ch].video_formats" :key="format._uid" class="format-row">
                             <input v-model="format.label" class="format-input format-input--label" placeholder="Pavadinimas" />
                             <input v-model="format.mime" class="format-input" placeholder="MIME, pvz. video/mp4" />
                             <input
-                                :value="extensionsInput(format)"
+                                v-model="format.extensions_text"
                                 class="format-input"
                                 placeholder="Plėtiniai, pvz. mp4"
-                                @input="updateExtensions(format, $event.target.value)"
+                                @blur="applyExtensions(format)"
                             />
                             <button type="button" class="remove-btn" @click="removeFormat(ch, 'video_formats', index)">Šalinti</button>
+                            <p v-if="format.extensions_invalid.length" class="format-warning">
+                                Atmesta: {{ format.extensions_invalid.join(', ') }} - leidžiamos tik raidės ir skaitmenys, iki 12 simbolių.
+                            </p>
                         </div>
                     </div>
                 </section>
@@ -483,6 +554,14 @@ onMounted(load)
     gap: 8px;
     align-items: center;
     margin-bottom: 8px;
+}
+
+.format-warning {
+    grid-column: 1 / -1;
+    margin: 0;
+    color: #b54708;
+    font-size: 12px;
+    line-height: 1.4;
 }
 
 .format-input {

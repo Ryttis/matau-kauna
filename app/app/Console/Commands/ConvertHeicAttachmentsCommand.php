@@ -54,6 +54,11 @@ class ConvertHeicAttachmentsCommand extends Command
         }
         if ($failed > 0) {
             $this->error("Nepavyko konvertuoti: {$failed}.");
+
+            if ($converted === 0) {
+                $this->warn('Jei klaidose minimas „Decoder plugin", sistemoje trūksta HEVC dekoderio.');
+                $this->warn('Įdiekite: sudo apt-get install -y libheif-plugin-libde265 ir perkraukite PHP-FPM.');
+            }
         }
 
         return self::SUCCESS;
