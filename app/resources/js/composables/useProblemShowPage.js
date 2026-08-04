@@ -4,11 +4,37 @@ import { useSuccessModal } from '@/composables/useSuccessModal'
 import { useAuth } from '@/composables/useAuth'
 import { PROBLEM_STATUS } from '@/constants/domain/problemStatus'
 import { buildInactiveReviewPostBody } from '@/constants/domain/reviewProgressEntry'
+import { formatDateLt } from '@/utils/dateFormat'
+
+// Ta pati riba kaip ProblemDeadlineMonitorService::REMIND_DAYS_BEFORE, kad žyma
+// atsirastų tuo pačiu metu, kai išsiunčiamas priminimas el. paštu.
+const DEADLINE_APPROACHING_DAYS = 2
 
 function formatEmployeeDisplayName(employee) {
     if (!employee) return ''
     const fullName = [employee.name, employee.surname].filter(Boolean).join(' ').trim()
     return fullName || employee.email || ''
+}
+
+/**
+ * Lyginame tik kalendorines dienas: Laravel `date` tipą serializuoja su UTC laiko
+ * zona, todėl iš reikšmės imame tik YYYY-MM-DD ir sudarome vietinę datą.
+ */
+function toLocalDateOnly(value) {
+    const parts = String(value ?? '').slice(0, 10).split('-')
+    if (parts.length !== 3) return null
+    const [year, month, day] = parts.map(Number)
+    if (!year || !month || !day) return null
+    const date = new Date(year, month - 1, day)
+    return Number.isNaN(date.getTime()) ? null : date
+}
+
+function daysUntil(deadlineValue) {
+    const deadline = toLocalDateOnly(deadlineValue)
+    if (!deadline) return null
+    const now = new Date()
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+    return Math.round((deadline - today) / 86400000)
 }
 
 export function useProblemShowPage(props) {
@@ -23,6 +49,26 @@ export function useProblemShowPage(props) {
     } = useAuth()
 
     const canAssignProblem = computed(() => props.problem?.status !== PROBLEM_STATUS.RESOLVED)
+
+    const deadlineDisplay = computed(
+        () => formatDateLt(props.problem?.completion_deadline) || 'Nenustatytas',
+    )
+
+    const deadlineInfo = computed(() => {
+        const days = daysUntil(props.problem?.completion_deadline)
+        if (days === null) return null
+
+        if (days < 0) {
+            return { tone: 'overdue', text: `Vėluoja ${Math.abs(days)} d.` }
+        }
+        if (days === 0) {
+            return { tone: 'overdue', text: 'Terminas šiandien' }
+        }
+        return {
+            tone: days <= DEADLINE_APPROACHING_DAYS ? 'approaching' : 'ok',
+            text: `Liko ${days} d.`,
+        }
+    })
 
     const { showSuccessModal, successMessage, closeSuccessModal } = useSuccessModal()
     const showStatusModal = ref(false)
@@ -172,6 +218,8 @@ export function useProblemShowPage(props) {
         canPublish,
         isEmployee,
         canAssignProblem,
+        deadlineDisplay,
+        deadlineInfo,
         showSuccessModal,
         successMessage,
         closeSuccessModal,

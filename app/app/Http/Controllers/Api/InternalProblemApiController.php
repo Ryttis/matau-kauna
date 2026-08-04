@@ -239,6 +239,7 @@ class InternalProblemApiController extends Controller
             'lat' => $problem->lat,
             'lng' => $problem->lng,
             'created_at' => $problem->created_at?->toIso8601String(),
+            'completion_deadline' => $problem->completion_deadline?->toDateString(),
             'is_published_publicly' => (bool) $problem->is_published_publicly,
             'attachments' => $this->problemHttpSupport->attachmentsPayload($problem),
         ]);

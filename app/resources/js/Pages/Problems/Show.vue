@@ -41,6 +41,8 @@ const {
     canPublish,
     isEmployee,
     canAssignProblem,
+    deadlineDisplay,
+    deadlineInfo,
     showSuccessModal,
     successMessage,
     closeSuccessModal,
@@ -198,6 +200,21 @@ const problemMapItems = computed(() => (
                         type="text"
                         readonly
                     />
+                    <div class="problem-deadline-field">
+                        <AppInput
+                            :model-value="deadlineDisplay"
+                            label="Atlikimo terminas"
+                            type="text"
+                            readonly
+                        />
+                        <span
+                            v-if="deadlineInfo"
+                            class="problem-deadline-chip"
+                            :class="`problem-deadline-chip--${deadlineInfo.tone}`"
+                        >
+                            {{ deadlineInfo.text }}
+                        </span>
+                    </div>
                 </div>
 
                 <div class="problem-content-bottom">
