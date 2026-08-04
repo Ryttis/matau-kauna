@@ -44,16 +44,52 @@ class ProblemReviewHistoryService
                 ->get();
         }
 
-        return $rows
-            ->map(function (ProblemReviewHistory $entry) use ($reporterOnlyView) {
-                $row = $this->entryToArray($entry);
-                if ($reporterOnlyView) {
-                    $row['responsible'] = '';
-                }
-                return $row;
-            })
+        $entries = $rows
+            ->map(fn (ProblemReviewHistory $entry) => $this->entryToArray($entry))
             ->values()
             ->all();
+
+        return $reporterOnlyView ? $this->mapEntriesForReporter($entries) : $entries;
+    }
+
+    /**
+     * Pareiškėjui rodome tik sugrupuotas būsenas (Nauja / Nagrinėjama / Išnagrinėta)
+     * ir slepiame įrašo autorių. Kai dvi vidinės būsenos suspaudžiamos į tą pačią
+     * pareiškėjo būseną (pvz. nagrinejama -> paskirta), pakartotinio "Būsena
+     * pakeista į..." nerodome - lygiai taip pat nesiunčiamas ir pranešimas
+     * (žr. ProblemReporterStatusNotifier).
+     *
+     * @param  array<int, array<string, mixed>>  $entries
+     * @return array<int, array<string, mixed>>
+     */
+    private function mapEntriesForReporter(array $entries): array
+    {
+        $chronological = $entries;
+        usort(
+            $chronological,
+            fn (array $a, array $b) => [$a['date'], $a['id']] <=> [$b['date'], $b['id']]
+        );
+
+        $statusChangedById = [];
+        $previousReporterStatus = null;
+        foreach ($chronological as $entry) {
+            $reporterStatus = ProblemStatus::reporterStatusValue((string) $entry['status']);
+            $statusChangedById[$entry['id']] = (bool) $entry['status_changed']
+                && $reporterStatus !== $previousReporterStatus;
+            $previousReporterStatus = $reporterStatus;
+        }
+
+        return array_map(
+            fn (array $entry) => array_merge(
+                $entry,
+                ProblemStatus::reporterStatusPayload((string) $entry['status']),
+                [
+                    'responsible' => '',
+                    'status_changed' => $statusChangedById[$entry['id']] ?? (bool) $entry['status_changed'],
+                ]
+            ),
+            $entries
+        );
     }
 
     public function entryToArray(ProblemReviewHistory $entry): array

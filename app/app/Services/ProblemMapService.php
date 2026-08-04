@@ -204,8 +204,7 @@ class ProblemMapService
             }
             $watchRootId = $problem->merged_into_problem_id ?? $problem->id;
             $item['is_watched'] = isset($watchedSet[$watchRootId]);
-            $item['reporter_status'] = ProblemStatus::reporterStatusValue((string) $item['status']);
-            $item['reporter_status_label'] = ProblemStatus::reporterStatusLabel((string) $item['status']);
+            $item = array_merge($item, ProblemStatus::reporterStatusPayload((string) $item['status']));
             if ($currentUser !== null) {
                 $item['reported_by_me'] = (int) ($problem->reported_by_user_id ?? 0) === (int) $currentUser->id
                     || (int) ($problem->mergedInto?->reported_by_user_id ?? 0) === (int) $currentUser->id;

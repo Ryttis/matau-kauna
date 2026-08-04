@@ -156,6 +156,22 @@ enum ProblemStatus: string
         };
     }
 
+    /**
+     * Būsenos laukai pareiškėjui skirtuose atsakymuose. `status` čia sąmoningai
+     * grąžina jau suspaustą reikšmę - vidinės būsenos (paskirta,
+     * grazinta_nagrinejimui, neaktuali, neuzregistruota) pareiškėjui nerodomos.
+     */
+    public static function reporterStatusPayload(string $status): array
+    {
+        $reporterStatus = self::reporterStatusValue($status);
+
+        return [
+            'status' => $reporterStatus,
+            'reporter_status' => $reporterStatus,
+            'reporter_status_label' => self::reporterStatusLabel($status),
+        ];
+    }
+
     public static function rawValuesForReporterStatus(string $reporterStatus): array
     {
         return match ($reporterStatus) {

@@ -131,7 +131,7 @@ const {
                             v-if="entry.status_changed"
                             class="review-progress-status"
                         >
-                            Būsena pakeista į: {{ PROBLEM_STATUS_LABELS[entry.status] || entry.status }}
+                            Būsena pakeista į: {{ entry.reporter_status_label || PROBLEM_STATUS_LABELS[entry.status] || entry.status }}
                         </div>
                         <div v-if="showReviewVisibilityLabels" class="review-progress-responsible">
                             Atsakingas: {{ entry.responsible }}

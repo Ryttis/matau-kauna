@@ -721,7 +721,7 @@ onMounted(async () => {
         <BaseModal
             :show="isCreateOpen"
             title="Kurti įstaigą"
-            max-width="640px"
+            width="960px"
             @close="isCreateOpen = false"
         >
             <div class="form-grid">
@@ -947,7 +947,7 @@ onMounted(async () => {
         <BaseModal
             :show="isEditOpen"
             title="Redaguoti įstaigą"
-            max-width="640px"
+            width="960px"
             @close="isEditOpen = false"
         >
             <div class="form-grid">

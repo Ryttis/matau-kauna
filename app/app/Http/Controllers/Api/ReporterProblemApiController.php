@@ -61,9 +61,7 @@ class ReporterProblemApiController extends Controller
             ->map(fn ($problem) => [
                 'id' => $problem->id,
                 'internal_number' => $problem->internal_number,
-                'status' => $problem->status,
-                'reporter_status' => ProblemStatus::reporterStatusValue((string) $problem->status),
-                'reporter_status_label' => ProblemStatus::reporterStatusLabel((string) $problem->status),
+                ...ProblemStatus::reporterStatusPayload((string) $problem->status),
                 'created_at' => $problem->created_at?->toIso8601String(),
                 'category' => $problem->category,
                 'nature' => $problem->problemNature?->name,
@@ -196,9 +194,7 @@ class ReporterProblemApiController extends Controller
             'problem' => [
                 'id' => $problem->id,
                 'internal_number' => $problem->internal_number,
-                'status' => $problem->status,
-                'reporter_status' => ProblemStatus::reporterStatusValue((string) $problem->status),
-                'reporter_status_label' => ProblemStatus::reporterStatusLabel((string) $problem->status),
+                ...ProblemStatus::reporterStatusPayload((string) $problem->status),
                 'category' => $problem->category,
                 'nature' => $problem->problemNature?->name,
                 'address' => $problem->address,
