@@ -16,6 +16,8 @@ import AdminInvitations from '@/Pages/Admin/Tabs/AdminInvitations.vue'
 
 const { showSuccessModal, successMessage, closeSuccessModal, showWithMessage } = useSuccessModal()
 
+const PER_PAGE = 100
+
 const activeSubTab = ref('users')
 
 const loading = ref(false)
@@ -23,7 +25,9 @@ const saving = ref(false)
 const errorMessage = ref('')
 
 const usersPage = ref(null)
+const usersCurrentPage = ref(1)
 const users2faPage = ref(null)
+const users2faCurrentPage = ref(1)
 const twoFactorGlobalRequired = ref(true)
 const roles = ref([])
 const institutions = ref([])
@@ -34,18 +38,41 @@ const clearError = () => {
     errorMessage.value = ''
 }
 
-const loadUsers = async () => {
-    const params = {}
+const buildUserParams = () => {
+    const params = { page: usersCurrentPage.value, per_page: PER_PAGE }
     if (userFilters.value.search) params.search = userFilters.value.search
     if (userFilters.value.role_id) params.role_id = userFilters.value.role_id
     if (userFilters.value.institution_id) params.institution_id = userFilters.value.institution_id
     if (userFilters.value.blocked !== '') params.blocked = userFilters.value.blocked
-    const { data } = await axios.get(adminRbacApi.users, { params })
+    return params
+}
+
+const loadUsers = async () => {
+    let { data } = await axios.get(adminRbacApi.users, { params: buildUserParams() })
+
+    // The last row on the last page may have just been deleted/filtered away —
+    // fall back to the new last page instead of showing an empty list.
+    if (!data?.data?.length && data?.last_page > 0 && usersCurrentPage.value > data.last_page) {
+        usersCurrentPage.value = data.last_page
+        ;({ data } = await axios.get(adminRbacApi.users, { params: buildUserParams() }))
+    }
+
     usersPage.value = data
 }
 
 const onUserFilter = async (next) => {
     userFilters.value = next
+    usersCurrentPage.value = 1
+    try {
+        await loadUsers()
+    } catch {
+        errorMessage.value = 'Nepavyko užkrauti duomenų.'
+    }
+}
+
+const onUsersPageChange = async (page) => {
+    usersCurrentPage.value = page
+    clearError()
     try {
         await loadUsers()
     } catch {
@@ -54,9 +81,29 @@ const onUserFilter = async (next) => {
 }
 
 const loadUsers2fa = async () => {
-    const { data } = await axios.get(adminRbacApi.users2fa)
+    let { data } = await axios.get(adminRbacApi.users2fa, {
+        params: { page: users2faCurrentPage.value, per_page: PER_PAGE },
+    })
+
+    if (!data?.users?.data?.length && data?.users?.last_page > 0 && users2faCurrentPage.value > data.users.last_page) {
+        users2faCurrentPage.value = data.users.last_page
+        ;({ data } = await axios.get(adminRbacApi.users2fa, {
+            params: { page: users2faCurrentPage.value, per_page: PER_PAGE },
+        }))
+    }
+
     users2faPage.value = data?.users ?? null
     twoFactorGlobalRequired.value = !!data?.global_required
+}
+
+const onUsers2faPageChange = async (page) => {
+    users2faCurrentPage.value = page
+    clearError()
+    try {
+        await loadUsers2fa()
+    } catch {
+        errorMessage.value = 'Nepavyko užkrauti duomenų.'
+    }
 }
 
 const loadRoles = async () => {
@@ -160,6 +207,7 @@ onMounted(async () => {
                 @set-saving="saving = $event"
                 @refresh="setTab('users')"
                 @filter="onUserFilter"
+                @page-change="onUsersPageChange"
                 @show-success="showWithMessage($event)"
             />
 
@@ -170,6 +218,7 @@ onMounted(async () => {
                 :global-required="twoFactorGlobalRequired"
                 @set-saving="saving = $event"
                 @refresh="setTab('two-factor')"
+                @page-change="onUsers2faPageChange"
                 @show-success="showWithMessage($event)"
             />
 

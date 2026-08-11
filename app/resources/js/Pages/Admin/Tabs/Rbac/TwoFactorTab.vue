@@ -1,5 +1,5 @@
 <script setup>
-import { ref, watch } from 'vue'
+import { computed, ref, watch } from 'vue'
 import axios from 'axios'
 import BaseModal from '@/Components/App/BaseModal.vue'
 import AppButton from '@/Components/App/AppButton.vue'
@@ -11,7 +11,18 @@ const props = defineProps({
     globalRequired: { type: Boolean, default: true },
 })
 
-const emit = defineEmits(['refresh', 'set-saving', 'show-success'])
+const emit = defineEmits(['refresh', 'set-saving', 'show-success', 'page-change'])
+
+const currentPage = computed(() => props.usersPage?.current_page ?? 1)
+const lastPage = computed(() => props.usersPage?.last_page ?? 1)
+const total = computed(() => props.usersPage?.total ?? 0)
+
+const goToPage = (page) => {
+    if (page < 1 || page > lastPage.value || page === currentPage.value) {
+        return
+    }
+    emit('page-change', page)
+}
 
 const setupOpen = ref(false)
 const setupUser = ref(null)
@@ -182,6 +193,26 @@ const toggleGlobalRequired = async (checked) => {
             </table>
         </div>
         <div v-else>Nėra naudotojų.</div>
+
+        <div v-if="lastPage > 1" class="pagination">
+            <button
+                type="button"
+                class="page-btn"
+                :disabled="currentPage <= 1"
+                @click="goToPage(currentPage - 1)"
+            >
+                Ankstesnis
+            </button>
+            <span class="page-info">{{ currentPage }} / {{ lastPage }} (iš viso {{ total }})</span>
+            <button
+                type="button"
+                class="page-btn"
+                :disabled="currentPage >= lastPage"
+                @click="goToPage(currentPage + 1)"
+            >
+                Kitas
+            </button>
+        </div>
 
         <BaseModal :open="setupOpen" title="2FA aktyvavimo duomenys" @close="setupOpen = false">
             <p class="setup-text">
@@ -365,5 +396,31 @@ const toggleGlobalRequired = async (checked) => {
     min-height: 36px !important;
     padding: 0 10px !important;
     font-size: 14px !important;
+}
+
+.pagination {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-top: 16px;
+}
+
+.page-btn {
+    padding: 6px 12px;
+    font-size: 14px;
+    border: 1px solid var(--color-border);
+    background: var(--color-white);
+    cursor: pointer;
+    border-radius: 6px;
+}
+
+.page-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.page-info {
+    font-size: 14px;
+    color: var(--color-text-muted);
 }
 </style>

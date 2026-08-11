@@ -24,6 +24,11 @@ class RbacUserController extends Controller
         private UserBlockingService $userBlockingService,
     ) {}
 
+    private function resolvePerPage(Request $request): int
+    {
+        return min(100, max(1, (int) $request->query('per_page', 100)));
+    }
+
     public function users(Request $request)
     {
         $query = User::query()
@@ -67,11 +72,11 @@ class RbacUserController extends Controller
 
         return $query
             ->orderBy('id', 'desc')
-            ->paginate(20)
+            ->paginate($this->resolvePerPage($request))
             ->withQueryString();
     }
 
-    public function usersTwoFactor()
+    public function usersTwoFactor(Request $request)
     {
         $globalRequired = $this->twoFactorService->isGloballyRequired();
 
@@ -81,7 +86,7 @@ class RbacUserController extends Controller
             ->select(['id', 'name', 'email', 'institution_id', 'two_factor_enabled', 'two_factor_secret', 'two_factor_confirmed_at'])
             ->with(['roles:id,role,name', 'institution:id,name'])
             ->orderBy('id', 'desc')
-            ->paginate(20)
+            ->paginate($this->resolvePerPage($request))
             ->through(function (User $user) {
                 return [
                     'id' => $user->id,

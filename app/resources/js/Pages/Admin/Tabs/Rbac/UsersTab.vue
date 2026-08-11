@@ -16,7 +16,18 @@ const props = defineProps({
     saving: Boolean
 })
 
-const emit = defineEmits(['refresh', 'set-saving', 'show-success', 'filter'])
+const emit = defineEmits(['refresh', 'set-saving', 'show-success', 'filter', 'page-change'])
+
+const currentPage = computed(() => props.usersPage?.current_page ?? 1)
+const lastPage = computed(() => props.usersPage?.last_page ?? 1)
+const total = computed(() => props.usersPage?.total ?? 0)
+
+const goToPage = (page) => {
+    if (page < 1 || page > lastPage.value || page === currentPage.value) {
+        return
+    }
+    emit('page-change', page)
+}
 
 const filters = ref({ search: '', role_id: '', institution_id: '', blocked: '' })
 
@@ -411,6 +422,26 @@ const saveUserRoles = async () => {
 
         <div v-else>{{ hasActiveFilters ? 'Pagal pasirinktus filtrus naudotojų nerasta.' : 'Nėra naudotojų.' }}</div>
 
+        <div v-if="lastPage > 1" class="pagination">
+            <button
+                type="button"
+                class="page-btn"
+                :disabled="currentPage <= 1"
+                @click="goToPage(currentPage - 1)"
+            >
+                Ankstesnis
+            </button>
+            <span class="page-info">{{ currentPage }} / {{ lastPage }} (iš viso {{ total }})</span>
+            <button
+                type="button"
+                class="page-btn"
+                :disabled="currentPage >= lastPage"
+                @click="goToPage(currentPage + 1)"
+            >
+                Kitas
+            </button>
+        </div>
+
         <BaseModal :open="isCreateOpen" title="Sukurti naudotoją" @close="isCreateOpen = false">
             <div v-if="createErrors.length" class="error">
                 <ul v-if="createErrors.length > 1" class="error-list">
@@ -639,5 +670,31 @@ const saveUserRoles = async () => {
 .pill-danger {
     background: #fff0f0;
     color: #8b1e1e;
+}
+
+.pagination {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-top: 16px;
+}
+
+.page-btn {
+    padding: 6px 12px;
+    font-size: 14px;
+    border: 1px solid var(--color-border);
+    background: var(--color-white);
+    cursor: pointer;
+    border-radius: 6px;
+}
+
+.page-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.page-info {
+    font-size: 14px;
+    color: var(--color-text-muted);
 }
 </style>
