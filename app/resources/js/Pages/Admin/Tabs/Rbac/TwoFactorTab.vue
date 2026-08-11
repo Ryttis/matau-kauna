@@ -9,9 +9,28 @@ const props = defineProps({
     usersPage: Object,
     saving: Boolean,
     globalRequired: { type: Boolean, default: true },
+    initialFilters: { type: Object, default: () => ({ search: '' }) },
 })
 
-const emit = defineEmits(['refresh', 'set-saving', 'show-success', 'page-change'])
+const emit = defineEmits(['refresh', 'set-saving', 'show-success', 'page-change', 'filter'])
+
+// Seeded from the parent so the input still matches the applied filter after
+// the tab is switched away and back (this component is re-created each time).
+const filters = ref({ search: props.initialFilters?.search ?? '' })
+
+let searchDebounce = null
+watch(() => filters.value.search, () => {
+    clearTimeout(searchDebounce)
+    searchDebounce = setTimeout(() => {
+        emit('filter', { ...filters.value })
+    }, 300)
+})
+
+const hasActiveFilters = computed(() => !!filters.value.search)
+
+const clearFilters = () => {
+    filters.value = { search: '' }
+}
 
 const currentPage = computed(() => props.usersPage?.current_page ?? 1)
 const lastPage = computed(() => props.usersPage?.last_page ?? 1)
@@ -131,6 +150,18 @@ const toggleGlobalRequired = async (checked) => {
 
         <div v-if="errorMessage" class="error">{{ errorMessage }}</div>
 
+        <div class="filters">
+            <input
+                v-model="filters.search"
+                type="text"
+                class="input filter-search"
+                placeholder="Vardas, pavardė arba el. paštas"
+            />
+            <button v-if="hasActiveFilters" type="button" class="link-btn" @click="clearFilters">
+                Išvalyti filtrus
+            </button>
+        </div>
+
         <div class="twofa-table-wrap" v-if="usersPage?.data?.length">
             <table class="table">
                 <thead>
@@ -192,7 +223,7 @@ const toggleGlobalRequired = async (checked) => {
                 </tbody>
             </table>
         </div>
-        <div v-else>Nėra naudotojų.</div>
+        <div v-else>{{ hasActiveFilters ? 'Pagal pasirinktus filtrus naudotojų nerasta.' : 'Nėra naudotojų.' }}</div>
 
         <div v-if="lastPage > 1" class="pagination">
             <button
@@ -396,6 +427,19 @@ const toggleGlobalRequired = async (checked) => {
     min-height: 36px !important;
     padding: 0 10px !important;
     font-size: 14px !important;
+}
+
+.filters {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 14px;
+}
+
+.filter-search {
+    flex: 1 1 240px;
+    min-width: 200px;
 }
 
 .pagination {

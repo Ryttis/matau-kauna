@@ -33,6 +33,7 @@ const roles = ref([])
 const institutions = ref([])
 const permissions = ref([])
 const userFilters = ref({ search: '', role_id: '', institution_id: '', blocked: '' })
+const users2faFilters = ref({ search: '' })
 
 const clearError = () => {
     errorMessage.value = ''
@@ -80,20 +81,33 @@ const onUsersPageChange = async (page) => {
     }
 }
 
+const buildUsers2faParams = () => {
+    const params = { page: users2faCurrentPage.value, per_page: PER_PAGE }
+    if (users2faFilters.value.search) params.search = users2faFilters.value.search
+    return params
+}
+
 const loadUsers2fa = async () => {
-    let { data } = await axios.get(adminRbacApi.users2fa, {
-        params: { page: users2faCurrentPage.value, per_page: PER_PAGE },
-    })
+    let { data } = await axios.get(adminRbacApi.users2fa, { params: buildUsers2faParams() })
 
     if (!data?.users?.data?.length && data?.users?.last_page > 0 && users2faCurrentPage.value > data.users.last_page) {
         users2faCurrentPage.value = data.users.last_page
-        ;({ data } = await axios.get(adminRbacApi.users2fa, {
-            params: { page: users2faCurrentPage.value, per_page: PER_PAGE },
-        }))
+        ;({ data } = await axios.get(adminRbacApi.users2fa, { params: buildUsers2faParams() }))
     }
 
     users2faPage.value = data?.users ?? null
     twoFactorGlobalRequired.value = !!data?.global_required
+}
+
+const onUsers2faFilter = async (next) => {
+    users2faFilters.value = next
+    users2faCurrentPage.value = 1
+    clearError()
+    try {
+        await loadUsers2fa()
+    } catch {
+        errorMessage.value = 'Nepavyko užkrauti duomenų.'
+    }
 }
 
 const onUsers2faPageChange = async (page) => {
@@ -216,9 +230,11 @@ onMounted(async () => {
                 :saving="saving"
                 :users-page="users2faPage"
                 :global-required="twoFactorGlobalRequired"
+                :initial-filters="users2faFilters"
                 @set-saving="saving = $event"
                 @refresh="setTab('two-factor')"
                 @page-change="onUsers2faPageChange"
+                @filter="onUsers2faFilter"
                 @show-success="showWithMessage($event)"
             />
 

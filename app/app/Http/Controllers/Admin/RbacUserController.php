@@ -29,6 +29,21 @@ class RbacUserController extends Controller
         return min(100, max(1, (int) $request->query('per_page', 100)));
     }
 
+    private function applyNameEmailSearch($query, string $search): void
+    {
+        if ($search === '') {
+            return;
+        }
+
+        $like = '%'.str_replace(['\\', '%', '_'], ['\\\\', '\\%', '\\_'], $search).'%';
+        $query->where(function ($q) use ($like) {
+            $q->where('name', 'like', $like)
+                ->orWhere('surname', 'like', $like)
+                ->orWhere('email', 'like', $like)
+                ->orWhereRaw("CONCAT_WS(' ', name, surname) like ?", [$like]);
+        });
+    }
+
     public function users(Request $request)
     {
         $query = User::query()
@@ -40,16 +55,7 @@ class RbacUserController extends Controller
                 'acceptedTermsVersion:id,version',
             ]);
 
-        $search = trim((string) $request->query('search', ''));
-        if ($search !== '') {
-            $like = '%'.str_replace(['\\', '%', '_'], ['\\\\', '\\%', '\\_'], $search).'%';
-            $query->where(function ($q) use ($like) {
-                $q->where('name', 'like', $like)
-                    ->orWhere('surname', 'like', $like)
-                    ->orWhere('email', 'like', $like)
-                    ->orWhereRaw("CONCAT_WS(' ', name, surname) like ?", [$like]);
-            });
-        }
+        $this->applyNameEmailSearch($query, trim((string) $request->query('search', '')));
 
         $roleId = $request->query('role_id');
         if ($roleId !== null && $roleId !== '') {
@@ -80,11 +86,15 @@ class RbacUserController extends Controller
     {
         $globalRequired = $this->twoFactorService->isGloballyRequired();
 
-        $users = User::query()
+        $query = User::query()
             ->notArchived()
             ->whereHas('roles', fn ($q) => $q->whereIn('role', UserRoleEnum::staffValues()))
             ->select(['id', 'name', 'email', 'institution_id', 'two_factor_enabled', 'two_factor_secret', 'two_factor_confirmed_at'])
-            ->with(['roles:id,role,name', 'institution:id,name'])
+            ->with(['roles:id,role,name', 'institution:id,name']);
+
+        $this->applyNameEmailSearch($query, trim((string) $request->query('search', '')));
+
+        $users = $query
             ->orderBy('id', 'desc')
             ->paginate($this->resolvePerPage($request))
             ->through(function (User $user) {
