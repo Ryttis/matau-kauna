@@ -46,7 +46,7 @@ class RbacService
             $user->roles()->sync([$data['role_id']]);
         }
 
-        $this->twoFactorService->enforceGlobalRequirement($user);
+        $this->twoFactorService->enableForNewStaffUser($user);
         $this->ensureEmployeeForInstitution($user);
 
         if ($user instanceof MustVerifyEmail && ! $user->hasVerifiedEmail()) {

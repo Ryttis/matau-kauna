@@ -77,7 +77,7 @@ class InvitationService
         ]);
 
         $user->roles()->sync([$invitation->role_id]);
-        $this->twoFactorService->enforceGlobalRequirement($user);
+        $this->twoFactorService->enableForNewStaffUser($user);
 
         if ($invitation->institution_id) {
             Employee::updateOrCreate(

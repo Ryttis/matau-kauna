@@ -68,6 +68,27 @@ class TwoFactorService
         $this->ensurePrepared($user);
     }
 
+    /**
+     * New staff accounts start with 2FA on regardless of the global requirement.
+     * They may switch it off later (in settings, or via an admin) unless 2FA is
+     * globally mandatory.
+     */
+    public function enableForNewStaffUser(User $user): void
+    {
+        if (! $this->isStaffUser($user)) {
+            return;
+        }
+
+        if (! (bool) $user->two_factor_enabled) {
+            $user->update(['two_factor_enabled' => true]);
+            $user->refresh();
+        }
+
+        // requiresChallenge() also checks for a secret, so a flag without one
+        // would silently skip the challenge.
+        $this->ensureSecret($user);
+    }
+
     public function verifyCode(User $user, string $code): bool
     {
         if (! filled($user->two_factor_secret)) {
