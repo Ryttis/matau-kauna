@@ -30,6 +30,14 @@ class ProblemDvsTransfer extends Model
         'last_response_json',
     ];
 
+    /**
+     * DVS atsakymo kopija saugoma tik auditui – ji gali būti dešimčių MB dydžio
+     * (dokumentų turinys base64), todėl niekada nekeliaujam į JSON/Inertia atsaką.
+     */
+    protected $hidden = [
+        'last_response_json',
+    ];
+
     protected function casts(): array
     {
         return [
