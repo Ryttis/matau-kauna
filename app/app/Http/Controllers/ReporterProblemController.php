@@ -237,7 +237,7 @@ class ReporterProblemController extends Controller
             $request->merge(['problem_nature_id' => null]);
         }
 
-        $bounds = config('kaunas.bounds');
+        $bounds = $this->geocoder->bounds();
 
         $validated = $request->validate(
             [
@@ -259,7 +259,7 @@ class ReporterProblemController extends Controller
                     }),
                 ],
                 'description' => 'required|string|max:'.$maxDesc,
-                'address' => 'required|string|min:'.config('kaunas.address.min_length').'|max:'.config('kaunas.address.max_length'),
+                'address' => 'required|string|min:'.$this->geocoder->minAddressLength().'|max:'.$this->geocoder->maxAddressLength(),
                 'lat' => 'nullable|numeric|between:'.$bounds['min_lat'].','.$bounds['max_lat'],
                 'lng' => 'nullable|numeric|between:'.$bounds['min_lng'].','.$bounds['max_lng'],
             ],

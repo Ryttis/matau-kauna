@@ -16,6 +16,44 @@ use Throwable;
 class KaunasAddressGeocoder
 {
     /**
+     * Atsarginės reikšmės, jei config/kaunas.php dar neperskaitytas
+     * (pvz. serveryje liko senas config:cache).
+     */
+    private const DEFAULT_BOUNDS = [
+        'min_lat' => 54.75,
+        'min_lng' => 23.65,
+        'max_lat' => 55.05,
+        'max_lng' => 24.15,
+    ];
+
+    private const DEFAULT_MAX_LENGTH = 255;
+
+    private const DEFAULT_MIN_LENGTH = 5;
+
+    private const DEFAULT_DISTRICT_MARKER = 'rajono savivaldyb';
+
+    /**
+     * @return array{min_lat: float, min_lng: float, max_lat: float, max_lng: float}
+     */
+    public function bounds(): array
+    {
+        $bounds = config('kaunas.bounds');
+        $bounds = is_array($bounds) ? array_merge(self::DEFAULT_BOUNDS, $bounds) : self::DEFAULT_BOUNDS;
+
+        return array_map(fn ($value) => (float) $value, $bounds);
+    }
+
+    public function maxAddressLength(): int
+    {
+        return (int) (config('kaunas.address.max_length') ?: self::DEFAULT_MAX_LENGTH);
+    }
+
+    public function minAddressLength(): int
+    {
+        return (int) (config('kaunas.address.min_length') ?: self::DEFAULT_MIN_LENGTH);
+    }
+
+    /**
      * @return array{address: string, display_name: string, lat: float, lng: float}|null
      *
      * @throws GeocoderUnavailableException
@@ -71,12 +109,12 @@ class KaunasAddressGeocoder
 
     public function isInKaunasBounds(float $lat, float $lng): bool
     {
-        $bounds = config('kaunas.bounds');
+        $bounds = $this->bounds();
 
-        return $lat >= (float) $bounds['min_lat']
-            && $lat <= (float) $bounds['max_lat']
-            && $lng >= (float) $bounds['min_lng']
-            && $lng <= (float) $bounds['max_lng'];
+        return $lat >= $bounds['min_lat']
+            && $lat <= $bounds['max_lat']
+            && $lng >= $bounds['min_lng']
+            && $lng <= $bounds['max_lng'];
     }
 
     /**
@@ -85,7 +123,7 @@ class KaunasAddressGeocoder
      */
     public function isKaunasCityAddress(?string $displayName): bool
     {
-        $marker = (string) config('kaunas.geocoder.district_marker');
+        $marker = (string) (config('kaunas.geocoder.district_marker') ?: self::DEFAULT_DISTRICT_MARKER);
 
         return ! str_contains(mb_strtolower((string) $displayName), $marker);
     }
@@ -98,7 +136,7 @@ class KaunasAddressGeocoder
     {
         $address = $this->normalize($address);
 
-        if (mb_strlen($address) < (int) config('kaunas.address.min_length')) {
+        if (mb_strlen($address) < $this->minAddressLength()) {
             return false;
         }
 
@@ -113,7 +151,7 @@ class KaunasAddressGeocoder
     {
         $address = preg_replace('/\s+/u', ' ', trim($address)) ?? '';
 
-        return mb_substr($address, 0, (int) config('kaunas.address.max_length'));
+        return mb_substr($address, 0, $this->maxAddressLength());
     }
 
     /**
@@ -172,7 +210,7 @@ class KaunasAddressGeocoder
      */
     private function viewbox(): string
     {
-        $bounds = config('kaunas.bounds');
+        $bounds = $this->bounds();
 
         return implode(',', [
             $bounds['min_lng'],
@@ -187,11 +225,17 @@ class KaunasAddressGeocoder
      */
     private function request(string $path, array $query): array
     {
-        $config = config('kaunas.geocoder');
+        $config = array_merge([
+            'base_url' => 'https://nominatim.openstreetmap.org',
+            'user_agent' => 'MatauKaune/1.0 (+https://matau.kaunas.lt)',
+            'timeout' => 6,
+            'cache_ttl' => 604800,
+        ], is_array(config('kaunas.geocoder')) ? config('kaunas.geocoder') : []);
+
         $query = array_merge($query, ['format' => 'json', 'addressdetails' => 1]);
         $cacheKey = 'kaunas.geocoder.'.$path.'.'.md5(json_encode($query));
 
-        $cached = Cache::get($cacheKey);
+        $cached = $this->cacheGet($cacheKey);
         if (is_array($cached)) {
             return $cached;
         }
@@ -217,8 +261,29 @@ class KaunasAddressGeocoder
             throw new GeocoderUnavailableException('Netinkamas adresų paslaugos atsakymas.');
         }
 
-        Cache::put($cacheKey, $data, (int) $config['cache_ttl']);
+        $this->cachePut($cacheKey, $data, (int) $config['cache_ttl']);
 
         return $data;
+    }
+
+    /**
+     * Kešas čia tik optimizacija – neveikianti saugykla neturi griauti pateikimo.
+     */
+    private function cacheGet(string $key): mixed
+    {
+        try {
+            return Cache::get($key);
+        } catch (Throwable) {
+            return null;
+        }
+    }
+
+    private function cachePut(string $key, array $value, int $ttl): void
+    {
+        try {
+            Cache::put($key, $value, $ttl);
+        } catch (Throwable) {
+            // Tyliai praleidžiama: adresas jau gautas, kešavimas nebūtinas.
+        }
     }
 }
