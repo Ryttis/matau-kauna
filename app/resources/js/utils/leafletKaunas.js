@@ -1,3 +1,5 @@
+// Turi sutapti su config/kaunas.php (map_center, bounds) – serveris tomis pačiomis
+// ribomis tikrina pateikiamų problemų koordinates.
 export const KAUNAS_CENTER = [54.8985, 23.9036]
 export const KAUNAS_BOUNDS = [[54.75, 23.65], [55.05, 24.15]]
 

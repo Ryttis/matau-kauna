@@ -3,11 +3,13 @@
 namespace App\Http\Controllers;
 
 use App\Enums\ProblemStatus;
+use App\Exceptions\GeocoderUnavailableException;
 use App\Models\ClassifierValue;
 use App\Models\FileUploadSettings;
 use App\Models\Problem;
 use App\Models\User;
 use App\Models\UserRole;
+use App\Services\KaunasAddressGeocoder;
 use App\Services\ProblemAutoAssignmentService;
 use App\Services\ProblemAutoPublishService;
 use App\Services\ProblemHttpSupport;
@@ -15,19 +17,24 @@ use App\Services\ReporterFileUploadService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
 
 class ReporterProblemController extends Controller
 {
+    private const ADDRESS_INVALID_MESSAGE = 'Įveskite tikslų Kauno miesto adresą – pasirinkite jį iš sąrašo arba pažymėkite vietą žemėlapyje.';
+
+    private const ADDRESS_OUTSIDE_CITY_MESSAGE = 'Nurodyta vieta yra ne Kauno miesto savivaldybės teritorijoje.';
+
     public function __construct(
         private ProblemHttpSupport $httpSupport,
         private ProblemAutoAssignmentService $autoAssignmentService,
         private ProblemAutoPublishService $autoPublishService,
         private ReporterFileUploadService $reporterFileUploadService,
+        private KaunasAddressGeocoder $geocoder,
     ) {}
 
     private function isReporterOnly(?User $user): bool
@@ -230,6 +237,8 @@ class ReporterProblemController extends Controller
             $request->merge(['problem_nature_id' => null]);
         }
 
+        $bounds = config('kaunas.bounds');
+
         $validated = $request->validate(
             [
                 'problem_type_id' => [
@@ -250,9 +259,9 @@ class ReporterProblemController extends Controller
                     }),
                 ],
                 'description' => 'required|string|max:'.$maxDesc,
-                'address' => 'required|string|max:500',
-                'lat' => 'nullable|numeric',
-                'lng' => 'nullable|numeric',
+                'address' => 'required|string|min:'.config('kaunas.address.min_length').'|max:'.config('kaunas.address.max_length'),
+                'lat' => 'nullable|numeric|between:'.$bounds['min_lat'].','.$bounds['max_lat'],
+                'lng' => 'nullable|numeric|between:'.$bounds['min_lng'].','.$bounds['max_lng'],
             ],
             [
                 'problem_type_id.required' => 'Pasirinkite problemos rūšį.',
@@ -263,9 +272,12 @@ class ReporterProblemController extends Controller
                 'description.required' => 'Įveskite aprašymą.',
                 'description.max' => 'Aprašymas per ilgas.',
                 'address.required' => 'Įveskite adresą.',
+                'address.min' => self::ADDRESS_INVALID_MESSAGE,
                 'address.max' => 'Adresas per ilgas.',
                 'lat.numeric' => 'Netinkama vieta žemėlapyje.',
                 'lng.numeric' => 'Netinkama vieta žemėlapyje.',
+                'lat.between' => self::ADDRESS_OUTSIDE_CITY_MESSAGE,
+                'lng.between' => self::ADDRESS_OUTSIDE_CITY_MESSAGE,
             ]
         );
 
@@ -285,7 +297,7 @@ class ReporterProblemController extends Controller
         $this->reporterFileUploadService->validateForChannel($normalizedFiles, $channel);
 
         $typeValue = ClassifierValue::query()->findOrFail($validated['problem_type_id']);
-        [$lat, $lng] = $this->resolveCoordinates(
+        [$address, $lat, $lng] = $this->resolveVerifiedLocation(
             (string) ($validated['address'] ?? ''),
             isset($validated['lat']) ? (float) $validated['lat'] : null,
             isset($validated['lng']) ? (float) $validated['lng'] : null
@@ -298,7 +310,7 @@ class ReporterProblemController extends Controller
             'category' => $categoryName,
             'problem_type_id' => $validated['problem_type_id'],
             'problem_nature_id' => $validated['problem_nature_id'] ?? null,
-            'address' => $validated['address'],
+            'address' => $address,
             'lat' => $lat,
             'lng' => $lng,
             'description' => $validated['description'],
@@ -330,41 +342,54 @@ class ReporterProblemController extends Controller
         ]);
     }
 
-    private function resolveCoordinates(string $address, ?float $lat, ?float $lng): array
+    /**
+     * Adresas galioja tik tada, kai jį patvirtina geokoderis: arba pareiškėjas pažymėjo
+     * tašką žemėlapyje (tada tikriname atvirkštiniu geokodavimu), arba adresas randamas
+     * pagal tekstą. Grąžina [adresas, lat, lng].
+     *
+     * @return array{0: string, 1: float|null, 2: float|null}
+     */
+    private function resolveVerifiedLocation(string $address, ?float $lat, ?float $lng): array
     {
-        if ($lat !== null && $lng !== null) {
-            return [$lat, $lng];
+        $address = $this->geocoder->normalize($address);
+
+        if (! $this->geocoder->looksLikeAddress($address)) {
+            throw ValidationException::withMessages(['address' => self::ADDRESS_INVALID_MESSAGE]);
         }
 
-        $query = trim($address);
-        if ($query === '') {
-            return [$lat, $lng];
+        if ($lat !== null && $lng !== null) {
+            try {
+                $candidate = $this->geocoder->reverse($lat, $lng);
+            } catch (GeocoderUnavailableException) {
+                // Geokoderio prastova neblokuoja pateikimo: koordinatės jau patikrintos ribomis.
+                return [$address, $lat, $lng];
+            }
+
+            if ($candidate === null) {
+                return [$address, $lat, $lng];
+            }
+
+            if (! $this->geocoder->isKaunasCityAddress($candidate['display_name'])) {
+                throw ValidationException::withMessages(['address' => self::ADDRESS_OUTSIDE_CITY_MESSAGE]);
+            }
+
+            return [$candidate['address'] !== '' ? $candidate['address'] : $address, $lat, $lng];
         }
 
         try {
-            $response = Http::timeout(6)
-                ->withHeaders([
-                    'Accept' => 'application/json',
-                    'Accept-Language' => 'lt',
-                    'User-Agent' => 'MatauKaune/1.0',
-                ])
-                ->get('https://nominatim.openstreetmap.org/search', [
-                    'q' => $query.', Kaunas',
-                    'format' => 'json',
-                    'limit' => 1,
-                ]);
-
-            $rows = $response->json();
-            $first = is_array($rows) ? ($rows[0] ?? null) : null;
-            $resolvedLat = isset($first['lat']) ? (float) $first['lat'] : null;
-            $resolvedLng = isset($first['lon']) ? (float) $first['lon'] : null;
-
-            return [
-                $lat ?? $resolvedLat,
-                $lng ?? $resolvedLng,
-            ];
-        } catch (\Throwable) {
-            return [$lat, $lng];
+            $candidate = $this->geocoder->search($address);
+        } catch (GeocoderUnavailableException) {
+            throw ValidationException::withMessages([
+                'address' => 'Šiuo metu nepavyksta patikrinti adreso. Pažymėkite vietą žemėlapyje arba bandykite vėliau.',
+            ]);
         }
+
+        if ($candidate === null) {
+            throw ValidationException::withMessages([
+                'address' => 'Tokio Kauno miesto adreso rasti nepavyko. Patikslinkite adresą arba pažymėkite vietą žemėlapyje.',
+            ]);
+        }
+
+        return [$candidate['address'], $candidate['lat'], $candidate['lng']];
     }
 }

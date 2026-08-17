@@ -18,6 +18,7 @@ export function useReporterReportPage(props) {
     const addressStep2 = ref('')
     const latStep2 = ref(null)
     const lngStep2 = ref(null)
+    const addressConfirmedStep2 = ref(false)
     const wizardStep = ref(0)
     const wizardClosed = ref(false)
     const wizardHiddenUntilNextStep = ref(false)
@@ -158,6 +159,7 @@ export function useReporterReportPage(props) {
     })
 
     const ADDRESS_REQUIRED_MSG = 'Pasirinkite problemos vietą žemėlapyje arba įveskite adresą.'
+    const ADDRESS_UNCONFIRMED_MSG = 'Pasirinkite tikslų Kauno miesto adresą iš siūlomo sąrašo arba pažymėkite vietą žemėlapyje.'
 
     function getStep1ValidationErrors() {
         const errors = {
@@ -198,7 +200,13 @@ export function useReporterReportPage(props) {
     }
 
     function getAddressError() {
-        return (addressStep2.value ?? '').trim() ? null : ADDRESS_REQUIRED_MSG
+        if (!(addressStep2.value ?? '').trim()) {
+            return ADDRESS_REQUIRED_MSG
+        }
+        if (!addressConfirmedStep2.value || latStep2.value == null || lngStep2.value == null) {
+            return ADDRESS_UNCONFIRMED_MSG
+        }
+        return null
     }
 
     function handlePerziureti() {
@@ -332,6 +340,7 @@ export function useReporterReportPage(props) {
         addressStep2,
         latStep2,
         lngStep2,
+        addressConfirmedStep2,
         wizardStep,
         isWizardVisible,
         showReviewModal,

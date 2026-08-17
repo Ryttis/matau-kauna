@@ -7,6 +7,8 @@ const MAX_MARKER_MOVES = 3
 const MARKER_COOLDOWN_MS = 4000
 const MARKER_LOCKED_OPACITY = 0.45
 const OUTSIDE_CITY_MESSAGE = 'Registruoti galima tik Kauno miesto savivaldybės teritorijoje.'
+const NOT_FOUND_MESSAGE = 'Tokio Kauno miesto adreso nerasta. Patikslinkite adresą arba pažymėkite vietą žemėlapyje.'
+const LOOKUP_FAILED_MESSAGE = 'Nepavyko patikrinti adreso. Pažymėkite vietą žemėlapyje.'
 let lastGeocodeAt = 0
 
 let NOMINATIM_VIEWBOX = '23.65,55.05,24.15,54.75'
@@ -130,11 +132,15 @@ export function useKaunasMapLocationPicker(containerRef, options = {}) {
         initialLat = KAUNAS_CENTER[0],
         initialLng = KAUNAS_CENTER[1],
         initialAddress = '',
+        initialConfirmed = false,
         invalidateSizeDelay = 150,
     } = options
     const lat = ref(initialLat)
     const lng = ref(initialLng)
     const address = ref(typeof initialAddress === 'string' ? initialAddress : '')
+    // Vieta laikoma patvirtinta tik tada, kai ji gauta iš geokoderio arba pažymėta žemėlapyje.
+    // Vien laisvai įvestas tekstas nepatvirtina vietos.
+    const isConfirmed = ref(initialConfirmed === true)
     const isGeocoding = ref(false)
     const markerLocked = ref(false)
     const locationError = ref('')
@@ -178,6 +184,10 @@ export function useKaunasMapLocationPicker(containerRef, options = {}) {
         if (marker) marker.setLatLng([lastValidLat, lastValidLng])
     }
 
+    function invalidateConfirmation() {
+        isConfirmed.value = false
+    }
+
     async function updateAddressFromLatLng(newLat, newLng) {
         if (reverseAbortController) reverseAbortController.abort()
         reverseAbortController = new AbortController()
@@ -187,6 +197,7 @@ export function useKaunasMapLocationPicker(containerRef, options = {}) {
             if (signal.aborted) return
             if (result && !isKaunasCityAddress(result.displayName)) {
                 locationError.value = OUTSIDE_CITY_MESSAGE
+                isConfirmed.value = false
                 revertToLastValid()
                 return
             }
@@ -210,15 +221,27 @@ export function useKaunasMapLocationPicker(containerRef, options = {}) {
         isGeocoding.value = true
         try {
             const result = await geocodeAddress(query)
-            if (result && isInKaunasBounds(result.lat, result.lng) && isKaunasCityAddress(result.rawAddress)) {
-                locationError.value = ''
-                commitValidPosition(result.lat, result.lng)
-                address.value = result.address
-                if (marker) {
-                    marker.setLatLng([result.lat, result.lng])
-                    map.setView([result.lat, result.lng], 14)
-                }
+            if (!result) {
+                locationError.value = NOT_FOUND_MESSAGE
+                isConfirmed.value = false
+                return
             }
+            if (!isInKaunasBounds(result.lat, result.lng) || !isKaunasCityAddress(result.rawAddress)) {
+                locationError.value = OUTSIDE_CITY_MESSAGE
+                isConfirmed.value = false
+                return
+            }
+            locationError.value = ''
+            commitValidPosition(result.lat, result.lng)
+            address.value = result.address
+            isConfirmed.value = true
+            if (marker) {
+                marker.setLatLng([result.lat, result.lng])
+                map.setView([result.lat, result.lng], 14)
+            }
+        } catch {
+            locationError.value = LOOKUP_FAILED_MESSAGE
+            isConfirmed.value = false
         } finally {
             isGeocoding.value = false
         }
@@ -236,6 +259,7 @@ export function useKaunasMapLocationPicker(containerRef, options = {}) {
         locationError.value = ''
         commitValidPosition(newLat, newLng)
         address.value = item.display_name || ''
+        isConfirmed.value = true
         if (marker && map) {
             marker.setLatLng([newLat, newLng])
             map.setView([newLat, newLng], 15)
@@ -261,6 +285,7 @@ export function useKaunasMapLocationPicker(containerRef, options = {}) {
             }
             lat.value = pos.lat
             lng.value = pos.lng
+            isConfirmed.value = true
             registerMarkerMove()
             updateAddressFromLatLng(pos.lat, pos.lng)
         })
@@ -272,6 +297,7 @@ export function useKaunasMapLocationPicker(containerRef, options = {}) {
                 return
             }
             setMarkerPosition(newLat, newLng)
+            isConfirmed.value = true
             registerMarkerMove()
             updateAddressFromLatLng(newLat, newLng)
         })
@@ -297,6 +323,7 @@ export function useKaunasMapLocationPicker(containerRef, options = {}) {
         lat,
         lng,
         address,
+        isConfirmed,
         isGeocoding,
         markerLocked,
         locationError,
@@ -304,6 +331,7 @@ export function useKaunasMapLocationPicker(containerRef, options = {}) {
         searchAddress,
         applySuggestionSelection,
         fetchAddressSuggestions,
+        invalidateConfirmation,
         centerMap,
     }
 }

@@ -42,6 +42,7 @@ const {
     addressStep2,
     latStep2,
     lngStep2,
+    addressConfirmedStep2,
     wizardStep,
     isWizardVisible,
     showReviewModal,
@@ -317,9 +318,11 @@ watch(step, (s) => {
                             :initial-lat="latStep2 ?? KAUNAS_CENTER[0]"
                             :initial-lng="lngStep2 ?? KAUNAS_CENTER[1]"
                             :initial-address="addressStep2"
+                            :initial-confirmed="addressConfirmedStep2"
                             @update:address="addressStep2 = $event"
                             @update:lat="latStep2 = $event"
                             @update:lng="lngStep2 = $event"
+                            @update:confirmed="addressConfirmedStep2 = $event"
                         />
                         <p v-if="submitError" class="reporter-report-error">{{ submitError }}</p>
                         <div class="reporter-report-step2-actions">

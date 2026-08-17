@@ -8,9 +8,10 @@ const props = defineProps({
     initialLat: { type: Number, default: () => KAUNAS_CENTER[0] },
     initialLng: { type: Number, default: () => KAUNAS_CENTER[1] },
     initialAddress: { type: String, default: '' },
+    initialConfirmed: { type: Boolean, default: false },
 })
 
-const emit = defineEmits(['update:address', 'update:lat', 'update:lng'])
+const emit = defineEmits(['update:address', 'update:lat', 'update:lng', 'update:confirmed'])
 
 const mapContainer = ref(null)
 const addressInput = ref('')
@@ -21,19 +22,45 @@ const addressDropdownRef = ref(null)
 let suggestDebounceTimer = null
 let lastSuggestQuery = ''
 
-const { lat, lng, address, isGeocoding, locationError, searchAddress, applySuggestionSelection, fetchAddressSuggestions, centerMap } =
-    useKaunasMapLocationPicker(mapContainer, {
-        initialLat: props.initialLat,
-        initialLng: props.initialLng,
-        initialAddress: props.initialAddress ?? '',
-    })
+const {
+    lat,
+    lng,
+    address,
+    isConfirmed,
+    isGeocoding,
+    locationError,
+    searchAddress,
+    applySuggestionSelection,
+    fetchAddressSuggestions,
+    invalidateConfirmation,
+    centerMap,
+} = useKaunasMapLocationPicker(mapContainer, {
+    initialLat: props.initialLat,
+    initialLng: props.initialLng,
+    initialAddress: props.initialAddress ?? '',
+    initialConfirmed: props.initialConfirmed,
+})
 
 watch(address, (v) => { addressInput.value = v ?? '' }, { immediate: true })
 watch(addressInput, (v) => emit('update:address', v ?? ''), { immediate: true })
-watch(lat, (v) => emit('update:lat', v ?? null), { immediate: true })
-watch(lng, (v) => emit('update:lng', v ?? null), { immediate: true })
 
-watch(addressInput, (query) => {
+// Koordinatės išsiunčiamos tik patvirtinus vietą – kitaip laisvai įvestas tekstas
+// būtų pateiktas su numatytosiomis (Kauno centro) koordinatėmis.
+watch([lat, lng, isConfirmed], () => {
+    emit('update:lat', isConfirmed.value ? (lat.value ?? null) : null)
+    emit('update:lng', isConfirmed.value ? (lng.value ?? null) : null)
+    emit('update:confirmed', isConfirmed.value)
+}, { immediate: true })
+
+// Tik rankinis rašymas panaikina patvirtinimą ir kviečia pasiūlymus;
+// programiškai nustatytas adresas (pasiūlymas, žemėlapio paspaudimas) – ne.
+function onUserInput(value) {
+    addressInput.value = value
+    invalidateConfirmation()
+    scheduleSuggestions(value)
+}
+
+function scheduleSuggestions(query) {
     if (suggestDebounceTimer) clearTimeout(suggestDebounceTimer)
     const q = (query || '').trim()
     if (q.length < 2) {
@@ -56,18 +83,27 @@ watch(addressInput, (query) => {
             loadingSuggestions.value = false
         }
     }, 400)
-})
+}
 
 function onAddressSubmit() {
+    cancelPendingSuggestions()
     const q = (addressInput.value || '').trim()
     if (q) searchAddress(q)
     showSuggestions.value = false
 }
 
 function onSelectSuggestion(item) {
+    cancelPendingSuggestions()
     applySuggestionSelection(item)
     suggestions.value = []
     showSuggestions.value = false
+}
+
+// Kitaip likęs debounce timeris vėl atidarytų sąrašą jau po pasirinkimo.
+function cancelPendingSuggestions() {
+    if (suggestDebounceTimer) clearTimeout(suggestDebounceTimer)
+    suggestDebounceTimer = null
+    lastSuggestQuery = ''
 }
 
 function closeSuggestions() {
@@ -116,15 +152,16 @@ function onCenterClick() {
             </button>
         </div>
         <div ref="addressDropdownRef" class="reporter-location-address">
-            <label class="reporter-report-label">Adresas (įveskite arba pasirinkite žemėlapyje)</label>
+            <label class="reporter-report-label">Adresas (pasirinkite iš sąrašo arba pažymėkite žemėlapyje)</label>
             <div class="reporter-location-address-row reporter-location-address-row--with-dropdown">
                 <input
-                    v-model="addressInput"
+                    :value="addressInput"
                     type="text"
                     class="reporter-location-input"
                     placeholder="Pradėkite rašyti gatvę ar adresą (Kaunas)"
                     :disabled="isGeocoding"
                     autocomplete="off"
+                    @input="onUserInput($event.target.value)"
                     @keydown.enter.prevent="onAddressSubmit"
                     @keydown="onKeydown"
                 />
@@ -163,6 +200,9 @@ function onCenterClick() {
                 </template>
             </div>
             <p v-if="locationError" class="reporter-location-error">{{ locationError }}</p>
+            <p v-else-if="!isConfirmed" class="reporter-location-hint">
+                Pasirinkite adresą iš siūlomo sąrašo arba pažymėkite vietą žemėlapyje.
+            </p>
         </div>
     </div>
 </template>
@@ -285,6 +325,12 @@ function onCenterClick() {
     margin: 0;
     font-size: 14px;
     color: #d23b3b;
+}
+
+.reporter-location-hint {
+    margin: 0;
+    font-size: 14px;
+    color: #666;
 }
 
 .reporter-location-input {
