@@ -42,34 +42,39 @@ class ArcGisProblemTransferService
             'problemNature:id,name,parent_id',
         ]);
 
-        if (! $problem->institution_id || ! $problem->institution?->gisConfig?->enabled) {
-            throw ValidationException::withMessages([
-                'gis' => 'Šiai problemai nepriskirta aktyvi GIS integracija.',
-            ]);
-        }
-
-        if ($problem->lat === null || $problem->lng === null) {
-            throw ValidationException::withMessages([
-                'gis' => 'Problema neturi koordinačių ir negali būti perduota į GIS.',
-            ]);
-        }
-
-        $config = $problem->institution->gisConfig;
-
-        $transfer = ProblemGisTransfer::firstOrCreate(
-            ['problem_id' => $problem->id],
-            [
-                'institution_gis_config_id' => $config->id,
-                'send_status' => ProblemGisTransfer::STATUS_PENDING,
-            ]
-        );
-
-        $transfer->institution_gis_config_id = $config->id;
-        $transfer->save();
-
+        $transfer = null;
         $featureAudit = null;
 
+        // Bandymo įrašas rašomas prieš bet kokį sunkų darbą, kad žurnale liktų žymė net tada, kai
+        // užklausa nutrūksta neperimama PHP klaida (atmintis, vykdymo laikas).
+        $this->auditSendAttempt($problem, $auditContext);
+
         try {
+            if (! $problem->institution_id || ! $problem->institution?->gisConfig?->enabled) {
+                throw ValidationException::withMessages([
+                    'gis' => 'Šiai problemai nepriskirta aktyvi GIS integracija.',
+                ]);
+            }
+
+            if ($problem->lat === null || $problem->lng === null) {
+                throw ValidationException::withMessages([
+                    'gis' => 'Problema neturi koordinačių ir negali būti perduota į GIS.',
+                ]);
+            }
+
+            $config = $problem->institution->gisConfig;
+
+            $transfer = ProblemGisTransfer::firstOrCreate(
+                ['problem_id' => $problem->id],
+                [
+                    'institution_gis_config_id' => $config->id,
+                    'send_status' => ProblemGisTransfer::STATUS_PENDING,
+                ]
+            );
+
+            $transfer->institution_gis_config_id = $config->id;
+            $transfer->save();
+
             $featureCreated = false;
 
             if (! filled($transfer->external_object_id)) {
@@ -144,12 +149,14 @@ class ArcGisProblemTransferService
                 'message' => $attachmentSummary['message'],
             ];
         } catch (\Throwable $e) {
-            $transfer->forceFill([
-                'send_status' => filled($transfer->external_object_id)
-                    ? ProblemGisTransfer::STATUS_ATTACHMENT_FAILED
-                    : ProblemGisTransfer::STATUS_FAILED,
-                'last_error' => $e->getMessage(),
-            ])->save();
+            if ($transfer) {
+                $transfer->forceFill([
+                    'send_status' => filled($transfer->external_object_id)
+                        ? ProblemGisTransfer::STATUS_ATTACHMENT_FAILED
+                        : ProblemGisTransfer::STATUS_FAILED,
+                    'last_error' => $e->getMessage(),
+                ])->save();
+            }
 
             $this->auditGis(
                 'integration.gis.send',
@@ -162,14 +169,14 @@ class ArcGisProblemTransferService
                     'request' => ['operations' => array_filter([$featureAudit['request'] ?? null])],
                     'response' => [
                         'http_status' => $featureAudit['response']['http_status'] ?? null,
-                        'send_status' => $transfer->fresh()->send_status,
+                        'send_status' => $transfer?->fresh()?->send_status,
                     ],
                     'files' => $this->problemFiles($problem, 'outbound'),
                     'error' => $this->errorPayload($e),
                 ],
                 $auditContext,
                 $problem,
-                $transfer->id,
+                $transfer?->id,
             );
 
             throw $e;
@@ -181,8 +188,11 @@ class ArcGisProblemTransferService
         $transfer->loadMissing(['config', 'problem']);
 
         $config = $transfer->config;
+
+        $this->auditPullAttempt($transfer, $auditContext);
+
         if (! $config || ! $config->enabled) {
-            return [
+            $result = [
                 'attachments_downloaded' => 0,
                 'attachments_skipped' => 0,
                 'status_changed' => false,
@@ -190,6 +200,21 @@ class ArcGisProblemTransferService
                 'old_status' => null,
                 'new_status' => null,
             ];
+
+            $this->auditGis(
+                'integration.gis.pull_status',
+                'inbound',
+                $this->auditTrigger($auditContext),
+                'ArcGIS query',
+                AuditLogResult::Success,
+                'GIS integracija neaktyvi, duomenų gavimas praleistas.',
+                ['response' => array_merge($result, ['skipped' => true])],
+                $auditContext,
+                $transfer->problem,
+                $transfer->id,
+            );
+
+            return $result;
         }
 
         $queryAudit = null;
@@ -1032,6 +1057,73 @@ class ArcGisProblemTransferService
             $context,
             $transfer->problem,
             $transfer->id,
+        );
+    }
+
+    private function auditSendAttempt(Problem $problem, array $auditContext): void
+    {
+        $this->auditGis(
+            'integration.gis.send',
+            'outbound',
+            $this->auditTrigger($auditContext),
+            'ArcGIS applyEdits/addAttachment',
+            AuditLogResult::Pending,
+            'Pradėtas problemos perdavimas į GIS.',
+            [
+                'attempt' => [
+                    'attachments_count' => $problem->attachments->count(),
+                    'already_sent' => filled($problem->gisTransfer?->external_object_id),
+                ],
+            ],
+            $auditContext,
+            $problem,
+            $problem->gisTransfer?->id,
+        );
+    }
+
+    private function auditPullAttempt(ProblemGisTransfer $transfer, array $auditContext): void
+    {
+        $this->auditGis(
+            'integration.gis.pull_status',
+            'inbound',
+            $this->auditTrigger($auditContext),
+            'ArcGIS query',
+            AuditLogResult::Pending,
+            'Pradėtas problemos duomenų gavimas iš GIS.',
+            ['request' => ['params' => ['external_object_id' => $transfer->external_object_id]]],
+            $auditContext,
+            $transfer->problem,
+            $transfer->id,
+        );
+    }
+
+    /**
+     * Užfiksuoja žurnale, kad perdavimas į GIS buvo atsisakytas dar nepradėjus siuntimo
+     * (nepakanka teisių, netinkama problemos būsena ir pan.).
+     */
+    public function auditSendRefused(Problem $problem, string $message, array $auditContext = []): void
+    {
+        $this->auditRefusal('integration.gis.send', 'outbound', $problem, $message, $auditContext);
+    }
+
+    public function auditPullRefused(Problem $problem, string $message, array $auditContext = []): void
+    {
+        $this->auditRefusal('integration.gis.pull_status', 'inbound', $problem, $message, $auditContext);
+    }
+
+    private function auditRefusal(string $action, string $direction, Problem $problem, string $message, array $auditContext): void
+    {
+        $this->auditGis(
+            $action,
+            $direction,
+            $this->auditTrigger($auditContext),
+            'ArcGIS',
+            AuditLogResult::Failure,
+            $message,
+            ['response' => ['refused' => true]],
+            $auditContext,
+            $problem,
+            $problem->gisTransfer?->id,
         );
     }
 

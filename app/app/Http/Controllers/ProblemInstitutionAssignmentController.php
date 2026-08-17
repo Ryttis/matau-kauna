@@ -21,6 +21,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
+use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
 
 class ProblemInstitutionAssignmentController extends Controller
 {
@@ -243,12 +244,36 @@ class ProblemInstitutionAssignmentController extends Controller
     public function sendToGis(Request $request, Problem $problem): RedirectResponse
     {
         $user = $request->user();
+        $auditContext = ['trigger' => 'manual', 'actor' => $user];
+
         if (! $user->isInstitutionAdminOrSystemAdmin()) {
+            $this->arcGisProblemTransferService->auditSendRefused(
+                $problem,
+                'Naudotojas neturi teisių perduoti problemos į GIS.',
+                $auditContext,
+            );
             abort(403);
         }
-        $this->scopeService->authorizeProblemAccess($user, $problem);
+
+        try {
+            $this->scopeService->authorizeProblemAccess($user, $problem);
+        } catch (HttpExceptionInterface $e) {
+            $this->arcGisProblemTransferService->auditSendRefused(
+                $problem,
+                'Naudotojui neleidžiama pasiekti šios problemos.',
+                $auditContext,
+            );
+
+            throw $e;
+        }
 
         if ($problem->status === ProblemStatus::RESOLVED->value) {
+            $this->arcGisProblemTransferService->auditSendRefused(
+                $problem,
+                'Išnagrinėtos problemos perduoti negalima.',
+                $auditContext,
+            );
+
             return redirect()->back()->with('error', 'Išnagrinėtos problemos perduoti negalima.');
         }
 
@@ -258,10 +283,7 @@ class ProblemInstitutionAssignmentController extends Controller
             $problemForTransfer->setAttribute($problem->getKeyName(), $problem->getKey());
             $problemForTransfer->forceFill(['status' => ProblemStatus::IN_REVIEW->value]);
 
-            $result = $this->arcGisProblemTransferService->transferProblem($problemForTransfer, [
-                'trigger' => 'manual',
-                'actor' => $user,
-            ]);
+            $result = $this->arcGisProblemTransferService->transferProblem($problemForTransfer, $auditContext);
         } catch (\Throwable $e) {
             return redirect()->back()->with('error', $e->getMessage());
         }
@@ -278,47 +300,91 @@ class ProblemInstitutionAssignmentController extends Controller
     public function sendToDvs(Request $request, Problem $problem): RedirectResponse
     {
         $user = $request->user();
+        $auditContext = ['trigger' => 'manual', 'actor' => $user];
+
         if (! $user->isInstitutionAdminOrSystemAdmin()) {
+            $this->dvsProblemTransferService->auditSendRefused(
+                $problem,
+                'Naudotojas neturi teisių perduoti problemos į DVS.',
+                $auditContext,
+            );
             abort(403);
         }
-        $this->scopeService->authorizeProblemAccess($user, $problem);
+
+        try {
+            $this->scopeService->authorizeProblemAccess($user, $problem);
+        } catch (HttpExceptionInterface $e) {
+            $this->dvsProblemTransferService->auditSendRefused(
+                $problem,
+                'Naudotojui neleidžiama pasiekti šios problemos.',
+                $auditContext,
+            );
+
+            throw $e;
+        }
 
         if ($problem->status === ProblemStatus::RESOLVED->value) {
+            $this->dvsProblemTransferService->auditSendRefused(
+                $problem,
+                'Išnagrinėtos problemos perduoti negalima.',
+                $auditContext,
+            );
+
             return redirect()->back()->with('error', 'Išnagrinėtos problemos perduoti negalima.');
         }
 
         try {
-            $this->dvsProblemTransferService->transferProblem($problem, [
-                'trigger' => 'manual',
-                'actor' => $user,
-            ]);
+            $result = $this->dvsProblemTransferService->transferProblem($problem, $auditContext);
         } catch (\Throwable $e) {
             return redirect()->back()->with('error', $e->getMessage());
         }
 
         $this->markProblemInReviewAfterTransfer($problem, $user);
 
-        return redirect()->back()->with('success', 'Problema sėkmingai perduota į DVS.');
+        return redirect()->back()->with('success', ($result['already_sent'] ?? false)
+            ? 'Problema į DVS jau buvo perduota anksčiau, pakartotinai nesiųsta.'
+            : 'Problema sėkmingai perduota į DVS.');
     }
 
     public function pullFromDvs(Request $request, Problem $problem): RedirectResponse
     {
         $user = $request->user();
+        $auditContext = ['trigger' => 'manual', 'actor' => $user];
+
         if (! $user->isInstitutionAdminOrSystemAdmin()) {
+            $this->dvsProblemTransferService->auditPullRefused(
+                $problem,
+                'Naudotojas neturi teisių gauti problemos duomenų iš DVS.',
+                $auditContext,
+            );
             abort(403);
         }
-        $this->scopeService->authorizeProblemAccess($user, $problem);
+
+        try {
+            $this->scopeService->authorizeProblemAccess($user, $problem);
+        } catch (HttpExceptionInterface $e) {
+            $this->dvsProblemTransferService->auditPullRefused(
+                $problem,
+                'Naudotojui neleidžiama pasiekti šios problemos.',
+                $auditContext,
+            );
+
+            throw $e;
+        }
 
         $problem->loadMissing('dvsTransfer');
         if (! $problem->dvsTransfer || ! filled($problem->dvsTransfer->external_object_id)) {
+            $this->dvsProblemTransferService->auditPullRefused(
+                $problem,
+                'Problema dar nebuvo perduota į DVS.',
+                $auditContext,
+            );
+
             return redirect()->back()->with('error', 'Problema dar nebuvo perduota į DVS.');
         }
 
         try {
-            $result = $this->dvsProblemTransferService->syncFromDvs($problem->dvsTransfer, [
-                'trigger' => 'manual',
-                'actor' => $user,
-            ]);
+            $result = $this->dvsProblemTransferService->syncFromDvs($problem->dvsTransfer, $auditContext);
         } catch (\Throwable $e) {
             return redirect()->back()->with('error', $e->getMessage());
         }
@@ -343,21 +409,42 @@ class ProblemInstitutionAssignmentController extends Controller
     public function pullFromGis(Request $request, Problem $problem): RedirectResponse
     {
         $user = $request->user();
+        $auditContext = ['trigger' => 'manual', 'actor' => $user];
+
         if (! $user->isInstitutionAdminOrSystemAdmin()) {
+            $this->arcGisProblemTransferService->auditPullRefused(
+                $problem,
+                'Naudotojas neturi teisių gauti problemos duomenų iš GIS.',
+                $auditContext,
+            );
             abort(403);
         }
-        $this->scopeService->authorizeProblemAccess($user, $problem);
+
+        try {
+            $this->scopeService->authorizeProblemAccess($user, $problem);
+        } catch (HttpExceptionInterface $e) {
+            $this->arcGisProblemTransferService->auditPullRefused(
+                $problem,
+                'Naudotojui neleidžiama pasiekti šios problemos.',
+                $auditContext,
+            );
+
+            throw $e;
+        }
 
         $problem->loadMissing('gisTransfer');
         if (! $problem->gisTransfer || ! filled($problem->gisTransfer->external_object_id)) {
+            $this->arcGisProblemTransferService->auditPullRefused(
+                $problem,
+                'Problema dar nebuvo perduota į GIS.',
+                $auditContext,
+            );
+
             return redirect()->back()->with('error', 'Problema dar nebuvo perduota į GIS.');
         }
 
         try {
-            $result = $this->arcGisProblemTransferService->syncFromGis($problem->gisTransfer, [
-                'trigger' => 'manual',
-                'actor' => $user,
-            ]);
+            $result = $this->arcGisProblemTransferService->syncFromGis($problem->gisTransfer, $auditContext);
         } catch (\Throwable $e) {
             return redirect()->back()->with('error', $e->getMessage());
         }

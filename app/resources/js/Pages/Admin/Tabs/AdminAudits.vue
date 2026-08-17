@@ -131,6 +131,7 @@ function eventTypeLabel(type) {
 function resultLabel(result) {
     if (result === 'success') return 'Sėkmė'
     if (result === 'error' || result === 'failure') return 'Klaida'
+    if (result === 'pending') return 'Vykdoma'
     return result ?? '-'
 }
 
@@ -258,6 +259,7 @@ loadSettings()
                         <option value="success">Sėkmė</option>
                         <option value="error">Klaida</option>
                         <option value="failure">Klaida</option>
+                        <option value="pending">Vykdoma</option>
                     </select>
                 </div>
                 <AppInput v-model="filters.search" placeholder="Ieškoti (veiksmas, žinutė, atlikėjas)" class="filter-search" />

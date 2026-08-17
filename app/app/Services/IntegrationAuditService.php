@@ -5,11 +5,22 @@ namespace App\Services;
 use App\Enums\AuditLogResult;
 use App\Models\Problem;
 use App\Models\User;
+use Illuminate\Support\Arr;
 use Illuminate\Support\Str;
 
 class IntegrationAuditService
 {
     private const REDACTED = '[pašalinta]';
+
+    private const TRUNCATED = '[sutrumpinta]';
+
+    private const MAX_STRING_LENGTH = 2000;
+
+    private const MAX_ARRAY_ITEMS = 200;
+
+    private const MAX_DEPTH = 12;
+
+    private const MAX_TOTAL_BYTES = 262144;
 
     public function __construct(
         private AuditLogService $auditLogService,
@@ -65,15 +76,31 @@ class IntegrationAuditService
 
     public function sanitize(array $metadata): array
     {
-        return $this->sanitizeValue($metadata);
+        $clean = $this->sanitizeValue($metadata);
+
+        return $this->capSize(is_array($clean) ? $clean : []);
     }
 
-    private function sanitizeValue(mixed $value, ?string $key = null): mixed
+    private function sanitizeValue(mixed $value, ?string $key = null, int $depth = 0): mixed
     {
         if (is_array($value)) {
+            if ($depth >= self::MAX_DEPTH) {
+                return self::TRUNCATED;
+            }
+
             $clean = [];
+            $index = 0;
             foreach ($value as $childKey => $childValue) {
-                $clean[$childKey] = $this->sanitizeValue($childValue, is_string($childKey) ? $childKey : null);
+                if ($index >= self::MAX_ARRAY_ITEMS) {
+                    $clean[] = self::TRUNCATED.': '.(count($value) - self::MAX_ARRAY_ITEMS).' įrašų';
+                    break;
+                }
+                $clean[$childKey] = $this->sanitizeValue(
+                    $childValue,
+                    is_string($childKey) ? $childKey : null,
+                    $depth + 1,
+                );
+                $index++;
             }
 
             return $clean;
@@ -83,11 +110,59 @@ class IntegrationAuditService
             return self::REDACTED;
         }
 
-        if (is_string($value) && $this->looksLikeSensitiveUrl($key, $value)) {
-            return $this->redactUrl($value);
+        if (is_float($value) && ! is_finite($value)) {
+            return null;
         }
 
-        return $value;
+        if (is_string($value) && $this->looksLikeSensitiveUrl($key, $value)) {
+            $value = $this->redactUrl($value);
+        }
+
+        return is_string($value) ? $this->safeString($value) : $value;
+    }
+
+    /**
+     * Metaduomenys saugomi JSON stulpelyje, todėl netaisyta UTF-8 seka ar per ilga reikšmė
+     * neturi sugriauti viso audito įrašo.
+     */
+    private function safeString(string $value): string
+    {
+        $clean = str_replace("\0", '', $value);
+        if (! mb_check_encoding($clean, 'UTF-8')) {
+            $clean = mb_convert_encoding($clean, 'UTF-8', 'UTF-8');
+        }
+
+        return Str::limit($clean, self::MAX_STRING_LENGTH, ' '.self::TRUNCATED);
+    }
+
+    /**
+     * Diagnostikai svarbiausi laukai (klaida, problema, sistema) paliekami paskutiniai,
+     * pirmiausia išmetamas didžiausias turinys - siųstas payload.
+     */
+    private function capSize(array $metadata): array
+    {
+        foreach ([['request', 'params'], ['request'], ['response'], ['files']] as $path) {
+            if ($this->encodedSize($metadata) <= self::MAX_TOTAL_BYTES) {
+                return $metadata;
+            }
+            if (Arr::has($metadata, $path)) {
+                Arr::set($metadata, implode('.', $path), self::TRUNCATED);
+            }
+        }
+
+        if ($this->encodedSize($metadata) <= self::MAX_TOTAL_BYTES) {
+            return $metadata;
+        }
+
+        return Arr::only($metadata, ['system', 'direction', 'trigger', 'service', 'problem', 'error'])
+            + ['metadata_truncated' => true];
+    }
+
+    private function encodedSize(array $metadata): int
+    {
+        $encoded = json_encode($metadata, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+
+        return $encoded === false ? PHP_INT_MAX : strlen($encoded);
     }
 
     private function isSensitiveKey(string $key): bool

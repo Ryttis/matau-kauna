@@ -42,6 +42,12 @@ class DvsProblemTransferService
         $transfer = null;
         $payload = null;
         $post = null;
+        $httpAudit = null;
+
+        // Bandymo įrašas rašomas prieš bet kokį sunkų darbą (payload, prisijungimas, HTTP), kad
+        // žurnale liktų žymė net tada, kai užklausa nutrūksta neperimama PHP klaida (atmintis, laikas).
+        // Jei kada nors šis metodas bus apgaubtas DB::transaction() - įrašą reikės rašyti už transakcijos.
+        $this->auditSendAttempt($problem, $auditContext);
 
         try {
             $config = $this->activeConfigForProblem($problem);
@@ -63,7 +69,7 @@ class DvsProblemTransferService
 
             if (! filled($transfer->external_object_id)) {
                 $payload = $this->buildPayload($problem, $config, $api);
-                $post = $this->postJsonWithToken($config, $this->sendUrl($config, $api), $payload);
+                $post = $this->postJsonWithToken($config, $this->sendUrl($config, $api), $payload, $httpAudit);
                 $response = $post['json'];
                 $data = $this->responseData($response);
                 $objectId = $this->firstFilled($data, ['objectId', 'ObjectId', 'id', 'Id']);
@@ -82,6 +88,7 @@ class DvsProblemTransferService
                 ])->save();
             }
 
+            $alreadySent = $post === null;
             $freshTransfer = $transfer->fresh();
             $this->auditDvs(
                 'integration.dvs.send',
@@ -89,10 +96,10 @@ class DvsProblemTransferService
                 $this->auditTrigger($auditContext),
                 $this->dvsServiceName($api),
                 AuditLogResult::Success,
-                null,
+                $alreadySent ? 'Problema jau buvo perduota į DVS anksčiau, siuntimas praleistas.' : null,
                 [
                     'request' => [
-                        'method' => $post === null ? null : 'POST',
+                        'method' => $alreadySent ? null : 'POST',
                         'url' => $this->sendUrl($config, $api),
                         'params' => $payload,
                     ],
@@ -101,7 +108,7 @@ class DvsProblemTransferService
                         'external_object_id' => $freshTransfer?->external_object_id,
                         'external_reg_nr' => $freshTransfer?->external_reg_nr,
                         'send_status' => $freshTransfer?->send_status,
-                        'already_sent' => $post === null,
+                        'already_sent' => $alreadySent,
                     ],
                     'files' => $this->problemFiles($problem, 'outbound'),
                 ],
@@ -112,7 +119,8 @@ class DvsProblemTransferService
 
             return [
                 'transfer' => $freshTransfer,
-                'created' => true,
+                'created' => ! $alreadySent,
+                'already_sent' => $alreadySent,
             ];
         } catch (\Throwable $e) {
             if ($transfer) {
@@ -136,7 +144,8 @@ class DvsProblemTransferService
                         'params' => $payload,
                     ],
                     'response' => [
-                        'http_status' => $post['http_status'] ?? null,
+                        'http_status' => $post['http_status'] ?? $httpAudit['http_status'] ?? null,
+                        'body' => $httpAudit['body'] ?? null,
                         'send_status' => $transfer?->fresh()?->send_status,
                     ],
                     'files' => $this->problemFiles($problem, 'outbound'),
@@ -160,6 +169,9 @@ class DvsProblemTransferService
             ? $this->statusUrl($config, $api, $transfer->external_object_id)
             : null;
         $get = null;
+        $httpAudit = null;
+
+        $this->auditPullAttempt($transfer, $api, $url, $auditContext);
 
         if (! $config || ! $config->enabled || ! filled($transfer->external_object_id)) {
             $result = [
@@ -193,7 +205,7 @@ class DvsProblemTransferService
         }
 
         try {
-            $get = $this->getJsonWithToken($config, $url);
+            $get = $this->getJsonWithToken($config, $url, $httpAudit);
             $response = $get['json'];
             $data = $this->responseData($response);
         } catch (\Throwable $e) {
@@ -210,7 +222,10 @@ class DvsProblemTransferService
                         'url' => $url,
                         'params' => ['external_object_id' => $transfer->external_object_id],
                     ],
-                    'response' => ['http_status' => $get['http_status'] ?? null],
+                    'response' => [
+                        'http_status' => $get['http_status'] ?? $httpAudit['http_status'] ?? null,
+                        'body' => $httpAudit['body'] ?? null,
+                    ],
                     'error' => $this->errorPayload($e),
                 ],
                 $auditContext,
@@ -305,6 +320,20 @@ class DvsProblemTransferService
         );
 
         return $result;
+    }
+
+    /**
+     * Užfiksuoja žurnale, kad problemos perdavimas į DVS buvo atsisakytas dar nepradėjus siuntimo
+     * (nepakanka teisių, netinkama problemos būsena ir pan.).
+     */
+    public function auditSendRefused(Problem $problem, string $message, array $auditContext = []): void
+    {
+        $this->auditRefusal('integration.dvs.send', 'outbound', $problem, $message, $auditContext);
+    }
+
+    public function auditPullRefused(Problem $problem, string $message, array $auditContext = []): void
+    {
+        $this->auditRefusal('integration.dvs.pull_status', 'inbound', $problem, $message, $auditContext);
     }
 
     public function buildPayload(Problem $problem, InstitutionDvsConfig $config, ?string $api = null): array
@@ -529,13 +558,21 @@ class DvsProblemTransferService
             : InstitutionDvsConfig::COMPLAINT_API_GAUNAMI_DOKUMENTAI;
     }
 
-    private function postJsonWithToken(InstitutionDvsConfig $config, string $url, array $payload): array
+    /**
+     * @param  array|null  $httpAudit  užpildomas ir klaidos atveju, kad DVS atsakymas patektų į auditą
+     */
+    private function postJsonWithToken(InstitutionDvsConfig $config, string $url, array $payload, ?array &$httpAudit = null): array
     {
         $token = $this->getToken($config);
         $response = Http::withToken($token)
             ->withHeaders(['Accept' => self::DVS_ACCEPT_HEADER])
             ->timeout(90)
             ->post($url, $payload);
+
+        $httpAudit = [
+            'http_status' => $response->status(),
+            'body' => Str::limit($response->body(), 1000),
+        ];
 
         if (! $response->successful()) {
             throw new RuntimeException('DVS API grąžino HTTP '.$response->status().'.');
@@ -549,13 +586,18 @@ class DvsProblemTransferService
         return ['json' => $json, 'http_status' => $response->status()];
     }
 
-    private function getJsonWithToken(InstitutionDvsConfig $config, string $url): array
+    private function getJsonWithToken(InstitutionDvsConfig $config, string $url, ?array &$httpAudit = null): array
     {
         $token = $this->getToken($config);
         $response = Http::withToken($token)
             ->withHeaders(['Accept' => self::DVS_ACCEPT_HEADER])
             ->timeout(90)
             ->get($url);
+
+        $httpAudit = [
+            'http_status' => $response->status(),
+            'body' => Str::limit($response->body(), 1000),
+        ];
 
         if (! $response->successful()) {
             throw new RuntimeException('DVS statuso API grąžino HTTP '.$response->status().'.');
@@ -675,6 +717,72 @@ class DvsProblemTransferService
             $this->auditActor($context),
             $problem,
             $transferId,
+        );
+    }
+
+    private function auditSendAttempt(Problem $problem, array $auditContext): void
+    {
+        $config = $problem->institution?->dvsConfig;
+        $api = $config ? $this->selectedApi($config) : null;
+
+        $this->auditDvs(
+            'integration.dvs.send',
+            'outbound',
+            $this->auditTrigger($auditContext),
+            $this->dvsServiceName($api),
+            AuditLogResult::Pending,
+            'Pradėtas problemos perdavimas į DVS.',
+            [
+                'request' => [
+                    'method' => 'POST',
+                    'url' => $config && $api ? $this->sendUrl($config, $api) : null,
+                ],
+                'attempt' => [
+                    'attachments_count' => $problem->attachments->count(),
+                    'already_sent' => filled($problem->dvsTransfer?->external_object_id),
+                ],
+            ],
+            $auditContext,
+            $problem,
+            $problem->dvsTransfer?->id,
+        );
+    }
+
+    private function auditPullAttempt(ProblemDvsTransfer $transfer, ?string $api, ?string $url, array $auditContext): void
+    {
+        $this->auditDvs(
+            'integration.dvs.pull_status',
+            'inbound',
+            $this->auditTrigger($auditContext),
+            $this->dvsServiceName($api),
+            AuditLogResult::Pending,
+            'Pradėtas problemos duomenų gavimas iš DVS.',
+            [
+                'request' => [
+                    'method' => 'GET',
+                    'url' => $url,
+                    'params' => ['external_object_id' => $transfer->external_object_id],
+                ],
+            ],
+            $auditContext,
+            $transfer->problem,
+            $transfer->id,
+        );
+    }
+
+    private function auditRefusal(string $action, string $direction, Problem $problem, string $message, array $auditContext): void
+    {
+        $this->auditDvs(
+            $action,
+            $direction,
+            $this->auditTrigger($auditContext),
+            $this->dvsServiceName($problem->institution?->dvsConfig?->complaint_api),
+            AuditLogResult::Failure,
+            $message,
+            ['response' => ['refused' => true]],
+            $auditContext,
+            $problem,
+            $problem->dvsTransfer?->id,
         );
     }
 

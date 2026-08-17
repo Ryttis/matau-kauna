@@ -7,6 +7,8 @@ use App\Models\AuditLog;
 use App\Models\AuditSetting;
 use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
 
 class AuditLogService
 {
@@ -16,6 +18,10 @@ class AuditLogService
         AuditLog::EVENT_AUDIT_CONFIG,
         AuditLog::EVENT_INTEGRATION,
     ];
+
+    private const MAX_MESSAGE_LENGTH = 2000;
+
+    private const MAX_METADATA_BYTES = 262144;
 
     public function shouldLog(string $eventType): bool
     {
@@ -158,9 +164,87 @@ class AuditLogService
         return $result instanceof AuditLogResult ? $result->value : $result;
     }
 
+    /**
+     * Audito įrašas negali sugriauti pagrindinio veiksmo: jei nepavyksta įrašyti su metaduomenimis,
+     * bandoma be jų, o visiškai nepavykus - klaida rašoma į Laravel žurnalą.
+     */
     private function write(array $data): void
     {
         $data['occurred_at'] = $data['occurred_at'] ?? now();
-        AuditLog::query()->create($data);
+        $data['message'] = $this->safeText($data['message'] ?? null);
+        if (array_key_exists('metadata', $data)) {
+            $data['metadata'] = $this->safeMetadata($data['metadata']);
+        }
+
+        try {
+            AuditLog::query()->create($data);
+
+            return;
+        } catch (\Throwable $first) {
+            // Svarbiausia išsaugoti patį įrašą (veiksmas, rezultatas, žinutė), todėl bandome be metaduomenų.
+        }
+
+        try {
+            AuditLog::query()->create(array_merge($data, [
+                'metadata' => [
+                    'audit_write_degraded' => true,
+                    'audit_write_error' => $this->safeText($first->getMessage()),
+                ],
+            ]));
+
+            return;
+        } catch (\Throwable $second) {
+            Log::error('Nepavyko įrašyti audito žurnalo įrašo.', [
+                'event_type' => $data['event_type'] ?? null,
+                'action' => $data['action'] ?? null,
+                'result' => $data['result'] ?? null,
+                'message' => $data['message'] ?? null,
+                'first_error' => $first->getMessage(),
+                'second_error' => $second->getMessage(),
+            ]);
+        }
+    }
+
+    private function safeText(?string $text): ?string
+    {
+        if ($text === null) {
+            return null;
+        }
+
+        $clean = str_replace("\0", '', $text);
+        if (! mb_check_encoding($clean, 'UTF-8')) {
+            $clean = mb_convert_encoding($clean, 'UTF-8', 'UTF-8');
+        }
+
+        return Str::limit($clean, self::MAX_MESSAGE_LENGTH);
+    }
+
+    private function safeMetadata(mixed $metadata): ?array
+    {
+        if (! is_array($metadata) || $metadata === []) {
+            return null;
+        }
+
+        $encoded = json_encode($metadata, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+        if ($encoded !== false && strlen($encoded) <= self::MAX_METADATA_BYTES) {
+            return $metadata;
+        }
+
+        $repaired = json_decode((string) json_encode(
+            $metadata,
+            JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_INVALID_UTF8_SUBSTITUTE | JSON_PARTIAL_OUTPUT_ON_ERROR
+        ), true);
+
+        if (is_array($repaired)) {
+            $repairedEncoded = json_encode($repaired, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+            if ($repairedEncoded !== false && strlen($repairedEncoded) <= self::MAX_METADATA_BYTES) {
+                return $repaired;
+            }
+        }
+
+        return [
+            'audit_metadata_truncated' => true,
+            'audit_metadata_bytes' => $encoded === false ? null : strlen($encoded),
+        ];
     }
 }

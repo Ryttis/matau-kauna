@@ -110,7 +110,12 @@ class ProblemGisTransferTest extends TestCase
         $this->assertSame($config->id, $transfer->institution_gis_config_id);
         $this->assertSame(ProblemStatus::IN_REVIEW->value, $problem->fresh()->status);
 
-        $audit = AuditLog::where('action', 'integration.gis.send')->first();
+        // Pirmasis irasas yra bandymo zyme ("Vykdoma"), rezultatas rasomas atskiru irasu.
+        $attempt = AuditLog::where('action', 'integration.gis.send')->where('result', 'pending')->first();
+        $this->assertNotNull($attempt);
+        $this->assertSame('Pradėtas problemos perdavimas į GIS.', $attempt->message);
+
+        $audit = AuditLog::where('action', 'integration.gis.send')->where('result', 'success')->first();
         $this->assertNotNull($audit);
         $this->assertSame('integration', $audit->event_type);
         $this->assertSame('success', $audit->result);
@@ -789,6 +794,92 @@ class ProblemGisTransferTest extends TestCase
         $this->assertSame(ProblemGisTransfer::STATUS_ATTACHMENT_FAILED, $transfer->send_status);
         $this->assertNotNull($transfer->last_error);
         $this->assertSame('failed', $transfer->attachmentTransfers->first()->status);
+    }
+
+    public function test_send_without_active_gis_config_is_journaled(): void
+    {
+        $institution = Institution::create(['name' => 'GIS Institution']);
+        $user = $this->createSystemAdmin();
+        $problem = Problem::create([
+            'status' => 'nauja',
+            'category' => 'Neveikia šviestuvas',
+            'address' => 'Laisvės al. 15, Kaunas',
+            'description' => 'Neveikia šviestuvas prie sankryžos.',
+            'lat' => 54.8985,
+            'lng' => 23.9036,
+            'institution_id' => $institution->id,
+        ]);
+
+        Http::fake();
+
+        $this->actingAs($user)
+            ->post(route('problems.assignInstitution.sendGis', $problem))
+            ->assertSessionHas('error', 'Šiai problemai nepriskirta aktyvi GIS integracija.');
+
+        Http::assertNothingSent();
+
+        $this->assertNotNull(
+            AuditLog::where('action', 'integration.gis.send')->where('result', 'pending')->first()
+        );
+
+        $error = AuditLog::where('action', 'integration.gis.send')->where('result', 'error')->first();
+        $this->assertNotNull($error, 'Nėra GIS klaidos įrašo.');
+        $this->assertSame('Šiai problemai nepriskirta aktyvi GIS integracija.', $error->message);
+        $this->assertNull($problem->fresh()->gisTransfer()->first());
+    }
+
+    public function test_send_without_coordinates_is_journaled(): void
+    {
+        $institution = Institution::create(['name' => 'GIS Institution']);
+        $user = $this->createSystemAdmin();
+        InstitutionGisConfig::create([
+            'institution_id' => $institution->id,
+            'enabled' => true,
+            'feature_server_url' => 'https://example.test/FeatureServer/1',
+            'active_token' => 'cached-token',
+            'active_token_expires_at' => now()->addHour(),
+        ]);
+        $problem = Problem::create([
+            'status' => 'nauja',
+            'category' => 'Neveikia šviestuvas',
+            'address' => 'Laisvės al. 15, Kaunas',
+            'description' => 'Problema be koordinačių.',
+            'institution_id' => $institution->id,
+        ]);
+
+        Http::fake();
+
+        $this->actingAs($user)
+            ->post(route('problems.assignInstitution.sendGis', $problem))
+            ->assertSessionHas('error', 'Problema neturi koordinačių ir negali būti perduota į GIS.');
+
+        $error = AuditLog::where('action', 'integration.gis.send')->where('result', 'error')->first();
+        $this->assertNotNull($error);
+        $this->assertSame('Problema neturi koordinačių ir negali būti perduota į GIS.', $error->message);
+    }
+
+    public function test_gis_pull_without_previous_transfer_is_journaled(): void
+    {
+        $institution = Institution::create(['name' => 'GIS Institution']);
+        $user = $this->createSystemAdmin();
+        $problem = Problem::create([
+            'status' => 'nauja',
+            'category' => 'Neveikia šviestuvas',
+            'address' => 'Laisvės al. 15, Kaunas',
+            'description' => 'Neperduota problema.',
+            'lat' => 54.8985,
+            'lng' => 23.9036,
+            'institution_id' => $institution->id,
+        ]);
+
+        $this->actingAs($user)
+            ->post(route('problems.assignInstitution.pullGis', $problem))
+            ->assertSessionHas('error', 'Problema dar nebuvo perduota į GIS.');
+
+        $refusal = AuditLog::where('action', 'integration.gis.pull_status')->where('result', 'failure')->first();
+        $this->assertNotNull($refusal);
+        $this->assertSame('Problema dar nebuvo perduota į GIS.', $refusal->message);
+        $this->assertTrue($refusal->metadata['response']['refused']);
     }
 
     private function createSystemAdmin(): User
