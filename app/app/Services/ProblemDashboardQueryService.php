@@ -96,6 +96,8 @@ class ProblemDashboardQueryService
                 'institution:id,name',
                 'assignedEmployee:id,name,surname,email',
                 'assignedInstitutionTeam:id,name',
+                'reportedByUser:id,name,surname,email',
+                'problemNature:id,name',
             ])
             ->when(
                 $this->scopeService->isInstitutionScoped($user),

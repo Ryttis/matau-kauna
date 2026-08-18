@@ -30,9 +30,14 @@ class ProblemsExport implements FromCollection, WithColumnWidths, WithHeadings, 
         return [
             'Nr.',
             'Būsena',
-            'Data',
+            'Užregistruota',
+            'Atnaujinta',
+            'Pareiškėjas',
+            'Priskirta',
             'Kategorija',
+            'Pobūdis',
             'Adresas',
+            'Viešai',
             'Aprašymas',
         ];
     }
@@ -43,8 +48,13 @@ class ProblemsExport implements FromCollection, WithColumnWidths, WithHeadings, 
             $problem->internal_number,
             $this->statusLabels[$problem->status] ?? $problem->status,
             $problem->created_at?->format('Y-m-d') ?? '',
+            $problem->status_updated_at?->format('Y-m-d H:i') ?? '',
+            $this->reporterName($problem),
+            $this->assignmentLabel($problem),
             $problem->category,
+            $problem->problemNature?->name ?? '',
             $problem->address,
+            $problem->is_published_publicly ? 'Taip' : 'Ne',
             $problem->description,
         ];
     }
@@ -54,10 +64,46 @@ class ProblemsExport implements FromCollection, WithColumnWidths, WithHeadings, 
         return [
             'A' => 15,
             'B' => 20,
-            'C' => 12,
-            'D' => 15,
-            'E' => 30,
-            'F' => 50,
+            'C' => 14,
+            'D' => 18,
+            'E' => 24,
+            'F' => 35,
+            'G' => 18,
+            'H' => 22,
+            'I' => 30,
+            'J' => 8,
+            'K' => 50,
         ];
+    }
+
+    private function reporterName($problem): string
+    {
+        $reporter = $problem->reportedByUser;
+        if (! $reporter) {
+            return '';
+        }
+
+        return $this->personName($reporter);
+    }
+
+    private function assignmentLabel($problem): string
+    {
+        $parts = [
+            trim((string) ($problem->institution?->name ?? '')),
+            $problem->assignedEmployee ? $this->personName($problem->assignedEmployee) : '',
+            trim((string) ($problem->assignedInstitutionTeam?->name ?? '')),
+        ];
+
+        return implode(' / ', array_filter($parts, fn ($part) => $part !== ''));
+    }
+
+    private function personName($person): string
+    {
+        $fullName = trim(implode(' ', array_filter([
+            trim((string) ($person->name ?? '')),
+            trim((string) ($person->surname ?? '')),
+        ], fn ($part) => $part !== '')));
+
+        return $fullName !== '' ? $fullName : trim((string) ($person->email ?? ''));
     }
 }
