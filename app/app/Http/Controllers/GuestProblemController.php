@@ -60,9 +60,7 @@ class GuestProblemController extends Controller
         $problemData = [
             'id' => $problem->id,
             'internal_number' => $problem->internal_number,
-            'status' => $problem->status,
-            'reporter_status' => ProblemStatus::reporterStatusValue((string) $problem->status),
-            'reporter_status_label' => ProblemStatus::reporterStatusLabel((string) $problem->status),
+            ...ProblemStatus::reporterStatusPayload((string) $problem->status),
             'category' => $problem->category,
             'nature' => $problem->problemNature?->name,
             'address' => $problem->address,

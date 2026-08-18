@@ -9,6 +9,7 @@ import ProblemDetailBlocks from '@/Components/Problems/ProblemDetailBlocks.vue'
 import ProblemAttachmentsPanel from '@/Components/Problems/ProblemAttachmentsPanel.vue'
 import ProblemMergeLinks from '@/Components/Problems/ProblemMergeLinks.vue'
 import StatusBadge from '@/Components/Problems/StatusBadge.vue'
+import { getReporterStatusKey, getReporterStatusLabel } from '@/constants/domain/problemStatus'
 import { ICON_LEFT_ARROW } from '@/constants/ui/icons'
 
 const props = defineProps({
@@ -43,7 +44,11 @@ const formattedDate = computed(() => formatDateLt(props.problem?.created_at))
                 </div>
 
                 <div v-if="problem?.status" class="public-problem-status-section">
-                    <StatusBadge :status="problem.status" />
+                    <StatusBadge
+                        :status="problem.status"
+                        :display-status="problem.reporter_status || getReporterStatusKey(problem.status)"
+                        :label="problem.reporter_status_label || getReporterStatusLabel(problem.status)"
+                    />
                 </div>
 
                 <ProblemMergeLinks
