@@ -121,7 +121,7 @@ const showNavToggle = computed(() => isAuthenticated.value && !!appShell?.toggle
         top: 7px;
     }
 
-    @media (max-width: 1023px) {
+    @media (max-width: 1960px) {
         .header-menu-btn {
             display: inline-flex;
         }

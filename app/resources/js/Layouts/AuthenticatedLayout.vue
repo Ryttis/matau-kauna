@@ -156,7 +156,7 @@ watch([sidebarOpen, isMobileNav], () => {
 
 @media (min-width: 1024px) {
     .body :deep(.sidebar) {
-        width: 450px;
+        width: 400px;
         flex-shrink: 0;
     }
 }
