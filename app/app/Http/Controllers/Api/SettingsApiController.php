@@ -116,6 +116,42 @@ class SettingsApiController extends Controller
         ]);
     }
 
+    public function updatePushNotifications(Request $request): JsonResponse
+    {
+        $user = $this->authenticatedUser($request);
+
+        $validated = $request->validate([
+            'push_notifications_enabled' => ['sometimes', 'boolean'],
+            'push_own_problems' => ['sometimes', 'boolean'],
+            'push_watched_problems' => ['sometimes', 'boolean'],
+        ]);
+
+        $payload = [];
+        foreach ([
+            'push_notifications_enabled',
+            'push_own_problems',
+            'push_watched_problems',
+        ] as $field) {
+            if (array_key_exists($field, $validated)) {
+                $payload[$field] = (bool) $validated[$field];
+            }
+        }
+
+        if ($payload !== []) {
+            $user->forceFill($payload)->save();
+        }
+
+        return response()->json([
+            'ok' => true,
+            'push_notifications' => [
+                'push_notifications_enabled' => (bool) $user->push_notifications_enabled,
+                'push_own_problems' => (bool) $user->push_own_problems,
+                'push_watched_problems' => (bool) $user->push_watched_problems,
+                'push_notifications_registered' => $user->push_fcm_token !== null,
+            ],
+        ]);
+    }
+
     public function updatePassword(Request $request): JsonResponse
     {
         $user = $this->authenticatedUser($request);

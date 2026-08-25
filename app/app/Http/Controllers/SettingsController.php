@@ -192,6 +192,9 @@ class SettingsController extends Controller
         'email_updates_institution_admin',
         'reporter_email_own_problems',
         'reporter_email_watched_problems',
+        'push_notifications_enabled',
+        'push_own_problems',
+        'push_watched_problems',
     ];
 
     public function updatePrivacy(Request $request): RedirectResponse

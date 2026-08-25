@@ -41,6 +41,7 @@ Route::middleware(['auth:sanctum', 'not_blocked', \App\Http\Middleware\ExtendTok
     Route::post('/me/push-device', [AuthApiController::class, 'registerPushDevice']);
     Route::post('/me/push-test', [AuthApiController::class, 'sendPushTest']);
     Route::patch('/setting/email_notifications', [SettingsApiController::class, 'updateEmailNotifications']);
+    Route::patch('/settings/push-notifications', [SettingsApiController::class, 'updatePushNotifications']);
     Route::patch('/settings/profile', [SettingsApiController::class, 'updateProfile']);
     Route::patch('/settings/two-factor', [SettingsApiController::class, 'updateTwoFactor']);
     Route::put('/settings/password', [SettingsApiController::class, 'updatePassword']);

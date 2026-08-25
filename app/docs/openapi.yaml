@@ -634,7 +634,9 @@ paths:
       summary: "[AUTH] Update reporter email notification settings"
       description: >
         Requires `Authorization: Bearer {token}`. Updates the current user's reporter email
-        notification switches used by the mobile app settings screen.
+        notification switches used by the mobile app settings screen. These switches control
+        email only — push notifications have their own switches on
+        PATCH `/api/settings/push-notifications`.
       security:
         - bearerAuth: []
       parameters:
@@ -669,6 +671,55 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/EmailNotificationSettingsResponse"
+        "401":
+          description: Unauthorized
+        "422":
+          $ref: "#/components/responses/ValidationError"
+
+  /api/settings/push-notifications:
+    patch:
+      tags: [Settings]
+      summary: "[AUTH] Update push (mobile) notification settings"
+      description: >
+        Requires `Authorization: Bearer {token}`. Updates the current user's push notification
+        switches. These are independent from the email switches: a user with email notifications
+        turned off still receives push notifications while `push_notifications_enabled` is true
+        and a device is registered via POST `/api/me/push-device`. All fields are optional, so
+        a single switch can be sent on its own. Defaults are `true` for all three.
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: header
+          name: X-Authorization
+          required: true
+          description: Swagger-only auth header. Paste full Bearer token here, e.g. `Bearer 6|abc...`. Mobile/API clients should use the standard `Authorization` header.
+          schema:
+            type: string
+            example: "Bearer 6|qByoRAMucVQd90Q9JTG16xE3KPM3wV2imICs2Fro8907502b"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PushNotificationSettingsUpdateRequest"
+            examples:
+              enabled:
+                summary: Enable all push notifications
+                value:
+                  push_notifications_enabled: true
+                  push_own_problems: true
+                  push_watched_problems: true
+              masterOff:
+                summary: Turn push off without touching email settings
+                value:
+                  push_notifications_enabled: false
+      responses:
+        "200":
+          description: Push notification settings saved
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PushNotificationSettingsResponse"
         "401":
           description: Unauthorized
         "422":
@@ -2525,6 +2576,53 @@ components:
               type: boolean
               example: false
 
+    PushNotificationSettingsUpdateRequest:
+      type: object
+      properties:
+        push_notifications_enabled:
+          type: boolean
+          description: Master switch for mobile push notifications. Independent from email settings.
+          example: true
+        push_own_problems:
+          type: boolean
+          description: Send push updates for problems created by the current reporter.
+          example: true
+        push_watched_problems:
+          type: boolean
+          description: Send push updates for problems watched by the current reporter.
+          example: false
+
+    PushNotificationSettingsResponse:
+      type: object
+      required: [ok, push_notifications]
+      properties:
+        ok:
+          type: boolean
+          example: true
+        push_notifications:
+          type: object
+          required:
+            [
+              push_notifications_enabled,
+              push_own_problems,
+              push_watched_problems,
+              push_notifications_registered,
+            ]
+          properties:
+            push_notifications_enabled:
+              type: boolean
+              example: true
+            push_own_problems:
+              type: boolean
+              example: true
+            push_watched_problems:
+              type: boolean
+              example: false
+            push_notifications_registered:
+              type: boolean
+              description: True when a Firebase FCM token is saved for this user.
+              example: true
+
     ViispInitRequest:
       type: object
       required: [redirect_uri]
@@ -2769,6 +2867,16 @@ components:
         push_notifications_registered:
           type: boolean
           description: True when a Firebase FCM token is saved for this user.
+          example: true
+        push_notifications_enabled:
+          type: boolean
+          description: Master switch for push notifications. Independent from email settings.
+          example: true
+        push_own_problems:
+          type: boolean
+          example: true
+        push_watched_problems:
+          type: boolean
           example: true
         push_device_id:
           type: string

@@ -172,8 +172,8 @@ class ProblemReporterStatusNotifier
             'status_label' => $statusLabel,
         ];
 
-        $this->pushToUsers($reporterIds, 'reporter_email_own_problems', $title, $body, $data);
-        $this->pushToUsers($watcherIds, 'reporter_email_watched_problems', $title, $body, $data);
+        $this->pushToUsers($reporterIds, 'push_own_problems', $title, $body, $data);
+        $this->pushToUsers($watcherIds, 'push_watched_problems', $title, $body, $data);
     }
 
     private function dispatchToReportersAndWatchers(Problem $mainProblem, string $subject, string $body, string $url): void
@@ -259,8 +259,8 @@ class ProblemReporterStatusNotifier
             'new_status' => $newStatus,
         ];
 
-        $this->pushToUsers($reporterIds, 'reporter_email_own_problems', $title, $body, $data);
-        $this->pushToUsers($watcherIds, 'reporter_email_watched_problems', $title, $body, $data);
+        $this->pushToUsers($reporterIds, 'push_own_problems', $title, $body, $data);
+        $this->pushToUsers($watcherIds, 'push_watched_problems', $title, $body, $data);
     }
 
     private function pushToUsers(iterable $userIds, string $preferenceColumn, string $title, string $body, array $data): void
@@ -270,7 +270,7 @@ class ProblemReporterStatusNotifier
                 ->notArchived()
                 ->whereKey($userId)
                 ->whereNotNull('push_fcm_token')
-                ->where('email_notifications_enabled', true)
+                ->where('push_notifications_enabled', true)
                 ->where($preferenceColumn, true)
                 ->first(['id', 'push_fcm_token']);
 

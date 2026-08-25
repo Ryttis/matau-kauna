@@ -24,8 +24,8 @@ class ProblemReporterStatusNotifierPushTest extends TestCase
         Notification::fake();
 
         $reporter = $this->pushUser([
-            'email_notifications_enabled' => true,
-            'reporter_email_own_problems' => true,
+            'push_notifications_enabled' => true,
+            'push_own_problems' => true,
         ]);
         $problem = $this->problem(['reported_by_user_id' => $reporter->id]);
 
@@ -38,13 +38,16 @@ class ProblemReporterStatusNotifierPushTest extends TestCase
         Notification::assertSentTo($reporter, PushNotification::class);
     }
 
-    public function test_status_change_does_not_send_reporter_push_when_notifications_are_disabled(): void
+    public function test_status_change_sends_push_even_when_email_notifications_are_disabled(): void
     {
         Notification::fake();
 
         $reporter = $this->pushUser([
             'email_notifications_enabled' => false,
-            'reporter_email_own_problems' => true,
+            'reporter_email_own_problems' => false,
+            'reporter_email_watched_problems' => false,
+            'push_notifications_enabled' => true,
+            'push_own_problems' => true,
         ]);
         $problem = $this->problem(['reported_by_user_id' => $reporter->id]);
 
@@ -54,16 +57,16 @@ class ProblemReporterStatusNotifierPushTest extends TestCase
             ProblemStatus::IN_REVIEW->value,
         );
 
-        Notification::assertNotSentTo($reporter, PushNotification::class);
+        Notification::assertSentTo($reporter, PushNotification::class);
     }
 
-    public function test_status_change_does_not_send_reporter_push_when_own_problem_notifications_are_disabled(): void
+    public function test_status_change_does_not_send_reporter_push_when_push_notifications_are_disabled(): void
     {
         Notification::fake();
 
         $reporter = $this->pushUser([
-            'email_notifications_enabled' => true,
-            'reporter_email_own_problems' => false,
+            'push_notifications_enabled' => false,
+            'push_own_problems' => true,
         ]);
         $problem = $this->problem(['reported_by_user_id' => $reporter->id]);
 
@@ -76,17 +79,36 @@ class ProblemReporterStatusNotifierPushTest extends TestCase
         Notification::assertNotSentTo($reporter, PushNotification::class);
     }
 
-    public function test_status_change_watcher_push_respects_watched_problem_notifications(): void
+    public function test_status_change_does_not_send_reporter_push_when_own_problem_push_is_disabled(): void
+    {
+        Notification::fake();
+
+        $reporter = $this->pushUser([
+            'push_notifications_enabled' => true,
+            'push_own_problems' => false,
+        ]);
+        $problem = $this->problem(['reported_by_user_id' => $reporter->id]);
+
+        $this->notifier()->notifyReportersAndWatchersWhenStatusChanges(
+            $problem,
+            ProblemStatus::NEW->value,
+            ProblemStatus::IN_REVIEW->value,
+        );
+
+        Notification::assertNotSentTo($reporter, PushNotification::class);
+    }
+
+    public function test_status_change_watcher_push_respects_watched_problem_push_preference(): void
     {
         Notification::fake();
 
         $enabledWatcher = $this->pushUser([
-            'email_notifications_enabled' => true,
-            'reporter_email_watched_problems' => true,
+            'push_notifications_enabled' => true,
+            'push_watched_problems' => true,
         ]);
         $disabledWatcher = $this->pushUser([
-            'email_notifications_enabled' => true,
-            'reporter_email_watched_problems' => false,
+            'push_notifications_enabled' => true,
+            'push_watched_problems' => false,
         ]);
         $problem = $this->problem();
 
@@ -134,9 +156,9 @@ class ProblemReporterStatusNotifierPushTest extends TestCase
     {
         return User::factory()->create(array_merge([
             'push_fcm_token' => 'test-fcm-token-'.uniqid(),
-            'email_notifications_enabled' => true,
-            'reporter_email_own_problems' => true,
-            'reporter_email_watched_problems' => true,
+            'push_notifications_enabled' => true,
+            'push_own_problems' => true,
+            'push_watched_problems' => true,
         ], $attributes));
     }
 
