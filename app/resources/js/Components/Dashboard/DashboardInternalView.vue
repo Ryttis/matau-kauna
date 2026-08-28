@@ -193,23 +193,6 @@ const {
                     :disabled="selectedProblems.length === 0"
                     @click="openStatusModal()"
                 />
-                <div v-if="canExport" ref="exportWrapper" class="export-wrapper">
-                    <AppButton
-                        text="Eksportuoti į .xlsx"
-                        variant="secondary"
-                        as-button
-                        class="list-nav-btn"
-                        @click="showExportDropdown = !showExportDropdown"
-                    />
-                    <div v-if="showExportDropdown" ref="exportDropdown" class="export-dropdown">
-                        <button type="button" class="export-option" @click="handleExport('all')">
-                            Eksportuoti visus rezultatus
-                        </button>
-                        <button type="button" class="export-option" @click="handleExport('current_page')">
-                            Eksportuoti tik esamą puslapį
-                        </button>
-                    </div>
-                </div>
                 <AppButton
                     v-if="canDeleteProblem"
                     text="Šalinti"
@@ -274,6 +257,24 @@ const {
                     @click="handleStebeti"
                 />
             </template>
+
+            <div v-if="canExport" ref="exportWrapper" class="export-wrapper">
+                <AppButton
+                    text="Eksportuoti į .xlsx"
+                    variant="secondary"
+                    as-button
+                    class="list-nav-btn"
+                    @click="showExportDropdown = !showExportDropdown"
+                />
+                <div v-if="showExportDropdown" ref="exportDropdown" class="export-dropdown">
+                    <button type="button" class="export-option" @click="handleExport('all')">
+                        Eksportuoti visus rezultatus
+                    </button>
+                    <button type="button" class="export-option" @click="handleExport('current_page')">
+                        Eksportuoti tik esamą puslapį
+                    </button>
+                </div>
+            </div>
 
             <AppButton
                 v-if="canPublish"
