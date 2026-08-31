@@ -7,15 +7,27 @@ import Sidebar from '@/Components/App/Sidebar.vue'
 import { useAppShell } from '@/composables/useAppShell'
 
 const page = usePage()
-const { sidebarOpen, toggleSidebar, closeSidebar } = useAppShell()
-
-provide('appShell', {
+const {
+    sidebarOpen,
     toggleSidebar,
     closeSidebar,
-})
+    sidebarCollapsed,
+    toggleSidebarCollapsed,
+    expandSidebar,
+} = useAppShell()
 
 const isMobileNav = ref(false)
 let mq
+let mqWide
+
+// Tas pats antraštės mygtukas valdo dvi skirtingas būsenas: siaurame ekrane
+// atidaro perdengiantį stalčių, plačiame — paslepia kairįjį meniu.
+const toggleNav = () => (isMobileNav.value ? toggleSidebar() : toggleSidebarCollapsed())
+
+provide('appShell', {
+    toggleSidebar: toggleNav,
+    closeSidebar,
+})
 
 const updateMq = () => {
     isMobileNav.value = mq?.matches ?? false
@@ -24,14 +36,28 @@ const updateMq = () => {
     }
 }
 
+// Ta pati riba kaip Header.vue `.header-menu-btn` @media (max-width: 1960px) —
+// virš jos mygtuko nėra, todėl meniu privalo būti išskleistas, kad neliktų paslėptas
+// be galimybės jį grąžinti.
+const updateMqWide = () => {
+    if (mqWide?.matches) {
+        expandSidebar()
+    }
+}
+
 onMounted(() => {
     mq = window.matchMedia('(max-width: 1023px)')
     updateMq()
     mq.addEventListener('change', updateMq)
+
+    mqWide = window.matchMedia('not all and (max-width: 1960px)')
+    updateMqWide()
+    mqWide.addEventListener('change', updateMqWide)
 })
 
 onUnmounted(() => {
     mq?.removeEventListener('change', updateMq)
+    mqWide?.removeEventListener('change', updateMqWide)
     document.body.style.overflow = ''
 })
 
@@ -55,7 +81,10 @@ watch([sidebarOpen, isMobileNav], () => {
         <div class="authenticated-layout__main">
             <div
                 class="body"
-                :class="{ 'body--sidebar-open': isMobileNav && sidebarOpen }"
+                :class="{
+                    'body--sidebar-open': isMobileNav && sidebarOpen,
+                    'body--sidebar-collapsed': !isMobileNav && sidebarCollapsed,
+                }"
             >
                 <div
                     v-show="isMobileNav && sidebarOpen"
@@ -63,7 +92,7 @@ watch([sidebarOpen, isMobileNav], () => {
                     aria-hidden="true"
                     @click="closeSidebar"
                 />
-                <Sidebar />
+                <Sidebar :inert="(!isMobileNav && sidebarCollapsed) || null" />
                 <main class="content">
                     <FlashError />
                     <slot />
@@ -103,6 +132,9 @@ watch([sidebarOpen, isMobileNav], () => {
     display: flex;
     background: var(--color-white, #fff);
     min-width: 0;
+    overflow-x: hidden;
+    /* `clip` nesukuria slinkties konteinerio; senesnės naršyklės liks prie `hidden`. */
+    overflow-x: clip;
 }
 
 .content {
@@ -158,6 +190,11 @@ watch([sidebarOpen, isMobileNav], () => {
     .body :deep(.sidebar) {
         width: 400px;
         flex-shrink: 0;
+        transition: margin-left 0.22s ease;
+    }
+
+    .body.body--sidebar-collapsed :deep(.sidebar) {
+        margin-left: -400px;
     }
 }
 </style>

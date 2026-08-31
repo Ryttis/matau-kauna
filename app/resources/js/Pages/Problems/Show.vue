@@ -335,6 +335,14 @@ const problemMapItems = computed(() => (
                     @click="openStatusModal"
                 />
                 <AppButton
+                    v-if="canPublish"
+                    :text="problem.is_published_publicly ? 'Nebepaskelbti viešai' : 'Paskelbti viešai'"
+                    variant="secondary"
+                    as-button
+                    class="action-btn"
+                    @click="togglePublicPublishState"
+                />
+                <AppButton
                     text="Apjungti"
                     variant="secondary"
                     as-button
