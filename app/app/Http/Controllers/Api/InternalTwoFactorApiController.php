@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers\Api;
 
-use App\Enums\UserRoleEnum;
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Services\TwoFactorService;
@@ -20,7 +19,7 @@ class InternalTwoFactorApiController extends Controller
         $perPage = min(100, max(1, (int) $request->query('per_page', 20)));
         $users = User::query()
             ->notArchived()
-            ->whereHas('roles', fn ($q) => $q->whereIn('role', UserRoleEnum::staffValues()))
+            ->whereHas('roles', fn ($q) => $q->staff())
             ->select(['id', 'name', 'email', 'institution_id', 'two_factor_enabled', 'two_factor_secret', 'two_factor_confirmed_at'])
             ->with(['roles:id,role,name', 'institution:id,name'])
             ->orderBy('id', 'desc')
@@ -95,7 +94,7 @@ class InternalTwoFactorApiController extends Controller
         if ($enabled) {
             User::query()
                 ->notArchived()
-                ->whereHas('roles', fn ($q) => $q->whereIn('role', UserRoleEnum::staffValues()))
+                ->whereHas('roles', fn ($q) => $q->staff())
                 ->each(function (User $user) {
                     $this->twoFactorService->ensureSecret($user);
                     $user->update(['two_factor_enabled' => true]);
@@ -103,7 +102,7 @@ class InternalTwoFactorApiController extends Controller
         } else {
             User::query()
                 ->notArchived()
-                ->whereHas('roles', fn ($q) => $q->whereIn('role', UserRoleEnum::staffValues()))
+                ->whereHas('roles', fn ($q) => $q->staff())
                 ->update(['two_factor_enabled' => false]);
         }
 
@@ -123,7 +122,7 @@ class InternalTwoFactorApiController extends Controller
 
         User::query()
             ->notArchived()
-            ->whereHas('roles', fn ($q) => $q->whereIn('role', UserRoleEnum::staffValues()))
+            ->whereHas('roles', fn ($q) => $q->staff())
             ->update(['two_factor_enabled' => false]);
 
         return response()->json([

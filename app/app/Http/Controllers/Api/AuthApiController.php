@@ -70,7 +70,7 @@ class AuthApiController extends Controller
             ]);
         }
 
-        $hasStaffRole = collect(UserRoleEnum::staffValues())->contains(fn (string $role) => $user->hasAssignedRole($role));
+        $hasStaffRole = $user->hasStaffRole();
 
         $invalidReporter = $validated['login_type'] === 'pareiskejas'
             && (! $user->hasAssignedRole(UserRoleEnum::Reporter->value) || $hasStaffRole);

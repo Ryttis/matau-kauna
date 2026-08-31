@@ -5,10 +5,6 @@ export const ROLE_MUNICIPALITY_REP = 'ROLE_MUNICIPALITY_REP'
 export const ROLE_EMPLOYEE = 'ROLE_EMPLOYEE'
 export const ROLE_REPORTER = 'ROLE_REPORTER'
 
-export const STAFF_ROLE_VALUES = [
-    ROLE_SYSTEM_ADMIN,
-    ROLE_PROBLEM_ADMIN,
-    ROLE_INSTITUTION_ADMIN,
-    ROLE_MUNICIPALITY_REP,
-    ROLE_EMPLOYEE,
-]
+// Vidinė rolė — bet kuri, išskyrus pareiškėją. Sąrašas nėra uždaras: per RBAC
+// sukūrtos rolės taip pat yra vidinės.
+export const isStaffRole = (role) => Boolean(role) && role !== ROLE_REPORTER

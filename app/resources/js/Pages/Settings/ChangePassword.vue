@@ -6,7 +6,7 @@ import SuccessModal from '@/Components/App/SuccessModal.vue'
 import { Head, useForm, usePage } from '@inertiajs/vue3'
 import { computed } from 'vue'
 import { useSuccessModal } from '@/composables/useSuccessModal'
-import { ROLE_REPORTER, STAFF_ROLE_VALUES } from '@/constants/domain/roles'
+import { ROLE_REPORTER, isStaffRole } from '@/constants/domain/roles'
 
 const page = usePage()
 const user = computed(() => page.props.auth?.user ?? null)
@@ -15,7 +15,7 @@ const passwordManagerUsername = computed(() => user.value?.email ?? '')
 const isReporterOnly = computed(
     () =>
         authRoles.value.some((r) => r.role === ROLE_REPORTER) &&
-        !authRoles.value.some((r) => STAFF_ROLE_VALUES.includes(r.role)),
+        !authRoles.value.some((r) => isStaffRole(r.role)),
 )
 const viispNeedsFirstPassword = computed(
     () => !!user.value?.viisp_personal_code_hash && !user.value?.viisp_local_password_set_at,

@@ -3,7 +3,6 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Enums\AuditLogResult;
-use App\Enums\UserRoleEnum;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\CreateUserRequest;
 use App\Http\Requests\Admin\SyncUserRolesRequest;
@@ -88,7 +87,7 @@ class RbacUserController extends Controller
 
         $query = User::query()
             ->notArchived()
-            ->whereHas('roles', fn ($q) => $q->whereIn('role', UserRoleEnum::staffValues()))
+            ->whereHas('roles', fn ($q) => $q->staff())
             ->select(['id', 'name', 'email', 'institution_id', 'two_factor_enabled', 'two_factor_secret', 'two_factor_confirmed_at'])
             ->with(['roles:id,role,name', 'institution:id,name']);
 
@@ -189,7 +188,7 @@ class RbacUserController extends Controller
         if ($enabled) {
             User::query()
                 ->notArchived()
-                ->whereHas('roles', fn ($q) => $q->whereIn('role', UserRoleEnum::staffValues()))
+                ->whereHas('roles', fn ($q) => $q->staff())
                 ->each(function (User $user) {
                     $this->twoFactorService->ensureSecret($user);
                     $user->update([
@@ -199,7 +198,7 @@ class RbacUserController extends Controller
         } else {
             User::query()
                 ->notArchived()
-                ->whereHas('roles', fn ($q) => $q->whereIn('role', UserRoleEnum::staffValues()))
+                ->whereHas('roles', fn ($q) => $q->staff())
                 ->update([
                     'two_factor_enabled' => false,
                 ]);
@@ -221,7 +220,7 @@ class RbacUserController extends Controller
 
         User::query()
             ->notArchived()
-            ->whereHas('roles', fn ($q) => $q->whereIn('role', UserRoleEnum::staffValues()))
+            ->whereHas('roles', fn ($q) => $q->staff())
             ->update([
                 'two_factor_enabled' => false,
             ]);

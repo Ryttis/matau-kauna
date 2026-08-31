@@ -73,7 +73,7 @@ class LoginRequest extends FormRequest
 
         $loginType = $this->string('login_type')->toString();
 
-        $hasStaffRole = collect(UserRoleEnum::staffValues())->contains(fn ($role) => $user->hasAssignedRole($role));
+        $hasStaffRole = $user->hasStaffRole();
 
         $invalidReporter = $loginType === 'pareiskejas' && (! $user->hasAssignedRole(UserRoleEnum::Reporter->value) || $hasStaffRole);
         $invalidStaff = $loginType !== 'pareiskejas' && ! $hasStaffRole;

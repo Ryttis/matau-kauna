@@ -319,15 +319,27 @@ class User extends Authenticatable implements MustVerifyEmail
         return $this->hasPermission('classification.edit');
     }
 
+    /**
+     * Ar naudotojas turi bent vieną vidinę rolę (bet kokią, išskyrus pareiškėją).
+     */
+    public function hasStaffRole(): bool
+    {
+        if ($this->relationLoaded('roles')) {
+            return $this->roles->contains(fn (UserRole $role) => UserRole::isStaffRole($role->role));
+        }
+
+        return $this->roles()->staff()->exists();
+    }
+
     public function isReporterOnly(): bool
     {
         if ($this->relationLoaded('roles')) {
             return $this->roles->contains('role', UserRole::ROLE_REPORTER)
-                && ! $this->roles->contains(fn (UserRole $role) => in_array($role->role, UserRole::staffRoles(), true));
+                && ! $this->hasStaffRole();
         }
 
         return $this->roles()->where('role', UserRole::ROLE_REPORTER)->exists()
-            && ! $this->roles()->whereIn('role', UserRole::staffRoles())->exists();
+            && ! $this->hasStaffRole();
     }
 
     public function canAuthenticateWithEmailPassword(): bool
@@ -346,15 +358,7 @@ class User extends Authenticatable implements MustVerifyEmail
 
     public function canRequestPasswordResetLink(): bool
     {
-        if ($this->relationLoaded('roles')) {
-            return $this->roles->contains(
-                fn (UserRole $role) => in_array($role->role, UserRole::staffRoles(), true)
-            );
-        }
-
-        return $this->roles()
-            ->whereIn('role', UserRole::staffRoles())
-            ->exists();
+        return $this->hasStaffRole();
     }
 
     public static function queryAssignableInstitutionEmployeeUsers(int $institutionId, ?string $exceptEmail = null): Builder

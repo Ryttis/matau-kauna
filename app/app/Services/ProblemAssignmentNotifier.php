@@ -299,7 +299,7 @@ class ProblemAssignmentNotifier
             ->where('email', $employee->email)
             ->where('institution_id', $employee->institution_id)
             ->wantsEmployeeAssignmentEmails()
-            ->whereHas('roles', fn ($q) => $q->whereIn('role', UserRole::staffRoles()))
+            ->whereHas('roles', fn ($q) => $q->staff())
             ->first(['email']);
         if ($user) {
             $recipients[] = $user->email;

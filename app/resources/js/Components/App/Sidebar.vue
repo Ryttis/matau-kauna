@@ -11,7 +11,7 @@ import {
     ICON_ARROW,
     ICON_SETTINGS,
 } from '@/constants/ui/icons'
-import { ROLE_INSTITUTION_ADMIN, STAFF_ROLE_VALUES } from '@/constants/domain/roles'
+import { ROLE_INSTITUTION_ADMIN, isStaffRole } from '@/constants/domain/roles'
 import { SIDEBAR_DASHBOARD_STATUS_ENTRIES } from '@/constants/ui/dashboardSidebarNav'
 
 const page = usePage()
@@ -76,7 +76,7 @@ const activeRoleId = computed(() => page.props.auth?.activeRoleId ?? '')
 const canSwitchActiveRole = computed(
     () =>
         authRoles.value.length > 1 &&
-        authRoles.value.every((role) => STAFF_ROLE_VALUES.includes(role.role)),
+        authRoles.value.every((role) => isStaffRole(role.role)),
 )
 
 const sidebarTitle = computed(() => {

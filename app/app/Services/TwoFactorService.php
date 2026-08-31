@@ -2,7 +2,6 @@
 
 namespace App\Services;
 
-use App\Enums\UserRoleEnum;
 use App\Models\PasswordPolicy;
 use App\Models\User;
 use Illuminate\Support\Facades\Log;
@@ -16,7 +15,7 @@ class TwoFactorService
 
     public function isStaffUser(User $user): bool
     {
-        return $user->roles()->whereIn('role', UserRoleEnum::staffValues())->exists();
+        return $user->hasStaffRole();
     }
 
     public function requiresChallenge(User $user): bool

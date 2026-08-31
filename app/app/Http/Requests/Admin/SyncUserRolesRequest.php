@@ -2,7 +2,6 @@
 
 namespace App\Http\Requests\Admin;
 
-use App\Enums\UserRoleEnum;
 use App\Models\UserRole;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Validator;
@@ -83,20 +82,10 @@ class SyncUserRolesRequest extends FormRequest
             $constants = $roles->pluck('role')->all();
             $hasReporter = in_array(UserRole::ROLE_REPORTER, $constants, true);
 
+            // Vienintelė išorinė rolė yra pareiškėjas — visos kitos (įskaitant per RBAC
+            // sukūrtas) yra vidinės ir gali būti derinamos tarpusavyje.
             if ($hasReporter && count($constants) > 1) {
                 $validator->errors()->add('role_ids', 'Pareiškėjo rolė negali būti derinama su kitomis rolėmis.');
-
-                return;
-            }
-
-            if (count($constants) > 1) {
-                foreach ($constants as $constant) {
-                    if (! in_array($constant, UserRoleEnum::staffValues(), true)) {
-                        $validator->errors()->add('role_ids', 'Kelių rolių derinimas galimas tik vidinėms rolėms.');
-
-                        return;
-                    }
-                }
             }
         });
     }

@@ -151,7 +151,7 @@ class PasswordUpdateTest extends TestCase
             ['name' => $role],
         );
 
-        if (in_array($role, UserRole::staffRoles(), true)) {
+        if (UserRole::isStaffRole($role)) {
             $permission = UserRolePermission::firstOrCreate(
                 ['permission' => 'issues.view'],
                 ['name' => 'Problemų peržiūra'],

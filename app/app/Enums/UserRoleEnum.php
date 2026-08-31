@@ -22,14 +22,6 @@ enum UserRoleEnum: string
         ];
     }
 
-    public static function staffValues(): array
-    {
-        return array_map(
-            static fn (self $role) => $role->value,
-            self::staff(),
-        );
-    }
-
     public static function staffPersonalDefaultOrder(): array
     {
         return [

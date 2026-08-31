@@ -7,7 +7,7 @@ import SuccessModal from '@/Components/App/SuccessModal.vue'
 import { Head, useForm, usePage } from '@inertiajs/vue3'
 import { ref, computed, watch } from 'vue'
 import { useSuccessModal } from '@/composables/useSuccessModal'
-import { ROLE_REPORTER, STAFF_ROLE_VALUES } from '@/constants/domain/roles'
+import { ROLE_REPORTER, isStaffRole } from '@/constants/domain/roles'
 import { SETTINGS_PAGE_STYLE } from '@/constants/ui/theme'
 import { formatDateTimeLt } from '@/utils/dateFormat'
 import '@/Components/App/settings-profile-page.css'
@@ -20,7 +20,7 @@ const isViispUser = computed(() => !!user.value?.viisp_personal_code_hash)
 const isReporterOnly = computed(
     () =>
         authRoles.value.some((r) => r.role === ROLE_REPORTER) &&
-        !authRoles.value.some((r) => STAFF_ROLE_VALUES.includes(r.role)),
+        !authRoles.value.some((r) => isStaffRole(r.role)),
 )
 const viispNeedsFirstPassword = computed(
     () => isViispUser.value && !user.value?.viisp_local_password_set_at,

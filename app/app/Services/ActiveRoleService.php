@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Enums\UserRoleEnum;
 use App\Models\User;
+use App\Models\UserRole;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 
@@ -100,7 +101,11 @@ final class ActiveRoleService
             }
         }
 
-        return (string) $roles->first()->id;
+        // Per RBAC sukūrtos rolės nėra žinomame eiliškume, bet jos vis tiek vidinės —
+        // renkamės jas prieš pareiškėjo rolę, kad naudotojas neliktų be vidinių teisių.
+        $staff = $roles->first(fn ($role) => UserRole::isStaffRole($role->role));
+
+        return (string) ($staff?->id ?? $roles->first()->id);
     }
 
     private function makePayload(Collection $rolesCollection, ?string $activeId, ?object $activeModel, array $permissions): array

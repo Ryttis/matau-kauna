@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Enums\UserRoleEnum;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
@@ -27,9 +28,20 @@ class UserRole extends Model
 
     public const ROLE_REPORTER = UserRoleEnum::Reporter->value;
 
-    public static function staffRoles(): array
+    /**
+     * Vidinė rolė — bet kuri, išskyrus pareiškėją. Sąrašas nėra uždaras: per RBAC
+     * sukurtos rolės taip pat yra vidinės.
+     */
+    public static function isStaffRole(?string $role): bool
     {
-        return UserRoleEnum::staffValues();
+        return $role !== null && $role !== self::ROLE_REPORTER;
+    }
+
+    public function scopeStaff(Builder $query): Builder
+    {
+        // Kvalifikuojame stulpelį: šis scope kviečiamas ir per ryšį (`roles()->staff()`),
+        // kur užklausoje dalyvauja ir sąsajos lentelė.
+        return $query->where($query->getModel()->qualifyColumn('role'), '!=', self::ROLE_REPORTER);
     }
 
     public function permissions(): BelongsToMany
