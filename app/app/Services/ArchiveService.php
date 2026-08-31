@@ -55,17 +55,20 @@ class ArchiveService
             ->values()
             ->all();
 
+        // Rodomos ir prie kitos problemos prijungtos archyvuotos problemos — kitaip
+        // jos būtų nepasiekiamos ir jų nebebūtų kaip atkurti.
         $problems = Problem::query()
             ->where('is_archived', true)
             ->whereNotNull('archived_at')
-            ->whereNull('merged_into_problem_id')
+            ->with('mergedInto:id,internal_number')
             ->orderByDesc('archived_at')
-            ->get(['id', 'internal_number', 'description', 'archived_at'])
+            ->get(['id', 'internal_number', 'description', 'archived_at', 'merged_into_problem_id'])
             ->map(fn (Problem $p) => $this->withDeleteAt($p->archived_at, $problemRule, [
                 'id' => $p->id,
                 'internal_number' => $p->internal_number,
                 'description_preview' => Problem::descriptionPreview($p->description, 120),
                 'archived_at' => $p->archived_at?->toIso8601String(),
+                'merged_into_internal_number' => $p->mergedInto?->internal_number,
             ]))
             ->values()
             ->all();

@@ -401,7 +401,12 @@ onMounted(load)
                     </thead>
                     <tbody>
                         <tr v-for="p in problems" :key="p.id">
-                            <td>{{ p.internal_number }}</td>
+                            <td>
+                                {{ p.internal_number }}
+                                <span v-if="p.merged_into_internal_number" class="archive-merged-hint">
+                                    Sujungta su Nr. {{ p.merged_into_internal_number }}
+                                </span>
+                            </td>
                             <td>{{ p.description_preview || '-' }}</td>
                             <td>{{ formatDate(p.archived_at) }}</td>
                             <td>{{ formatDate(p.delete_at) }}</td>
@@ -614,6 +619,12 @@ onMounted(load)
 .loading {
     color: #666;
     font-size: 14px;
+}
+.archive-merged-hint {
+    display: block;
+    margin-top: 2px;
+    color: #666;
+    font-size: 12px;
 }
 .actions-cell {
     display: flex;

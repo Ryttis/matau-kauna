@@ -70,6 +70,15 @@ const {
     assignmentSummary,
 } = useProblemShowPage(props)
 
+// Šalinama tik ši problema; prie jos prijungtos atjungiamos ir lieka sąraše.
+const deleteConfirmMessage = computed(() => {
+    const mergedCount = props.mergedChildren?.length ?? 0
+    if (mergedCount === 0) {
+        return 'Ar tikrai norite ištrinti šią problemą?'
+    }
+    return `Ar tikrai norite ištrinti šią problemą? Prie jos prijungtos problemos (${mergedCount}) bus atskirtos ir liks sąraše.`
+})
+
 const reporterName = computed(() => {
     const reporter = props.problem?.reported_by_user
     return [reporter?.name, reporter?.surname].filter(Boolean).join(' ').trim()
@@ -380,7 +389,7 @@ const problemMapItems = computed(() => (
 
             <ConfirmModal
                 :open="showDeleteModal"
-                message="Ar tikrai norite ištrinti šią problemą?"
+                :message="deleteConfirmMessage"
                 confirm-text="Patvirtinti"
                 cancel-text="Atšaukti"
                 footer-layout="column"

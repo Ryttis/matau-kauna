@@ -122,14 +122,12 @@ class DataRetentionService
             return 0;
         }
 
-        $allIds = Problem::expandIdsToMergeGroups($seedIds);
-        if ($allIds === []) {
-            return 0;
-        }
+        // Trinamos tik pačios archyvuotos problemos. Grupės išplėtimas čia kartu
+        // įtrauktų ir gyvas, nearchyvuotas grupės nares. Prie trinamos problemos
+        // prijungtų problemų nuorodą išvalo pati DB — FK yra nullOnDelete().
+        Problem::query()->whereIn('id', $seedIds)->delete();
 
-        Problem::query()->whereIn('id', $allIds)->delete();
-
-        return count($allIds);
+        return count($seedIds);
     }
 
     private function deleteArchivedClassifierValues(Carbon $threshold): int

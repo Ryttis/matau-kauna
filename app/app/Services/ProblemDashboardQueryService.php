@@ -41,7 +41,7 @@ class ProblemDashboardQueryService
         return $this->staffProblemsBaseQuery($user, $filters)
             ->sorted($sortBy, $sortDirection)
             ->with([
-                'mergedProblems' => fn ($query) => $query->with([
+                'mergedProblems' => fn ($query) => $query->notArchived()->with([
                     'problemNature:id,name',
                     'reportedByUser:id,name,surname,email',
                     'institution:id,name',

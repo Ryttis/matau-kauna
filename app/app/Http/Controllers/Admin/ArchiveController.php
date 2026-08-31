@@ -73,7 +73,20 @@ class ArchiveController extends Controller
         if (! $problem->is_archived) {
             return response()->json(['message' => 'Problema nearchyvuota.'], 422);
         }
-        $problem->update(['is_archived' => false, 'archived_at' => null]);
+
+        $attributes = ['is_archived' => false, 'archived_at' => null];
+
+        // Jei pagrindinė problema vis dar archyvuota (arba jos nebeliko), atkuriamą
+        // problemą atjungiame — kitaip ji liktų nematoma, nes sąraše rodomos tik
+        // neprijungtos problemos.
+        if ($problem->merged_into_problem_id !== null) {
+            $parent = Problem::query()->find($problem->merged_into_problem_id);
+            if ($parent === null || $parent->is_archived) {
+                $attributes['merged_into_problem_id'] = null;
+            }
+        }
+
+        $problem->update($attributes);
 
         return response()->json(['ok' => true]);
     }

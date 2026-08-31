@@ -264,7 +264,9 @@ class ProblemController extends Controller
 
         $categories = ClassifierValue::getActiveTypeNames()->values();
 
-        $problem->load('mergedProblems:id,internal_number,merged_into_problem_id');
+        $problem->load(['mergedProblems' => fn ($q) => $q
+            ->notArchived()
+            ->select('id', 'internal_number', 'merged_into_problem_id')]);
         $problem->load('mergedInto:id,internal_number');
         $problem->load('attachments');
         $problem->load('problemNature:id,name');
@@ -313,14 +315,9 @@ class ProblemController extends Controller
         if (! $user->canDeleteProblems()) {
             abort(403);
         }
+        $this->scopeService->authorizeProblemAccess($user, $problem);
 
-        $ids = $problem->getMergeGroupIds();
-        Problem::whereIn('id', $ids)->update([
-            'is_archived' => true,
-            'archived_at' => now(),
-            'deadline_status' => null,
-            'deadline_reminder_sent_at' => null,
-        ]);
+        Problem::archiveIds([$problem->id]);
 
         return redirect()->route('dashboard')->with('success', 'Problema perkelta į archyvą');
     }
@@ -365,13 +362,7 @@ class ProblemController extends Controller
         $this->scopeService->scopeProblemsForUser($query, $user);
         $this->scopeService->ensureScopeMatchesCount($query, count($problemIds));
 
-        $allIds = Problem::expandIdsToMergeGroups($problemIds);
-        Problem::whereIn('id', $allIds)->update([
-            'is_archived' => true,
-            'archived_at' => now(),
-            'deadline_status' => null,
-            'deadline_reminder_sent_at' => null,
-        ]);
+        Problem::archiveIds($problemIds);
 
         $message = count($problemIds) > 1
             ? 'Problemos perkeltos į archyvą'

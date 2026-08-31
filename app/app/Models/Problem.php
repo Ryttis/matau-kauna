@@ -10,6 +10,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
 class Problem extends Model
@@ -463,6 +464,39 @@ class Problem extends Model
         }
 
         return (int) $current->id;
+    }
+
+    /**
+     * Archyvuoja tik nurodytas problemas — sujungimo grupė neplėčiama.
+     * Jei archyvuojama problema yra grupės pagrindinė, prie jos prijungtos
+     * atjungiamos ir lieka sąraše savarankiškos: sąrašas rodo tik neprijungtas
+     * problemas, todėl kitaip jos taptų nepasiekiamos.
+     *
+     * @param  array<int, int|string>  $ids
+     * @return array<int, int>  realiai archyvuotų problemų ID
+     */
+    public static function archiveIds(array $ids): array
+    {
+        $unique = collect($ids)->map(fn ($id) => (int) $id)->unique()->filter()->values()->all();
+        if ($unique === []) {
+            return [];
+        }
+
+        DB::transaction(function () use ($unique) {
+            static::query()
+                ->whereIn('merged_into_problem_id', $unique)
+                ->whereNotIn('id', $unique)
+                ->update(['merged_into_problem_id' => null]);
+
+            static::query()->whereIn('id', $unique)->update([
+                'is_archived' => true,
+                'archived_at' => now(),
+                'deadline_status' => null,
+                'deadline_reminder_sent_at' => null,
+            ]);
+        });
+
+        return $unique;
     }
 
     public static function expandIdsToMergeGroups(array $ids): array
