@@ -310,13 +310,7 @@ class InternalProblemApiController extends Controller
         }
         $this->scopeService->authorizeProblemAccess($user, $problem);
 
-        $ids = $problem->getMergeGroupIds();
-        Problem::whereIn('id', $ids)->update([
-            'is_archived' => true,
-            'archived_at' => now(),
-            'deadline_status' => null,
-            'deadline_reminder_sent_at' => null,
-        ]);
+        $ids = Problem::archiveIds([$problem->id]);
 
         return response()->json([
             'ok' => true,
@@ -407,18 +401,12 @@ class InternalProblemApiController extends Controller
         $this->scopeService->scopeProblemsForUser($query, $user);
         $this->scopeService->ensureScopeMatchesCount($query, count($problemIds));
 
-        $allIds = Problem::expandIdsToMergeGroups($problemIds);
-        Problem::query()->whereIn('id', $allIds)->update([
-            'is_archived' => true,
-            'archived_at' => now(),
-            'deadline_status' => null,
-            'deadline_reminder_sent_at' => null,
-        ]);
+        $archivedIds = Problem::archiveIds($problemIds);
 
         return response()->json([
             'ok' => true,
             'message' => 'Problemos perkeltos į archyvą.',
-            'problem_ids' => $allIds,
+            'problem_ids' => $archivedIds,
         ]);
     }
 
