@@ -11,7 +11,7 @@ services:
             - ../kauno_problemos_gateway/.env
         volumes:
             - ../kauno_problemos_gateway:/kauno_problemos_gateway
-            - ../viisp_handler_updated:/kauno_problemos_gateway/node_modules/viisp-nodejs-auth-handler
+            - ../kauno_problemos_viisp_handler:/kauno_problemos_gateway/node_modules/viisp-nodejs-auth-handler
         networks:
             - proxy
 
