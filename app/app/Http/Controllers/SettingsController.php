@@ -93,6 +93,7 @@ class SettingsController extends Controller
     public function updateProfile(Request $request): RedirectResponse
     {
         $user = Auth::user();
+
         if (! ($user instanceof User)) {
             abort(403);
         }
@@ -100,7 +101,14 @@ class SettingsController extends Controller
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'surname' => ['nullable', 'string', 'max:255'],
-            'email' => ['required', 'string', 'lowercase', 'email', 'max:255', 'unique:users,email,'.Auth::id()],
+            'email' => [
+                'required',
+                'string',
+                'lowercase',
+                'email',
+                'max:255',
+                'unique:users,email,'.Auth::id(),
+            ],
         ]);
 
         if ($user->viisp_personal_code_hash !== null) {
@@ -109,7 +117,19 @@ class SettingsController extends Controller
             $validated['surname'] = null;
         }
 
-        $user->update($validated);
+        $emailChanged = $validated['email'] !== $user->email;
+
+        $user->fill($validated);
+
+        if ($emailChanged) {
+            $user->email_verified_at = null;
+        }
+
+        $user->save();
+
+        if ($emailChanged) {
+            $user->sendEmailVerificationNotification();
+        }
 
         return back()->with('success', 'Profilis atnaujintas.');
     }

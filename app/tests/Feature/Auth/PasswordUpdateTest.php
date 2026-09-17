@@ -7,7 +7,6 @@ use App\Models\UserRole;
 use App\Models\UserRolePermission;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
-use Laravel\Sanctum\Sanctum;
 use Tests\TestCase;
 
 class PasswordUpdateTest extends TestCase
@@ -117,16 +116,24 @@ class PasswordUpdateTest extends TestCase
     public function test_api_reporter_only_user_can_update_password_without_current_password(): void
     {
         $user = $this->userWithRoles([UserRole::ROLE_REPORTER]);
-        Sanctum::actingAs($user);
 
-        $this->putJson('/api/settings/password', [
-            'password' => self::VALID_NEW_PASSWORD,
-            'password_confirmation' => self::VALID_NEW_PASSWORD,
-        ])
+        $token = $user->createToken('test-api-token');
+
+        $this
+            ->withToken($token->plainTextToken)
+            ->putJson('/api/settings/password', [
+                'password' => self::VALID_NEW_PASSWORD,
+                'password_confirmation' => self::VALID_NEW_PASSWORD,
+            ])
             ->assertOk()
             ->assertJsonPath('ok', true);
 
-        $this->assertTrue(Hash::check(self::VALID_NEW_PASSWORD, $user->refresh()->password));
+        $this->assertTrue(
+            Hash::check(
+                self::VALID_NEW_PASSWORD,
+                $user->refresh()->password
+            )
+        );
     }
 
     private function userWithRoles(array $roles, array $attributes = []): User

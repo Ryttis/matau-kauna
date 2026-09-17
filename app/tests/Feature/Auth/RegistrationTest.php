@@ -9,6 +9,8 @@ class RegistrationTest extends TestCase
 {
     use RefreshDatabase;
 
+    private const VALID_PASSWORD = 'Str0ng!Pass';
+
     public function test_registration_screen_can_be_rendered(): void
     {
         $response = $this->get('/register');
@@ -21,11 +23,19 @@ class RegistrationTest extends TestCase
         $response = $this->post('/register', [
             'name' => 'Test User',
             'email' => 'test@example.com',
-            'password' => 'password',
-            'password_confirmation' => 'password',
+            'password' => self::VALID_PASSWORD,
+            'password_confirmation' => self::VALID_PASSWORD,
         ]);
 
-        $this->assertAuthenticated();
-        $response->assertRedirect(route('dashboard', absolute: false));
+        $this->assertGuest();
+
+        $response
+            ->assertSessionHasNoErrors()
+            ->assertRedirect(route('login'));
+
+        $this->assertDatabaseHas('users', [
+            'name' => 'Test User',
+            'email' => 'test@example.com',
+        ]);
     }
 }
