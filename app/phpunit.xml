@@ -28,6 +28,10 @@
         <env name="DB_DATABASE" value="kauno_problemos_test"/>
         <env name="DB_USERNAME" value="kauno_problemos_admin"/>
         <env name="DB_PASSWORD" value="kauno_problemos_admin"/>
+        <env name="LDAP_ENABLED" value="false"/>
+        <env name="LDAP_URI" value="ldaps://ldap.test.invalid:636"/>
+        <env name="LDAP_BASE_DN" value="CN=Users,DC=test,DC=invalid"/>
+        <env name="LDAP_BIND_TEMPLATE" value="TEST\{username}"/>
         <env name="MAIL_MAILER" value="array"/>
         <env name="PULSE_ENABLED" value="false"/>
         <env name="QUEUE_CONNECTION" value="sync"/>

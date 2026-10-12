@@ -30,6 +30,9 @@ class User extends Authenticatable implements MustVerifyEmail
         'viisp_personal_code_hash',
         'password',
         'viisp_local_password_set_at',
+        'ldap_source',
+        'ldap_username',
+        'ldap_linked_at',
         'push_device_id',
         'push_fcm_token',
         'push_platform',
@@ -75,6 +78,7 @@ class User extends Authenticatable implements MustVerifyEmail
             'reporter_report_terms_accepted_at' => 'datetime',
             'password' => 'hashed',
             'viisp_local_password_set_at' => 'datetime',
+            'ldap_linked_at' => 'datetime',
             'push_registered_at' => 'datetime',
             'push_notifications_enabled' => 'boolean',
             'push_own_problems' => 'boolean',
@@ -354,6 +358,26 @@ class User extends Authenticatable implements MustVerifyEmail
     public function isBlocked(): bool
     {
         return $this->blocked_at !== null;
+    }
+
+    /**
+     * Whether this account is explicitly enrolled for LDAP credential verification
+     * (ADR-0001 explicit directory binding). Enrollment alone grants no role or permission.
+     */
+    public function hasLdapIdentity(): bool
+    {
+        return is_string($this->ldap_username) && $this->ldap_username !== ''
+            && is_string($this->ldap_source) && $this->ldap_source !== '';
+    }
+
+    /**
+     * Users bound to the given directory source and (case-insensitive) directory login name.
+     */
+    public function scopeWhereLdapIdentity(Builder $query, string $source, string $username): Builder
+    {
+        return $query
+            ->where('ldap_source', $source)
+            ->whereRaw('LOWER(ldap_username) = ?', [mb_strtolower(trim($username))]);
     }
 
     public function canRequestPasswordResetLink(): bool

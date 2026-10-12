@@ -2407,7 +2407,11 @@ components:
       properties:
         email:
           type: string
-          format: email
+          description: >
+            Login identifier. An email address for reporters and for staff outside the LDAP rollout.
+            When LDAP is enabled on the server, `login_type=darbuotojas` also accepts the directory
+            (AD) account name, and an email of an LDAP-enrolled account is verified against the directory.
+          example: user@example.com
         password:
           type: string
           format: password

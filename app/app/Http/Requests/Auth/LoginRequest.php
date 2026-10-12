@@ -4,6 +4,8 @@ namespace App\Http\Requests\Auth;
 
 use App\Enums\UserRoleEnum;
 use App\Models\User;
+use App\Services\Auth\StaffCredentialAuthenticator;
+use App\Services\Ldap\LdapAuthenticationException;
 use App\Services\UserBlockingService;
 use Illuminate\Auth\Events\Lockout;
 use Illuminate\Foundation\Http\FormRequest;
@@ -28,8 +30,15 @@ class LoginRequest extends FormRequest
 
     public function rules(): array
     {
+        // The `email` field carries the login identifier. Staff may submit a directory account
+        // name instead of an email only while LDAP is enabled; everything else keeps requiring an email.
+        $identifierRules = ['required', 'string', 'max:255'];
+        if (! $this->staffAuthenticator()->acceptsDirectoryUsername($this->input('login_type'))) {
+            $identifierRules[] = 'email';
+        }
+
         return [
-            'email' => ['required', 'string', 'email'],
+            'email' => $identifierRules,
             'password' => ['required', 'string'],
             'login_type' => ['required', 'string', 'in:pareiskejas,darbuotojas'],
         ];
@@ -39,6 +48,42 @@ class LoginRequest extends FormRequest
     {
         $this->ensureIsNotRateLimited();
 
+        $loginType = $this->string('login_type')->toString();
+        $identifier = $this->string('email')->toString();
+
+        if ($this->staffAuthenticator()->appliesTo($loginType, $identifier)) {
+            $this->authenticateWithDirectory($identifier);
+        } else {
+            $this->authenticateWithLocalPassword();
+        }
+
+        $user = Auth::user();
+        if ($user->isBlocked()) {
+            Auth::logout();
+            RateLimiter::hit($this->throttleKey());
+
+            throw ValidationException::withMessages([
+                'email' => UserBlockingService::BLOCKED_MESSAGE,
+            ]);
+        }
+
+        $hasStaffRole = $user->hasStaffRole();
+
+        $invalidReporter = $loginType === 'pareiskejas' && (! $user->hasAssignedRole(UserRoleEnum::Reporter->value) || $hasStaffRole);
+        $invalidStaff = $loginType !== 'pareiskejas' && ! $hasStaffRole;
+
+        if ($invalidReporter || $invalidStaff) {
+            $this->failLogin();
+        }
+
+        RateLimiter::clear($this->throttleKey());
+    }
+
+    /**
+     * Existing local-password verification through the Eloquent session provider.
+     */
+    private function authenticateWithLocalPassword(): void
+    {
         $emailUser = User::query()->whereRaw('LOWER(email) = ?', [$this->input('email')])->first();
         if ($emailUser instanceof User && ! $emailUser->canAuthenticateWithEmailPassword()) {
             RateLimiter::hit($this->throttleKey());
@@ -60,29 +105,25 @@ class LoginRequest extends FormRequest
                 'email' => $this->authMessage('failed', 'Neteisingi prisijungimo duomenys.'),
             ]);
         }
+    }
 
-        $user = Auth::user();
-        if ($user->isBlocked()) {
-            Auth::logout();
+    /**
+     * LDAP credential verification for enrolled staff. Any directory failure (bad password,
+     * outage, unmapped identity) is a generic login failure; the local password is never consulted.
+     */
+    private function authenticateWithDirectory(string $identifier): void
+    {
+        try {
+            $user = $this->staffAuthenticator()->authenticate($identifier, (string) $this->input('password'));
+        } catch (LdapAuthenticationException) {
             RateLimiter::hit($this->throttleKey());
 
             throw ValidationException::withMessages([
-                'email' => UserBlockingService::BLOCKED_MESSAGE,
+                'email' => $this->authMessage('failed', 'Neteisingi prisijungimo duomenys.'),
             ]);
         }
 
-        $loginType = $this->string('login_type')->toString();
-
-        $hasStaffRole = $user->hasStaffRole();
-
-        $invalidReporter = $loginType === 'pareiskejas' && (! $user->hasAssignedRole(UserRoleEnum::Reporter->value) || $hasStaffRole);
-        $invalidStaff = $loginType !== 'pareiskejas' && ! $hasStaffRole;
-
-        if ($invalidReporter || $invalidStaff) {
-            $this->failLogin();
-        }
-
-        RateLimiter::clear($this->throttleKey());
+        Auth::login($user, $this->boolean('remember'));
     }
 
     public function ensureIsNotRateLimited(): void
@@ -106,6 +147,11 @@ class LoginRequest extends FormRequest
     public function throttleKey(): string
     {
         return Str::transliterate(Str::lower($this->string('email')).'|'.$this->ip());
+    }
+
+    private function staffAuthenticator(): StaffCredentialAuthenticator
+    {
+        return $this->container->make(StaffCredentialAuthenticator::class);
     }
 
     private function failLogin(): never

@@ -7,6 +7,7 @@ use App\Http\Requests\Auth\LoginRequest;
 use App\Models\LoginLog;
 use App\Services\ActiveRoleService;
 use App\Services\AuditLogService;
+use App\Services\Auth\StaffCredentialAuthenticator;
 use App\Services\TwoFactorService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -23,7 +24,7 @@ class AuthenticatedSessionController extends Controller
         private ActiveRoleService $activeRoleService,
     ) {}
 
-    public function create(Request $request): Response|RedirectResponse
+    public function create(Request $request, StaffCredentialAuthenticator $staffAuthenticator): Response|RedirectResponse
     {
         if ($request->session()->has('two_factor_pending_user_id')) {
             return redirect()->route('two-factor.challenge');
@@ -42,6 +43,7 @@ class AuthenticatedSessionController extends Controller
         return Inertia::render('Auth/Login', [
             'canResetPassword' => Route::has('password.request'),
             'initialLoginType' => $initialLoginType,
+            'staffUsernameLogin' => $staffAuthenticator->isLdapEnabled(),
             'status' => session('status'),
         ]);
     }
