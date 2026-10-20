@@ -146,6 +146,10 @@ Route::middleware(['auth', 'not_blocked', 'verified', 'reporter.terms'])->group(
         ->group(function () {
             Route::get('/', fn () => Inertia::render('Admin/Index'))->name('admin');
 
+            Route::get('/ldap-access-requests', [\App\Http\Controllers\Admin\LdapAccessRequestController::class, 'index']);
+            Route::post('/ldap-access-requests/{ldapRequest}/approve', [\App\Http\Controllers\Admin\LdapAccessRequestController::class, 'approve']);
+            Route::post('/ldap-access-requests/{ldapRequest}/reject', [\App\Http\Controllers\Admin\LdapAccessRequestController::class, 'reject']);
+
             Route::get('/rbac/users', [RbacUserController::class, 'users']);
             Route::post('/rbac/users', [RbacUserController::class, 'createUser']);
             Route::put('/rbac/users/{user}', [RbacUserController::class, 'updateUser']);

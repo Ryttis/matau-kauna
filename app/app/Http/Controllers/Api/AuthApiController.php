@@ -12,6 +12,8 @@ use App\Models\User;
 use App\Notifications\PushNotification;
 use App\Services\ActiveRoleService;
 use App\Services\AuditLogService;
+use App\Services\Auth\StaffCredentialAuthenticator;
+use App\Services\Ldap\LdapAuthenticationException;
 use App\Services\TwoFactorService;
 use App\Services\UserBlockingService;
 use App\Support\TokenExpiration;
@@ -34,28 +36,48 @@ class AuthApiController extends Controller
         private ActiveRoleService $activeRoleService,
     ) {}
 
-    public function login(Request $request): JsonResponse
+    public function login(Request $request, StaffCredentialAuthenticator $staffAuthenticator): JsonResponse
     {
         if (is_string($request->input('email'))) {
             $request->merge(['email' => Str::lower(trim($request->input('email')))]);
         }
 
+        // Same identifier policy as the web LoginRequest: a directory account name is accepted
+        // for staff only while LDAP is enabled.
+        $identifierRules = ['required', 'string', 'max:255'];
+        if (! $staffAuthenticator->acceptsDirectoryUsername($request->input('login_type'))) {
+            $identifierRules[] = 'email';
+        }
+
         $validated = $request->validate([
-            'email' => ['required', 'string', 'email'],
+            'email' => $identifierRules,
             'password' => ['required', 'string'],
             'login_type' => ['required', 'string', 'in:pareiskejas,darbuotojas'],
             'device_name' => ['nullable', 'string', 'max:255'],
             'remember_session' => ['sometimes', 'boolean'],
         ]);
 
-        $user = User::query()
-            ->whereRaw('LOWER(email) = ?', [$validated['email']])
-            ->first();
+        $usesDirectory = $staffAuthenticator->appliesTo($validated['login_type'], $validated['email']);
 
-        if (! $user || ! Hash::check($validated['password'], $user->password)) {
-            throw ValidationException::withMessages([
-                'email' => [__('auth.failed', [], 'lt')],
-            ]);
+        if ($usesDirectory) {
+            // LDAP verifies the credential; no local-password fallback on any directory failure.
+            try {
+                $user = $staffAuthenticator->authenticate($validated['email'], $validated['password']);
+            } catch (LdapAuthenticationException $e) {
+                throw ValidationException::withMessages([
+                    'email' => [$e->reason === LdapAuthenticationException::APPROVAL_PENDING ? LdapAuthenticationException::APPROVAL_MESSAGE : __('auth.failed', [], 'lt')],
+                ]);
+            }
+        } else {
+            $user = User::query()
+                ->whereRaw('LOWER(email) = ?', [$validated['email']])
+                ->first();
+
+            if (! $user || ! Hash::check($validated['password'], $user->password)) {
+                throw ValidationException::withMessages([
+                    'email' => [__('auth.failed', [], 'lt')],
+                ]);
+            }
         }
 
         if ($user->isBlocked()) {
@@ -64,7 +86,7 @@ class AuthApiController extends Controller
             ]);
         }
 
-        if (! $user->canAuthenticateWithEmailPassword()) {
+        if (! $usesDirectory && ! $user->canAuthenticateWithEmailPassword()) {
             throw ValidationException::withMessages([
                 'email' => ['Prisijunkite per el. valdžios vartus arba nustatykite slaptažodį skiltyje Profilis.'],
             ]);

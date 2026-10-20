@@ -8,6 +8,7 @@ RUN apt-get update && apt-get install -y \
     libfreetype6-dev \
     libzip-dev \
     libpq-dev \
+    libldap2-dev \
     unzip \
     git \
     curl \
@@ -17,8 +18,10 @@ RUN apt-get update && apt-get install -y \
     apt-transport-https \
     nano \
     && docker-php-ext-configure gd --with-freetype --with-jpeg \
+    && docker-php-ext-configure ldap --with-libdir=lib/$(uname -m)-linux-gnu/ \
     && docker-php-ext-install \
         gd \
+        ldap \
         zip \
         pdo \
         pdo_pgsql \

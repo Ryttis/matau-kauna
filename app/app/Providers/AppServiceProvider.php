@@ -3,6 +3,7 @@
 namespace App\Providers;
 
 use App\Models\EmailNotificationTemplate;
+use App\Services\Ldap\LdapSettings;
 use Illuminate\Auth\Notifications\ResetPassword;
 use Illuminate\Auth\Notifications\VerifyEmail;
 use Illuminate\Notifications\Messages\MailMessage;
@@ -13,7 +14,11 @@ use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
 {
-    public function register(): void {}
+    public function register(): void
+    {
+        // Rebuilt on each resolution so runtime config changes (tests, rollout toggles) are honoured.
+        $this->app->bind(LdapSettings::class, fn () => LdapSettings::fromConfig((array) config('ldap', [])));
+    }
 
     public function boot(): void
     {

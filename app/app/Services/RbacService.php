@@ -32,7 +32,7 @@ class RbacService
         );
     }
 
-    public function createUser(array $data): User
+    public function createUser(array $data, bool $notify = true): User
     {
         $user = User::create([
             'name' => $data['name'],
@@ -49,13 +49,22 @@ class RbacService
         $this->twoFactorService->enableForNewStaffUser($user);
         $this->ensureEmployeeForInstitution($user);
 
-        if ($user instanceof MustVerifyEmail && ! $user->hasVerifiedEmail()) {
+        if ($notify && $user instanceof MustVerifyEmail && ! $user->hasVerifiedEmail()) {
             $user->sendEmailVerificationNotification();
         }
 
-        $user->notify(new AccountCreatedNotification);
+        if ($notify) {
+            $user->notify(new AccountCreatedNotification);
+        }
 
         return $user;
+    }
+
+    public function syncRoles(User $user, array $roleIds): void
+    {
+        $user->roles()->sync($roleIds);
+        $user->unsetRelation('roles');
+        $this->twoFactorService->enforceGlobalRequirement($user);
     }
 
     public function updateUser(User $user, array $data): void

@@ -23,6 +23,11 @@ const props = defineProps({
         default: 'pareiskejas',
         validator: (value) => ['pareiskejas', 'darbuotojas'].includes(value),
     },
+    // Staff may log in with a directory (AD) account name while LDAP is enabled.
+    staffUsernameLogin: {
+        type: Boolean,
+        default: false,
+    },
 });
 
 const showSuccessModal = ref(!!props.status);
@@ -50,6 +55,10 @@ watch(activeRole, (tab) => {
 });
 
 const emailError = computed(() => form.errors.email || page.props.errors?.email);
+
+const staffUsernameLogin = computed(() => props.staffUsernameLogin && activeRole.value === 'darbuotojas');
+const identifierType = computed(() => (staffUsernameLogin.value ? 'text' : 'email'));
+const identifierPlaceholder = computed(() => (staffUsernameLogin.value ? 'Naudotojo vardas arba el. paštas' : 'Vardas arba el. paštas'));
 
 const viispLoading = ref(false);
 
@@ -91,8 +100,8 @@ const goViisp = () => {
 
                     <AuthInput
                         :id="activeRole === 'darbuotojas' ? 'email' : 'email-pareiskejas'"
-                        type="email"
-                        placeholder="Vardas arba el. paštas"
+                        :type="identifierType"
+                        :placeholder="identifierPlaceholder"
                         v-model="form.email"
                         :error="emailError"
                     />
