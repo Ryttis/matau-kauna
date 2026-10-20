@@ -79,7 +79,7 @@ The LDAP adapter verifies directory credentials and returns a normalized identit
 
 Map that subject to an explicitly provisioned local `User` before granting access. Preserve its existing user ID, history and application relationships. Email and display name are attributes, not sufficient proof for automatic linking. Do not reuse `viisp_personal_code_hash`, reinterpret its MD5 values, or overwrite a citizen account on an email match. Future persistence for the source/subject binding and provider eligibility must enforce uniqueness; its concrete schema is deferred to implementation design.
 
-For the initial proposal, reject a successfully authenticated but unmapped LDAP identity with a generic access-denied response and an auditable mapping reason. Do not automatically provision roles or elevated access on first login. Pre-provision and reconcile a pilot set administratively. This conservative behavior is a proposal, not an assertion about business requirements.
+The initial unmapped-identity proposal is superseded by the [admin approval workflow](../ldap-access-approval.md). A verified unmapped identity creates or updates a pending request and receives an awaiting-approval denial. Only explicit administrator approval provisions/links a local user and assigns application roles/institution. No access is granted on first login.
 
 ### Authorization and session ownership
 

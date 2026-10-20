@@ -236,8 +236,7 @@ class RbacUserController extends Controller
         $roleIds = array_values(array_unique($request->validated('role_ids')));
 
         try {
-            $user->roles()->sync($roleIds);
-            $this->twoFactorService->enforceGlobalRequirement($user);
+            $this->rbacService->syncRoles($user, $roleIds);
             $this->auditLogService->logUserAction($request->user(), 'rbac.user.sync_roles', 'User', $user->id, AuditLogResult::Success, null, ['user_id' => $user->id]);
 
             return $user->load('roles:id,role,name');

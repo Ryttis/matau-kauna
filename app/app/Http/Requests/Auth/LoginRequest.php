@@ -108,18 +108,18 @@ class LoginRequest extends FormRequest
     }
 
     /**
-     * LDAP credential verification for enrolled staff. Any directory failure (bad password,
-     * outage, unmapped identity) is a generic login failure; the local password is never consulted.
+     * LDAP credential verification for staff. Verified unmapped identities await approval;
+     * other directory failures remain generic. The local password is never consulted.
      */
     private function authenticateWithDirectory(string $identifier): void
     {
         try {
             $user = $this->staffAuthenticator()->authenticate($identifier, (string) $this->input('password'));
-        } catch (LdapAuthenticationException) {
+        } catch (LdapAuthenticationException $e) {
             RateLimiter::hit($this->throttleKey());
 
             throw ValidationException::withMessages([
-                'email' => $this->authMessage('failed', 'Neteisingi prisijungimo duomenys.'),
+                'email' => $e->reason === LdapAuthenticationException::APPROVAL_PENDING ? LdapAuthenticationException::APPROVAL_MESSAGE : $this->authMessage('failed', 'Neteisingi prisijungimo duomenys.'),
             ]);
         }
 

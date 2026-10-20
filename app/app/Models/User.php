@@ -376,8 +376,8 @@ class User extends Authenticatable implements MustVerifyEmail
     public function scopeWhereLdapIdentity(Builder $query, string $source, string $username): Builder
     {
         return $query
-            ->where('ldap_source', $source)
-            ->whereRaw('LOWER(ldap_username) = ?', [mb_strtolower(trim($username))]);
+            ->whereRaw('LOWER(TRIM(ldap_source)) = ?', [mb_strtolower(trim($source))])
+            ->whereRaw('LOWER(TRIM(ldap_username)) = ?', [mb_strtolower(trim($username))]);
     }
 
     public function canRequestPasswordResetLink(): bool

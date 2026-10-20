@@ -44,27 +44,13 @@ class LdapLinkUserCommand extends Command
             return self::FAILURE;
         }
 
-        if (! $user->hasStaffRole()) {
-            $this->error('Only users with an internal (staff) role can be linked; reporter-only accounts are never LDAP-managed.');
+        try {
+            app(\App\Services\Ldap\LdapLinkService::class)->link($user, $settings->source, $username);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            $this->error($e->getMessage());
 
             return self::FAILURE;
         }
-
-        $conflict = User::query()
-            ->whereLdapIdentity($settings->source, $username)
-            ->where('id', '!=', $user->id)
-            ->first();
-        if ($conflict !== null) {
-            $this->error(sprintf('Directory account "%s" is already linked to user #%d.', $username, $conflict->id));
-
-            return self::FAILURE;
-        }
-
-        $user->forceFill([
-            'ldap_source' => $settings->source,
-            'ldap_username' => $username,
-            'ldap_linked_at' => now(),
-        ])->save();
 
         $this->info(sprintf('Linked user #%d (%s) to directory account "%s" (%s). Roles and permissions are unchanged.', $user->id, $user->email, $username, $settings->source));
         if (! $settings->enabled) {

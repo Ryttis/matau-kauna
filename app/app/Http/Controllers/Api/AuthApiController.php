@@ -63,9 +63,9 @@ class AuthApiController extends Controller
             // LDAP verifies the credential; no local-password fallback on any directory failure.
             try {
                 $user = $staffAuthenticator->authenticate($validated['email'], $validated['password']);
-            } catch (LdapAuthenticationException) {
+            } catch (LdapAuthenticationException $e) {
                 throw ValidationException::withMessages([
-                    'email' => [__('auth.failed', [], 'lt')],
+                    'email' => [$e->reason === LdapAuthenticationException::APPROVAL_PENDING ? LdapAuthenticationException::APPROVAL_MESSAGE : __('auth.failed', [], 'lt')],
                 ]);
             }
         } else {

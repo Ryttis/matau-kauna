@@ -22,6 +22,20 @@ class LdapUserResolver
      */
     public function resolve(LdapIdentity $identity): User
     {
+        $user = $this->findLinked($identity);
+        if ($user === null) {
+            throw LdapAuthenticationException::userMappingFailed(sprintf(
+                'Directory identity "%s" (%s) is not linked to any MatauKauna user.',
+                $identity->normalizedUsername(),
+                $this->settings->source,
+            ));
+        }
+
+        return $user;
+    }
+
+    public function findLinked(LdapIdentity $identity): ?User
+    {
         $username = $identity->normalizedUsername();
 
         $candidates = User::query()
@@ -30,11 +44,7 @@ class LdapUserResolver
             ->get();
 
         if ($candidates->isEmpty()) {
-            throw LdapAuthenticationException::userMappingFailed(sprintf(
-                'Directory identity "%s" (%s) is not linked to any MatauKauna user.',
-                $username,
-                $this->settings->source,
-            ));
+            return null;
         }
 
         if ($candidates->count() > 1) {

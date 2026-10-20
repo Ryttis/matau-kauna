@@ -169,11 +169,11 @@ class LdapUserMappingTest extends TestCase
         $this->directoryAccount('unmapped', self::PASSWORD);
 
         $this->post('/login', ['email' => 'unmapped', 'password' => self::PASSWORD, 'login_type' => 'darbuotojas'])
-            ->assertSessionHasErrors(['email' => __('auth.failed', [], 'lt')]);
+            ->assertSessionHasErrors(['email' => LdapAuthenticationException::APPROVAL_MESSAGE]);
 
         Log::shouldHaveReceived('warning')->withArgs(function (string $message, array $context): bool {
             return $message === 'LDAP staff authentication failed'
-                && $context['reason'] === LdapAuthenticationException::USER_MAPPING_FAILED
+                && $context['reason'] === LdapAuthenticationException::APPROVAL_PENDING
                 && $context['username'] === 'unmapped'
                 && $context['bind_identity'] === 'TEST\\unmapped'
                 && ! str_contains(json_encode($context), self::PASSWORD);

@@ -72,7 +72,7 @@ class StaffCredentialAuthenticator
 
     /**
      * Verifies the credential with LDAP and returns the pre-provisioned local user.
-     * Failures are logged with a normalized reason and rethrown; callers must respond generically.
+     * Failures are logged with a normalized reason and rethrown; only approval_pending has a public message.
      *
      * @throws LdapAuthenticationException
      */
@@ -96,7 +96,14 @@ class StaffCredentialAuthenticator
 
         try {
             $identity = $this->ldap->authenticate($username, $password);
-            $user = $this->resolver->resolve($identity);
+            $user = $this->resolver->findLinked($identity);
+            if ($user === null) {
+                if ($expectedUser !== null) {
+                    throw LdapAuthenticationException::userMappingFailed('Email identifier belongs to a different directory source.');
+                }
+                app(\App\Services\Ldap\LdapAccessService::class)->observe($identity, $this->settings->source);
+                throw LdapAuthenticationException::approvalPending();
+            }
         } catch (LdapAuthenticationException $e) {
             $this->fail($username, $e);
         }

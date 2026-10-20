@@ -6,10 +6,19 @@ use RuntimeException;
 
 /**
  * Internal LDAP / staff-credential failure. The reason and message are for logs and
- * diagnostics only and must never be shown to the end user.
+ * diagnostics only. Only the fixed APPROVAL_MESSAGE may be shown to the end user.
  */
 final class LdapAuthenticationException extends RuntimeException
 {
+    public const APPROVAL_PENDING = 'approval_pending';
+
+    public const APPROVAL_MESSAGE = 'Paskyra laukia administratoriaus patvirtinimo.';
+
+    public static function approvalPending(): self
+    {
+        return new self(self::APPROVAL_PENDING, 'map_user', self::APPROVAL_MESSAGE);
+    }
+
     public const INVALID_CREDENTIALS = 'invalid_credentials';
 
     public const UNAVAILABLE = 'ldap_unavailable';

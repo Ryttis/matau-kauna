@@ -2,6 +2,7 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue'
 import { Head } from '@inertiajs/vue3'
 import { computed, ref } from 'vue'
+import AdminLdapRequests from '@/Pages/Admin/Tabs/AdminLdapRequests.vue'
 import AdminUsers from '@/Pages/Admin/Tabs/AdminUsers.vue'
 import AdminInstitutions from '@/Pages/Admin/Tabs/AdminInstitutions.vue'
 import AdminRules from '@/Pages/Admin/Tabs/AdminRules.vue'
@@ -15,6 +16,7 @@ import InstitutionTeamsManager from '@/Components/InstitutionTeams/InstitutionTe
 
 const tabs = [
     { key: 'users', label: 'Naudotojai', component: AdminUsers },
+    { key: 'ldap', label: 'Laukiantys LDAP vartotojai', component: AdminLdapRequests },
     { key: 'institutions', label: 'Įstaigos', component: AdminInstitutions },
     { key: 'teams', label: 'Komandos (grupės)', component: InstitutionTeamsManager },
     { key: 'rules', label: 'Taisyklės ir turinys', component: AdminRules },
